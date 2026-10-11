@@ -4,7 +4,7 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 
 [English README](README.md)
 
-- 標準 PEG の全構文と、直接・間接の左再帰を受理する（bounded left recursion, Medeiros et al. 2014）
+- 標準 PEG の全構文と、直接と間接の左再帰を受理する（bounded left recursion, Medeiros et al. 2014）
 - happy / alex 方式のスタンドアロン生成器。`.peg` から決定的に `.hs` を生成する（同一入力からバイト単位で同一の出力）
 - 各規則が結果型とセマンティックアクションを持ち、生成されたパーサーは利用者の AST を直接返す
 
