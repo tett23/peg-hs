@@ -10,6 +10,7 @@ A PEG-to-Haskell parser generator with left recursion support.
 - Context-sensitive extensions (semantic predicates, parameterized rules, a read-only parse environment, and column references) for indentation-sensitive and forward-referencing syntax, designed so that packrat memoization and left recursion stay sound
 - Type errors in semantic actions are reported at their line and column in the `.peg` file
 - Optional lossless syntax trees in the style of rust-analyzer (`%syntax`), keeping every space and comment, for linters and formatters
+- Error recovery with labelled failures (`e ^label` and `%recover`): a recovering parse always returns a lossless tree with error nodes, for language servers
 
 **Status: pre-release (0.1).** The generator, the runtime and the conformance tests are implemented. Not yet published on Hackage.
 
