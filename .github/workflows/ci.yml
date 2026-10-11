@@ -20,3 +20,46 @@ jobs:
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+  haskell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # The versions follow cabal.project, which follows ghcup's recommended
+      # versions (ADR 0013).
+      - uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: '9.10.3'
+          cabal-version: '3.16.1.0'
+      - name: Resolve dependencies
+        run: |
+          cabal update
+          cabal build all --dry-run
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-
+      - name: Build
+        run: cabal build all
+      - name: Test
+        run: cabal test all --test-show-details=direct
+      - name: Check packages
+        run: |
+          for p in packages/*; do
+            (cd "$p" && cabal check)
+          done
+      - name: Haddock
+        run: cabal haddock peg-runtime peg-grammar peg-codegen
+      # Each published package must build from its source tarball alone
+      # (ADR 0009).
+      - name: Build from source tarballs
+        run: |
+          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-cli --output-directory "$RUNNER_TEMP/sdist"
+          cd "$RUNNER_TEMP/sdist"
+          for t in *.tar.gz; do tar xzf "$t"; done
+          printf 'packages: */*.cabal\nwith-compiler: ghc-9.10.3\n' > cabal.project
+          cabal build all

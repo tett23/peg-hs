@@ -1,0 +1,17 @@
+-- The compiler follows the version ghcup marks as recommended (ADR 0013).
+with-compiler: ghc-9.10.3
+
+packages:
+  packages/peg-runtime
+  packages/peg-grammar
+  packages/peg-codegen
+  packages/peg-cli
+  conformance
+
+tests: True
+benchmarks: True
+
+-- Generated code must compile without warnings (ADR 0014). -Werror cannot
+-- be put in a published .cabal file, so it is set here.
+package peg-codegen
+  ghc-options: -Werror
