@@ -40,6 +40,8 @@ if [ -d conformance/json ]; then
     sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonSyntax\n%syntax\n%token Ws\n%trivia Ws/' json/Json.peg > bench/JsonSyntax.peg
     "$peg" bench/JsonSyntax.peg -o bench/Conformance/Bench/JsonSyntax.hs --debug-entry >/dev/null
     "$peg" bench/JsonCounted.peg -o bench/Conformance/Bench/JsonCounted.hs --debug-entry >/dev/null
+    # Written by hand: the JSON grammar with labels and recovery rules (ADR 0021).
+    "$peg" bench/JsonRecover.peg -o bench/Conformance/Bench/JsonRecover.hs >/dev/null
     "$peg" bench/JsonNomemo.peg -o bench/Conformance/Bench/JsonNomemo.hs --debug-entry >/dev/null
     "$peg" bench/Pathological.peg -o bench/Conformance/Bench/Pathological.hs --debug-entry >/dev/null
     "$peg" commonmark/Block.peg -o commonmark/Conformance/CommonMark/Block.hs >/dev/null

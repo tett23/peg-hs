@@ -22,6 +22,7 @@ library
   exposed-modules:
     Conformance.Bench.JsonCounted
     Conformance.Bench.JsonNomemo
+    Conformance.Bench.JsonRecover
     Conformance.Bench.JsonSyntax
     Conformance.Bench.Pathological
     Conformance.CommonMark

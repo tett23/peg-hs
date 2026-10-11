@@ -2,6 +2,7 @@
 module Main (main) where
 
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
+import qualified Conformance.Bench.JsonRecover as JsonRecover
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
 import Peg.Runtime.Syntax (syntaxText)
 import qualified Conformance.Json.Encode as Encode
@@ -16,7 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
-import Peg.Runtime (renderParseError)
+import Peg.Runtime (SyntaxError (..), renderParseError)
 import System.Directory (listDirectory)
 import System.FilePath ((</>))
 import Test.Tasty
@@ -59,6 +60,26 @@ main = do
           , testProperty "lossless on generated documents" $
               forAll (sized genValue) $ \v ->
                 let t = Encode.encode v in fmap syntaxText (JsonSyntax.parseSyntax t) === Right t
+          ]
+      , testGroup
+          "recovery (ADR 0021)"
+          [ testCase "the labelled grammar is the base grammar plus labels and recovery rules" labelledDerived
+          , testCase "labels do not change the accepted language" $ do
+              rs <- mapM (\f -> (,) f <$> labelsAgree f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testCase "every rejected case gives a lossless tree with errors" $ do
+              rs <- mapM (\f -> (,) f <$> recoversOnFile f) (named "n_")
+              assertBool ("failed: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testProperty "every input gives a lossless tree" $
+              forAll (T.pack <$> arbitrary) $ \t ->
+                syntaxText (fst (JsonRecover.parseSyntaxRecover t)) === t
+          , testProperty "every near-JSON input gives a lossless tree" $
+              forAll (T.pack <$> listOf (elements "[]{},:\"\\0123456789.eE+-truefalsn \n\x3042")) $ \t ->
+                syntaxText (fst (JsonRecover.parseSyntaxRecover t)) === t
+          , testCase "a broken element is recovered in place" $ do
+              let (v, errs) = JsonRecover.parseRecover (T.pack "[1, @, 3]")
+              fmap show v @?= Just (show (JsonRecover.Array [JsonRecover.Number (T.pack "1"), JsonRecover.Null, JsonRecover.Number (T.pack "3")]))
+              map syntaxErrorLabel errs @?= [Just (T.pack "value")]
           ]
       , testGroup
           "%nomemo variant (ADR 0017)"
@@ -192,3 +213,32 @@ syntaxAgrees name = do
   pure $ case TE.decodeUtf8' bytes of
     Left _ -> True
     Right t -> either (Left . show) (const (Right ())) (Json.parse t) == either (Left . show) (const (Right ())) (JsonSyntax.parseSyntax t)
+
+-- The labelled grammar differs from the base grammar only by its header,
+-- its labels and its recovery rules.
+labelledDerived :: Assertion
+labelledDerived = do
+  base <- TIO.readFile "json/Json.peg"
+  labelled <- TIO.readFile "bench/JsonRecover.peg"
+  let body = T.unlines . filter (\l -> not (any (`T.isPrefixOf` l) (map T.pack ["%syntax", "%token", "%trivia", "%recover"]))) . T.lines
+      withoutRecovery = fst (T.breakOn (T.pack "\n# 回復の規則") labelled)
+      unlabel = T.unwords . filter (not . T.isPrefixOf (T.pack "^")) . T.words
+      normalise = map unlabel . T.lines . body
+  normalise (T.replace (T.pack "Conformance.Bench.JsonRecover") (T.pack "Conformance.Json.Parser") withoutRecovery)
+    @?= normalise (T.stripEnd base <> T.pack "\n")
+
+labelsAgree :: FilePath -> IO Bool
+labelsAgree name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> isRight (Json.parse t) == isRight (JsonRecover.parse t)
+
+recoversOnFile :: FilePath -> IO Bool
+recoversOnFile name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t ->
+      let (tree, errs) = JsonRecover.parseSyntaxRecover t
+       in syntaxText tree == t && not (null errs)
