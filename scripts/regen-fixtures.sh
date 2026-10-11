@@ -34,6 +34,13 @@ if [ -d conformance/json ]; then
   (
     cd conformance
     "$peg" json/Json.peg -o json/Conformance/Json/Parser.hs >/dev/null
+    # Variants of the JSON grammar for ADR 0017, derived from json/Json.peg.
+    sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonCounted/' json/Json.peg > bench/JsonCounted.peg
+    sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonNomemo\n%nomemo Ws\n%nomemo Unit\n%nomemo Hex\n%nomemo IntPart\n%nomemo Frac\n%nomemo Exp/' json/Json.peg > bench/JsonNomemo.peg
+    sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonSyntax\n%syntax\n%token Ws\n%trivia Ws/' json/Json.peg > bench/JsonSyntax.peg
+    "$peg" bench/JsonSyntax.peg -o bench/Conformance/Bench/JsonSyntax.hs --debug-entry >/dev/null
+    "$peg" bench/JsonCounted.peg -o bench/Conformance/Bench/JsonCounted.hs --debug-entry >/dev/null
+    "$peg" bench/JsonNomemo.peg -o bench/Conformance/Bench/JsonNomemo.hs --debug-entry >/dev/null
     "$peg" bench/Pathological.peg -o bench/Conformance/Bench/Pathological.hs --debug-entry >/dev/null
     "$peg" commonmark/Block.peg -o commonmark/Conformance/CommonMark/Block.hs >/dev/null
     "$peg" commonmark/Inline.peg -o commonmark/Conformance/CommonMark/Inline.hs >/dev/null

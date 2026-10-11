@@ -1,6 +1,9 @@
 -- | JSON conformance (ADR 0010), run against nst/JSONTestSuite.
 module Main (main) where
 
+import qualified Conformance.Bench.JsonNomemo as JsonNomemo
+import qualified Conformance.Bench.JsonSyntax as JsonSyntax
+import Peg.Runtime.Syntax (syntaxText)
 import qualified Conformance.Json.Encode as Encode
 import Conformance.Json.Parser (Value (..))
 import qualified Conformance.Json.Parser as Json
@@ -45,6 +48,28 @@ main = do
       , goldenVsString "i_: recorded results" "json/implementation-defined.golden" (implementationDefined (named "i_"))
       , goldenVsString "error positions" "json/errors.golden" errorReport
       , testProperty "round trip" roundTrip
+      , testGroup
+          "lossless syntax tree (ADR 0019)"
+          [ testCase "the text of the tree is the input, for every accepted case" $ do
+              rs <- mapM (\f -> (,) f <$> losslessOnFile f) (named "y_" ++ named "i_")
+              assertBool ("not lossless: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testCase "the syntax variant accepts and rejects the same files" $ do
+              rs <- mapM (\f -> (,) f <$> syntaxAgrees f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testProperty "lossless on generated documents" $
+              forAll (sized genValue) $ \v ->
+                let t = Encode.encode v in fmap syntaxText (JsonSyntax.parseSyntax t) === Right t
+          ]
+      , testGroup
+          "%nomemo variant (ADR 0017)"
+          [ testCase "the variant grammars are derived from json/Json.peg" variantsDerived
+          , testCase "same results on the whole test suite" $ do
+              rs <- mapM (\f -> (,) f <$> sameOnFile f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testProperty "same results and errors on arbitrary input" $
+              forAll (T.pack <$> listOf (elements "[]{},:\"\\0123456789.eE+-truefalsn \n")) $ \t ->
+                show (Json.parse t) === show (JsonNomemo.parse t)
+          ]
       ]
 
 regenerated :: Assertion
@@ -114,3 +139,56 @@ genNumber = do
 
 roundTrip :: Property
 roundTrip = forAll (sized genValue) $ \v -> Json.parse (Encode.encode v) === Right v
+
+-- The variants of ADR 0017 must stay in sync with the base grammar. They
+-- are written by scripts/regen-fixtures.sh.
+variantsDerived :: Assertion
+variantsDerived = do
+  base <- TIO.readFile "json/Json.peg"
+  let header = T.pack "%module Conformance.Json.Parser"
+      derive m extra = T.replace header (T.pack ("%module " <> m) <> extra) base
+      nomemo = T.concat [T.pack ("\n%nomemo " <> r) | r <- ["Ws", "Unit", "Hex", "IntPart", "Frac", "Exp"]]
+      syntaxDirectives = T.pack "\n%syntax\n%token Ws\n%trivia Ws"
+  counted <- TIO.readFile "bench/JsonCounted.peg"
+  nm <- TIO.readFile "bench/JsonNomemo.peg"
+  counted @?= derive "Conformance.Bench.JsonCounted" T.empty
+  nm @?= derive "Conformance.Bench.JsonNomemo" nomemo
+  sy <- TIO.readFile "bench/JsonSyntax.peg"
+  sy @?= derive "Conformance.Bench.JsonSyntax" syntaxDirectives
+  mapM_
+    ( \(src, out) -> do
+        grammar <- TIO.readFile src
+        committed <- B.readFile out
+        case generateFromSource (Options src out True) grammar of
+          Left ds -> assertFailure (show ds)
+          Right code -> assertBool ("regenerate " <> out) (TE.encodeUtf8 code == committed)
+    )
+    [ ("bench/JsonCounted.peg", "bench/Conformance/Bench/JsonCounted.hs")
+    , ("bench/JsonNomemo.peg", "bench/Conformance/Bench/JsonNomemo.hs")
+    , ("bench/JsonSyntax.peg", "bench/Conformance/Bench/JsonSyntax.hs")
+    ]
+
+-- Accept or reject the same way, with the same error.
+sameOnFile :: FilePath -> IO Bool
+sameOnFile name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> show (Json.parse t) == show (JsonNomemo.parse t)
+
+-- The syntax tree reproduces the input (ADR 0019).
+losslessOnFile :: FilePath -> IO Bool
+losslessOnFile name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> case JsonSyntax.parseSyntax t of
+      Right tree -> syntaxText tree == t
+      Left _ -> True
+
+syntaxAgrees :: FilePath -> IO Bool
+syntaxAgrees name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> either (Left . show) (const (Right ())) (Json.parse t) == either (Left . show) (const (Right ())) (JsonSyntax.parseSyntax t)

@@ -2,6 +2,10 @@
 -- the same machine; absolute numbers are not recorded.
 module Main (main) where
 
+import qualified Conformance.Bench.JsonCounted as JsonCounted
+import qualified Conformance.Bench.JsonNomemo as JsonNomemo
+import qualified Conformance.Bench.JsonSyntax as JsonSyntax
+import Peg.Runtime.Syntax (syntaxRange)
 import qualified Conformance.Bench.Pathological as Pathological
 import Conformance.Json.Encode (encode)
 import Conformance.Json.Parser (Value (..))
@@ -9,6 +13,9 @@ import qualified Conformance.Json.Parser as Json
 import Control.DeepSeq (force)
 import Control.Exception (evaluate)
 import Control.Monad (forM_)
+import Data.List (sortOn)
+import qualified Data.Map.Strict as M
+import Data.Ord (Down (..))
 import Criterion.Main
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -49,7 +56,10 @@ pathological n = T.replicate n (T.pack "a") <> T.replicate n (T.pack "b")
 main :: IO ()
 main = do
   args <- getArgs
-  if "--memo-report" `elem` args then memoReport else benchmarks
+  case args of
+    ["--memo-report"] -> memoReport
+    ["--memory", variant, n] -> memory variant (read n)
+    _ -> benchmarks
 
 benchmarks :: IO ()
 benchmarks = do
@@ -59,6 +69,9 @@ benchmarks = do
     [ bgroup
         "json"
         [ bench ("parse " <> show (T.length json) <> " characters") (whnf (either (const 0) size . Json.parse) json)
+        , bench ("parse " <> show (T.length json) <> " characters with %nomemo") (whnf (either (const 0) (size . convertNomemo) . JsonNomemo.parse) json)
+        , bench ("parse " <> show (T.length json) <> " characters with %syntax, typed entry") (whnf (either (const 0) (size . convertSyntax) . JsonSyntax.parse) json)
+        , bench ("parse " <> show (T.length json) <> " characters with %syntax, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax) json)
         ]
     , bgroup
         "left recursion (pathological)"
@@ -72,24 +85,57 @@ benchmarks = do
         ]
     ]
 
--- Memo table sizes and live memory, as material for the %nomemo decision
--- (ADR 0006).
+-- Memo table sizes and live memory, as material for choosing %nomemo rules
+-- (ADR 0006, ADR 0017).
 memoReport :: IO ()
 memoReport = withArgs [] $ do
-  forM_ [1000, 10000] $ \n -> do
-    let input = syntheticJson n
-    _ <- evaluate (T.length input)
-    performMajorGC
-    before <- getRTSStats
-    r <- evaluate (either (const 0) size (Json.parse input))
-    performMajorGC
-    after <- getRTSStats
-    putStrLn $
-      "json, " <> show (T.length input) <> " characters: tree size " <> show r
-        <> ", max live bytes " <> show (max_live_bytes after)
-        <> " (before " <> show (max_live_bytes before) <> ")"
+  let small = syntheticJson 1000
+      (_, st) = JsonCounted.peg'parseWith Rt.defaultConfig {cfgCount = True} small
+  putStrLn ("json, " <> show (T.length small) <> " characters: memo entries by rule")
+  forM_ (sortOn (Down . snd) (M.toList (statsEntriesByRule st))) $ \(rule, k) ->
+    putStrLn ("  " <> T.unpack rule <> ": " <> show k)
   forM_ [100, 200, 400] $ \n -> do
-    let (_, st) = Pathological.peg'parseWith Rt.defaultConfig {cfgCount = True} (pathological n)
+    let (_, pst) = Pathological.peg'parseWith Rt.defaultConfig {cfgCount = True} (pathological n)
     putStrLn $
-      "pathological, n = " <> show n <> ": evaluations " <> show (sum (statsEvaluations st))
-        <> ", memo entries at the end " <> show (statsMemoEntries st)
+      "pathological, n = " <> show n <> ": evaluations " <> show (sum (statsEvaluations pst))
+        <> ", memo entries at the end " <> show (statsMemoEntries pst)
+
+-- The peak live memory of one parse. The peak is per process, so each
+-- variant runs in its own process: --memory memoised|nomemo RECORDS.
+memory :: String -> Int -> IO ()
+memory variant n = withArgs [] $ do
+  let input = syntheticJson n
+      run = case variant of
+        "nomemo" -> either (const 0) (size . convertNomemo) . JsonNomemo.parse
+        "syntax" -> either (const 0) (size . convertSyntax) . JsonSyntax.parse
+        "syntax-tree" -> either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax
+        _ -> either (const 0) size . Json.parse
+  _ <- evaluate (T.length input)
+  performMajorGC
+  base <- getRTSStats
+  r <- evaluate (run input)
+  performMajorGC
+  stats <- getRTSStats
+  putStrLn $
+    "json, " <> show (T.length input) <> " characters, " <> variant <> ": tree size " <> show r
+      <> ", max live bytes " <> show (max_live_bytes stats)
+      <> " (input and program before parsing: " <> show (max_live_bytes base) <> ")"
+
+
+convertNomemo :: JsonNomemo.Value -> Value
+convertNomemo v = case v of
+  JsonNomemo.Null -> Null
+  JsonNomemo.Bool b -> Bool b
+  JsonNomemo.Number t -> Number t
+  JsonNomemo.String t -> String t
+  JsonNomemo.Array vs -> Array (map convertNomemo vs)
+  JsonNomemo.Object ms -> Object [(k, convertNomemo x) | (k, x) <- ms]
+
+convertSyntax :: JsonSyntax.Value -> Value
+convertSyntax v = case v of
+  JsonSyntax.Null -> Null
+  JsonSyntax.Bool b -> Bool b
+  JsonSyntax.Number t -> Number t
+  JsonSyntax.String t -> String t
+  JsonSyntax.Array vs -> Array (map convertSyntax vs)
+  JsonSyntax.Object ms -> Object [(k, convertSyntax x) | (k, x) <- ms]

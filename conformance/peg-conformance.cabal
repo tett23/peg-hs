@@ -20,6 +20,9 @@ common warnings
 library
   import:           warnings
   exposed-modules:
+    Conformance.Bench.JsonCounted
+    Conformance.Bench.JsonNomemo
+    Conformance.Bench.JsonSyntax
     Conformance.Bench.Pathological
     Conformance.CommonMark
     Conformance.CommonMark.Block
@@ -92,6 +95,7 @@ benchmark peg-bench
   ghc-options:      -rtsopts "-with-rtsopts=-T"
   build-depends:
     , base
+    , containers
     , criterion        >=1.6 && <1.7
     , deepseq
     , peg-codegen
@@ -111,7 +115,9 @@ test-suite commonmark-conformance
     , base
     , bytestring
     , containers
+    , directory
     , peg-codegen
     , peg-conformance
+    , peg-runtime
     , text
   default-language: GHC2021
