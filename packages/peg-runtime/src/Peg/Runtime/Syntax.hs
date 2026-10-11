@@ -200,10 +200,12 @@ syntaxChildrenWithTokens n = go (snOffset n) (gnChildren (snGreen n))
 
 -- | All tokens below the node, in order.
 syntaxTokens :: SyntaxNode -> [SyntaxToken]
-syntaxTokens n = concatMap tokensOf (syntaxChildrenWithTokens n)
+syntaxTokens root = go root []
   where
-    tokensOf (TokenElement t) = [t]
-    tokensOf (NodeElement c) = syntaxTokens c
+    -- An accumulator keeps this linear in the size of deep trees.
+    go n acc = foldr step acc (syntaxChildrenWithTokens n)
+    step (TokenElement t) acc = t : acc
+    step (NodeElement c) acc = go c acc
 
 -- | The line and column of a byte offset in the parsed input.
 syntaxPos :: SyntaxNode -> Int -> Pos
@@ -270,13 +272,13 @@ labeledTokens k label n = [t | TokenElement t <- syntaxChildrenWithTokens n, tok
 -- | An indented dump of the tree, one element per line, as @Kind\@start..end@
 -- with the text of tokens and the labels of children.
 debugTree :: (SyntaxKind -> Text) -> SyntaxNode -> Text
-debugTree name root = T.unlines (nodeLines 0 Nothing root)
+debugTree name root = T.unlines (nodeLines 0 Nothing root [])
   where
-    nodeLines depth label n =
+    nodeLines depth label n acc =
       line depth label (name (syntaxKind n)) (syntaxRange n) Nothing
-        : concatMap (elementLines (depth + 1)) (syntaxChildrenWithTokens n)
-    elementLines depth (NodeElement c) = nodeLines depth (syntaxLabel c) c
-    elementLines depth (TokenElement t) = [line depth (tokenLabel t) (name (tokenKind t)) (tokenRange t) (Just (tokenText t))]
+        : foldr (elementLines (depth + 1)) acc (syntaxChildrenWithTokens n)
+    elementLines depth (NodeElement c) acc = nodeLines depth (syntaxLabel c) c acc
+    elementLines depth (TokenElement t) acc = line depth (tokenLabel t) (name (tokenKind t)) (tokenRange t) (Just (tokenText t)) : acc
     line :: Int -> Maybe Text -> Text -> (Int, Int) -> Maybe Text -> Text
     line depth label kind (s, e) text =
       T.concat
