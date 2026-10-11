@@ -1,0 +1,5 @@
+Source: https://github.com/commonmark/commonmark-spec
+Tag: 0.31.2
+Contents: spec.txt and LICENSE, copied unchanged.
+spec.txt is licensed under CC-BY-SA 4.0 (see LICENSE). It is used only by the
+unpublished peg-conformance package.

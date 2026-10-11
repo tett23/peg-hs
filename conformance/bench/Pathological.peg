@@ -1,0 +1,15 @@
+# ADR 0007 の病的な左再帰。入力 a^k b^n に対して E は n 回成長し、
+# 各反復で L が A を k 個の位置で評価し直す（成長中の項目は破棄されるため）。
+%module Conformance.Bench.Pathological
+
+E :: Int
+E <- L { 0 }
+   / n:E 'b' { n + 1 }
+   / A { 0 }
+
+L :: ()
+L <- A 'c' { () }
+
+A :: ()
+A <- 'a' A { () }
+   / 'a' { () }

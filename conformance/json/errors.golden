@@ -1,0 +1,7 @@
+n_array_extra_comma.json: 1:5: expected '"', '-', '0', '[', 'false', 'null', 'true', '{', [ \t\n\r] or [1-9]
+n_object_missing_value.json: 1:6: expected '"', '-', '0', '[', 'false', 'null', 'true', '{', [ \t\n\r] or [1-9]
+n_number_-01.json: 1:4: expected ',', '.', ']', [ \t\n\r] or [eE]
+n_string_unescaped_tab.json: 1:3: expected '"', '\\' or [\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}]
+n_structure_unclosed_array.json: 1:3: expected ',', '.', ']', [ \t\n\r], [0-9] or [eE]
+n_object_trailing_comma.json: 1:9: expected '"' or [ \t\n\r]
+n_structure_100000_opening_arrays.json: 1:100001: expected '"', '-', '0', '[', ']', 'false', 'null', 'true', '{', [ \t\n\r] or [1-9]

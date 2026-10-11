@@ -1,0 +1,263 @@
+# CommonMark 0.31.2 のインラインの文法（ADR 0011、ADR 0012）。
+#
+# 入力は葉ブロックの生の文字列。解析環境には、ブロックの解析で集めた
+# リンク参照定義と、入力の文字列そのものを渡す。後者は、リンクのラベルの
+# 原文と、強調の区切り記号の前後の文字をオフセットから求めるために使う。
+# 強調の組み立ては解析後の処理（Emphasis.hs）が行う。
+%module Conformance.CommonMark.Inline
+%env InlineEnv
+%export InlineEnv(..)
+
+%{
+import Data.Char (chr, digitToInt)
+import qualified Data.Map.Strict as M
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Unsafe as TU
+import Peg.Runtime (Pos (..), Span (..))
+import Conformance.CommonMark.Entities (entities)
+import Conformance.CommonMark.Types
+
+data InlineEnv = InlineEnv
+  { envRefs :: RefMap
+  , envSrc :: Text
+  }
+
+slice :: InlineEnv -> Int -> Int -> Text
+slice env s e = TU.takeWord8 (e - s) (TU.dropWord8 s (envSrc env))
+
+codePoint :: Int -> Text
+codePoint n
+  | n == 0 || n > 0x10FFFF || (n >= 0xD800 && n <= 0xDFFF) = T.singleton '\xFFFD'
+  | otherwise = T.singleton (chr n)
+
+hexValue :: Text -> Int
+hexValue = T.foldl' (\n c -> n * 16 + digitToInt c) 0
+
+decValue :: Text -> Int
+decValue = T.foldl' (\n c -> n * 10 + digitToInt c) 0
+
+-- Line endings become spaces; one space is stripped from each side if
+-- both sides have one and the content is not all spaces.
+normalizeCode :: Text -> Text
+normalizeCode t =
+  let s = T.map (\c -> if c == '\n' then ' ' else c) t
+   in case T.stripPrefix (T.pack " ") s >>= T.stripSuffix (T.pack " ") of
+        Just inner | not (T.all (== ' ') s) -> inner
+        _ -> s
+
+lookupRef :: InlineEnv -> Text -> Maybe (Text, Maybe Text)
+lookupRef env label
+  | T.length label > 999 || T.all (\c -> c == ' ' || c == '\t' || c == '\n') label = Nothing
+  | otherwise = M.lookup (normalizeLabel label) (envRefs env)
+
+hasRef :: InlineEnv -> Text -> Bool
+hasRef env label = maybe False (const True) (lookupRef env label)
+
+refLink :: ([Inline] -> Text -> Maybe Text -> Inline) -> InlineEnv -> [Inline] -> Text -> Inline
+refLink make env contents label = case lookupRef env label of
+  Just (d, t) -> make contents d t
+  Nothing -> Str T.empty
+
+domainLabelOk :: Text -> Bool
+domainLabelOk l = T.length l <= 63 && T.takeEnd 1 l /= T.pack "-"
+}%
+
+Inlines :: [Inline]
+Inlines <- is:Inline* { is }
+
+Inline :: Inline
+Inline <- Break
+        / Space
+        / Escape
+        / EntityRef
+        / CodeSpan
+        / Ticks
+        / AutolinkI
+        / RawHtmlI
+        / ImageI
+        / LinkI
+        / DelimRun
+        / TextRun
+        / Other
+
+# リンクの文字列の中で使う要素。リンクと角括弧は別に扱う
+InlineNoLink :: Inline
+InlineNoLink <- Break
+              / Space
+              / Escape
+              / EntityRef
+              / CodeSpan
+              / Ticks
+              / AutolinkI
+              / RawHtmlI
+              / ImageI
+              / DelimRun
+              / TextRun
+              / OtherNoBracket
+
+Off :: Int
+Off <- { posOffset (spanStart _span) }
+
+# 文字と改行 ------------------------------------------------------------------------
+
+TextRun :: Inline
+TextRun <- t:$(![\\&`<!\[\]*_ \n] .)+ { Str t }
+
+Space :: Inline
+Space <- s:$' '+ !'\n' { Str s }
+
+Break :: Inline
+Break <- ' ' ' '+ '\n' { HardBreak }
+       / '\\' '\n' { HardBreak }
+       / ' '? '\n' { SoftBreak }
+
+Escape :: Inline
+Escape <- '\\' c:$[!-/:-@\[-`{-~] { Str c }
+        / '\\' { Str (T.pack "\\") }
+
+EntityRef :: Inline
+EntityRef <- '&' n:$[A-Za-z0-9]+ ';' &{ M.member n entities } { Str (M.findWithDefault T.empty n entities) }
+           / '&#' d:$[0-9]+ ';' &{ T.length d <= 7 } { Str (codePoint (decValue d)) }
+           / '&#' [xX] h:$[0-9a-fA-F]+ ';' &{ T.length h <= 6 } { Str (codePoint (hexValue h)) }
+           / '&' { Str (T.pack "&") }
+
+Other :: Inline
+Other <- c:$[!<\[\]] { Str c }
+
+OtherNoBracket :: Inline
+OtherNoBracket <- c:$[!<] { Str c }
+
+# コードスパン ----------------------------------------------------------------------
+
+CodeSpan :: Inline
+CodeSpan <- o:$'`'+ c:CodeBody(T.length o) { Code (normalizeCode c) }
+
+CodeBody(n :: Int) :: Text
+CodeBody <- ps:CodePart(n)* CloseTicks(n) { T.concat ps }
+
+CodePart(n :: Int) :: Text
+CodePart <- !CloseTicks(n) r:$'`'+ { r }
+          / t:$(!'`' .)+ { t }
+
+CloseTicks(n :: Int) :: ()
+CloseTicks <- r:$'`'+ &{ T.length r == n } { () }
+
+Ticks :: Inline
+Ticks <- r:$'`'+ { Str r }
+
+# 自動リンクと生の HTML ----------------------------------------------------------------
+
+AutolinkI :: Inline
+AutolinkI <- '<' u:$(Scheme ':' (![\u{0}-\u{20}<>] .)*) '>' { Autolink u u }
+           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink (T.pack "mailto:" <> e) e }
+
+Scheme :: ()
+Scheme <- s:$([A-Za-z] [A-Za-z0-9+.\-]+) &{ T.length s <= 32 } { () }
+
+EmailLocal :: ()
+EmailLocal <- [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~\-]+ { () }
+
+EmailDomain :: ()
+EmailDomain <- DomainLabel ('.' DomainLabel)* { () }
+
+DomainLabel :: ()
+DomainLabel <- l:$([a-zA-Z0-9] [a-zA-Z0-9\-]*) &{ domainLabelOk l } { () }
+
+RawHtmlI :: Inline
+RawHtmlI <- t:$(OpenTag / ClosingTag / HtmlComment / ProcInstr / Decl / CData) { RawHtml t }
+
+OpenTag :: ()
+OpenTag <- '<' TagName Attr* TWs? '/'? '>' { () }
+
+ClosingTag :: ()
+ClosingTag <- '</' TagName TWs? '>' { () }
+
+TagName :: ()
+TagName <- [A-Za-z] [A-Za-z0-9\-]* { () }
+
+Attr :: ()
+Attr <- TWs [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
+
+AttrValue :: ()
+AttrValue <- TWs? '=' TWs? (![ \t\n"'=<>`] .)+ { () }
+           / TWs? '=' TWs? '\'' (!'\'' .)* '\'' { () }
+           / TWs? '=' TWs? '"' (!'"' .)* '"' { () }
+
+TWs :: ()
+TWs <- [ \t]* '\n' [ \t]* { () }
+     / [ \t]+ { () }
+
+HtmlComment :: ()
+HtmlComment <- '<!-->' { () }
+             / '<!--->' { () }
+             / '<!--' (!'-->' .)* '-->' { () }
+
+ProcInstr :: ()
+ProcInstr <- '<?' (!'?>' .)* '?>' { () }
+
+Decl :: ()
+Decl <- '<!' [A-Za-z] (!'>' .)* '>' { () }
+
+CData :: ()
+CData <- '<![CDATA[' (!']]>' .)* ']]>' { () }
+
+# リンクと画像 ----------------------------------------------------------------------
+
+LinkI :: Inline
+LinkI <- '[' lt:LinkText ']' tl:InlineTail { Link (fst lt) (fst tl) (snd tl) }
+       / '[' lt:LinkText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Link _env (fst lt) lab }
+       / '[' lt:LinkText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
+       / '[' lt:LinkText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
+
+ImageI :: Inline
+ImageI <- '!' '[' lt:ImageText ']' tl:InlineTail { Image (fst lt) (fst tl) (snd tl) }
+        / '!' '[' lt:ImageText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Image _env (fst lt) lab }
+        / '!' '[' lt:ImageText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
+        / '!' '[' lt:ImageText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
+
+LabelBody :: ()
+LabelBody <- ('\\' . / ![\[\]] .)+ { () }
+
+# リンクの文字列はリンクを含めない。内側にリンクが成立するなら外側は成立しない
+LinkText :: ([Inline], Text)
+LinkText <- s:Off is:LinkItem* e:Off { (concat is, slice _env s e) }
+
+LinkItem :: [Inline]
+LinkItem <- !'[' !']' i:InlineNoLink { [i] }
+          / !LinkI '[' is:LinkItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+
+ImageText :: ([Inline], Text)
+ImageText <- s:Off is:ImageItem* e:Off { (concat is, slice _env s e) }
+
+ImageItem :: [Inline]
+ImageItem <- l:LinkI { [l] }
+           / !'[' !']' i:InlineNoLink { [i] }
+           / '[' is:ImageItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+
+InlineTail :: (Text, Maybe Text)
+InlineTail <- '(' LWs d:Dest? t:TitlePart? LWs ')' { (maybe T.empty id d, t) }
+
+LWs :: ()
+LWs <- [ \t]* ('\n' [ \t]*)? { () }
+
+Dest :: Text
+Dest <- '<' d:$('\\' . / ![<>\n] .)* '>' { d }
+      / !'<' d:$DestRaw { d }
+
+DestRaw :: ()
+DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n()\u{0}-\u{1F}] .)+ { () }
+
+TitlePart :: Text
+TitlePart <- ([ \t]+ ('\n' [ \t]*)? / [ \t]* '\n' [ \t]*) t:Title { t }
+
+Title :: Text
+Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
+       / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
+       / '(' t:$('\\' . / ![()] .)* ')' { t }
+
+# 強調の区切り記号 ------------------------------------------------------------------
+
+DelimRun :: Inline
+DelimRun <- s:Off r:$'*'+ e:Off { Delim '*' (T.length r) s e }
+          / s:Off r:$'_'+ e:Off { Delim '_' (T.length r) s e }

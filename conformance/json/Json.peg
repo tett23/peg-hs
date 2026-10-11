@@ -1,0 +1,110 @@
+# JSON (RFC 8259) の文法。ADR 0010 の適合性テストに使う。
+%module Conformance.Json.Parser
+%export Value(..)
+
+%{
+import Data.Char (chr, digitToInt, ord)
+import Data.Text (Text)
+import qualified Data.Text as T
+
+-- | A JSON value. Numbers keep their lexeme; object members keep their
+-- order and duplicates.
+data Value
+  = Null
+  | Bool Bool
+  | Number Text
+  | String Text
+  | Array [Value]
+  | Object [(Text, Value)]
+  deriving (Eq, Show)
+
+hexValue :: Text -> Int
+hexValue = T.foldl' (\n c -> n * 16 + digitToInt c) 0
+
+-- Join UTF-16 surrogate pairs written as two \u escapes. A lone surrogate
+-- cannot be stored in Text and becomes U+FFFD.
+decodeUnits :: [Int] -> String
+decodeUnits (hi : lo : rest)
+  | 0xD800 <= hi && hi <= 0xDBFF && 0xDC00 <= lo && lo <= 0xDFFF =
+      chr (0x10000 + (hi - 0xD800) * 0x400 + (lo - 0xDC00)) : decodeUnits rest
+decodeUnits (u : rest)
+  | 0xD800 <= u && u <= 0xDFFF = '\xFFFD' : decodeUnits rest
+  | otherwise = chr u : decodeUnits rest
+decodeUnits [] = []
+}%
+
+Json :: Value
+Json <- Ws v:Value Ws { v }
+
+Value :: Value
+Value <- 'null' { Null }
+       / 'true' { Bool True }
+       / 'false' { Bool False }
+       / n:Number { Number n }
+       / s:String { String s }
+       / Array
+       / Object
+
+Object :: Value
+Object <- '{' Ws ms:Members '}' { Object ms }
+        / '{' Ws '}' { Object [] }
+
+Members :: [(Text, Value)]
+Members <- m:Member ms:MoreMember* { m : ms }
+
+MoreMember :: (Text, Value)
+MoreMember <- ',' Ws m:Member { m }
+
+Member :: (Text, Value)
+Member <- k:String Ws ':' Ws v:Value Ws { (k, v) }
+
+Array :: Value
+Array <- '[' Ws vs:Elements ']' { Array vs }
+       / '[' Ws ']' { Array [] }
+
+Elements :: [Value]
+Elements <- e:Element es:MoreElement* { e : es }
+
+MoreElement :: Value
+MoreElement <- ',' Ws e:Element { e }
+
+Element :: Value
+Element <- v:Value Ws { v }
+
+Number :: Text
+Number <- n:$('-'? IntPart Frac? Exp?) { n }
+
+IntPart :: ()
+IntPart <- '0' { () }
+         / [1-9] [0-9]* { () }
+
+Frac :: ()
+Frac <- '.' [0-9]+ { () }
+
+Exp :: ()
+Exp <- [eE] [+\-]? [0-9]+ { () }
+
+String :: Text
+String <- '"' us:Unit* '"' { T.pack (decodeUnits us) }
+
+# 文字列の一要素。\u エスケープは UTF-16 の符号単位として返す
+Unit :: Int
+Unit <- '\\' e:Escape { e }
+      / c:$[\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}] { ord (T.foldr const ' ' c) }
+
+Escape :: Int
+Escape <- '"' { 0x22 }
+        / '\\' { 0x5C }
+        / '/' { 0x2F }
+        / 'b' { 0x08 }
+        / 'f' { 0x0C }
+        / 'n' { 0x0A }
+        / 'r' { 0x0D }
+        / 't' { 0x09 }
+        / 'u' h:$(Hex Hex Hex Hex) { hexValue h }
+
+Hex :: ()
+Hex <- [0-9a-fA-F] { () }
+
+Ws :: ()
+Ws <- [ \t\n\r]* { () }

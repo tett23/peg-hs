@@ -1,0 +1,230 @@
+# CommonMark 0.31.2 のインラインを、ADR 0012 の拡張を使わずに書いた文法。
+# ADR 0011 の初回のスナップショット（v1 の記法での測定）にだけ使う。
+# 解析環境がないため参照リンクは解決できず、意味述語がないためコードスパンの
+# 区切りの長さは 1 から 3 までを列挙する。文字参照はアクションで判定する。
+%module Conformance.CommonMark.V1.Inline
+
+%{
+import Data.Char (chr, digitToInt)
+import qualified Data.Map.Strict as M
+import Data.Text (Text)
+import qualified Data.Text as T
+import Peg.Runtime (Pos (..), Span (..))
+import Conformance.CommonMark.Entities (entities)
+import Conformance.CommonMark.Types
+
+codePoint :: Int -> Text
+codePoint n
+  | n == 0 || n > 0x10FFFF || (n >= 0xD800 && n <= 0xDFFF) = T.singleton '\xFFFD'
+  | otherwise = T.singleton (chr n)
+
+hexValue :: Text -> Int
+hexValue = T.foldl' (\n c -> n * 16 + digitToInt c) 0
+
+decValue :: Text -> Int
+decValue = T.foldl' (\n c -> n * 10 + digitToInt c) 0
+
+normalizeCode :: Text -> Text
+normalizeCode t =
+  let s = T.map (\c -> if c == '\n' then ' ' else c) t
+   in case T.stripPrefix (T.pack " ") s >>= T.stripSuffix (T.pack " ") of
+        Just inner | not (T.all (== ' ') s) -> inner
+        _ -> s
+
+entityOrLiteral :: Text -> Inline
+entityOrLiteral n = Str (M.findWithDefault (T.concat [T.pack "&", n, T.pack ";"]) n entities)
+
+numeric :: Int -> Text -> Inline
+numeric limit d
+  | T.length d <= limit = Str (codePoint (decValue d))
+  | otherwise = Str (T.concat [T.pack "&#", d, T.pack ";"])
+
+hexNumeric :: Text -> Text -> Inline
+hexNumeric x h
+  | T.length h <= 6 = Str (codePoint (hexValue h))
+  | otherwise = Str (T.concat [T.pack "&#", x, h, T.pack ";"])
+}%
+
+Inlines :: [Inline]
+Inlines <- is:Inline* { is }
+
+Inline :: Inline
+Inline <- Break
+        / Space
+        / Escape
+        / EntityRef
+        / CodeSpan
+        / Ticks
+        / AutolinkI
+        / RawHtmlI
+        / ImageI
+        / LinkI
+        / DelimRun
+        / TextRun
+        / Other
+
+# リンクの文字列の中で使う要素。リンクと角括弧は別に扱う
+InlineNoLink :: Inline
+InlineNoLink <- Break
+              / Space
+              / Escape
+              / EntityRef
+              / CodeSpan
+              / Ticks
+              / AutolinkI
+              / RawHtmlI
+              / ImageI
+              / DelimRun
+              / TextRun
+              / OtherNoBracket
+
+Off :: Int
+Off <- { posOffset (spanStart _span) }
+
+# 文字と改行 ------------------------------------------------------------------------
+
+TextRun :: Inline
+TextRun <- t:$(![\\&`<!\[\]*_ \n] .)+ { Str t }
+
+Space :: Inline
+Space <- s:$' '+ !'\n' { Str s }
+
+Break :: Inline
+Break <- ' ' ' '+ '\n' { HardBreak }
+       / '\\' '\n' { HardBreak }
+       / ' '? '\n' { SoftBreak }
+
+Escape :: Inline
+Escape <- '\\' c:$[!-/:-@\[-`{-~] { Str c }
+        / '\\' { Str (T.pack "\\") }
+
+EntityRef :: Inline
+EntityRef <- '&' n:$[A-Za-z0-9]+ ';' { entityOrLiteral n }
+           / '&#' d:$[0-9]+ ';' { numeric 7 d }
+           / '&#' x:$[xX] h:$[0-9a-fA-F]+ ';' { hexNumeric x h }
+           / '&' { Str (T.pack "&") }
+
+Other :: Inline
+Other <- c:$[!<\[\]] { Str c }
+
+OtherNoBracket :: Inline
+OtherNoBracket <- c:$[!<] { Str c }
+
+# コードスパン ----------------------------------------------------------------------
+
+CodeSpan :: Inline
+CodeSpan <- '`' !'`' c:$Body1 '`' !'`' { Code (normalizeCode c) }
+          / '``' !'`' c:$Body2 '``' !'`' { Code (normalizeCode c) }
+          / '```' !'`' c:$Body3 '```' !'`' { Code (normalizeCode c) }
+
+Body1 :: ()
+Body1 <- (!'`' . / '``' '`'*)* { () }
+
+Body2 :: ()
+Body2 <- (!'`' . / '`' !'`' / '```' '`'*)* { () }
+
+Body3 :: ()
+Body3 <- (!'`' . / '`' !'`' / '``' !'`' / '````' '`'*)* { () }
+
+Ticks :: Inline
+Ticks <- r:$'`'+ { Str r }
+
+# 自動リンクと生の HTML ----------------------------------------------------------------
+
+AutolinkI :: Inline
+AutolinkI <- '<' u:$(Scheme ':' (![\u{0}-\u{20}<>] .)*) '>' { Autolink u u }
+           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink (T.pack "mailto:" <> e) e }
+
+Scheme :: ()
+Scheme <- [A-Za-z] [A-Za-z0-9+.\-]+ { () }
+
+EmailLocal :: ()
+EmailLocal <- [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~\-]+ { () }
+
+EmailDomain :: ()
+EmailDomain <- DomainLabel ('.' DomainLabel)* { () }
+
+DomainLabel :: ()
+DomainLabel <- [a-zA-Z0-9] ([a-zA-Z0-9\-]* [a-zA-Z0-9])? { () }
+
+RawHtmlI :: Inline
+RawHtmlI <- t:$(OpenTag / ClosingTag / HtmlComment / ProcInstr / Decl / CData) { RawHtml t }
+
+OpenTag :: ()
+OpenTag <- '<' TagName Attr* TWs? '/'? '>' { () }
+
+ClosingTag :: ()
+ClosingTag <- '</' TagName TWs? '>' { () }
+
+TagName :: ()
+TagName <- [A-Za-z] [A-Za-z0-9\-]* { () }
+
+Attr :: ()
+Attr <- TWs [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
+
+AttrValue :: ()
+AttrValue <- TWs? '=' TWs? (![ \t\n"'=<>`] .)+ { () }
+           / TWs? '=' TWs? '\'' (!'\'' .)* '\'' { () }
+           / TWs? '=' TWs? '"' (!'"' .)* '"' { () }
+
+TWs :: ()
+TWs <- [ \t]* '\n' [ \t]* { () }
+     / [ \t]+ { () }
+
+HtmlComment :: ()
+HtmlComment <- '<!-->' { () }
+             / '<!--->' { () }
+             / '<!--' (!'-->' .)* '-->' { () }
+
+ProcInstr :: ()
+ProcInstr <- '<?' (!'?>' .)* '?>' { () }
+
+Decl :: ()
+Decl <- '<!' [A-Za-z] (!'>' .)* '>' { () }
+
+CData :: ()
+CData <- '<![CDATA[' (!']]>' .)* ']]>' { () }
+
+# リンクと画像 ----------------------------------------------------------------------
+
+LinkI :: Inline
+LinkI <- '[' is:LinkItem* ']' tl:InlineTail { Link (concat is) (fst tl) (snd tl) }
+
+ImageI :: Inline
+ImageI <- '!' '[' is:ImageItem* ']' tl:InlineTail { Image (concat is) (fst tl) (snd tl) }
+
+LinkItem :: [Inline]
+LinkItem <- !'[' !']' i:InlineNoLink { [i] }
+          / !LinkI '[' is:LinkItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+
+ImageItem :: [Inline]
+ImageItem <- l:LinkI { [l] }
+           / !'[' !']' i:InlineNoLink { [i] }
+           / '[' is:ImageItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+
+InlineTail :: (Text, Maybe Text)
+InlineTail <- '(' LWs d:Dest? t:TitlePart? LWs ')' { (maybe T.empty id d, t) }
+
+LWs :: ()
+LWs <- [ \t]* ('\n' [ \t]*)? { () }
+
+Dest :: Text
+Dest <- '<' d:$('\\' . / ![<>\n] .)* '>' { d }
+      / !'<' d:$DestRaw { d }
+
+DestRaw :: ()
+DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n()\u{0}-\u{1F}] .)+ { () }
+
+TitlePart :: Text
+TitlePart <- ([ \t]+ ('\n' [ \t]*)? / [ \t]* '\n' [ \t]*) t:Title { t }
+
+Title :: Text
+Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
+       / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
+       / '(' t:$('\\' . / ![()] .)* ')' { t }
+
+# 強調の区切り記号 ------------------------------------------------------------------
+
+DelimRun :: Inline
+DelimRun <- s:Off r:$'*'+ e:Off { Delim '*' (T.length r) s e }
+          / s:Off r:$'_'+ e:Off { Delim '_' (T.length r) s e }

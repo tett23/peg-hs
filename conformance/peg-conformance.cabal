@@ -1,0 +1,117 @@
+cabal-version:      3.0
+name:               peg-conformance
+version:            0.1.0.0
+synopsis:           Conformance tests of peg-hs with grammars of real languages
+description:
+  Not published. Grammars of real languages (JSON, CommonMark) written in
+  the peg-hs notation, checked against public test suites (ADR 0010,
+  ADR 0011), and the benchmarks of ADR 0007.
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+category:           Parsing
+build-type:         Simple
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+-- The generated parsers, committed next to their grammars.
+library
+  import:           warnings
+  exposed-modules:
+    Conformance.Bench.Pathological
+    Conformance.CommonMark
+    Conformance.CommonMark.Block
+    Conformance.CommonMark.Emphasis
+    Conformance.CommonMark.Entities
+    Conformance.CommonMark.Inline
+    Conformance.CommonMark.Types
+    Conformance.CommonMark.V1.Block
+    Conformance.CommonMark.V1.Inline
+    Conformance.Json.Encode
+    Conformance.Json.Parser
+  hs-source-dirs:   json bench commonmark
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , peg-runtime
+    , text
+  default-language: GHC2021
+
+test-suite json-conformance
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          JsonMain.hs
+  hs-source-dirs:   test
+  ghc-options:      -Werror
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , peg-codegen
+    , peg-conformance
+    , peg-runtime
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+  default-language: GHC2021
+
+-- Bounds on the evaluation counts guaranteed by ADR 0007.
+test-suite complexity
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          ComplexityMain.hs
+  hs-source-dirs:   test
+  ghc-options:      -Werror
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , peg-codegen
+    , peg-conformance
+    , peg-runtime
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+  default-language: GHC2021
+
+-- ADR 0007. Run with: cabal bench peg-conformance
+-- Pass --memo-report to print memo table sizes and live memory instead.
+benchmark peg-bench
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          BenchMain.hs
+  hs-source-dirs:   bench-main
+  ghc-options:      -rtsopts "-with-rtsopts=-T"
+  build-depends:
+    , base
+    , criterion        >=1.6 && <1.7
+    , deepseq
+    , peg-codegen
+    , peg-conformance
+    , peg-grammar
+    , peg-runtime
+    , text
+  default-language: GHC2021
+
+-- ADR 0011. Options: --accept, --report FILE, --show N (see the module).
+test-suite commonmark-conformance
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          CommonMarkMain.hs
+  hs-source-dirs:   test
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , peg-codegen
+    , peg-conformance
+    , text
+  default-language: GHC2021

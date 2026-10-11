@@ -1,0 +1,5 @@
+# CommonMark の失敗の原因（ADR 0011）。書式: 例の番号 原因 理由
+# 原因: indentation-state forward-reference tab-columns lookbehind rendering other
+5 tab-columns 項目の内容の桁がタブの途中にあり、タブの残りの桁を内容の字下げとして数える必要がある
+6 tab-columns 引用の '>' の後のタブが一部だけ消費され、残りの桁がコードブロックの字下げになる
+7 tab-columns リストのマーカーの後のタブが一部だけ消費され、残りの桁がコードブロックの字下げになる

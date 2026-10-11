@@ -1,0 +1,331 @@
+# CommonMark 0.31.2 のブロック構造を、ADR 0012 の拡張を使わずに書いた文法。
+# ADR 0011 の初回のスナップショット（v1 の記法での測定）にだけ使う。
+# 意味述語、引数付き規則、解析環境、桁の参照を使えないため、次の近似を置く。
+#   - コンテナ（引用とリスト項目）は入れ子にできない。引用は '>' で始まる行の
+#     並びを一つの段落として、リストは一行ずつの項目の並びとして読む
+#   - 字下げの判定は行頭からの空白の個数の列挙で行い、タブの桁は数えない
+#   - フェンスの長さと字下げは比べない。閉じるフェンスは同じ文字の 3 個以上
+%module Conformance.CommonMark.V1.Block
+
+%{
+import Data.Char (isSpace)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Conformance.CommonMark.Types
+
+joinPara :: [Text] -> Text
+joinPara = T.dropWhileEnd isSpace . T.intercalate (T.pack "\n")
+
+stripAtx :: Text -> Text
+stripAtx t =
+  let s = T.dropWhileEnd (\c -> c == ' ' || c == '\t') t
+      withoutHashes = T.dropWhileEnd (== '#') s
+   in if T.null withoutHashes
+        then T.empty
+        else
+          if T.length withoutHashes < T.length s && T.takeEnd 1 withoutHashes `elem` [T.pack " ", T.pack "\t"]
+            then T.strip withoutHashes
+            else T.strip s
+
+infoOf :: Text -> Maybe Text
+infoOf t = let s = T.strip t in if T.null s then Nothing else Just s
+
+firstChar :: Text -> Char
+firstChar = T.foldr const ' '
+}%
+
+Document :: [Block]
+Document <- bs:Block+ { bs }
+          / !. { [] }
+
+Block :: Block
+Block <- BlankLine
+       / IndentedCode
+       / FencedCode
+       / ThematicBreak
+       / AtxHeading
+       / HtmlBlock
+       / Quote
+       / ListItem
+       / RefDef
+       / Paragraph
+
+Newline :: ()
+Newline <- '\r\n' { () }
+         / '\n' { () }
+         / '\r' { () }
+
+EOL :: ()
+EOL <- Newline
+     / !. { () }
+
+BlankRest :: ()
+BlankRest <- [ \t]* EOL { () }
+
+LineNL :: Text
+LineNL <- t:$(!Newline .)* Newline { t }
+        / t:$(!Newline .)+ !. { t }
+
+BlankLine :: Block
+BlankLine <- [ \t]* Newline { BlankLine }
+           / [ \t]+ !. { BlankLine }
+
+Sp3 :: ()
+Sp3 <- ' '? ' '? ' '? { () }
+
+Indent4 :: ()
+Indent4 <- '    ' { () }
+         / ' '? ' '? ' '? '\t' { () }
+
+# 字下げされたコードブロック
+IndentedCode :: Block
+IndentedCode <- f:CodeLine ms:CodeMore* { CodeBlock Nothing (T.concat (f : concat ms)) }
+
+CodeLine :: Text
+CodeLine <- Indent4 !BlankRest t:$(!Newline .)+ EOL { t <> T.pack "\n" }
+
+CodeMore :: [Text]
+CodeMore <- bl:CodeBlank* l:CodeLine { bl ++ [l] }
+
+CodeBlank :: Text
+CodeBlank <- Indent4 t:$[ \t]* Newline { t <> T.pack "\n" }
+           / [ \t]* Newline { T.pack "\n" }
+
+# フェンス
+FencedCode :: Block
+FencedCode <- Sp3 '```' '`'* info:$(![`\n\r] .)* EOL ls:BacktickLine* BacktickClose? { CodeBlock (infoOf info) (T.concat ls) }
+            / Sp3 '~~~' '~'* info:$(!Newline .)* EOL ls:TildeLine* TildeClose? { CodeBlock (infoOf info) (T.concat ls) }
+
+BacktickClose :: ()
+BacktickClose <- Sp3 '```' '`'* [ \t]* EOL { () }
+
+TildeClose :: ()
+TildeClose <- Sp3 '~~~' '~'* [ \t]* EOL { () }
+
+BacktickLine :: Text
+BacktickLine <- !BacktickClose l:LineNL { l <> T.pack "\n" }
+
+TildeLine :: Text
+TildeLine <- !TildeClose l:LineNL { l <> T.pack "\n" }
+
+ThematicBreak :: Block
+ThematicBreak <- Sp3 '*' [ \t]* '*' [ \t]* '*' [ \t]* ('*' [ \t]*)* EOL { ThematicBreak }
+               / Sp3 '-' [ \t]* '-' [ \t]* '-' [ \t]* ('-' [ \t]*)* EOL { ThematicBreak }
+               / Sp3 '_' [ \t]* '_' [ \t]* '_' [ \t]* ('_' [ \t]*)* EOL { ThematicBreak }
+
+AtxHeading :: Block
+AtxHeading <- Sp3 h:$('#' ('#' ('#' ('#' ('#' '#'?)?)?)?)?) !'#' (&BlankRest / [ \t]+) t:$(!Newline .)* EOL { Heading (T.length h) (stripAtx t) }
+
+# HTML ブロック
+HtmlBlock :: Block
+HtmlBlock <- &(Sp3 '<' Type1Name ([ \t] / '>' / &EOL)) ls:Until1 { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 '<!--') ls:UntilComment { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 '<?') ls:UntilPI { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 '<![CDATA[') ls:UntilCData { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 '<!' [A-Za-z]) ls:UntilGt { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 '<' '/'? BlockTag ([ \t] / '>' / '/>' / &EOL)) ls:UntilBlank { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+           / &(Sp3 !('<' Type1Name) (OpenTag / CloseTag) [ \t]* EOL) ls:UntilBlank { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+
+Type1Name :: ()
+Type1Name <- [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] { () }
+            / [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] { () }
+            / [Ss] [Tt] [Yy] [Ll] [Ee] { () }
+            / [Pp] [Rr] [Ee] { () }
+
+BlockTag :: ()
+BlockTag <- [Bb] [Ll] [Oo] [Cc] [Kk] [Qq] [Uu] [Oo] [Tt] [Ee] { () }
+           / [Ff] [Ii] [Gg] [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
+           / [Bb] [Aa] [Ss] [Ee] [Ff] [Oo] [Nn] [Tt] { () }
+           / [Cc] [Oo] [Ll] [Gg] [Rr] [Oo] [Uu] [Pp] { () }
+           / [Ff] [Ii] [Ee] [Ll] [Dd] [Ss] [Ee] [Tt] { () }
+           / [Ff] [Rr] [Aa] [Mm] [Ee] [Ss] [Ee] [Tt] { () }
+           / [Mm] [Ee] [Nn] [Uu] [Ii] [Tt] [Ee] [Mm] { () }
+           / [Nn] [Oo] [Ff] [Rr] [Aa] [Mm] [Ee] [Ss] { () }
+           / [Oo] [Pp] [Tt] [Gg] [Rr] [Oo] [Uu] [Pp] { () }
+           / [Aa] [Dd] [Dd] [Rr] [Ee] [Ss] [Ss] { () }
+           / [Aa] [Rr] [Tt] [Ii] [Cc] [Ll] [Ee] { () }
+           / [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
+           / [Dd] [Ee] [Tt] [Aa] [Ii] [Ll] [Ss] { () }
+           / [Ss] [Ee] [Cc] [Tt] [Ii] [Oo] [Nn] { () }
+           / [Ss] [Uu] [Mm] [Mm] [Aa] [Rr] [Yy] { () }
+           / [Cc] [Ee] [Nn] [Tt] [Ee] [Rr] { () }
+           / [Dd] [Ii] [Aa] [Ll] [Oo] [Gg] { () }
+           / [Ff] [Ii] [Gg] [Uu] [Rr] [Ee] { () }
+           / [Ff] [Oo] [Oo] [Tt] [Ee] [Rr] { () }
+           / [Hh] [Ee] [Aa] [Dd] [Ee] [Rr] { () }
+           / [Ii] [Ff] [Rr] [Aa] [Mm] [Ee] { () }
+           / [Ll] [Ee] [Gg] [Ee] [Nn] [Dd] { () }
+           / [Oo] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
+           / [Ss] [Ee] [Aa] [Rr] [Cc] [Hh] { () }
+           / [Aa] [Ss] [Ii] [Dd] [Ee] { () }
+           / [Ff] [Rr] [Aa] [Mm] [Ee] { () }
+           / [Pp] [Aa] [Rr] [Aa] [Mm] { () }
+           / [Tt] [Aa] [Bb] [Ll] [Ee] { () }
+           / [Tt] [Bb] [Oo] [Dd] [Yy] { () }
+           / [Tt] [Ff] [Oo] [Oo] [Tt] { () }
+           / [Tt] [Hh] [Ee] [Aa] [Dd] { () }
+           / [Tt] [Ii] [Tt] [Ll] [Ee] { () }
+           / [Tt] [Rr] [Aa] [Cc] [Kk] { () }
+           / [Bb] [Aa] [Ss] [Ee] { () }
+           / [Bb] [Oo] [Dd] [Yy] { () }
+           / [Ff] [Oo] [Rr] [Mm] { () }
+           / [Hh] [Ee] [Aa] [Dd] { () }
+           / [Hh] [Tt] [Mm] [Ll] { () }
+           / [Ll] [Ii] [Nn] [Kk] { () }
+           / [Mm] [Aa] [Ii] [Nn] { () }
+           / [Mm] [Ee] [Nn] [Uu] { () }
+           / [Cc] [Oo] [Ll] { () }
+           / [Dd] [Ii] [Rr] { () }
+           / [Dd] [Ii] [Vv] { () }
+           / [Nn] [Aa] [Vv] { () }
+           / [Dd] [Dd] { () }
+           / [Dd] [Ll] { () }
+           / [Dd] [Tt] { () }
+           / [Hh] '1' { () }
+           / [Hh] '2' { () }
+           / [Hh] '3' { () }
+           / [Hh] '4' { () }
+           / [Hh] '5' { () }
+           / [Hh] '6' { () }
+           / [Hh] [Rr] { () }
+           / [Ll] [Ii] { () }
+           / [Oo] [Ll] { () }
+           / [Tt] [Dd] { () }
+           / [Tt] [Hh] { () }
+           / [Tt] [Rr] { () }
+           / [Uu] [Ll] { () }
+           / [Pp] { () }
+
+End1 :: ()
+End1 <- '</' [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] '>' { () }
+             / '</' [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] '>' { () }
+             / '</' [Ss] [Tt] [Yy] [Ll] [Ee] '>' { () }
+             / '</' [Pp] [Rr] [Ee] '>' { () }
+
+Until1 :: [Text]
+Until1 <- l:$((!End1 !Newline .)* End1 (!Newline .)*) EOL { [l] }
+        / l:LineNL ls:Until1Rest { l : ls }
+
+Until1Rest :: [Text]
+Until1Rest <- Until1
+        / { [] }
+
+UntilComment :: [Text]
+UntilComment <- l:$((!'-->' !Newline .)* '-->' (!Newline .)*) EOL { [l] }
+              / l:LineNL ls:UntilCommentRest { l : ls }
+
+UntilCommentRest :: [Text]
+UntilCommentRest <- UntilComment
+         / { [] }
+
+UntilPI :: [Text]
+UntilPI <- l:$((!'?>' !Newline .)* '?>' (!Newline .)*) EOL { [l] }
+         / l:LineNL ls:UntilPIRest { l : ls }
+
+UntilPIRest :: [Text]
+UntilPIRest <- UntilPI
+         / { [] }
+
+UntilCData :: [Text]
+UntilCData <- l:$((!']]>' !Newline .)* ']]>' (!Newline .)*) EOL { [l] }
+            / l:LineNL ls:UntilCDataRest { l : ls }
+
+UntilCDataRest :: [Text]
+UntilCDataRest <- UntilCData
+         / { [] }
+
+UntilGt :: [Text]
+UntilGt <- l:$((!'>' !Newline .)* '>' (!Newline .)*) EOL { [l] }
+         / l:LineNL ls:UntilGtRest { l : ls }
+
+UntilGtRest :: [Text]
+UntilGtRest <- UntilGt
+         / { [] }
+
+UntilBlank :: [Text]
+UntilBlank <- !BlankRest l:LineNL ls:UntilBlankRest { l : ls }
+
+UntilBlankRest :: [Text]
+UntilBlankRest <- UntilBlank
+                / { [] }
+
+OpenTag :: ()
+OpenTag <- '<' TagName Attr* [ \t]* '/'? '>' { () }
+
+CloseTag :: ()
+CloseTag <- '</' TagName [ \t]* '>' { () }
+
+TagName :: ()
+TagName <- [A-Za-z] [A-Za-z0-9\-]* { () }
+
+Attr :: ()
+Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
+
+AttrValue :: ()
+AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+ { () }
+           / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\'' { () }
+           / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"' { () }
+
+# 入れ子にできない引用とリスト（近似）
+Quote :: Block
+Quote <- ls:QuoteLine+ { BlockQuote [Paragraph (joinPara ls)] }
+
+QuoteLine :: Text
+QuoteLine <- Sp3 '>' ' '? [ \t]* t:$(!Newline .)* EOL { t }
+
+ListItem :: Block
+ListItem <- Sp3 m:Marker [ \t]+ !BlankRest t:$(!Newline .)+ EOL { Item m [Paragraph (T.strip t)] }
+
+Marker :: ListType
+Marker <- c:$[\-+*] { Bullet (firstChar c) }
+        / n:$([0-9] ([0-9] ([0-9] [0-9]?)?)?) !([0-9]) d:$[.)] { Ordered (read (T.unpack n)) (firstChar d) }
+
+# リンク参照定義（解析はするが、v1 ではインラインから参照できない）
+RefDef :: Block
+RefDef <- Sp3 '[' l:$LabelBody ']' ':' [ \t]* Newline? [ \t]* d:Dest t:DefTitle { RefDef l d t }
+
+LabelBody :: ()
+LabelBody <- ('\\' . / ![\[\]] .)+ { () }
+
+Dest :: Text
+Dest <- '<' d:$('\\' . / ![<>\n\r] .)* '>' { d }
+      / !'<' d:$DestRaw { d }
+
+DestRaw :: ()
+DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+ { () }
+
+DefTitle :: Maybe Text
+DefTitle <- ([ \t]+ / [ \t]* Newline [ \t]*) t:Title [ \t]* EOL { Just t }
+          / [ \t]* EOL { Nothing }
+
+Title :: Text
+Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
+       / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
+       / '(' t:$('\\' . / ![()] .)* ')' { t }
+
+# 段落と setext 見出し
+Paragraph :: Block
+Paragraph <- Sp3 f:ParaLine ls:ParaCont* u:SetextLine { Heading u (joinPara (f : ls)) }
+           / Sp3 f:ParaLine ls:ParaCont* { Paragraph (joinPara (f : ls)) }
+
+ParaLine :: Text
+ParaLine <- !BlankRest t:$(!Newline .)+ EOL { t }
+
+ParaCont :: Text
+ParaCont <- !SetextLine !Interrupt [ \t]* l:ParaLine { l }
+
+SetextLine :: Int
+SetextLine <- Sp3 '='+ [ \t]* EOL { 1 }
+            / Sp3 '-'+ [ \t]* EOL { 2 }
+
+Interrupt :: ()
+Interrupt <- &ThematicBreak { () }
+           / &AtxHeading { () }
+           / Sp3 ('```' / '~~~') { () }
+           / Sp3 '>' { () }
+           / Sp3 [\-+*] [ \t]+ !EOL { () }
+           / Sp3 '1' [.)] [ \t]+ !EOL { () }
+           / Sp3 '<' Type1Name { () }
+           / Sp3 '<!' { () }
+           / Sp3 '<?' { () }
+           / Sp3 '<' '/'? BlockTag ([ \t] / '>' / '/>' / &EOL) { () }
