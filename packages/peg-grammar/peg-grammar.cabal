@@ -1,0 +1,61 @@
+cabal-version:      3.0
+name:               peg-grammar
+version:            0.1.0.0
+synopsis:           The .peg grammar notation of peg-hs: syntax tree, parser and checks
+description:
+  Reads @.peg@ grammar files for the peg-hs parser generator and checks
+  them: undefined and unreachable rules, repetitions of expressions that
+  match the empty string, bindings, and left recursion.
+homepage:           https://github.com/tett23/peg-hs
+bug-reports:        https://github.com/tett23/peg-hs/issues
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+copyright:          2026 tett23
+category:           Parsing
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-source-files:
+  grammar/Peg.peg
+
+source-repository head
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  subdir:   packages/peg-grammar
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+library
+  import:           warnings
+  exposed-modules:
+    Peg.Grammar
+    Peg.Grammar.Check
+    Peg.Grammar.Parser
+  other-modules:
+    Peg.Grammar.Assemble
+    Peg.Grammar.SelfHosted
+  build-depends:
+    , base         >=4.20  && <4.21
+    , containers   >=0.6   && <0.8
+    , peg-runtime  >=0.1   && <0.2
+    , text         >=2.0   && <2.2
+  hs-source-dirs:   src
+  default-language: GHC2021
+
+test-suite peg-grammar-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  build-depends:
+    , base
+    , containers
+    , directory    >=1.3  && <1.4
+    , filepath     >=1.4  && <1.6
+    , peg-grammar
+    , tasty        >=1.4  && <1.6
+    , tasty-hunit  >=0.10 && <0.11
+    , text
+  default-language: GHC2021

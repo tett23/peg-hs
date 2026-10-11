@@ -1,0 +1,238 @@
+# peg-hs の記法（ADR 0004、0005、0012、0014）を peg-hs 自身で書いた文法。
+# 生成したパーサーは、手書きのパーサー（Peg.Grammar.Parser）と同じ最上位の
+# 要素の列を返し、同じ組み立て（Peg.Grammar.Assemble）を通る。両者が位置まで
+# 含めて同一の文法を返すことを移行テストとする（仕様書の「自己記述への移行」）。
+#
+# 識別子の文字は ASCII に限る。手書きのパーサーは Unicode の英字も受け付ける。
+%module Peg.Grammar.SelfHosted
+
+%{
+import Data.Char (chr, digitToInt, isHexDigit)
+import Data.Either (isRight, rights)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Peg.Grammar
+import Peg.Grammar.Assemble
+import Peg.Runtime (Pos (..), Span (..))
+
+here :: Span -> Loc
+here s = Loc (posLine (spanStart s)) (posColumn (spanStart s))
+
+firstChar :: Text -> Char
+firstChar = T.foldr const ' '
+
+-- Characters of the inside of a literal or class, with escapes decoded.
+-- The flag marks an unescaped '-', which can form a range in a class.
+tokens :: Text -> [(Char, Bool)]
+tokens = go . T.unpack
+  where
+    go ('\\' : 'u' : '{' : rest) =
+      let (h, rest') = span isHexDigit rest
+       in (chr (foldl (\n d -> n * 16 + digitToInt d) 0 h), False) : go (drop 1 rest')
+    go ('\\' : c : rest) = (escape c, False) : go rest
+    go (c : rest) = (c, c == '-') : go rest
+    go [] = []
+    escape c = case c of
+      'n' -> '\n'
+      't' -> '\t'
+      'r' -> '\r'
+      _ -> c
+
+inside :: Text -> Text
+inside = T.drop 1 . T.dropEnd 1
+
+decodeLiteral :: Text -> Text
+decodeLiteral = T.pack . map fst . tokens . inside
+
+classRanges :: Text -> [(Char, Char)]
+classRanges = go . tokens . inside
+  where
+    go ((a, _) : (_, True) : (b, _) : rest) = (a, b) : go rest
+    go ((a, _) : rest) = (a, a) : go rest
+    go [] = []
+
+validHex :: Text -> Bool
+validHex h = not (T.null h) && T.length h <= 6 && T.foldl' (\n d -> n * 16 + digitToInt d) 0 h <= 0x10FFFF
+
+applyOp :: Expr -> Char -> Expr
+applyOp e c = case c of
+  '*' -> EStar e
+  '+' -> EPlus e
+  _ -> EOpt e
+}%
+
+File :: [Top]
+File <- Ws ts:TopItem* { ts }
+
+TopItem :: Top
+TopItem <- t:TopOne Ws { t }
+
+TopOne :: Top
+TopOne <- Verbatim
+        / Directive
+        / Declaration
+
+Here :: Loc
+Here <- { here _span }
+
+# 空白とコメント -------------------------------------------------------------------
+
+Ws :: ()
+Ws <- ([ \t\n\r\u{B}\u{C}] / Comment)* { () }
+
+Comment :: ()
+Comment <- '#' (!'\n' .)* { () }
+
+InlineSp :: ()
+InlineSp <- [ \t]* { () }
+
+Ident :: Text
+Ident <- t:$([A-Za-z_] [A-Za-z0-9_']*) { t }
+
+# 最上位の要素 ---------------------------------------------------------------------
+
+Verbatim :: Top
+Verbatim <- '%{' l:Here b:$(!'}%' .)* '}%' { uncurry TVerbatim (verbatimBody l b) }
+
+Directive :: Top
+Directive <- l:Here '%' n:Ident InlineSp raw:$(!'\n' .)* { TDirective l n (directiveArg n raw) }
+
+Declaration :: Top
+Declaration <- l:Here n:Ident ps:ParamList? Ws '::' InlineSp tl:Here ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { TAnnot l n (maybe [] id ps) (Located tl (T.stripEnd ty)) }
+             / l:Here n:Ident Ws '<-' as:Alts { TDef l n as }
+
+ParamList :: [Param]
+ParamList <- '(' cs:ArgChunks &{ all (isRight . toParam) cs } { rights (map toParam cs) }
+
+# 選択肢と式 -----------------------------------------------------------------------
+
+Alts :: [Alt]
+Alts <- a:Alt as:MoreAlt* { a : as }
+
+MoreAlt :: Alt
+MoreAlt <- Ws '/' a:Alt { a }
+
+Alt :: Alt
+Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
+
+Item :: Item
+Item <- Ws !DeclStart l:Here b:Binding? e:PrefixE { Item l b e }
+
+DeclStart :: ()
+DeclStart <- Ident HsParen? Ws ('::' / '<-') { () }
+
+Binding :: Text
+Binding <- n:Ident ':' !':' { n }
+
+PrefixE :: Expr
+PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
+         / Ws '&' Ws e:PrefixE { EAnd e }
+         / Ws '!' Ws '{' c:PredCode { EPred False c }
+         / Ws '!' Ws e:PrefixE { ENot e }
+         / Ws '$' e:PrefixE { ECapture e }
+         / Labeled
+
+Labeled :: Expr
+Labeled <- e:SuffixE lab:LabelPart? { maybe e (\(l, n) -> ELabel l e n) lab }
+
+LabelPart :: (Loc, Text)
+LabelPart <- Ws l:Here '^' n:Ident { (l, n) }
+
+SuffixE :: Expr
+SuffixE <- p:Primary ops:PostOp* { foldl applyOp p ops }
+
+PostOp :: Char
+PostOp <- Ws c:$[*+?] { firstChar c }
+
+Primary :: Expr
+Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
+         / Ws o:$Lit2 { ELit (decodeLiteral o) o }
+         / Ws o:$ClassLit { EClass (classRanges o) o }
+         / Ws '.' { EAny }
+         / Ws '(' g:GroupAlts Ws ')' { EGroup g }
+         / Ws l:Here n:Ident args:CallArgs? { ERef l n (maybe [] id args) }
+
+CallArgs :: [Located Text]
+CallArgs <- '(' cs:ArgChunks { cs }
+
+GroupAlts :: [[Item]]
+GroupAlts <- s:Item* ss:MoreGroup* { s : ss }
+
+MoreGroup :: [Item]
+MoreGroup <- Ws '/' s:Item* { s }
+
+# リテラルと文字クラス -------------------------------------------------------------------
+
+Lit1 :: ()
+Lit1 <- '\'' (Escape / !['\\\n] .)* '\'' { () }
+
+Lit2 :: ()
+Lit2 <- '"' (Escape / !["\\\n] .)* '"' { () }
+
+Escape :: ()
+Escape <- '\\' [ntr\\'"\]\[\-] { () }
+        / '\\u{' h:$[0-9a-fA-F]* '}' &{ validHex h } { () }
+
+ClassLit :: ()
+ClassLit <- '[' ClassItem+ ']' { () }
+
+ClassItem :: ()
+ClassItem <- ClassChar ('-' !']' ClassChar)? { () }
+
+ClassChar :: ()
+ClassChar <- Escape
+           / ![\]\\\n] . { () }
+
+# Haskell の断片 -------------------------------------------------------------------
+
+Action :: Located Text
+Action <- '{' l:Here c:$ActionCode '}' { Located l c }
+
+PredCode :: Located Text
+PredCode <- l:Here c:$ActionCode '}' { Located l c }
+
+ArgChunks :: [Located Text]
+ArgChunks <- Ws l:Here c:$ArgCode &{ not (T.null (T.strip c)) } ',' rest:ArgChunks { Located l c : rest }
+           / Ws l:Here c:$ArgCode &{ not (T.null (T.strip c)) } ')' { [Located l c] }
+
+# 深さ 0 の '}' の手前まで
+ActionCode :: ()
+ActionCode <- HsPart* { () }
+
+# 深さ 0 の ',' か ')' の手前まで
+ArgCode :: ()
+ArgCode <- (!',' HsPart)* { () }
+
+HsPart :: ()
+HsPart <- HsNested
+        / HsString
+        / HsChar
+        / HsIdent
+        / ![()\[\]{}] . { () }
+
+HsParen :: ()
+HsParen <- '(' HsInner* ')' { () }
+
+HsNested :: ()
+HsNested <- HsParen
+          / '[' HsInner* ']' { () }
+          / '{' HsInner* '}' { () }
+
+HsInner :: ()
+HsInner <- HsNested
+         / HsString
+         / HsChar
+         / HsIdent
+         / ![()\[\]{}] . { () }
+
+HsString :: ()
+HsString <- '"' ('\\' . / !'"' .)* '"' { () }
+
+# 識別子の文字の直後にない引用符は文字リテラルの始まり
+HsChar :: ()
+HsChar <- '\'' '\\' . (!'\'' .)* '\'' { () }
+        / '\'' . '\'' { () }
+        / '\'' { () }
+
+HsIdent :: ()
+HsIdent <- [A-Za-z0-9_] [A-Za-z0-9_']* { () }
