@@ -10,9 +10,20 @@ A PEG-to-Haskell parser generator with left recursion support.
 - Context-sensitive extensions (semantic predicates, parameterized rules, a read-only parse environment, and column references) for indentation-sensitive and forward-referencing syntax, designed so that packrat memoization and left recursion stay sound
 - Type errors in semantic actions are reported at their line and column in the `.peg` file
 
-**Status: design phase.** The specification and ADRs are complete; implementation has not started.
+**Status: pre-release (0.1).** The generator, the runtime and the conformance tests are implemented. Not yet published on Hackage.
+
+- JSON ([JSONTestSuite](https://github.com/nst/JSONTestSuite)): all 95 must-accept and 188 must-reject cases pass
+- CommonMark 0.31.2: 649 of 652 spec examples pass; the remaining 3 need tabs to be partly consumed (to be addressed by ADR 0018)
 
 See [docs/specifications.md](docs/specifications.md) for the specification, [docs/syntax.md](docs/syntax.md) for the `.peg` notation with examples, and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
+
+## Usage
+
+```sh
+cabal run peg-hs -- Grammar.peg -o Grammar.hs
+```
+
+The generated module depends only on the `peg-runtime` package and exports `parse :: Text -> Either ParseError a` for the start rule.
 
 ## Development
 
@@ -32,8 +43,31 @@ Committed ADRs are immutable: [adr-guard](https://github.com/tett23/adr-guard) r
 git config core.hooksPath .githooks
 ```
 
+Run all tests:
+
+```sh
+cabal test all
+```
+
+Generated modules are committed, and the tests check that they match the generator's current output.
+After changing the generator or a grammar, regenerate them:
+
+```sh
+scripts/regen-fixtures.sh
+```
+
 Performance regressions are caught with local benchmarks.
 For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine (ADR 0007).
+
+```sh
+cabal bench peg-conformance
+```
+
+The CommonMark test takes options for inspecting results: `--show N` prints one example, `--report FILE` writes per-section results, and `--accept` records the current passing examples.
+
+```sh
+cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
+```
 
 ## License
 

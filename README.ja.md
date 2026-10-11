@@ -10,9 +10,20 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 - 字下げに依存する構文や前方参照を書くための文脈依存の拡張（意味述語、引数付き規則、読み取り専用の解析環境、桁の参照）。パックラットのメモ化と左再帰の正しさを保つように設計している
 - アクションの型の誤りは、`.peg` ファイルの行と桁で報告される
 
-**ステータス：設計フェーズ。** 仕様書と ADR は完成しており、実装は未着手。
+**ステータス：公開前（0.1）。** 生成器、実行時ライブラリ、適合性テストは実装済み。Hackage には未公開。
+
+- JSON（[JSONTestSuite](https://github.com/nst/JSONTestSuite)）：受理すべき 95 件と拒否すべき 188 件のすべてに合格
+- CommonMark 0.31.2：仕様の例 652 件中 649 件に適合。残る 3 件はタブの一部だけを消費する必要がある例で、ADR 0018 で対処する
 
 仕様は [docs/specifications.md](docs/specifications.md)、`.peg` 記法の解説とサンプルは [docs/syntax.md](docs/syntax.md)、設計決定は [docs/adr/](docs/adr/) を参照。
+
+## 使い方
+
+```sh
+cabal run peg-hs -- Grammar.peg -o Grammar.hs
+```
+
+生成されたモジュールは `peg-runtime` パッケージだけに依存し、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。
 
 ## 開発
 
@@ -32,8 +43,32 @@ ghcup install cabal 3.16.1.0
 git config core.hooksPath .githooks
 ```
 
+すべてのテストを実行する。
+
+```sh
+cabal test all
+```
+
+生成したモジュールはリポジトリにコミットしており、テストが生成器の現在の出力との一致を検査する。
+生成器か文法を変えたら、次のコマンドで生成し直す。
+
+```sh
+scripts/regen-fixtures.sh
+```
+
 性能の退行は手元のベンチマークで検出する。
 peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（ADR 0007）。
+
+```sh
+cabal bench peg-conformance
+```
+
+CommonMark のテストは、結果を調べるためのオプションを受け付ける。
+`--show N` は一つの例を表示し、`--report FILE` は節ごとの結果を書き出し、`--accept` は現在適合している例を記録する。
+
+```sh
+cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
+```
 
 ## ライセンス
 
