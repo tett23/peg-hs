@@ -1,6 +1,8 @@
 # ADR 0007 の病的な左再帰。入力 a^k b^n に対して E は n 回成長し、
-# 各反復で L が A を k 個の位置で評価し直す（成長中の項目は破棄されるため）。
+# 各反復で L が A を k 個の位置で評価し直す（L と A はメモ化しないため）。
 %module Conformance.Bench.Pathological
+%nomemo L
+%nomemo A
 
 E :: Int
 E <- L { 0 }

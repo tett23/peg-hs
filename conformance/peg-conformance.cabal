@@ -24,6 +24,9 @@ library
     Conformance.Bench.JsonNomemo
     Conformance.Bench.JsonRecover
     Conformance.Bench.JsonSyntax
+    Conformance.Bench.NestedLR2
+    Conformance.Bench.NestedLR4
+    Conformance.Bench.NestedLR8
     Conformance.Bench.Pathological
     Conformance.CommonMark
     Conformance.CommonMark.Block

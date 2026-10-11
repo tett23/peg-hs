@@ -1,0 +1,17 @@
+# ADR 0024 の計算量の検査：左再帰の段を 2 個重ねた文法
+%module Conformance.Bench.NestedLR2
+
+E0 :: ()
+E0 <- E1 { () }
+
+E1 :: ()
+E1 <- E1 'o1' E2 { () }
+    / E2
+
+E2 :: ()
+E2 <- E2 'o2' Atom { () }
+    / Atom
+
+Atom :: ()
+Atom <- 'x' { () }
+      / '(' E0 ')' { () }

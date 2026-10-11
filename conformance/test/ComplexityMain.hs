@@ -2,7 +2,11 @@
 -- ADR 0007, and the committed benchmark parser is up to date.
 module Main (main) where
 
+import qualified Conformance.Bench.NestedLR2 as NestedLR2
+import qualified Conformance.Bench.NestedLR4 as NestedLR4
+import qualified Conformance.Bench.NestedLR8 as NestedLR8
 import qualified Conformance.Bench.Pathological as Pathological
+import Peg.Runtime (ParseError)
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
@@ -33,9 +37,35 @@ main =
             let evaluations = sum (M.elems (statsEvaluations (snd (Pathological.peg'parseWith defaultConfig {cfgCount = True} (input k n)))))
                 len = k + n
              in counterexample (show evaluations) (evaluations <= 4 * (len + 2) * (len + 2))
+      , testCase "the nested left recursion parsers are up to date" $
+          mapM_
+            ( \n -> do
+                let src = "bench/NestedLR" <> show n <> ".peg"
+                    out = "bench/Conformance/Bench/NestedLR" <> show n <> ".hs"
+                grammar <- TIO.readFile src
+                committed <- B.readFile out
+                case generateFromSource (Options src out True) grammar of
+                  Left ds -> assertFailure (show ds)
+                  Right code -> assertBool ("regenerate " <> out) (TE.encodeUtf8 code == committed)
+            )
+            [2, 4, 8 :: Int]
+      , testCase "nested left recursion: evaluations are linear in the nesting depth (ADR 0024)" $ do
+          fst (NestedLR8.peg'parseWith defaultConfig (nested 3)) @?= Right ()
+          let e8 = evalCount NestedLR8.peg'parseWith (nested 8)
+              e16 = evalCount NestedLR8.peg'parseWith (nested 16)
+          assertBool ("depth 8: " <> show e8 <> ", depth 16: " <> show e16) (fromIntegral e16 <= (2.5 :: Double) * fromIntegral e8)
+      , testCase "nested left recursion: evaluations are linear in the number of levels (ADR 0024)" $ do
+          let e2 = evalCount NestedLR2.peg'parseWith (nested 0)
+              e4 = evalCount NestedLR4.peg'parseWith (nested 0)
+              e8 = evalCount NestedLR8.peg'parseWith (nested 0)
+          assertBool ("2: " <> show e2 <> ", 4: " <> show e4 <> ", 8: " <> show e8) (fromIntegral e8 <= (2.5 :: Double) * fromIntegral e4 && fromIntegral e4 <= (2.5 :: Double) * fromIntegral e2)
       , testCase "the pathological grammar is really quadratic" $ do
           let countFor m = sum (M.elems (statsEvaluations (snd (Pathological.peg'parseWith defaultConfig {cfgCount = True} (input m m)))))
           assertBool "doubling the input should roughly quadruple the evaluations" (countFor 200 > 3 * countFor 100)
       ]
   where
     input k n = T.replicate k (T.pack "a") <> T.replicate n (T.pack "b")
+    nested d = T.replicate d (T.pack "(") <> T.pack "x" <> T.replicate d (T.pack ")")
+
+evalCount :: (Config -> T.Text -> (Either ParseError (), Stats)) -> T.Text -> Int
+evalCount run t = sum (M.elems (statsEvaluations (snd (run defaultConfig {cfgCount = True} t))))

@@ -5,6 +5,8 @@ module Main (main) where
 import qualified Conformance.Bench.JsonCounted as JsonCounted
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
+import qualified Conformance.Bench.NestedLR8 as NestedLR8
+import qualified Conformance.CommonMark as CommonMark
 import Peg.Runtime.Syntax (syntaxRange)
 import qualified Conformance.Bench.Pathological as Pathological
 import Conformance.Json.Encode (encode)
@@ -50,6 +52,15 @@ size v = case v of
   Array vs -> 1 + sum (map size vs)
   Object ms -> 1 + sum [T.length k + size x | (k, x) <- ms]
 
+-- The CommonMark spec itself, rendered as one document.
+specPath :: FilePath
+specPath = "data/commonmark-spec-0.31.2/spec.txt"
+
+-- An atom inside d parentheses, for the grammar of eight nested
+-- left-recursive levels (ADR 0024).
+nested :: Int -> Text
+nested d = T.replicate d (T.pack "(") <> T.pack "x" <> T.replicate d (T.pack ")")
+
 pathological :: Int -> Text
 pathological n = T.replicate n (T.pack "a") <> T.replicate n (T.pack "b")
 
@@ -65,6 +76,7 @@ benchmarks :: IO ()
 benchmarks = do
   jsonGrammar <- TIO.readFile "json/Json.peg"
   json <- evaluate (force (syntheticJson 10000))
+  spec <- TIO.readFile specPath >>= evaluate . force
   defaultMain
     [ bgroup
         "json"
@@ -72,6 +84,15 @@ benchmarks = do
         , bench ("parse " <> show (T.length json) <> " characters with %nomemo") (whnf (either (const 0) (size . convertNomemo) . JsonNomemo.parse) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, typed entry") (whnf (either (const 0) (size . convertSyntax) . JsonSyntax.parse) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax) json)
+        ]
+    , bgroup
+        "commonmark"
+        [ bench ("render the spec, " <> show (T.length spec) <> " characters") (whnf (either T.length T.length . CommonMark.toHtml) spec)
+        ]
+    , bgroup
+        "left recursion (eight nested levels)"
+        [ bench ("depth " <> show d) (whnf (fst . NestedLR8.peg'parseWith Rt.defaultConfig) (nested d))
+        | d <- [10, 100, 1000]
         ]
     , bgroup
         "left recursion (pathological)"
@@ -103,6 +124,18 @@ memoReport = withArgs [] $ do
 -- The peak live memory of one parse. The peak is per process, so each
 -- variant runs in its own process: --memory memoised|nomemo RECORDS.
 memory :: String -> Int -> IO ()
+memory "commonmark" _ = withArgs [] $ do
+  input <- TIO.readFile specPath
+  _ <- evaluate (T.length input)
+  performMajorGC
+  base <- getRTSStats
+  r <- evaluate (either T.length T.length (CommonMark.toHtml input))
+  performMajorGC
+  stats <- getRTSStats
+  putStrLn $
+    "commonmark spec, " <> show (T.length input) <> " characters: output length " <> show r
+      <> ", max live bytes " <> show (max_live_bytes stats)
+      <> " (input and program before parsing: " <> show (max_live_bytes base) <> ")"
 memory variant n = withArgs [] $ do
   let input = syntheticJson n
       run = case variant of

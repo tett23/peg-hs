@@ -10,7 +10,7 @@ import Prelude
 
 -- | Parse the whole input with the rule @E@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 5 "bench/Pathological.peg" #-}
+{-# LINE 7 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}Int
 {-# LINE 16 "bench/Conformance/Bench/Pathological.hs" #-}
     )
@@ -20,7 +20,7 @@ parse peg'input =
 -- | Run the start rule with a runtime configuration and return statistics.
 -- Only meant for testing the generator.
 peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
-{-# LINE 5 "bench/Pathological.peg" #-}
+{-# LINE 7 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}Int
 {-# LINE 26 "bench/Conformance/Bench/Pathological.hs" #-}
     ), PegRt.Stats)
@@ -32,30 +32,20 @@ peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
   { peg'memo'E :: PegRt.Table peg's (
-{-# LINE 5 "bench/Pathological.peg" #-}
+{-# LINE 7 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}Int
 {-# LINE 38 "bench/Conformance/Bench/Pathological.hs" #-}
-    )
-  , peg'memo'L :: PegRt.Table peg's (
-{-# LINE 10 "bench/Pathological.peg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 43 "bench/Conformance/Bench/Pathological.hs" #-}
-    )
-  , peg'memo'A :: PegRt.Table peg's (
-{-# LINE 13 "bench/Pathological.peg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 48 "bench/Conformance/Bench/Pathological.hs" #-}
     )
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
-  Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
+  Peg'Store PegPrelude.<$> PegRt.newTable
 
 peg'rule'E :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 5 "bench/Pathological.peg" #-}
+{-# LINE 7 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}Int
-{-# LINE 59 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 49 "bench/Conformance/Bench/Pathological.hs" #-}
     )
 peg'rule'E =
   PegRt.memoLR peg'memo'E "E"
@@ -64,9 +54,9 @@ peg'rule'E =
           ; _ <- peg'rule'L
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 6 "bench/Pathological.peg" #-}
+{-# LINE 8 "bench/Pathological.peg" #-}
  {-# COLUMN 9 #-} 0 
-{-# LINE 70 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 60 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -74,67 +64,67 @@ peg'rule'E =
           ; PegRt.lit "b" "'b'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 7 "bench/Pathological.peg" #-}
+{-# LINE 9 "bench/Pathological.peg" #-}
  {-# COLUMN 15 #-} n + 1 
-{-# LINE 80 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 70 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'A
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 8 "bench/Pathological.peg" #-}
+{-# LINE 10 "bench/Pathological.peg" #-}
  {-# COLUMN 9 #-} 0 
-{-# LINE 89 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 79 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       ])
 
 peg'rule'L :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 10 "bench/Pathological.peg" #-}
+{-# LINE 12 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}()
-{-# LINE 97 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 87 "bench/Conformance/Bench/Pathological.hs" #-}
     )
 peg'rule'L =
-  PegRt.memo peg'memo'L "L"
+  PegRt.nomemo "L"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'A
           ; PegRt.lit "c" "'c'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 11 "bench/Pathological.peg" #-}
+{-# LINE 13 "bench/Pathological.peg" #-}
  {-# COLUMN 13 #-} () 
-{-# LINE 109 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 99 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       ])
 
 peg'rule'A :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 13 "bench/Pathological.peg" #-}
+{-# LINE 15 "bench/Pathological.peg" #-}
  {-# COLUMN 6 #-}()
-{-# LINE 117 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 107 "bench/Conformance/Bench/Pathological.hs" #-}
     )
 peg'rule'A =
-  PegRt.memo peg'memo'A "A"
+  PegRt.nomemo "A"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "a" "'a'"
           ; _ <- peg'rule'A
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 14 "bench/Pathological.peg" #-}
+{-# LINE 16 "bench/Pathological.peg" #-}
  {-# COLUMN 13 #-} () 
-{-# LINE 129 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 119 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "a" "'a'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 15 "bench/Pathological.peg" #-}
+{-# LINE 17 "bench/Pathological.peg" #-}
  {-# COLUMN 11 #-} () 
-{-# LINE 138 "bench/Conformance/Bench/Pathological.hs" #-}
+{-# LINE 128 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
       ])
