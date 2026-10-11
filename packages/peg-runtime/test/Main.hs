@@ -234,7 +234,46 @@ leftRecursionTests =
             without = fst (runParser defaultConfig {cfgDiscard = False} newSB ruleA' "abcbc")
         with @?= Right "abcbc"
         assertBool ("expected a different result without discarding, got " <> show without) (without /= with)
+    , testGroup
+        "discarding only seed dependents (ADR 0024)"
+        [ sameAsDiscardAll "indirect (Medeiros et al.)" "x(n)." newSL ruleL
+        , sameAsDiscardAll "a cycle through several rules" "abc" newSB ruleA'
+        , sameAsDiscardAll "direct" "0123456789+-" newSE ruleE
+        , sameAsDiscardAll "nested levels" "x+*^()" newSX ruleX1
+        , testProperty "recovery gives the same values and errors" $
+            forAll (T.pack <$> listOf (elements "0123456789+ ")) $ \t ->
+              let run c = (\(v, e, _) -> (show v, ranges e)) (runParserRecover c newSN ruleE' t)
+               in run defaultConfig === run defaultConfig {cfgDiscardAll = True}
+        , testCase "nested left recursion: evaluations are linear in the nesting depth" $ do
+            let evals d = sum (M.elems (statsEvaluations (snd (runParser defaultConfig {cfgCount = True} newSX ruleX1 (nested d)))))
+            fst (runParser defaultConfig newSX ruleX1 (nested 3)) @?= Right ()
+            assertBool ("depth 8: " <> show (evals 8) <> ", depth 16: " <> show (evals 16)) (fromIntegral (evals 16) <= (2.5 :: Double) * fromIntegral (evals 8))
+        ]
     ]
+  where
+    nested d = T.replicate d "(" <> "x" <> T.replicate d ")"
+
+-- The results, failures and statistics other than counts agree with the
+-- uniform discarding of ADR 0013.
+sameAsDiscardAll :: (Show a) => String -> String -> (forall s. ST s (store s)) -> (forall s. P (store s) s a) -> TestTree
+sameAsDiscardAll name alphabet mk rule =
+  testProperty name $
+    forAll (T.pack <$> listOf (elements alphabet)) $ \t ->
+      show (fst (runParser defaultConfig mk rule t)) === show (fst (runParser defaultConfig {cfgDiscardAll = True} mk rule t))
+
+-- Three nested left-recursive levels:
+--   X1 <- X1 '+' X2 / X2 ; X2 <- X2 '*' X3 / X3 ; X3 <- X3 '^' A / A
+--   A <- 'x' / '(' X1 ')'
+data SX s = SX {tX1 :: Table s (), tX2 :: Table s (), tX3 :: Table s (), tXA :: Table s ()}
+
+newSX :: ST s (SX s)
+newSX = SX <$> newTable <*> newTable <*> newTable <*> newTable
+
+ruleX1, ruleX2, ruleX3, ruleXA :: P (SX s) s ()
+ruleX1 = memoLR tX1 "X1" (choice [ruleX1 >> lit "+" "'+'" >> ruleX2, ruleX2])
+ruleX2 = memoLR tX2 "X2" (choice [ruleX2 >> lit "*" "'*'" >> ruleX3, ruleX3])
+ruleX3 = memoLR tX3 "X3" (choice [ruleX3 >> lit "^" "'^'" >> ruleXA, ruleXA])
+ruleXA = memo tXA "A" (choice [lit "x" "'x'", lit "(" "'('" >> ruleX1 >> lit ")" "')'"])
 
 -- Columns ----------------------------------------------------------------------
 

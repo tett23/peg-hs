@@ -98,7 +98,9 @@ import Control.Monad (ap, when)
 import Control.Monad.ST (ST, runST)
 import Data.Array.Unboxed ((!))
 import Data.IntMap.Strict (IntMap)
-import Data.List (sortOn)
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IS
+import Data.List (partition, sortOn)
 import qualified Data.IntMap.Strict as IM
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -140,7 +142,8 @@ data ParseError = ParseError
   , parseErrorExpected :: !(Set Expected)
   -- ^ The terminals that were tried and failed at that position.
   , parseErrorLabel :: !(Maybe Text)
-  -- ^ Reserved for labeled failures. Always 'Nothing' in this version.
+  -- ^ The label of the labelled failure that stopped the parse, if any
+  -- (ADR 0021).
   }
   deriving (Eq, Show)
 
@@ -192,8 +195,13 @@ data Config = Config
   -- ^ Memoise rules that are not left-recursive. Left-recursive rules are
   -- always memoised, since their semantics depends on the memo table.
   , cfgDiscard :: !Bool
-  -- ^ Discard memo entries written during each iteration of a left
-  -- recursion growth loop. Turning this off is only useful for tests.
+  -- ^ Discard memo entries that depend on the seed of a left recursion
+  -- growth loop at the end of each of its iterations. Turning this off is
+  -- only useful for tests.
+  , cfgDiscardAll :: !Bool
+  -- ^ Discard every memo entry written during an iteration instead, whether
+  -- it depends on the seed or not (ADR 0013). Only useful for comparing the
+  -- two in tests.
   , cfgCount :: !Bool
   -- ^ Count rule body evaluations into 'Stats'.
   , cfgTabstop :: !Int
@@ -207,7 +215,7 @@ data Config = Config
 
 -- | Memoisation and discarding on, counting off, no tab stop.
 defaultConfig :: Config
-defaultConfig = Config {cfgMemo = True, cfgDiscard = True, cfgCount = False, cfgTabstop = 0, cfgRecover = False}
+defaultConfig = Config {cfgMemo = True, cfgDiscard = True, cfgDiscardAll = False, cfgCount = False, cfgTabstop = 0, cfgRecover = False}
 
 -- | Counters collected when 'cfgCount' is on.
 data Stats = Stats
@@ -267,7 +275,15 @@ data Ctx r s = Ctx
   , ctxStore :: r
   , ctxFail :: !(STRef s Failure)
   , ctxErrors :: !(STRef s ErrLog)
-  , ctxLogs :: !(STRef s [[ST s ()]])
+  , -- | The growth loops whose seeds the evaluation in progress has read,
+    -- numbered from 1 for the outermost loop running (ADR 0024).
+    ctxDeps :: !(STRef s IntSet)
+  , -- | The number of growth loops running.
+    ctxDepth :: !(STRef s Int)
+  , -- | For each iteration of the growth loops running, innermost first, the
+    -- memo entries written that may have to be discarded: their dependencies
+    -- and how to remove them.
+    ctxLogs :: !(STRef s [[(IntSet, ST s ())]])
   , ctxStats :: !(STRef s Stats)
   , ctxConfig :: !Config
   , ctxLines :: LineIndex
@@ -322,6 +338,8 @@ newCtx cfg mkStore input = do
   fref <- newSTRef NoFailure
   errs <- newSTRef (ErrLog 0 [])
   logs <- newSTRef []
+  deps <- newSTRef IS.empty
+  depth <- newSTRef 0
   stats <- newSTRef emptyStats
   pure
     Ctx
@@ -330,6 +348,8 @@ newCtx cfg mkStore input = do
       , ctxStore = st
       , ctxFail = fref
       , ctxErrors = errs
+      , ctxDeps = deps
+      , ctxDepth = depth
       , ctxLogs = logs
       , ctxStats = stats
       , ctxConfig = cfg
@@ -592,9 +612,10 @@ askStore f = P $ \c i -> pure (Ok i (f (ctxStore c)))
 
 -- Memo tables ----------------------------------------------------------------
 
--- A memoised result with its failure record and the syntax errors recorded
--- while evaluating it (newest first).
-data Entry a = Entry !(Res a) !Failure !ErrSlice
+-- A memoised result with its failure record, the syntax errors recorded
+-- while evaluating it (newest first), and the growth loops whose seeds it
+-- depends on.
+data Entry a = Entry !(Res a) !Failure !ErrSlice !IntSet
 
 -- | A sparse memo table for one rule, keyed by byte offset.
 type Table s a = STRef s (IntMap (Entry a))
@@ -629,19 +650,23 @@ bumpEntries c name d =
 -- be stored in the memo entry and replayed on a hit. In recovery mode the
 -- syntax errors recorded by a successful evaluation are returned as well;
 -- those of an unsuccessful one are discarded.
-evalBody :: Ctx r s -> Text -> Int -> P r s a -> ST s (Res a, Failure, ErrSlice)
+evalBody :: Ctx r s -> Text -> Int -> P r s a -> ST s (Res a, Failure, ErrSlice, IntSet)
 evalBody c name i body = do
   countEval c name i
   saved <- readSTRef (ctxFail c)
   writeSTRef (ctxFail c) NoFailure
+  savedDeps <- readSTRef (ctxDeps c)
+  writeSTRef (ctxDeps c) IS.empty
   before <- saveErrors c
   r <- unP body c i
   f <- readSTRef (ctxFail c)
   writeSTRef (ctxFail c) (mergeFailure saved f)
+  d <- readSTRef (ctxDeps c)
+  writeSTRef (ctxDeps c) (IS.union savedDeps d)
   new <- case r of
     Ok {} -> newErrors c before
     _ -> noErrors <$ restoreErrors c before
-  pure (r, f, new)
+  pure (r, f, new, d)
 
 -- The errors recorded since a saved state.
 newErrors :: Ctx r s -> Maybe ErrLog -> ST s ErrSlice
@@ -657,34 +682,55 @@ appendSlice c (ErrSlice k xs) = modifySTRef' (ctxErrors c) (\(ErrLog n ys) -> Er
 
 -- Replay a memo entry.
 replay :: Ctx r s -> Entry a -> ST s (Res a)
-replay c (Entry r f errs) = do
+replay c (Entry r f errs d) = do
   mergeFail c f
+  when (not (IS.null d)) (modifySTRef' (ctxDeps c) (IS.union d))
   case r of
     Ok {} -> appendSlice c errs
     _ -> pure ()
   pure r
 
--- Record an undo action in the innermost growth loop, if any.
-logUndo :: Ctx r s -> ST s () -> ST s ()
-logUndo c undo =
+-- Record how to remove a memo entry in the innermost growth loop, if any.
+-- An entry that depends on no seed is final and is not recorded, unless
+-- every entry is to be discarded ('cfgDiscardAll').
+logUndo :: Ctx r s -> IntSet -> ST s () -> ST s ()
+logUndo c deps undo =
+  when (not (IS.null deps) || cfgDiscardAll (ctxConfig c)) $
+    readSTRef (ctxLogs c) >>= \case
+      l : ls -> writeSTRef (ctxLogs c) (((deps, undo) : l) : ls)
+      [] -> pure ()
+
+-- End an iteration of the growth loop numbered @k@: discard the entries
+-- that depend on its seed, and pass the others, which depend only on the
+-- seeds of loops further out, to the iteration of the enclosing loop.
+endIteration :: Ctx r s -> Int -> ST s ()
+endIteration c k =
   readSTRef (ctxLogs c) >>= \case
-    l : ls -> writeSTRef (ctxLogs c) ((undo : l) : ls)
+    l : ls -> do
+      let cfg = ctxConfig c
+          (stale, kept)
+            | cfgDiscardAll cfg = (l, [])
+            | otherwise = partition (IS.member k . fst) l
+      when (cfgDiscard cfg) (mapM_ snd stale)
+      writeSTRef (ctxLogs c) $ case ls of
+        o : os -> (kept ++ o) : os
+        [] -> []
     [] -> pure ()
 
 -- | Memoise a rule that does not take part in left recursion.
 memo :: (r -> Table s a) -> String -> P r s a -> P r s a
 memo sel rawName body = P $ \c i ->
   if not (cfgMemo (ctxConfig c))
-    then (\(r, _, _) -> r) <$> evalBody c name i body
+    then (\(r, _, _, _) -> r) <$> evalBody c name i body
     else do
       let t = sel (ctxStore c)
       IM.lookup i <$> readSTRef t >>= \case
         Just e -> replay c e
         Nothing -> do
-          (r, f, errs) <- evalBody c name i body
-          modifySTRef' t (IM.insert i (Entry r f errs))
+          (r, f, errs, d) <- evalBody c name i body
+          modifySTRef' t (IM.insert i (Entry r f errs d))
           bumpEntries c name 1
-          logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
+          logUndo c d (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
           pure r
   where
     name = T.pack rawName
@@ -693,16 +739,16 @@ memo sel rawName body = P $ \c i ->
 memoArg :: Ord k => (r -> ArgTable s k a) -> String -> k -> P r s a -> P r s a
 memoArg sel rawName k body = P $ \c i ->
   if not (cfgMemo (ctxConfig c))
-    then (\(r, _, _) -> r) <$> evalBody c name i body
+    then (\(r, _, _, _) -> r) <$> evalBody c name i body
     else do
       let t = sel (ctxStore c)
       (IM.lookup i <$> readSTRef t) >>= \m -> case m >>= M.lookup k of
         Just e -> replay c e
         Nothing -> do
-          (r, f, errs) <- evalBody c name i body
-          modifySTRef' t (IM.insertWith M.union i (M.singleton k (Entry r f errs)))
+          (r, f, errs, d) <- evalBody c name i body
+          modifySTRef' t (IM.insertWith M.union i (M.singleton k (Entry r f errs d)))
           bumpEntries c name 1
-          logUndo c (modifySTRef' t (IM.adjust (M.delete k) i) >> bumpEntries c name (-1))
+          logUndo c d (modifySTRef' t (IM.adjust (M.delete k) i) >> bumpEntries c name (-1))
           pure r
   where
     name = T.pack rawName
@@ -711,7 +757,7 @@ memoArg sel rawName k body = P $ \c i ->
 -- call. The failure record is kept per evaluation as for memoised rules, so
 -- that turning memoisation off does not change the reported error.
 nomemo :: String -> P r s a -> P r s a
-nomemo rawName body = P $ \c i -> (\(r, _, _) -> r) <$> evalBody c name i body
+nomemo rawName body = P $ \c i -> (\(r, _, _, _) -> r) <$> evalBody c name i body
   where
     name = T.pack rawName
 
@@ -730,37 +776,46 @@ memoLR sel rawName body = P $ \c i -> do
     Nothing -> do
       saved <- readSTRef (ctxFail c)
       writeSTRef (ctxFail c) NoFailure
+      savedDeps <- readSTRef (ctxDeps c)
+      depth <- readSTRef (ctxDepth c)
+      let k = depth + 1
+          -- Whoever reads the seed depends on this loop.
+          seed r errs = Entry r NoFailure errs (IS.singleton k)
+      writeSTRef (ctxDepth c) k
       before <- saveErrors c
-      modifySTRef' t (IM.insert i (Entry Fail NoFailure noErrors))
+      modifySTRef' t (IM.insert i (seed Fail noErrors))
       bumpEntries c name 1
-      logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
       -- Each iteration starts from the errors before the growth, so that
-      -- only the errors of the iteration that is kept remain.
-      let grow lastRes lastEnd lastErrs = do
+      -- only the errors of the iteration that is kept remain. The result
+      -- depends on the seeds read by every iteration, the last one included,
+      -- since that one decides where the growth stops.
+      let grow lastRes lastEnd lastErrs deps = do
             countEval c name i
             restoreErrors c before
+            writeSTRef (ctxDeps c) IS.empty
             modifySTRef' (ctxLogs c) ([] :)
             r <- unP body c i
-            readSTRef (ctxLogs c) >>= \case
-              l : ls -> do
-                writeSTRef (ctxLogs c) ls
-                when (cfgDiscard (ctxConfig c)) (sequence_ l)
-              [] -> pure ()
+            d <- IS.union deps <$> readSTRef (ctxDeps c)
+            endIteration c k
             case r of
               Ok j x | j > lastEnd -> do
                 errs <- newErrors c before
-                modifySTRef' t (IM.insert i (Entry (Ok j x) NoFailure errs))
-                grow r j errs
-              Throw {} -> pure (r, noErrors)
-              _ -> pure (lastRes, lastErrs)
-      (res, errs) <- grow Fail (-1) noErrors
+                modifySTRef' t (IM.insert i (seed (Ok j x) errs))
+                grow r j errs d
+              Throw {} -> pure (r, noErrors, d)
+              _ -> pure (lastRes, lastErrs, d)
+      (res, errs, d) <- grow Fail (-1) noErrors IS.empty
+      let deps = IS.delete k d
+      writeSTRef (ctxDepth c) depth
+      writeSTRef (ctxDeps c) (IS.union savedDeps deps)
       restoreErrors c before
       case res of
         Ok {} -> appendSlice c errs
         _ -> pure ()
       f <- readSTRef (ctxFail c)
       writeSTRef (ctxFail c) (mergeFailure saved f)
-      modifySTRef' t (IM.insert i (Entry res f errs))
+      modifySTRef' t (IM.insert i (Entry res f errs deps))
+      logUndo c deps (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
       pure res
   where
     name = T.pack rawName

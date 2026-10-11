@@ -57,6 +57,7 @@ main =
       , syntaxTests
       , recoveryTests
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
+      , discardTests
       , generatorErrorTests
       , compileTests
       ]
@@ -91,6 +92,28 @@ regenerationTests =
         assertBool ("regenerate with scripts/regen-fixtures.sh: " <> n) (actual == expected)
     | n <- fixtures
     ]
+
+-- ADR 0024: discarding only the entries that depend on a growing seed gives
+-- the same results, failures and syntax errors as discarding every entry
+-- written during an iteration (ADR 0013).
+discardTests :: TestTree
+discardTests =
+  testGroup
+    "discarding only seed dependents (ADR 0024)"
+    [ same "Arith" "0123456789+-*^() " (\c -> show . fst . Arith.peg'parseWith c)
+    , same "Calc" "x(n).+-0123456789" (\c -> show . fst . Calc.peg'parseWith c)
+    , same "Located" "0123456789+ " (\c -> show . fst . Located.peg'parseWith c)
+    , same "Sum" "0123456789+" (\c -> show . fst . Sum.peg'parseWith c)
+    , same "Syntax (typed)" "0123456789+-*() #\n" (\c -> show . fst . Syntax.peg'parseWith c)
+    , same "Syntax (tree)" "0123456789+-*() #\n" (\c -> show . fst . Syntax.peg'parseSyntaxWith c)
+    , same "Recover" "ab[] \n" (\c t -> let (v, e, _) = Recover.peg'parseRecoverWith c t in show (v, e))
+    , same "Unicode" "0123456789＋" (\c -> show . fst . Unicode.peg'parseWith c)
+    ]
+  where
+    same name alphabet run =
+      testProperty name $
+        forAll (T.pack <$> listOf (elements alphabet)) $ \t ->
+          run defaultConfig t === run defaultConfig {cfgDiscardAll = True} t
 
 flipE :: Either a b -> Either b a
 flipE = either Right Left
