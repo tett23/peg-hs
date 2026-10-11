@@ -1,0 +1,2000 @@
+true and nil	nil
+((0))	0
+false	false
+(- 0)	0
+3 + 1	4
+true or true and (2) or (4)	true
+false and 1 or 4 - - 5	9
+(3 - 4 + nil and 4 or 3 - 5 > 3 <= 2 - (4) - ((1)))	error
+nil	nil
+(not 1 ~= 2 and not 3) and not 2 + 4 - - 3 < - true and 5 or 1	1
+false or (nil ~= true) ~= 5 == 0 or (nil)	nil
+(0 + 5 + 1 + 2 >= 3 + 5 + 5) and 3 > 2 or 2 == 1 == not 2 ~= true	false
+3 and nil and 0 or 5 or nil + 1 + 3 <= (nil ~= false) and 4 or 2	5
+5	5
+2 - 5	-3
+2 - 0	2
+1	1
+4 <= 3	false
+2 + 4	6
+3 + 2	5
+((4)) + (3) < 5 - 2 - 5 + 5	false
+not (nil) and 1 < 3 + 4	true
+false and nil and 1 or nil and 2 or 4	4
+(4 >= 4) or true ~= nil == nil	true
+- false and true and 5 - 2 or - 1 + - - 3 + 1	error
+2 == 1 and 3 ~= 1	false
+(true and 3 or 5) >= nil - 4	error
+- 1	-1
+3	3
+nil and 5 or 2	2
+(1)	1
+0	0
+not (4 == 0 and true ~= nil)	true
+1 - 3 + false and 5 or 0 - - (5)	error
+(not 0)	false
+(nil ~= true and false and true) and ((0)) or 4	4
+0 > 4 - 3 and 5 or false == false and (2) or - 4 < ((4)) or 0 - 1 + (0) == - 2 or 0 >= (false) and - 5 or 1 - 2	2
+1 + 0 - 5	-4
+2	2
+((3 and (true)))	true
+false == nil	false
+true and - 5 == 0 - 3 and (0) - 4 == - 5 - 3	false
+true and 5 or 4	5
+2 > 1 and 0 - 1 + 4 + 3 or (0 - false) + 5 + 2 + (3) + (2)	6
+((4)) >= nil and true	error
+nil ~= (true)	true
+4	4
+true	true
+- (1 + 1)	-2
+2 >= 2 and 2 or 1 <= 5	2
+(0) + 4 + 1	5
+(1) - 2 + 3 ~= 5 - 5 + (3)	true
+- nil and 4 or 0 + 5	error
+not 1	false
+- (3) > 3	false
+(2)	2
+0 >= 5	false
+true and false and nil or 3 - 5	-2
+not (3) - 3 - 4 + 0 - true or false and (2) or 2 - 4	error
+(4) + 1 + 4 - 5 < 4 and 1 or 2 + 4	6
+true and 4 <= 4	true
+((nil - (1)))	error
+- 1 + (2) + 2 < 0 and nil or (5) < (3)	false
+- 4	-4
+((- 4 >= 1 - 0 and 0 or (- 4)))	-4
+4 >= 5	false
+(4 >= 0) and (true) == 3 > 4	error
+false or false and 2 ~= 4	false
+- - 4 - 2 or 2 < 0 - (4) or 5 + 2 - (2) <= 0	2
+((5)) > 3 - 5 + 2 ~= 3 ~= - 4 and - 3 + 5 + 3 - 1 - - 3 or 0	7
+(nil)	nil
+5 >= 1 ~= false or 4 - 1 >= 5	true
+3 == 2 or 2	2
+0 >= 1	false
+1 + 2 > 5 and (5) - 4 - 1 or 2 - 3	-1
+2 > ((- 1))	true
+false and 2 or 2 < (3)	true
+(3 - (1))	2
+2 + 0 > (- 5)	true
+4 <= 5	true
+5 > ((0) - 0)	true
+2 > 4 or false or nil and 3 <= 0	nil
+(0 - 5)	-5
+(2) <= 3 - 4	false
+true - 4 + 5	error
+4 - 3 - 2	-1
+(nil and 2 or 2 - - 2 + 0 - false and 1 or 1)	error
+((false) == 1 >= 3 and 2 + 4 <= 2 - 1 ~= 4 == 4 < 0 + 3)	error
+(false == false) == nil or false ~= 3 <= 4	error
+not 0	false
+(- 3)	-3
+(5)	5
+1 - (true) or 4 ~= 4 and 3 or (0) - 5	error
+3 - (3) - nil	error
+(2) - true and 4 or 4 - - 0 > (false) - (0) and - 0 or (((0) - (5)))	error
+4 - 4 and 5 + 4 > 3 - 1 and - (- 3) or 3 < 5 and - 2 or (0) + ((4)) - (not false)	3
+(4 + 1) < 3 >= 5 + 3 + 5 + 0 or (nil and false) > not nil or true and 5 or 0 - 2	error
+1 + (- 2) - not 3 and (1) or 1 + 2 - 2 + (- 4 - 4) + (1) - 2 - 0 - ((3))	error
+true == true or nil and true	true
+- 2 - nil and 0 or 1 <= ((1)) and nil and true and 3 - 0 or 4 ~= 3 - 5 + - 3	error
+(- nil and 1 or 5) + 5	error
+- 2 - 0 - 2	-4
+nil and nil and nil and 5 or 4 or 1 - 5 + (3)	4
+1 + 2 - - 4	7
+4 ~= 4	false
+nil and 3 or true - (1 + 0) == (nil) or (false)	error
+0 + 0 - 3 + 3	0
+- 4 - 0 + 4 - (1)	-1
+not 3	false
+not 4 ~= 4	true
+(2 + 4)	6
+nil and false	nil
+1 == 5 and false or nil	nil
+(4 == 1 ~= 5)	true
+2 + 3	5
+- - - 1 - 5	-6
+4 == 5 or false	false
+(2) + 0 < false == false and (2) or 5 + 5	error
+true and 5 or 3 + 0 - 2	5
+3 - 4	-1
+2 + 1 - 1 + 4 <= (1 + 0) and 4 or - false - 3	error
+((4 >= - 1 and (false) and (false)))	false
+2 <= (0 + 1 + 3 + 5) or not not 5 > 1 and 1	true
+4 and nil and nil and 5 or 0 > 0 + 1 or 2 + 0 == 2 - 3 - 4 + 4	false
+(not (3 + 4))	false
+1 > not 4 and nil or true and false or true or 0 >= 5	error
+(nil and 5 or 0 > 2) and not true or false and true	false
+- 3 + 0 + (0) <= 1 + 2 + - 0 + 2 + 1 + 4 - 5	true
+false and false	false
+(not (2 - 3)) and (nil ~= false) ~= 1 ~= 2 and not false and 2 - (4) - (0) or nil == nil + (3 + 0) or false or nil and true == false and 5 < 1	error
+(0)	0
+(1 + 3)	4
+(4 + 1)	5
+(nil and nil) and 3 and (2) or 2 or - 2 >= false and 0 or 1 - 2 and ((1 - 4)) - - nil and 1 or 5 - - (3) or nil and 2 or 5 <= (2) and 5 >= 3 and - 3 or - 0 or ((2)) + 5 - (4 - 3)	2
+true and 5 or 3	5
+1 + 1 + 1 + (5 + nil and 2 or 2)	error
+- (1 + 2 < 2 + 3 and 5 + 3 - 2 or (true))	-6
+(false and 3 or 3 <= (1)) or false or nil or nil == 4 - 5 + 3 + 1 < (3)	error
+(3 - 0 ~= nil and 0 or 1)	0
+5 - 4 + false and 0 or 0	error
+(false)	false
+3 ~= 4 ~= (true == false)	true
+4 > 0	true
+false and 4 or 5 <= 1 - 2 and false	false
+not false	true
+false and false or false	false
+1 + (false) and (4 + 0) or (4) + 1 + 2	error
+1 - 5 - 1 > (false)	error
+- false	error
+4 ~= 2	true
+((- 3) + 0)	-3
+((true)) == (0) > 5	error
+2 > (1) + nil + 4 + 4 + false ~= nil	error
+not 4 <= 3 or (nil) and 3 == 4 == 2 > 4 and (4) or 2 + 5 <= (2)	error
+0 ~= 4 > (5) and (4) - - 3 or 0 - 4 + 0	error
+0 - 5 + 3 + 2 + 0 >= 2 - 3 + 2	false
+not (nil or true) and 3 - true and 4 or 2 or 5 > 1 and 1 or 3 + 0 > (false - (5))	2
+(1) - true	error
+(4) + (1) + 4 + 4 - 4	9
+(1 < 2 + 2)	true
+- true or nil - (5)	error
+(3)	3
+((0 + 5)) + 2 - 2 - 0 - 4	1
+2 > 2	false
+(1 and nil and 5 or 4 or - 0)	4
+nil or false	false
+(2) >= (0) and 3 == 3 or (nil) == not 1 and (3) + 5 - 2 - 2 - 5 + 1 - 2 == (0)	true
+not nil and 1 or 4	1
+(true ~= (nil))	true
+(nil and nil ~= nil and 3 or - (3) == (3 + 4 - true))	error
+((1)) - - true and 1 or 4	error
+0 > (4) or nil or 0 > 4	false
+((- 5)) + nil and 1 and (false and 2 or 2) or ((1)) <= - (3) + true and 1 or 1 - ((- 1))	error
+false or false == 3 < 3 and (3) or - 2 - - 1 + - 1	error
+((4))	4
+- 3 <= (5)	true
+nil and true	nil
+not true	false
+true == true	true
+1 - (2 + 0) < - 0 - false and 5 or 4 + 3 + 1 - 0 + 5 ~= not - false < - 0 + 0	error
+(5 <= 5)	true
+3 >= 0 or 2 >= 2 ~= 3 < 5 == not false or 1	true
+true or - 4 >= 0 == 0 and 0 or 2 + 5 and (4) - nil and 1 or 2 < 3 + 4 - (2)	true
+(4)	4
+not ((nil and 2 or 4) + (nil and 5 or 1))	false
+nil and 2 or 5 or 3 ~= false and 0 or 3 or 5 - 1 - (5) ~= - 4 + - 5 and not false and 0 or 0 + 1 > 0	5
+false and 1 or 2 - 5 + 3	0
+((4)) + 4 + 2 ~= (false)	true
+((2 + 0)) + 5 + - 4	3
+1 + 4 + - 4	1
+0 <= 1 or true and true	true
+(1 < 1 and - 3 or 1 - 4) >= (1 > 3 and nil or 3)	false
+0 + 3	3
+nil ~= nil or (nil)	nil
+- 0 >= - 1 or true == nil or true	true
+4 > 5 and (0) or (1) and (true == nil == false == true)	true
+((false) and true and 3 or 4 or nil - 4 < 3 and 3 + 0 or - 0)	4
+- (1) + 0 - 1 ~= (3) + 2 - 4 + true and (4) or 3 - 3	error
+(true)	true
+3 > 2	true
+nil or nil == 5	false
+1 + nil and nil ~= 2 <= 0 and 1 or 1 + (2)	error
+2 - 4 > (2)	false
+false and 2 + 5 or (0)	0
+(nil) and true and false or nil	nil
+5 - 3	2
+5 == 1 + 4 - - 2 and 2 - 4 < 1 + 0 and 2 - (3) or false and 2 or 5 - 3 or not (0) and - 2 or (- 3)	2
+- (0) == (nil) and 2 + 4 + (0) or 0 and 3 or nil	3
+false or true	true
+not 1 ~= 2	true
+(1) >= 0 + false and 5 - 0 + 4 or 5	error
+- 5 < 5 + 5 ~= 0 and 1 or (3)	1
+true == false or nil and 0 > 1 and false and false	nil
+(- 4 - - 2 - 1) > 2 <= 4 or 5 + 4	error
+(2 - 5)	-3
+3 - 2 < (3)	true
+(- 2 + false and 1 or 3 + (1)) + 1 == 4 and 5 - 1 or 4 ~= false and 5 or - 1 - 5 - 5 - - 5 + 4	error
+not not true == false or true or 1 - 5 == 2 + 1 == 1 + 0 ~= 2 - 3 >= (true and false)	true
+0 - (1)	-1
+not 5 and 0	false
+2 > 2 ~= 0	true
+- 3 + - 1	-4
+- 5 > 1 + 3	false
+false ~= 0 ~= 2	true
+4 + 4 <= 0	false
+2 + 5	7
+5 == nil	false
+nil and 4 - 3 + (2) or 1 - 5 - (1) > 5 - 4 + 5 + 4 + 5 ~= 2	true
+0 + 3 + - 5	-2
+false and 0 or 5 + true and 5 or 1	error
+((2 + 3))	5
+(((- 2)))	-2
+nil and 3 - 3 or (3)	3
+- 2	-2
+(2 + 0 - (5))	-3
+((4) + true and 3 or 2 + (4) + 5 - 1)	error
+(nil) < 4	error
+not 4 + 5	error
+((1) - 3 - 1)	-3
+not 1 - 3	error
+- 2 - 0 + false and 2 or 4	error
+(not true == nil and false)	false
+nil and 1 or 5 - 3 + 0	2
+not - 2 - 0	error
+- (1)	-1
+not 1 + 5	error
+((3) - (3))	0
+nil and 0 or 5 and (5 - 1) == (1) + false	error
+not 5 and (false) or 3 == 2 + 0 and 3 - false and 4 or 4 + 1 or - 3	5
+- 3 == 2 ~= not nil ~= false	true
+3 + 3 < 2 and nil or 3 + 2	5
+1 - 5 >= - 0 and (- 5) or 4 >= (5 - 0 + 1)	false
+(nil or false and (4) or (1) + ((5)) + (0) + false or false)	error
+false or true and true or 4 + 5 < - 5 - 2	true
+(nil and 2 or 5)	5
+false or nil	nil
+(nil) and 1 >= 1 and 4 + 1 or true and 1 or 5 == (- 2)	1
+2 <= 1	false
+(2) - 3 ~= 0	true
+1 <= 3 ~= false or false ~= nil or false and 0 > 1 ~= true == false and - (false ~= nil and 5 - 1 or false and 1 or 1) or (3 + 5 - 5) - 0 - 0 >= nil and 4 or 0 and (nil) and 1 or 3 or nil and 2 or 3	true
+(1) + (5 + 3 and 3 > 2 and 5 + 3 or - 0 or 1 + 5 + 2 + 3)	9
+2 + 1 >= 1 and 5 - 1 or (3) - true == true and nil and nil and (3) + 4 + 5 or 1 + 2 + 1	4
+false or false or true and 1 or 3	1
+- 5 + - 1	-6
+(0 and 3 + 0 or 5 < 3 and 0 or 5 + 4 - 1)	3
+((1) and not 5 or 0 > 3 ~= (0 < (5)))	true
+(4) == 5	false
+3 <= 5 and nil ~= nil	false
+nil or nil	nil
+(5 ~= 2 and (3) or 2 - 3)	3
+(((false) and 2 or 3 + 5))	8
+nil and (2) or (2) - true	error
+(1) + 4 - ((nil and 5 or 0)) + 3	8
+not nil and 0 or 5 < 2 ~= true and nil ~= nil or nil	0
+5 >= 0 and 0 + 2 or false and 0 or 1 < 5 <= 1 and 1 or (5)	2
+nil and 5 or 5 - nil and 2 or 5 - 0 ~= (true) - (4) - 0 - 3 or nil <= 4 - 4 or 5 < 5 and not (2 - 2)	error
+4 + 1 == 3 == not false or true and false == true ~= true	true
+(4 >= nil and 2 or 4 or true)	error
+((true and 1 or 2) + 0)	1
+(false < 3 - 4)	error
+not 5 >= 3 + 0	error
+2 - false and 1 or 4 >= 3 and (1 - 4 == false and 1 or 5)	error
+0 - 4 + false and 4 or 5	error
+not false or false	true
+5 - ((5 - 4))	4
+(5 + 3) + 2 + - 0	10
+- 0 + (4 - 0)	4
+4 ~= 0 and - 2 or 1	-2
+false - ((4)) == 0 + 1	error
+3 >= 0	true
+true or false	true
+5 + 4 + 3	12
+- nil and 3 or 0 + (4) + 4	error
+(true and nil and 2 - 5 or 0 - 1) - - (3) + 1 + 5 <= - - not 5 and 1 or (2)	error
+((2 + 4) < 3 == 5 == 4 <= 0)	error
+nil == true ~= false and true	false
+true == true and (5) or 5 + 0	5
+1 + 1	2
+(5 > 1 or 4 <= 4)	true
+1 - 5 ~= 0 - 4 + 3	true
+true + 1 - 2 + - nil <= 3	error
+(5) >= 5 - 0	true
+not true or 4 + 4 > 1 - 5 and not (false) or 3 >= - (3) + (5)	true
+- 5 + - 3	-8
+(nil) ~= (0) ~= 1 and 1 - 0 - 5 ~= 3 <= 2	error
+(- 4) + (true and 1 or 1) + (4 - 2) + 5 + - 3 - 3 + 0 < 2 and (1) or false and 4 or 5	1
+(not 3 or 3 < 2 + 3)	true
+true and 1 or 3 <= 5 - 5	1
+not 5	false
+(nil) and nil	nil
+5 <= 1	false
+not 0 + 4 + 4 + (2) + false + 4 - 2	error
+(5 - 2) > ((2))	true
+((3)) == 3	true
+false == true or false and false	false
+4 <= 1 or nil and true	nil
+4 + 2 - 4	2
+(not 3) == 4 + 4 ~= - 4	true
+false and (nil) or 3 == (1)	false
+not - (2) + 2	error
+- - - 2	-2
+- 2 - 0	-2
+3 - 2 + (2)	3
+5 - 0 >= 5 ~= 5 + 4 < 4 - 1	error
+(- 1 + 2 + 0) - (5) - 5 - - 2 - 2	-9
+false or true or true == true and false or true == false < - 0 - 1	true
+true and false	false
+1 == 5	false
+((false and false and - 1 or 0 - 3)) ~= 4	true
+(- 1 - 2 + 5)	2
+nil and 1 or 3	3
+- 0 + 5 + 3 - 1 >= (2 - 5)	true
+0 + 0	0
+(0 - 5) <= not 0 and (0) or (0)	error
+1 <= 0 and 0 or (0)	0
+(not 0 < 0 - 2)	error
+3 + 2 <= 0	false
+3 + 4	7
+2 > 5	false
+3 + 3 >= true and 2 or 2	error
+4 - 1	3
+(2) + (5)	7
+0 - - 3 - not 2 and - 3 or 3 - 0 + not false == false and nil and 5 or 2 + 2 - 3 or 2	error
+((nil or nil)) == (2 < 1 and nil)	false
+(2 <= 1 == 5)	false
+(- 5 > 5 + 5 or not false ~= not 0)	true
+false and (5) + 0 or 2	2
+not 5 == 5 ~= 5 + 5 - 3 - 4	true
+false and 5 or 5 < nil and 4 or 4	error
+((3))	3
+(- 3 + 2)	-1
+- 2 + - - 1 <= - (0) + 4	true
+2 - 4 + - 2 > - 2	false
+not false and 3 or 3 ~= true	3
+3 + ((0)) == - (0) + 1	false
+(2) <= - (3) - 3 + (5)	false
+true or 1 >= 3 ~= - 2 == 3	true
+3 + 3 - 5 + - 5 - 0 + 5	1
+- 3 >= false and 3 <= - 2 <= (2 >= 1) or not - 3 and (not 0) and 2 == 0 and (1) or 2 or - 5 - 0 or - not 2 and 1 + 3 or nil and 2 or 5	error
+not 4 + 1 + 1 - 2	error
+true and 2 or 3 + (1)	2
+(((- 3))) == 2	false
+0 - 4 < false and 4 or 1 and (5) ~= 3 + 1	error
+1 - 5	-4
+(0) - 3 + 0	-3
+not (3 < 3 or 5 ~= 4)	false
+(nil and nil) ~= 0 - 2 == 1 - 1 and true and true == 4 > true and 5 or (nil) or not 2 - 4 and 1 < 3 and nil or 3 - false and true or - 2 - 0 - 5	error
+(false or (true ~= nil and 4 ~= 0))	true
+not false ~= nil ~= true or 0 <= 3 ~= not 5	true
+- 5 - 4 + ((4))	-5
+nil and (5 - 0) or 1	1
+2 + 4 - false and 0 or 4	error
+1 <= 2 ~= nil == nil	false
+2 - 4 < 1 >= 1 and 2 - 4 or (5)	error
+5 - 4	1
+nil and 2 or 3	3
+not 1 or 5 == 2 and not 1 - 3	false
+1 - 0	1
+(5) < (5) == (4) + 2 - 0 + 3	false
+(false) and (4) or 4	4
+5 == 5 - 5	false
+- 4 + 2 + 0 + 5 + 4 + nil and (3) or false	error
+- (- 4) + 4 + 0 - true and 0 or 4	error
+3 + 5 ~= 0 - 1 ~= (3)	true
+4 - 5	-1
+true and 3 or 0 - 0 + 0 - 2	3
+not (3 == 2)	true
+4 - 5 - (1)	-2
+(- 0 - 2) + 2 < 4 == 4 == 4 and (4) or 4	4
+5 + 1	6
+5 + 4 + - (5) + 0	4
+((2 <= 2 or true or true)) and 2 or (- 3 + 5 + (false))	2
+(- 0 + (1)) - 3 and nil and 3 or 1 + (0) or false and 0 or 2 + 3	1
+- 0 - 4 + - 2 + 0	-6
+0 == 5	false
+(false or nil or true and 3 or 1)	3
+(1 >= 2 or (nil)) and 2 - (5 - 5) or true == 2 < 0	error
+4 < 0 or 3 == 4	false
+1 + (- (0))	1
+(false) and ((nil))	false
+3 < nil and 2 or 0 + 5 - 5 == (nil) and not false or false ~= nil ~= - true and 3 or 2 < - false and 3 or 5	error
+- 0	0
+((1 - 2 + 0 - (4)))	-5
+- 3	-3
+not nil == 4 - 5 - 0 ~= not nil or false == true ~= 3 ~= 0	true
+- (4 + 1 + 0)	-5
+4 - 1 - 4	-1
+5 >= 5 == 5 and 4 or 1 ~= nil and 1 or 1 + 0 + 5 and ((4) - 2) or 5	1
+false and 0 or 3	3
+(true) == false and nil	false
+3 + - 2	1
+nil and 1 or 2 + 4	6
+(1 == 2 and 1 or nil and 2 or 5) + (true ~= false and 5 or 3) - ((2))	8
+(nil and (true)) == (true)	false
+2 >= 4	false
+(- - 0 - not 0 == false and nil and false or nil and nil and (4) or 5 - 1)	error
+5 > false and 1 or 2	error
+((nil)) and not true and 4 or 1 + 5 or not 1	6
+true and false and 3 - 1 or 3 + 4	7
+(1 ~= 2 and 3 + 4 or true and 2 or 2 > 2 or (- 2) == 1)	7
+4 <= 3 == false	true
+not (5 - 4) < 4 - 0 - 0 + 2 - (false)	error
+5 + 0 + nil and 2 or 2	error
+(0) - 3	-3
+not nil ~= nil	true
+- 3 + 4	1
+(true and 0 or 4 + - 2 ~= 4)	0
+5 + 3 < 3	false
+true ~= nil and (2) or 0 - 0	2
+- 2 + 1 - 2 ~= (4) and (4) or 4 + 1	4
+- 4 == 3	false
+((4 < 4) and 3 or nil and false)	nil
+0 - - 5 - 2 + - 5 - - 0 + 2	0
+true == false and (3 + 1) or - 1	-1
+3 - (- 2) >= 4	true
+- - - (5 + 1)	-6
+- 3 >= 1	false
+(false ~= nil and 3)	3
+nil and nil and false and true	nil
+not true and true	false
+nil and (- 5) or (2) + 5 + 5 + 2	14
+(5) <= - 4 + 0 + 1 == 4 + 5 + 3 + 0 ~= 3 - 2 - (3)	true
+(- 5 < 2)	true
+(0 - 5 + true and 4 or 2)	error
+(nil and 3 or 3)	3
+4 > 5	false
+(5) - 4 + 1	2
+((not 5 and - 1 or nil and 2 or 3) - 3 - 1)	-1
+((false))	false
+true - (3)	error
+not (1) and - nil - 5 ~= nil and - 4 + 4 or 5 + 3 - 1	7
+true and 0 or 5 - nil and 5 or 0	0
+true and 5 or 3 - (0)	5
+not ((true))	false
+nil and 2 or 3 + (1)	4
+- 5 + 1 < (2) and 4 - 0 + 2 or 1 - 4 + true and 1 or 0 ~= 0 + 4 + 4 + 5 + (0)	6
+((not nil ~= true))	false
+not nil	true
+4 and 5 or 1 < (2) - 5 + 5 and 4 or 2 ~= 0 + 1 - (4) - nil and 1 or 2	5
+(false) and (4) or 4 + 0 - true or false and 4 or true and 1 or 4 and 5 >= 5 - 3 and false or (2)	error
+(0 + (3)) - ((4))	-1
+nil ~= not true == 3 ~= 1	true
+true == nil	false
+- 5	-5
+0 ~= 1 or nil and false and 3 < 1 and 5 <= 3	true
+2 == (3)	false
+- true + 3	error
+(3) == true and 1 or 3 or (1 == 4) and true	3
+not 5 - 2 > 5 or 3 < true and 3 or 2 or false	error
+(not 4 + 0 or not nil ~= nil or true)	error
+(nil and nil or false)	false
+nil == true	false
+1 > 4 ~= 2 >= 5	error
+2 - 4	-2
+true and true ~= true == false > 0 or not 2 + 0 - - 3 and (0 + 4 >= 1)	error
+- 4 - 0	-4
+false and (1 + 4 ~= (2)) and false and 2 or 5 + 3	8
+true or 5 < 5 ~= - 0 ~= 5 - 2	true
+nil and 4 or 5 - false == - 3	error
+- (1) + 0	-1
+(3) >= (2) <= 2	error
+3 ~= 2 >= - 5 + nil	error
+true ~= false and false and nil	false
+not (1 + 3 - 5)	false
+- 5 > 1 + 4 or false	false
+2 + 2	4
+not (- 4)	false
+5 + 4 == 4 or 1 > - (2)	true
+- true and false	error
+- 0 == - 5	false
+(nil and true) or nil or - (3)	-3
+3 + - nil and 0 or 2 - 3 + 0 - true - - 3 + 0 - 0 - true + 1 - 1 - (0) == 0 - 2 and 0 <= 3 or 0	error
+4 >= 1	true
+not 5 < 1 == not 2 - 5	error
+3 >= 1 == not true and 2 or (false) > - (0)	error
+true and false and 5 - 3 or 3 + 5 == ((5))	false
+2 < 0 == 1 ~= 3 and - - 2 or 4	2
+1 > (0 + 2 + - false and 3 or 3)	error
+nil and nil	nil
+(3) - 2	1
+5 < (3 + 3)	true
+(5 - 2) <= nil and 2 or 3	error
+5 - 0 <= (3)	false
+- 3 - 4 - 0 + - - 3	-4
+- 3 - (4)	-7
+((nil) ~= 4 > 5) >= - (nil and 0 or 5) - 0 and true and true	error
+1 + 3 + 4 - 1	7
+3 - 3 - 4 - 5	-9
+((2))	2
+not nil ~= nil and 5 + nil and 2 or 0 or false + 0	error
+1 >= 4	false
+(nil) and true	nil
+false and true and 5 + 4 or - 5 == not true and - 5 or true and 3 or 4	3
+- 4 - 1	-5
+(4 + 4 + 3) - 0 == 0 and 4 + 2 or (2) + true - 5 - 3	error
+- 2 + - 2	-4
+false or false or 4 <= 1 - 3	false
+((true and 4 or 0))	4
+(1 - 1) ~= false and 3 or 5 - true and 5 or 3	3
+(true and 4 or 1)	4
+- 0 + 5 <= (nil and 1 or 0)	false
+((true) == (false))	false
+1 - 3 + true and 4 or 4 - 2 >= 2 and - 2 or 5	error
+- (4 - 2) + 4 == 2 and 0 + 4 or 1	4
+- - 3 + 3 - nil and 1 or 3 >= (2) and 4 or 2	error
+2 + 1 <= 2 - 0 and 3 - 1 + 0 - 2 or 3 == 4 and 1 - 0 or 2 + true or nil or 5 > 2	error
+false == nil ~= nil >= (1 or not 4 and - 1 - 5 - 2 or 1)	error
+2 - nil and 1 or 4 + 4 - 4 - true and nil and (3) or 5 + 5 + - 2	error
+4 + 5 - false and 4 or 5	error
+1 + (1) <= 2 + false	error
+false and 1 or 1 - 0 + 0 + 0	1
+1 >= 0	true
+not 3 - true	error
+((5 + 1) + 5 + 2)	13
+(true and 5 or 3) > false ~= true and false or 1	error
+2 + 4 and (nil) and (nil) ~= (not nil) == not - - 0 + 4	nil
+(nil) ~= true or nil and 4 <= 0 and 2	true
+not 1 > 2 + 3	error
+0 - 1	-1
+not 5 <= 3 ~= 5 and 4 or (- 4) - ((4))	error
+(false and 1 or 1)	1
+(5) - (4)	1
+(((0)))	0
+0 <= nil and 3 or 5 + (3) - 5	error
+(nil and nil and 2 == 0)	nil
+(- (0))	0
+- - nil - 1 - 5 - (5)	error
+true or nil or true and (4 >= 1)	true
+not 2	false
+(nil and 1 or 4)	4
+false ~= (0) ~= false and 5 or 4	5
+2 + 2 ~= 4 - 0	false
+0 + (1)	1
+0 ~= ((3)) and - (4) - 2 - 5 or 5	-11
+5 == 4	false
+- 0 + 5 + 2 - 4	3
+nil == false - 0	error
+(4 - 3 and - 4 or (1) + (1)) + - 2 and (0) or 5 - 4 - - 1 + 3 - 0	0
+0 ~= 2	true
+(0) + (5) - 3 - 0	2
+((0)) - (0) - (1)	-1
+((0) == 1 + 0 <= 1)	error
+(nil and 5 or 0) <= 2 + 5 - true and 1 or 5	error
+(4 + 1 < 1 + 5)	true
+(3) >= (2)	true
+(0 - nil == true and 2 - 4 or 4)	error
+4 - - 1	5
+(3) and - 4 + 3 or 5 - 4 - 3 - 2	-1
+nil or false or 0 >= 3 - (3) and 2 - 1 - (4) or - 5 + 0 - 1	-3
+(nil and 0 or 0)	0
+not (0 + 1 - true and 2 or 3)	error
+((5)) + 2 - 5 + 1 - 1 + 0 - 2 + 2 > 4	false
+false == true and (4) or (1)	1
+1 >= 0 == not 2	false
+false ~= true ~= not true or 3 >= (4) + 0	true
+false == false	true
+((1)) and true	true
+not - 1	false
+0 == 3 == 1 == 5 or 3 == 5 == (true)	false
+not (0)	false
+5 - 2 >= - 4	true
+0 - 5 - 4	-9
+4 >= - 1 - 2	true
+4 - 4 - 5 == 4 > 5 and 0 or 2	error
+(- false and 5 or 3 + (4))	error
+true and 3 or 0 - nil and 0 or 0	3
+5 == 2	false
+nil == 1	false
+true - 4 + 3 ~= (5) + 3 - 4	error
+2 > 0 and nil or true == true and 0 or 5 > 4 - 0	0
+(- 1)	-1
+0 < 2	true
+3 > 4	false
+(5 - 4) - 4 + true and 3 or 1 + 2	error
+false - 1 - 4 + 5 + 5	error
+((true) and 0 - 3 or - 1) or (nil) or (2) < 4 + 0 + false and 4 or 0	-3
+0 - 2	-2
+2 - 2	0
+true ~= nil ~= 2 > 1 or nil	error
+4 - 2	2
+- 5 - 0 - - true ~= false and 4 or false and 0 or 1	error
+5 + 5	10
+not false == nil and (3) >= 3 and nil or true	true
+(false or nil)	nil
+(0) - 4 - 0 >= 1 or true or nil == nil == nil	true
+nil or nil and - 4 or 4	4
+(- (nil and 4 or 3)) + ((5 > 4) and (nil and 3 or 0) or - 5 - (5))	-3
+- (5 - 5) - (true) + ((0) + 5 + 5)	error
+not (not 2 - 4) or - (4)	error
+4 < ((1 + 1)) and - 1 + 5 - - 3 >= - 0 + 1 + 4 - (4)	false
+5 + false	error
+- 0 - - - 4	-4
+(true or true)	true
+not false and 1 or 4 and - 5 - 4 or 2 + (2) + true and false and false and 1 or 2 or true and 3 or 1 or true and 5 or 1 - 0 + 3 + 2	1
+- 5 + 1 + (nil)	error
+true ~= true	false
+((true) == false and nil)	false
+false and 2 or 1 - 4 - 0 + 1 - nil and 5 or 2 - 4 + nil and 4 or 2 + (1) + false	error
+3 + 0	3
+false - - 0 - 5 - 5 + (4)	error
+4 == (0) - 1 + 0 and 3 + 3 - 5 + 3 or (5) < - 5 and (2 + 2) or not nil and 4 + 3 or true and 5 or 3	7
+(- true) > (- true)	error
+false and 4 or 1	1
+((true and 4 or 0) + 0) - 0 and ((0) + 1) or (0 + 3 + - 0)	1
+((1)) <= - false and 4 or 0	error
+not 3 + 3	error
+2 ~= (- 2) ~= 3 - 0 < 4 + 0 and ((false and false) or not 5 == 5)	error
+true and (3 + true and 4 or 1) or true and 1 or 4 <= (2)	error
+(- 3) > ((5)) and (5) - (3) ~= (3) - (1)	false
+nil ~= true and 5 or - 5	5
+not nil or not false or not (3 == 3)	true
+5 - (4) - (2) + - 3 - 2 + 4 - 5 - - (nil) - 1 < 3 and true and 1 or 3 or - 0 + nil and 4 or 1 - 3 - 1	error
+(4) - 4 ~= 1 and (3) or nil and 0 or 3	3
+5 == nil and 3 or 2	2
+1 - - 3 == (3)	false
+- 4 + ((nil) and nil or 2 + 3)	1
+3 >= 2 and nil and nil	nil
+not nil and 4 or 5 + (5)	4
+- ((false and 1 or 3 + (5)))	-8
+1 > 2 == nil ~= true	true
+false and 5 + 0 or (0) ~= 2	true
+- (not nil and (5) or (5)) + ((2) - (5) + 2 and 5 - 1 or 3)	-1
+(true or nil or false and true) and 1 + (2 + 1) or (4 - 1) - (2) - (4) - (((3) + 5 + 0))	4
+false and 4 or 2 == 1 == 2 >= 5	error
+3 + 0 + (3)	6
+- - nil and false + 3 - 3 + (5) - - 1 + (1)	error
+(- - 1)	1
+(4) <= 3 < 5 and 1 or - 1	error
+false and true or not 0 and false	false
+0 ~= 4	true
+((5) >= (2))	true
+(2 - 2) + 2	2
+((0 - 4) + 1 + - (2))	-5
+- ((2)) < - (true)	error
+not not false == nil	false
+(3 == (true))	false
+1 <= 1	true
+true and 4 + 2 < 4	false
+((false and 5 or 4) - true and 0 or 3 + (4))	error
+2 + - nil and 1 or 3 + (1) + (nil and 0 or 5 + - 2)	error
+false and ((((1)))) or (not false) and (true and 3 or 0) or - (0) - - 5 + (0)	3
+2 + 5 + 1 - 5 - (3) - true and 5 or 0	error
+(not 3 > 1 and - 1 or 5)	error
+true == nil == not 4	true
+5 or 2 - 4 <= (4) ~= 3 + - 1 <= nil - 2 + 0	5
+true and 4 or ((5)) - 0 == 2	4
+false or true ~= 1 + 1 < 3	error
+((4)) - - - 0 - 2	2
+- 5 - (0)	-5
+(true == true)	true
+4 + 0	4
+((4)) ~= (1)	true
+(((1))) - (3 + 0) - - 3 + 4	5
+5 - false or 3 >= 1	error
+- 0 + 1 <= true - - (0) + 3	error
+not (2) - 1 + 3 - (2) + (0)	error
+not 0 + 4 == 0 - 4 < 1 - 3	error
+true or false and (3) or (4)	true
+(nil) or false or false or (false) and (4)	false
+true ~= false and 0 > 3 and 3 - 5 + 5 + 1 or 0 - - 4	4
+- - 2 - 0 == ((0))	false
+true and nil and nil	nil
+2 - false and 2 or 4	error
+(2) + false or false and false or (2) - 2	error
+1 - 0 - 3 - 0 > 4	false
+nil == true ~= 3 > 2 <= 2 and 4 - 0 or 1	error
+(5 ~= - 3) == not 2 + 4 + false	error
+false and true	false
+not not 3 - 0 and nil and false or 2 == 2	error
+(nil) and nil and 5 or 1 or 0 + 1	1
+4 > 1	true
+(((1)) + 0 - 4 + 5 - 1 - true and 3 or 4 + 2 - 0)	error
+0 <= 2	true
+(1 + 2) - (4 ~= 5) and false and true or (2) + nil	error
+1 < 2	true
+true or false or 3 >= 2	true
+((3) + 4) + 3 == 2	false
+4 < 4	false
+- 2 ~= - 2 + 2 <= false and (1 + 1) or 1 - 3 + 1 + 1	error
+4 - (false) and 5 or nil	error
+(not false == false)	false
+- - ((5))	5
+(2) + 3	5
+(5) - 3	2
+not - 0 and 4 or 2 - - 5 <= 1 and 4 - 3 + 3 - (0 - 3 - (2)) or - nil + nil + 4	error
+3 - 0 <= 3 and 4 + 1 or 1 + - 1 + 0 - (false and 3 or 5 + 1 + nil and 4 + 4 or 5)	5
+(nil and 2 or 5 - (5)) - 3	-3
+5 <= 5	true
+0 - 3	-3
+not (true and 2 or 2) == 5 - 1 + 3 ~= (0) + 2	true
+(3 >= 0) and 0 - 3 + 1 or - 1 - (4) + (0) - ((4))	-2
+false or nil or 0 == 0	true
+0 >= (2 - 4) and - (- 1) or 2 + 0 + false + - 4 - 4	1
+not 3 > false and 1 or 5	error
+true and nil and ((4)) or 5 - - 4	9
+1 < (4)	true
+1 == 3 and 0 or (0) < 3 and (- (0)) < (2)	true
+(- 4)	-4
+5 + 5 or true and 3 or 1 <= (- 3)	10
+nil and true and 5 or 3 == 2	false
+(2) ~= true and not false and - 1 or 2 + 1 or 2 < 0 and 4 or nil	-1
+((3) + 2 <= 0)	false
+3 + 5 - nil and 3 or 1 == (3) and nil == 1 >= (2) - 1	error
+2 - 3 - 3	-4
+nil == nil or not false	true
+4 >= - 1 - 4	true
+true and 0 or 0	0
+(not 2) or 3 - 3 == 2 + 5 + 4 + 5	false
+not 0 + 2	error
+false ~= nil and 1 + 5 or (5) >= (3) and (nil and 1 or 5) == - 0 - 2 + 5 and - 2 - 3 + 2 - 4 + false + 3 - 1 or - (1) + - 0 + 5 - 0 + 4	6
+(1) ~= (((1))) and ((false and true)) or - true and 0 + 1 + 0 - 3 or - 4 - 4	error
+((3) <= (4))	true
+5 + 1 - true and 3 or 0	error
+1 == 3	false
+true == nil and false and true	false
+((5))	5
+((1) - 0 - 0 ~= (2 - 5) and 1 - 4 - - (0) or 5)	-3
+(0) + 0 + 5	5
+false or not (false)	true
+- ((3) - 5 + 0) - (2 + 1 - 1 + ((3)))	-3
+- 3 + 1 - (2) + (1)	-3
+5 > 4	true
+((1 + 3))	4
+((true and 4 or 1 - false and 3 or 5 + 1 + 2 - 4))	4
+1 > 1 and true and true or not (5)	false
+(0 + 5)	5
+0 + 5 >= 2 - 4	true
+- 3 >= 4 == 4	false
+nil or false and 2 == 2	false
+3 - 4 and (nil)	nil
+(((4))) + - 3 + 3 - 0 + 1 + not nil == false ~= false	error
+((1 - 0)) <= true == nil or 1 <= 3 and - 0 - 2 or (1)	error
+nil and 1 or 5 + (0)	5
+0 - 0	0
+2 + 5 - 5	2
+1 + 2 - 3	0
+0 <= 5 - 5 - 2	false
+5 + 5 + 2 + 4 > (1)	true
+(2 < 3 and 1 or 4 + 2 + - - 2) > 0 + false ~= 4 and - 2 + 4 or 2 - 2	error
+((0 - 1) + 0 - 1 + nil and 1 or 4)	error
+0 == 4	false
+1 <= 3 >= 3 == 0 ~= - 3 and 2 - false and 3 or 4 + 0 + 4 - (4) or 1 + 4	error
+false and 1 or 1	1
+true and 0 or 4 <= true and 0 or 1	0
+5 or (true) ~= not (5) or (true)	5
+false == nil == 2 ~= 3 or (true and false)	true
+(5) > 5	false
+true and false or nil and (5) or 4 < - 1 - 2 - (2) - 0 + 4	false
+true or nil and 1 - 5 or 3 + 3 <= - (0) - (5)	true
+4 == 0	false
+(0 ~= 3) or 1 or - 4 - 3 ~= (3) + true and 4 or 4 and (1) or - false	true
+(3) - 3 + 5 + 3 - 2 - 1 + 2 + (4) + ((1))	12
+not 2 - 5 < - 0 and false	error
+((false) and (1) or (3)) == (0) and - (((2))) or 1 - ((1) - (1))	1
+false and 2 or 2 + 4 - (0 + 0) + true or false and 2 or true + 0	error
+(true) and false or nil and 5 - 5 - 4 or 5 - (nil) - ((4))	error
+- - - 0 - 0 - 2	-2
+(false and 1 or 1) + 0 > ((false) and (0) or 2)	false
+(nil) and (5) == 5 and (4 >= 2) or 3 - 3 < (2)	true
+nil ~= nil	false
+(- 5)	-5
+(0 > true)	error
+true ~= true or 2 > 1	true
+nil > - 2 and (1) > (2)	error
+(true and false or true) and not 1 > 3 == false	error
+(- 0 + 0 + true and 5 or 1 - (4) - 0 - 2 + 5)	error
+(5 - 3)	2
+(false and 4 or 4 == 3 + 2)	false
+not (4) + 5 + 4	error
+(0 < 0) and nil or 3 - 4 + true and 1 or 2 >= - 3 + 2	error
+(- 1 - 2) ~= 4 and 1 or (3 + 4) and not nil < 5 or nil	1
+nil and - 1 + 5 or - 5 + nil and 5 or 1	error
+((3 <= nil and 5 or 1))	error
+(- 1 - (4) - 2 + false and 4 or 2)	error
+2 == 3 ~= true and false	false
+5 - 3 == 2 + 5 == ((false))	true
+nil and 5 or 4	4
+- 2 + 2	0
+(- 4) + (4 < 4 and - 1 or 3)	-1
+1 ~= 1	false
+true and 2 or 0	2
+- true and 1 or (0)	error
+- 4 - 3 - 2 < 3 - 1 + 0 - 0	true
+2 >= 0 and 5 - 4 or 5 + - 1	1
+nil and 0 or 0	0
+nil == false or false ~= true	true
+0 > 3 and 0 or false and 4 or 0	0
+- - 3 >= 4 + 2 + (3) - (2)	false
+(nil or true)	true
+3 - 2 - (4)	-3
+true and 4 or 3 + - 5	4
+((true - 5 + 1)) - (0 < 5 and 3 + 4 or 0 + 4 - true and nil and (2) or 3 + 4)	error
+2 - 2 - 5	-5
+3 <= 1	false
+not 5 + 3	error
+(3) - - 4	7
+1 ~= 5 or true and (nil) and true or true and 5 or 0 or 0	true
+- 5 < 5 and 5 or 2	5
+1 - 4	-3
+- 5 > 4 and (1) or (0) < 3 or false and true	true
+(0) == true == true	false
+(4) + - 3 + - 1 + 2	2
+(- 5) - 0 + 0 - (5) + - (2) + true + 5 + 5	error
+false or false and 4 <= 3 ~= (true) ~= (1) and 2 == 2 + 2 and 1 or 0 - 1 + 2 + 3 - 4 + 4 - (1 + 0 + 2)	1
+5 ~= 0 + (3)	true
+0 - 4 - - - (2) < (false) and 2 >= 1 and 4 + 4 or (2) or - nil + 5 + 2 - 4 - 5 + 5 + 5	error
+4 + 4	8
+not nil == false	false
+((3 + 2)) == 1 - 4 + 4 - 1 ~= 0 - 0 - 1 + 2 and (2) > - 0 == (5) >= 0 - 4	error
+((5 + 3 + 1))	9
+0 <= 4	true
+((5)) + (1) + - false	error
+- 1 < 2 + 4 - 2	true
+((5 - 0) - 3) + (0 + - 5)	-3
+not 1 + 0 + 3	error
+not not 0 and 4 - 0 - false and 3 or 5 > 5	error
+- ((3))	-3
+2 > 3	false
+not 5 <= 3	error
+- - (3)	3
+0 - 4	-4
+not 0 >= 3	error
+false ~= false	false
+(0 - 0) - (- 2)	2
+not 2 or 3 > (5)	false
+(5 or false and 3 or 3) == - - 1	false
+1 ~= 0 == 0 >= 4	error
+0 >= 0	true
+false and false and 5 or 2 + 2 - 0 == (- 3 + (0))	false
+(5 >= 3)	true
+(not 3) and (3) - (4) + nil or nil and - 0 or true - 1 or (1)	error
+true and 4 and (nil and true) and - 0 + 1 - 0 + 0 + (4) or 5	5
+1 <= false and 4 + 4 or 0 + 2	error
+(3 + 1) - (- 2) ~= - 3 + 2 - 4 - 1	true
+false and nil and 0 or 4 >= (0 - 0) and not not false or 4 < 4	false
+0 - 1 + 2 - 5	-4
+not false and false ~= true ~= nil	true
+(2) + nil and 0 or 2 + (2)	error
+true == false	false
+((0) + (3)) < ((5)) + 0 - 5 + 5	true
+not nil ~= nil and false	false
+(2 == 2) or 2 >= 5 and (false)	true
+0 == (3) - 4 + 4 + 3 - 5 + (0) and 5 or not 3 + 2 ~= not (4)	error
+- - 3 > 3 and 2 + 5 or false	false
+(5 - 5)	0
+3 - nil	error
+- (4) - 2 - 3 + 0 - (1)	-10
+false and ((4) - 0 - 5) or ((2) - - 4)	6
+(true) and 5 or 2 + 2 >= (4) or ((true or true)) ~= 4 == 3 - 5 + (5)	5
+2 <= 1 + (false) - 0 + 0	error
+(- ((3)))	-3
+(2 - 5) >= - - 1	false
+false == false and false or true and 0 or 4 + - true and 1 or 5 - 4 - 5 and (3) - 4 + 2 or (3 + 5)	0
+3 > 0 ~= (false and 5 or 0) ~= (4 + 0) >= 1	error
+5 - (0)	5
+true or 2 <= 4 or not false	true
+not 4 - 5 == (0 + 2) == 4 - (nil and 0 or 1)	error
+2 <= 5	true
+(4) + (2)	6
+not - nil and - (1) or - 3	error
+false or nil and true and false	nil
+- 3 + 4 == true and 1 or 1 >= 5 - 3	false
+false or nil and true or (1) + false + 1 - - 3 - 0 - 1 - 0 + - 0 < 0	error
+(nil) and true and 0 or 4 or (4)	4
+- 2 + (- 4 - 3)	-9
+(nil and not nil or true and 1)	1
+0 - 5 + 4 + 0 >= 0	false
+4 + 5 <= 2 - 3 + (4)	false
+false == 1 + 3 > 3 + 2	error
+(5) + not false + 4 - 0 + 0 + 0 < - 1	error
+false ~= 2 == 4 and false and false	false
+3 ~= 3	false
+not false + (0)	error
+not (2 - 0 + (5) + false and 3 or 0 + - 0)	error
+5 > 3	true
+true and - 3 or 5 ~= 2 and (5) or (2) or 2 ~= 0 and 2 < 3 - 5	-3
+0 <= 3 + false or nil	error
+(4) ~= (5) + (5)	true
+false == nil and - 0 or (1) + 4 - 5 - false and 3 or 1 - (2)	error
+(nil and (5) or 5 + 2 - 5)	2
+0 < 4 and true or nil or nil and not 3	true
+(- true and 5 or 0 + 4 + 5)	error
+false or true or false and (false and 5 or 0) or ((1)) == 4 - (0) - ((5)) == (not 4) or (4)	true
+3 < 3	false
+4 - 4	0
+(not 3 - 1)	error
+2 > (1 - 3) or 1 >= 4 >= 0	true
+((false)) or not (true)	false
+not not 1 ~= 2 <= 5 ~= not 3	error
+1 > 5	false
+not 4 - 3 ~= not 1 >= 5 or (2 == 0 or (true)) or (true or nil or 5 < 1 or (1) > 1)	error
+(- (4)) < nil and 0 or 2 + 3 + 4 and 1 or 5 - 1 < 3 and 3 - 4 or 1 + 1 + 3	error
+5 + 5 + 4 - 1 < (5) + nil and 2 or 5	error
+(4) ~= 5	true
+- 2 + 4 <= (false and true and 4 + 5 or 0) + - true and 4 or 5 - - 4	error
+- - 2 - 0	2
+nil and 1 <= 1 ~= 3 ~= 5 and true	nil
+(0 + (4)) <= (1 + 3 - 0) and ((false and 2 or 0)) ~= 5 and 3 or - 4 - 4 <= 1 and 4 - 2 or false	3
+1 - 5 + (3)	-1
+- 2 - 1 - (nil ~= false)	error
+(5) - (5 + 2)	-2
+(4) == 3 - 5	false
+(false and true) == 2 > 4 or 2 >= 3 and 1 or 4 + nil and true - - 5 - (0) ~= (0)	error
+false or false	false
+1 + (3 - nil and 5 or 4)	error
+(not false)	true
+not true or (0 < 4 < 1 + nil and 5 or 0)	error
+(not (false))	true
+(2 - 2) - 3 + 5	2
+- (1) - 0	-1
+not nil ~= (false)	true
+true and 2 or 4 >= 0	2
+true and 1 or 0 + 0 - 2	1
+1 and (not (true)) ~= - 1	true
+not not 4 and 3 or 3 + 1	3
+- 2 + (3) - 5 - 3	-7
+(true) and 3 or - 2	3
+(true or false)	true
+nil ~= (nil)	false
+(((- 4))) ~= true	true
+1 + 4	5
+- 1 + 1 == 2 < 2 and false or (1)	error
+- 0 + false and 1 or 0 - ((5))	error
+(0) + 1	1
+- - (3) - 5 <= 1 ~= nil or false and nil ~= false or 0	true
+3 - 0 < (3) and 0 + (2) or - 4 + 2	-2
+false and 5 or 1 + 2 + 4 + 5 + (nil + nil and 4 or 0)	error
+(4 + 4)	8
+not (nil) and (nil) or (false and 0 or 1) >= 0	true
+(3 < 2) and ((1 ~= 0) and not 0)	false
+(4) + - 0 + 3 >= 2	true
+((3)) == (0) + 3 - 3	false
+nil or true	true
+- (1) - (4 ~= 2 and - 1 or true and 4 or 3 + 1)	0
+5 > 0	true
+(- nil and 2 or 0)	error
+3 - (false + 1 + 5 - 0 - 5)	error
+(((5)) + (5 - 1))	9
+(- 3 + 4) + not nil and 3 - 4 or - 4 + true - not 5	error
+(nil and nil and not 1)	nil
+3 + 0 < 5	true
+not (((3))) and 4 or (nil + (4)) + - 0 - true and 3 or 0 + 2	error
+((nil and true and (nil)))	nil
+1 - 0 > 1 + 1	false
+(nil and true)	nil
+4 > 2 and (1) or - 1	1
+not 2 + 4 - 5 - 3 + - 2	error
+(not nil > 0 - 2)	error
+true == (4 ~= nil ~= nil) and (true) or (nil) and (nil == true) or (4)	true
+(not nil or 2 == 4)	true
+- (0) + - 0 and 0 + 5 or 2	5
+nil and (1 + 0) or nil + - 3 <= 5 >= 3 and - 5 or (2) + 4 - 5 + 0 ~= 2 >= 4 >= 3 == 5 < 1 and - nil or 0 - 1 - - 3	error
+- true and 1 or 0	error
+(1 - 5) - 1 + 0 ~= (not 1 - 2)	error
+- false and 5 or 4 < (1 - 2) - 5 >= 5 and 4 or 1 ~= true	error
+(4) + false and 2 or 3 - 0 - 2 - 2	error
+true and (1) or (nil) or false or nil + true or nil and 4 + 3 or 5 - nil == false and 4 + 4 or 5	1
+2 + ((2))	4
+0 <= 4 or false and true and 4 or (true) and 2 or 2 - 0	true
+(true) ~= 5 <= 4 and 5 or 0	error
+1 - 0 - 3 >= 2 >= 5 and 5 - 3 or false and 1 or 2	error
+(5) + (5)	10
+- (- 2 + false)	error
+- - 1 + 3	4
+- 3 < - (3) and 5 - 5 or - (2)	-2
+(- false and 0 or 2 + - 2 + 1 - 2)	error
+((true and nil)) and ((0) - (3)) or (((1))) + (3)	4
+true and 3 or 1 - (4) < (- 4)	3
+3 - 2 - 3	-2
+nil and 4 or 4 + - 0 >= 5 or (nil) and nil and 0 or 2 or (5) ~= - 3 - 0	2
+- 2 or (nil) and true == false	-2
+false or true and 2 or 2 ~= - 4 + 5	2
+true or false or true	true
+0 + 3 + - 4	-1
+(nil ~= true) or (3) < - 1	true
+2 - (1)	1
+0 - - nil and 4 or 2 + (0 + nil)	error
+nil and nil ~= 4 <= 2 or true and 1 <= 2	true
+(0 - 0)	0
+not not nil and 2 or true ~= false ~= - 3 + (4) + 2 + 3 + 5 + 2	true
+nil and 3 or 3 + 5 - 3	5
+(nil or nil) + 1	error
+(1 >= false and 1 or 0 + 1) and ((5)) - 1 + 0 or (5) or 4 == nil and 4 or 2	error
+false ~= nil	true
+(((false) or not 2))	false
+(0 + 5 <= 1 and (0) or 4 - 4)	0
+(((4) - 1))	3
+- 4 + 1 - - (3)	0
+(5) < 3	false
+(true) and 0 or (2)	0
+2 or false == false and (nil)	2
+(- 5 - 2)	-7
+0 - 5 - 5	-10
+5 + (0) < 0 + 1	false
+((((5)))) >= (true and (0 + 2) or (0 - 0))	true
+false and nil ~= 1 < 4	false
+(not (0))	false
+3 < 5	true
+not true or 3 == 5 and 2 - 3 + nil and 1 or 5 or (0)	5
+3 - 2 + 5 <= 3 >= 0 and 0 or 2 - 3 + - 5 - 4 - nil + - 3 + 2	error
+true and false and (1) or (2) < 1	false
+(true and (nil)) + (4)	error
+(3) < false	error
+not - 2 - (5)	error
+0 == 2 ~= nil and 0 or - 3 - 2 - 1	0
+3 + 4 < 0 - 2	false
+- not nil and 4 - 2 or nil	error
+- 5 > 5 == (4) > 4 - 1 and false or 2	error
+5 + nil and true or 4 + 3	error
+not 1 + true and 2 - (3) or 4 - 1 - (2)	error
+not 0 ~= (5 >= 1)	true
+5 - 1 > false and 4 or 0 or (false) == 1 ~= 1 or (3) - false == 4 - 2 + 5 - 1	error
+true and 5 - (- 4) or 0 < 4 - (5)	9
+false and 0 ~= 1 and false or true or nil - (2) + 3 - - 0 + 4 + 1	true
+(1) >= 2	false
+(true) + true	error
+2 and 5	5
+not 4	false
+true and not 1 ~= - 0 and 0 or (1) + - 5 + - 4 - 5	0
+nil and nil or true and nil and (2 - 5) or 5 - nil and 2 or 2 - 5 + 0	error
+nil and 0 or 5	5
+2 - (((3)))	-1
+not (3 + true and 2 or 3) > - 5	error
+false and 1 or 4 < 4 - 1 == 2 + 1 <= 4 - 3	error
+- nil and 1 or 5 - 3 + 2 + nil and false > not 3 - 2 and not (false) and (4) or false and 1 or 1 - 3 - 1 or 2	error
+- (4)	-4
+nil and 4 or 0	0
+4 + 5	9
+not not 0 and not nil or 5 == (3)	true
+4 - 0	4
+(not false and (5) or - 3) <= (2) - 0 - 1 - 4 - 5	false
+- 5 + (5)	0
+(2) + false - 0 - 1 - 4 + 5	error
+not (0) < 1 < 3	error
+not 5 - 1 ~= (- 4)	error
+0 - 3 + (5 ~= 3) and (4) or - 5 + 3	error
+- (5)	-5
+1 + - 0 + 3	4
+not (true == nil and 5 - 0 or - 4) or not 1 >= ((1))	error
+(0 + 1)	1
+0 < 1 - 3	false
+(3) >= 0 + 2 > not nil and 4 <= 4 and 1 or (0) - 3	error
+5 + 1 > (2) and 3 - 4 - 5 or 5 == 0 >= 4 - 3 and 3 or 4 + 1 - 4	-6
+not 2 and - 4 > 4 and 1 + 0 or (2)	2
+nil or true and nil ~= true and (4) - 4 - 3 or 1	-3
+1 - 3	-2
+1 == 1	true
+not false or nil	true
+0 - 1 < 2	true
+not - 3	false
+2 >= 3 + 2	false
+3 - true and 5 or 2 - (1)	error
+not 2 + 1 - - 2 or false and true or 1 ~= 2 or - 3 ~= (3)	error
+(nil and 1 or 1 + (3 - 0)) <= - (1) + (4) - 2 + 2 + 0 + 1 - 1 + 0	false
+- 3 + 5	2
+false and (2) + 4 + 4 >= (4) - nil and 5 or 0 and (4) == 0 + 5 or 5 <= (0) and (1) - 3 + 3 or - 1 or 4	-1
+2 - 1 >= 2 + 4	false
+- 0 + 3 + 4 + - - 3 < 4 + 3	false
+- 5 + 2 + 5 and true	true
+(true) or 0 > 0	true
+true and false > false - 4	error
+((1) <= false or nil) and ((1)) > (3)	error
+(0) <= 2 + 2 - 4 + 1 <= 0 and 0 or 1	error
+2 == (5) + 5	false
+false and 2 + 4 - 4 + 1 > (true and 2 or 3) or (2) + nil and 1 or 2 - 5 < - 5 + - 1	error
+3 - 0	3
+not (4)	false
+(3 >= 2) or not (5 + 2) or false or false ~= nil ~= ((5))	true
+(not true)	false
+- (3 - 4) + 5 + 4 + 4 + 3 + ((3)) + 0	20
+0 - true and nil and 5 or 2 or 4	error
+not (true) ~= not 1 and (nil)	false
+2 - 0 - (1) > (0) - true	error
+1 <= 2 + 3 - - 5	true
+false and (5 == 5)	false
+4 >= 4 and ((2)) + (4 - 1) or - 2 - 4 + - true and 5 or 2	5
+(5 - 1) - 0 < 2 + (3) + 5 >= 2	error
+1 + 5	6
+not true or false and false and nil or nil + false	error
+- - 0 - 1 - (5)	-6
+1 > 4 and (3) or 4 - 4 > (0 + 0 + 4)	false
+2 - 5 > - 0 == 2 + 2 <= 3 and 3 + 0 - 1 ~= 5 + 3 - 4 - 4	error
+3 or false == true and 4 < 1 and 1 - 2 or 0 - 4 or 4	3
+0 > (false + 3)	error
+not (- 1) or 0 + 5 + 4 + 0 == (- 1)	false
+(2) == 0	false
+false and 3 or 0	0
+- 3 - 0	-3
+4 ~= (5)	true
+(true) or not 3 + 2	true
+(2 + 1 - 1) + - 1 - 2 + 4 + - 1 - 2 + 0 + - (- 2) + (2) + (true and 4 or 2)	8
+4 < 3 and not 5	false
+- nil and 1 or 3	error
+not 5 == 0	false
+4 + 3 ~= (1)	true
+- (2) - 5	-7
+(2) + 3 >= (true and (0) or (1))	true
+false and 0 or 3 - - 5 <= - 1 + 3 and 4 > nil	false
+- false and 2 or 0 + 2	error
+(2) >= (5)	false
+5 - 5 - - 3 - nil and 4 or 3 - (5) and - false and 4 or 2 + 3 < (false)	error
+(4) - (false)	error
+((3 + 2) + nil and 4 or 1 + 5) - - (- 0 - false and 3 or 5)	error
+nil ~= not 0 == not - (2)	false
+nil and 2 or 4 + 4	8
+true < false and 3 or 4 and (4) or 4	error
+3 <= (4) - (5)	false
+4 + 2 >= true and 3 or 5 ~= - 5 == true and 1 or 1	error
+4 - 3 - 5 - - (5) - (3 - 0 + 1) >= 4 - (1 - 0) + ((nil)) and 0 + 1 - false or 2	error
+((5) <= 5) < (- 4) + 5 + (2) + 3 >= 5 and 2 + 5 or 2	error
+(true < (3)) == - 4 == 1 + 4	error
+((3)) ~= 1 + 1 + 3 and nil and not nil and - 4 or (4) ~= ((4))	false
+(nil and false and (4) or 5) >= 1	true
+1 and false and 0 or 4	4
+not 5 > 0 or nil or nil or (not 1) or (((0) == - 1))	error
+((true) == nil) == nil and 0 or 3 > ((5))	false
+(4 - 5 + 5 + 1)	5
+(((5 ~= 3)))	true
+(false or nil and nil or nil and (2 ~= 0))	nil
+(((false ~= nil == 3 <= 5)))	error
+((false and 3 or 2))	2
+((3 - 5) ~= - 3)	true
+not false + true and 1 or 5 - 4 + 5 < 2	error
+4 + 0 + nil	error
+(false) and 2 > 4 or 4 + 3 <= (4)	false
+((1))	1
+nil == false >= 1	error
+2 + nil or nil and (true) - ((true and 4 or nil))	error
+(nil and - 4 or nil and 2 or 0 - (5) + - 0) - ((5))	-10
+5 + (3)	8
+3 + 3 + 1	7
+(1 + 0)	1
+- 3 + (2) + 1 + 1 + 2 and (3) or (1)	3
+not not 2 and 1	1
+(2 - 0 - (5)) > - 0 - 2 == not 2 ~= 1 <= 0 or false or true or (false)	error
+5 >= 0	true
+- 1 - 3	-4
+(false) and 1 or true or true and 4 or 5 + 2 + 1 >= 0 - 4 + 3 + 3 < 3 and 0 or 3 - 0 - true and 5 or 3	true
+(4 - 1 + false and 5 or 1 - 4)	error
+false and nil	false
+2 >= 4 + 0 == false and true	true
+true and 1 ~= 4	true
+3 + 5	8
+- - 5 + (0) - ((1 - 4))	8
+(not - - 1 == 4 >= 4 + 2 + 1)	error
+1 - not 3 or nil or true and - 3 or 5 + (0) - 5 + nil and nil or nil ~= false	error
+true and 2 or 5	2
+- (0) + (true and 4 or 4) >= (1) + 1 - 2 + (- 3)	true
+1 - 3 + 4 + (1)	3
+- (2) - 5 - 4	-11
+not 5 or nil and true == nil and true == 2 + 2 < (3) == not not false - 2	nil
+(3 == 5)	false
+not 1 >= 3	error
+((5) >= 5 + 5) == nil and 0 or 4 or true	4
+(3 >= 4) ~= 3 >= 4 and false == false or 0 + 3 + true or (1 >= 1 and false and 4 or 5 or 3) == 1	error
+not 4 ~= 2 >= 1 and (true) == 3 - (5) <= (2) and (not nil and 0 + 5 or 5 - nil and 0 or 0 - 0) or 5 - 5 + 4 + 3 + 0 - 2 - - 5 - (not 4)	error
+- 0 - (0) > ((1))	false
+0 + (nil) and - 5 or (1)	error
+(5 - 0)	5
+nil == false	false
+3 + 3 - 2	4
+- 5 - 4	-9
+5 ~= 0	true
+(4) - 4 - 5 - (5) + 0 - 3 + false and 3 or 5 - 5	error
+false and 1 or 5	5
+(true + - 0)	error
+not not (4)	true
+3 ~= 2	true
+- nil ~= (1 + 4)	error
+false or nil and (5) or - 3	-3
+- (3)	-3
+(0 >= 4)	false
+(1 <= 2) or false - false and 1 or 0 ~= (false and 5 or 2)	true
+0 - 3 - 3 ~= (false) and false or true or nil or false and nil ~= true or 0 or (3) <= false and 2 or 0 and 4 + (3) or 5	true
+4 + 5 ~= 1 and - 3 or 3 + 3 < (- 4 - 3)	-3
+(4 > (false) or 5 >= 2 and false and 1 or 1 or 3 - 3 + 1 + 1)	error
+not (5)	false
+not 4 and false and nil	false
+true and true and false or true	true
+((0) == 2)	false
+- ((1 - 2))	1
+true or 5 == 0	true
+- nil >= (3) ~= (not true) and (5 - 5 - 2) or - 5 + 3 - 2	error
+(false and 1 or 1 + 4 - 2)	3
+(3) + (5)	8
+- ((4)) + 5 - 5 + 5 - 5	-4
+5 - 1	4
+3 < false and 1 or 5 == not true == false + - 0 + 4 <= 1	error
+(((5))) - 0	5
+2 + 0	2
+(true and 0 or 4) == 5 or - 1 - 4 - 2 <= - 0 - 2 ~= not (1) + false and 3 or 3 or not nil or not false	error
+3 + 1 - 3	1
+(0 + 2 + 3)	5
+(3 + 2 - (4) == 5 - 3 + 1 ~= (nil ~= true and true or nil))	true
+5 - (3)	2
+1 - (1 + 0) - - (3) + (- 1) - 5	-3
+1 + 0 >= 1 + 2	false
+- false or true and false and 3 or 1 or 3 - 1 == 0	error
+2 == 5	false
+not not false and 4 + 2 + (1) or (3) - 0 - 5 ~= 1 + 1 + 4 + 2 - 0	true
+(((false and 1 or 2)))	2
+(5) + (5) or ((0))	10
+(false and nil and (5) or (2))	2
+2 + false + 0 > - - 0 + 2	error
+- 1 - 4	-5
+3 ~= nil - 3 + 2 + 2 or 0 == 5 - 1 and 1 + 4 <= true and 3 or 4 ~= (0) - (3) > 5	error
+not not nil == nil	false
+nil - - 4	error
+4 == (nil and 4 or 4 - 4)	false
+false and 0 or 1	1
+5 - (1 + 0 - - 4)	0
+1 >= 2	false
+(1) == 2 - 3 and 2 - 4 - 1 + 1 or (0) + (0 - 1) - (2 + 4)	-7
+((3 + 5) > not 2 and 5 or 5) ~= (3 - 1) + - 2 - 2 == (1)	error
+(3 - 2 - 0 - (3) + 5)	3
+5 - 0 == true and true and 1 or 5 - - 1 or 3 - (5)	6
+- 5 - (4 + 1)	-10
+3 - 2 + - 1	0
+- (not 1 and 2 or (2))	-2
+1 or 4 + 2	1
+1 - (2) < 5 + 5 + 3	true
+((false and (4) or 1)) - 0	1
+not 1 < 1 and 0 or 2 - (2 + 1 + (2)) - nil == nil and ((0)) or 3	error
+not (false or nil) and 3 or 2 == not not (5) or not 2 - 4 == nil	3
+true and 0 or 2 - 0 <= 4	0
+(false and (true) or nil or false or true and - 3 - 0 or nil and 0 or 0 + false and 3 or 1)	-3
+2 == 1 and true and nil	false
+(false == false)	true
+(true and (false) > (nil and 5 or 4 - false and 4 or 2))	error
+5 + 2 + (0) + 4 + 2 + 0	13
+5 + - 2	3
+- (2 + 2 - 2 + 0 > 5)	error
+true or true and 4 >= 5 and - 5 or true == false	true
+(not false) == false <= 2	error
+(- 1 - 0)	-1
+4 == 5 and false and nil or nil or nil == not 4 and not 3 and nil == false or 0 >= 4	false
+0 + 3 + (3)	6
+not 5 + 3 > false and 5 or 0 and 4 or 5 < 5	error
+0 ~= true	true
+3 > 0	true
+(nil and 0 or 2) + false + (4) > 4 and 4 or nil and 2 or 4 + 4 + 4	error
+not false and 2 or ((0))	2
+not true ~= false and 3 - 5 + false and 5 or 1 or (1) + nil < ((2))	1
+5 == not 4 and false and 1 or 4 or 5 + 3 - (3)	4
+true or not 0 >= 0	true
+(0) + true and 1 or 3 == 2	error
+2 < 5	true
+2 == 5 ~= false	false
+2 + 3 - nil and 5 or 0 + 0 - 5 - ((2) - 0 - 5)	error
+(nil) and true and 2 or 5 <= false	error
+0 + 0 - nil and 3 or 5	error
+(0 + 2)	2
+((false and 2 or 5)) > (2 - (2)) == not true	false
+(true and 3 or 4) >= (3 - 1) ~= (4 + 0 ~= 0)	false
+- 4 ~= false and 2 or 5 + false == true and 0 < 3 and (4 + 3) or 4	2
+not 4 < 0	error
+not - 2	false
+5 - 2	3
+nil and 0 or 3	3
+(- 5 ~= 2 - 2)	true
+0 < 1	true
+(false) ~= nil	true
+not (4) and 3 + (4) or ((5))	5
+4 + 0 >= 3 or 0 + 3 < 3	true
+0 < 3	true
+false - (2) >= 2	error
+true == (4 + 1) - nil and 2 or 2 + - 0 >= 5 == 5 and 5 + 4 or true and 0 or 3 + 2 - 0	error
+not - 4	false
+nil <= (0)	error
+- not ((0)) and 3 + 3 - true and 4 or 1 + - 2 or true or nil == true and true and - 0 + false and 2 or 0 or 4 - - 0	error
+4 or not 1	4
+(- 5 + 2 == 2 ~= ((nil)))	true
+nil and 2 - 1 < 1 + 1	nil
+- 1 + 3 - not (true) and (2) or 3	error
+4 - 1 - 5 + 5 + 2	5
+true == nil == 5 > 1 == (nil ~= nil) and nil and true and nil == 5 >= 4 and not false	error
+3 - 1	2
+false == true	false
+false or true == false or false and - 3 or 0 - 3 - (0)	-3
+(- (true and 0 or 2) + false and true and 1 + 1 or (3))	error
+false == nil and false and 0 or 0 or 3 + 1 + (1) - 0 - 5 >= 4	0
+(false) == not 5 and (nil and (3) or 0) or (3) + - nil or nil	0
+1 > 2 and nil ~= false ~= - 5	false
+0 - (4) - (((1)))	-5
+nil and 5 or 3 < - 3 ~= 3 ~= 1 and (5 - 3) or 4	2
+3 - 5 - 0 + 0 ~= true	true
+5 - 0 - true	error
+5 < 4	false
+(- 1) - 5 < 1	true
+(true and 1 or 5)	1
+nil == true and 2 + 2 or false	false
+(not 5 > 4)	error
+2 <= 3	true
+4 ~= 1	true
+(1 + 5) + (3) + 5 - 3 <= 0 and 3 - nil and 0 or 2 < 4 and 0 <= (3) + 2 + 1	true
+(1 - 4) ~= 5	true
+- 4 - 4 + 4 + 1	-3
+3 >= (0) - 5 + 3 + 1 == not 5 - 0 + 5 - 4 or - 2 ~= 5 - 4 and true == false and true and false	error
+(0) > - 3 or not - 4 or true ~= 3 - 2 < 2 - 5	true
+- 5 ~= 5 or not false	true
+not 2 and (- 2) or - 5 - true and 3 or 5 - - 2 + 5 + 2	error
+5 or (5) <= 1	5
+0 - - 4 + 4 - 3 + 5	10
+5 <= (3) and - 2 - 0 or 3 ~= 0	true
+(5 < 0)	false
+4 ~= 3	true
+(4) - - (4) == 5	false
+0 ~= - - 4 + - 2	true
+(2) < 2	false
+- nil + - 5	error
+3 >= 1	true
+(not 1 + 1)	error
+(nil ~= (nil) and (false and 0 or 4) or 2 + 3 + 2)	7
+(false and 2 or 2)	2
+5 < 2 + 1 - 2 - 4	false
+2 + 5 < 3 + 4 + 1 and nil - 0 == - 4	error
+0 >= 0 and true and 3 or 2 or - 5 - - 5 + 1 <= (nil == nil) and 4 or 3 and 4 or 0 - 3	3
+(true) < 5 <= 5 and - 0 or 3	error
+(2 - 0)	2
+- 0 + 2	2
+4 < 4 or nil and (nil)	nil
+true and 1 or 2	1
+(((3))) - 1	2
+5 ~= 1 == 3 >= 5	error
+false ~= - 2 == 5 - 4 or (nil)	nil
+0 - - 4 + 4 + (3)	11
+true and 2 or 3 <= 2 - 3	2
+1 ~= (true and true) >= ((5))	error
+- 0 > true and 1 or 0 and 4 + 1 - 2 - 3 or - nil and 0 or 2 - (3)	error
+- 0 + 2 - 5	-3
+5 < (4)	false
+- (1) + 4 + 1	4
+0 + 3 < (4) and 1 or 5 < 0 and 0 - 2 or 3 == 2 - (2)	1
+0 ~= (3 >= 5 and 4 - 2 or true and 5 or 3)	true
+3 > (0) + (4) or (2 ~= 2) and 4 > 2 - 2	false
+((4 == 1))	false
+1 > (not nil or (nil)) and (true - (0)) or 2 - 2 - 0 - 1	error
+1 <= 2 and 3 < 3	false
+(nil) <= 5 + 1 - 0 + 0	error
+(false or nil or 1 + 5 >= 1 and 1 - 5 < false == false)	error
+(3 + 2 + (5)) + - - 2 + 5	17
+4 >= 5 - 4	true
+not (3)	false
+(5) < (5)	false
+(2 + 1) == 4 - 4 + 5 - 0 ~= - - 1 - 2 + 4 + 1	true
+- 1 - 1 < 3 - 5 and (true and 0 or 4) or (5)	5
+(true == nil or false and (nil) or (5 + 4))	9
+4 == 3 and 2 or (4) ~= 0	true
+(2) <= 3 - 1	true
+true or true	true
+2 - 1	1
+0 + 1	1
+(0 + 4 - 2) >= (0) - - 4	false
+5 < - (3 - 0) and (0) or - 2 >= false and 4 or 1 == 2 <= true and 1 or 2 and (1) or ((3)) + 0 + (1)	error
+true + 5	error
+not (((true) and - 4 or 2 - 5))	false
+(5) ~= 2 + 1	true
+- (3) + true ~= false and true or false	error
+(5 - 0 - 4 + 1 + 5 - 0 + false)	error
+(- 0 ~= (4 - 3) and - 5 + (5) or 1 + 4 + 5 + 1 - 4 + 4)	0
+true and false and true and true	false
+2 - 1 + (4) > 5 == 3 and 2 or - 2 and (not (false))	true
+3 + nil and false ~= (((1))) or 3 < 0 ~= not 1 > 0	error
+not false - false - - (0)	error
+not 1 or nil	nil
+not 0 and 1 or 3 and 1 or (- (5)) >= 0 - 1 ~= (2) + 2 - (5) - false	1
+1 < 0	false
+nil ~= true	true
+(5 - - 3)	8
+not 2 >= 1	error
+(5) + 1 - 1	5
+(3) + (0) + 1 + 2	6
+(5) or false or true	5
+nil and 4 or 0 - (1)	-1
+false and nil and 1 or 3 or (1) - 5 + 4 + 5 >= 1	3
+not - 5	false
+- 1 + 3 - true and false and 0 or (1) <= (((2) - - 0))	error
+(false) - true and nil or nil or nil	error
+2 - 0 - 1	1
+(true) - (4 - 5) + (not true) > not 3 + 4 and (3) + (3) or true and nil and 1 or (5) + (true and 0 or 1)	error
+(not true and 1 or 1)	1
+(4) - true and nil and 3 + 0 or 3 + 3	error
+- 2 + - 5 - 4 + 1	-10
+- false - nil and 0 or - 4	error
+((4) - ((2))) == 5 < 0 or 0 <= 5 and ((- 5)) or - 4 ~= 4 and 0 or 5 - 5	error
+2 + 2 - 3 <= true ~= nil and 4 - 3 or 0	error
+not (2 - 2) or nil	nil
+5 > 5 + 1 + false and 4 or 2 - nil and 5 or 0	error
+((nil) and 1)	nil
+not 1 + - 4 + false and 2 or 4	error
+(4 - (0 - 5) - - (4))	13
+true ~= nil	true
+0 - true and 1 or 4 + 5	error
+not true and - 1 or 1 - 2	-1
+3 + - 4	-1
+2 + 0 > 0	true
+(true) or true and true	true
+3 <= 2 and 5 or 2 + 4	6
+- - 0 <= 2 - 2 + 3	true
+2 + 0 + true >= (2)	error
+5 - 5	0
+nil - 4 <= 2 + 3 - 1 - 1 + 4	error
+true and 1 or 3	1
+3 + 4 <= 3	false
+5 <= 3	false
+(((1)))	1
+((true and 1 or 1) + - 1 - 5 > 1 and 2 or 1)	1
+nil and false and true or false and (nil) or true and false	false
+(3 ~= 0 + - true) - - false and 0 or 1 - 1 - (0 + 3) + true and 4 or 4 + true and 1 or 0	error
+(false) ~= 5 == 3 and 3 or - 3 + 5 + 2	4
+0 ~= - (3)	true
+- 4 + 2 and true	true
+(5 > 0 and true and 1 or 0 or false and 0 or 3 > (- 2)) or - true and 3 or 0 - 1 - 2 >= nil and (2) + (4) or 2	1
+1 - 0 - 4 - 4 + (3 + 2)	-2
+(nil or true <= 0 - 4 + 2 - 4)	error
+(0) >= true ~= false or ((not 1)) and 5 - 4 - 5 + 1 >= (2) - 1 - 1 == 1 <= 5	error
+not (- 2 == true and 1 or 2)	false
+nil or true and true or nil	true
+(3 > 0) == 5 + 3 ~= - 1	true
+4 - 4 ~= 3 and 0 + 5 > (3)	true
+(- 2 + 2 + nil) >= 2	error
+2 - - (true)	error
+(nil) and 1 or - 0 <= - true and 3 or 3 or (not (0))	error
+- (3) - 0	-3
+(false and 4 or 0) - false and false or 2 < 2	error
+(3) + 0 - 3	0
+4 + 3 ~= - 0	true
+- 3 - 3 == (3) - 3 - (5 >= 3) and ((5)) or not false	error
+(nil) == 4 >= 2	error
+false or 3 <= 0 or 3 <= 4 ~= (not 0)	true
+4 and 0 + 4 or 5 + 3	4
+((0) + false and 1 or 0) <= 5 and 4 < 2 and (1) or 0 + 0 - 1 >= 3	error
+4 < 1	false
+not true and 2 or 3 and ((3)) or (3) - 0	3
+false or nil and false + (0) or - 5 - 5 - 3 - false - - 3 - false and 4 or 1 - 3 - 5 and (true) or true and true and 2 + 3 or (4)	error
+true and true ~= not 1	true
+((5) <= 3)	false
+(0) < 0 or false and false and nil	false
+- true	error
+- - 4	4
+(nil) and true ~= true and 0 or - 3 + 5 + (2 + - 0)	4
+nil or false or 1 ~= 4	true
+(3) - 1	2
+true and 4 and (4) or 2 - 2 or 1	4
+false == 1 - 5 + 2 > 3 > 1	error
+2 > 1 + nil ~= true and - 3 or 3 - 3 == true + 1 + 1 + 1 ~= - 1 + (3) - 0 + (2)	error
+(0 + 4 >= - 1 and (nil and 4 or 2) or (4 + 0))	2
+true and nil or false or true and nil == nil or true and 1 or 3 + (2)	true
+- 2 > 1 and (5 + 1) or (5)	5
+0 == 0 == 5	false
+1 - (5) + 0 + 5	1
+not (false ~= nil)	false
+((0 + 0 - 2 + - 2))	-4
+(- 4 + 5) - false ~= true and (5) or - 5 - ((2))	error
+true ~= true == 4 < 2 or (false) or false and false	error
+nil and 2 or 1	1
+2 > 2 or true == true	true
+0 + 3 == 5 - 3 and - 3 - 2 + 0 or (4) - false and 2 or 1 ~= not not false and 5 or 5 and 4 - (2 + 3) or - 2 + 5 + 3	error
+- 3 + 0 + 2 + 2 + false	error
+nil and 2 or 0 - (2) <= 5	true
+((1 - 0)) - 2 + false	error
+false == nil and (0) or 3 + 4 <= (1 + 2)	false
+5 > false and nil and 4 - 0 or 0 - 1	error
+true and true or 0 > 5 and ((nil)) or 4 >= (5)	true
+(0) == (3)	false
+(- 5) - (5 + 1) + 5 - ((3 - 2))	-7
+false ~= (nil or false ~= false or false) ~= not true and 3 or 0 - 5 == false and 3 or 4 - 1 + 4	7
+not - (false and 4 or 4) == false	true
+- (4) < - 1 and (4 - 1) + 2 <= (1 - 0 - (0))	false
+not nil and 5 or 2 or 2 == 5 or true ~= false > 1	5
+nil and 5 or 1 == not 3 and (((4))) + 1 - 2 <= 1 and not nil and 3 + 0 or 0 or true or false and 3 + 2 or true or (nil and 3 or 0) and (2) or 5 - 2 ~= 1 - 0 and 5 or false and true and nil and 1 or 4 or 2	0
+- (4) + (5) == 2	false
+4 ~= 5	true
+- (0)	0
+(0) - 0	0
+- 2 + 4	2
+not 4 + true and 3 or 5 - (5) + 2 + 5 - 3 - 4	error
+1 + 4 ~= 4	true
+(3) + 3 + 1	7
+2 - true and 4 or 0 + 5	error
+0 ~= 4 and nil and false	nil
+(- 4 + true and 5 or 2) <= 4	error
+(- 3 + false and 2 or 5)	error
+0 >= (0)	true
+3 - 1 == 4 and 4 or - 5 + 3 + (2) + 2 - 0 + 2 - 3 + nil and 2 or 5	error
+5 ~= 4	true
+(- 5) - - (2)	-3
+nil + 5 + 1 > 1	error
+not 4 or nil	nil
+((3) + (4)) == nil	false
+(1) >= 5	false
+- (- 5) + 3	8
+false <= 1	error
+(0 + 3)	3
+(nil == nil)	true
+- ((false ~= true)) and 5 or (false) + - 0 + - 0	error
+(4 - (0))	4
+2 > (true) and false	error
+(nil and 3 or false or false and (3) or - 5) > (- (false) and (2) or - 1)	error
+(true or nil or 5 >= 2 <= (5) - 4 + (2 - 0))	true
+(5) - ((1) + 2) > - - (false and 1 or 2)	false
+(true and 2 or 4) - (2)	0
+- nil and 3 or 5 + 3 - 4 - (4) + 4	error
+- - 2	2
+2 - 5 == (4)	false
+false and 3 or 3	3
+- 4 ~= 0	true
+not 3 <= (- 2)	error
+3 ~= (0 - 5) - - 0	true
+1 - not false and 1 or 3 + not (5) and (3) + - 3 or (5) - 1	error
+true and 4 or 1	4
+false or 1 < 4	true
+1 <= 2	true
+not false == false - false and false or 2 + 5 < 2 - 1 - 5	error
+true and 4 == 2 - - nil and 5 or 5 > 3	error
+(false) ~= true	true
+4 + 0 + 5 - 3 + 1 + 1 - 3	5
+0 > 3	false
+(true) or false	true
+3 + - not false and 5 - 4 or - 5 - - (true == true and 4 - 0 or 1 - 2)	error
+5 <= 5 and (3) or 0	3
+((1 + 1))	2
+false and false and 3 or 2 or nil and 3 or 3	2
+nil or 0 > 0 == 1 < 3 or not 5 or true	error
+2 < 2 >= 0 and false or true and 0 or 1 - false + false	error
+(true and 4 or 5 + 1 ~= 5)	4
+(not 1) or false	false
+4 < - (5) == ((1)) >= (2)	error
+(- 4 < (2) and (true == false))	false
+true and true	true
+(2 - 4) or not 4 or nil and false or true or false and 2 >= 5 or true or true or - 5 - 0 <= (false)	-2
+not ((false and nil))	true
+nil == nil	true
+4 == 4	true
+- 0 + 4 - 5 - 4 + 5 - 5 >= 5 and 3 and 0 <= nil	false
+(3) <= - 0	false
+(- nil and 1 or 4 + 3 + 0 - 1 ~= 2 ~= (false) and 2 or 4 - 5 + 0 + 2)	error
+2 == ((2 + 0))	true
+not 4 - 5	error
+(1 - 4)	-3
+((- 0))	0
+4 - 3 > 5 + 5	false
+(5 < 2)	false
+not true or true and 4 or 3	4
+false ~= (true or true)	true
+true and 3 or 1 + - 1	3
+3 - 0 - 2	1
+(false and nil) and (5) >= - 5 == (nil or nil) or - 5 ~= 2	true
+(nil and 3 or 5)	5
+(not ((1)))	false
+nil and 2 - 2 + 3 or 4 + 3 + 1 + (5) - (1 + 2) - ((0)) < 0 ~= 3 and 1 or - 4	1
+not - (false and 0 or 5)	false
+1 == (0) + 3	false
+nil or not 0 ~= 5 == not 0 - 2 == 2 + 2	error
+0 - ((5)) + - nil == true and (5) or 3 + (0) + 1 - 1	error
+(- 4 + 2 - - 2 + - 0) - 2	-2
+4 - 2 + 2	4
+((false) + 4)	error
+0 < - 2	false
+(true and false - 5) > - nil and 1 or 4	error
+4 + 5 < (1)	false
+(- - false and 0 or 5 + 0)	error
+2 + 4 + (2)	8
+false and nil or false and true ~= not 4 and nil ~= nil	false
+(5) or false or 4 == 0	5
+nil and 1 < 0	nil
+false and false and 2 or 4 or 0 and 3 or ((2 + 5))	4
+- 0 > 3 + 0 and 3 or 2 + 4	6
+(4) <= 3 + 0 + 4 + (2)	true
+4 - (2)	2
+- 0 - 0 <= ((3)) and - (1 - 2) or not true or nil	1
+3 == 3	true
+1 - 1	0
+0 == 4 and (false ~= nil)	false
+5 - 0	5
+3 > 0 or 2 == 1 or true or false or nil	true
+(0 + 0) + nil and 5 or 1 + 0 == 1 or 1 + 2 ~= 3 + 5 or 0 - 5 == (1) and 3 - 1 ~= - 3 or not 2 - 0	error
+nil or false - true - true and 5 or 0	error
+false or true or 5 < 1 or - 4 >= 2 - 3	true
+(5) ~= 4 + 2 or 5	true
+true and 4 and 2 + 5 - 3 or (false) and 5 or 2 + 0 + (((4)))	4
+- 1 == 2	false
+nil and 4 or 3 == - 3 or not true or false and - 1 - 5 + false and 4 or 0 or 2 + 2 + - 1 > (((1))) + 2	0
+(- 1 + 2 - 4 + 2 - 2) == 3	false
+((false ~= true) ~= not not nil == (not not 5))	true
+true == 4 + 3 > (4)	error
+(2 - (3) + 1)	0
+false and 5 or 5 + 3 - 0 + (true and 2 or 4)	10
+(0 + 1) + (3) - 4	0
+2 - 3 + (3) - 4 - 3 - 2 - - ((2))	-5
+false or false and 4 == 2 or 3 and nil == true or false	false
+(3) - ((3) + 4)	-4
+(true ~= false and nil)	nil
+1 ~= (- (5)) - 2 ~= 3 and true or nil and 3 - - 1 or (2)	true
+(- 1 <= 0 + 0 and 4 - 5 or 1 + 5 + nil and 1 or 1) == false and 2 or 0 + 5 + 3 + 0 - false and 3 - 4 or 4 + 2	error
+3 + nil - false	error
+true == nil and true or nil	nil
+- 2 ~= false	true
+(2) + 0 - - 2 > 0 == 4 > 5 and - 4 or (2 - 5)	error
+0 >= 4	false
+(false and true and (1) or 0 - 1)	-1
+not 4 - 1 >= false and not nil == not true and 1 - 5 - (3) or true or true or 3	error
+0 <= 1 and 1 - 4 ~= 2 + 2	true
+- 2 - 2	-4
+nil or true == false or true	true
+0 + 4 == (0)	false
+(2) + 0 == 0 < 3 and 1 - 0 or false and 5 or 5	error
+2 - 4 ~= (2)	true
+2 + 1	3
+not 2 - nil and 2 or 2 <= (4) and (2) - (2) > 5 + 1 - 4	error
+4 - 0 + 2	6
+- not not 1 <= - 5	error
+3 <= ((2) - 4 - 1 + (2))	false
+(0) == (2)	false
+(1 - 3)	-2
+- 2 >= 1 + 5 == (not true)	true
+nil or nil ~= true or nil	true
+1 + 3 - (5) >= - - 2	false
+- 5 > 2	false
+- nil and 3 or 3	error
+4 - 0 ~= true and 4 + 3 - 2 - 0 or 4	5
+2 < 2 == nil or true	true
+(true) == true == true or true == true or (true) == ((3) > 2)	true
+1 > 0	true
+2 >= 5	false
+0 <= (5)	true
+not 3 and 4 < 2	false
+((nil))	nil
+4 > 2 or 2 == 4	true
+((nil or true == nil))	false
+(0) > - 5	true
+1 + true and 5 or 3	error
+true and 5 or 1 + 4	5
+not (0) and - 2 - 1 or 4 <= - 1 + 4 - 4 + not true	error
+5 + 4 + 4 + 3 - 2 - 3 + 2	13
+0 ~= 5 == true == - 3 ~= 5	true
+2 < 4 and 1 <= 4 or (0) >= nil and 4 or 5	true
+not 1 + 5 ~= 0	error
+false and nil + 1 + nil and 4 or 2 <= 3 + 1 and 4 - 5 - 2 or 2 or ((1) + (4 + 0))	-3
+5 == 4 and 5 or 2	2
+(true and true == nil == nil) or not 2 or (not true)	false
+- 3 - 4 - false and 4 or 1 - 3	error
+3 - 3	0
+(- 4 + - 1 + (0) - 2 + 1 ~= (4 - 3))	true
+((2 + 0)) + 2 + (1) + (1)	6
+4 - 5 + 2 + (2 + 2 + 5 - 1)	9
+(((2)))	2
+5 - 4 + 0 + not 2 and 3 or - 1 < ((- 3))	error
+true or false and 4 or 5 + 2 == 2	true
+((false and 2 or 5))	5
+0 - 5	-5
+nil and 5 or 1 - ((5)) - 5 - 3	-12
+false and (false) and ((1 == 0))	false
+0 + not (5) and - (5) - 1 or ((1) + true and 2 or 5)	error
+1 == 1 and 5 > 4	true
+true or false and (nil)	true
+(not 4 and 2 - 4 or true and 1 or 1)	1
+(- true and 1 or 0 == 5)	error
+0 ~= 3 and 5 >= 3 or 1 + 1 <= 0 and true or true and not 0 and 4 or 3 or - (3) - true and 3 + 3 or 4 - 3 < 2 - 3 + 1 and (2) + 5 - 4 - 4 > 1 and - 5 or (2) or 4	true
+0 - 0 + 2 + 2 and 3 or 4	3
+((false and nil) == 0 + 2 == 3)	false
+2 - 3	-1
+((2 + 2 + true) - (false))	error
+true and nil or not 3	false
+(- 0 + 5 > nil and 0 or 0 - 1 + 3)	error
+2 - 1 - 4 + 4 >= ((1)) and 5 - (1) + 1 - 5 or (3) - 2 - true and 3 or 3	0
+- 1 + 4 - - (4)	7
+nil or ((2 < 2) or not true)	false
+(3) + 1	4
+true ~= false	true
+true and true and 0 + 4 or 2 - 0	4
+(nil ~= 5 > 4)	error
+- 1 > 2 - 5 and - 1 < 0	true
+false and 4 or 4	4
+(((3)))	3
+(not 4 and 5 - 4 - nil or - true)	error
+((nil) == true and nil) ~= not - 2 - 2	error
+nil == true == true == nil and (not true)	false
+0 + (4) < - 0 >= 0 and 0 or 5	error
+5 ~= 1	true
+(- 3 + 3)	0
+3 <= 5 or 5 == 5	true
+4 >= 3 and nil ~= false or (1) ~= 2	true
+(2 + 4) - (4) < - (1) - 5 - 3 - 5 - 0	false
+5 >= (1)	true
+2 > (((3)))	false
+- true or nil and 5 or 3 >= 4 and 4 or (3)	error
+nil and 3 == 2 == not true	nil
+0 == (false)	false
+true or true and 4 < 5 and not - 3	true
+4 - 1 <= 4	true
+(5) - nil	error
+true or nil	true
+((4) + (1))	5
+not (true and 2 or 3) - 0	error
+4 > 1 or true ~= false	true
+- 4 - false and 0 or 2 + 2	error
+true < (1)	error
+(5) + 3 - (((5)))	3
+(((0))) > (0 ~= 1 and 4 or 5 - (true))	false
+3 ~= 4	true
+(false) - (nil and 0 or 3)	error
+((4 - 3 - 4))	-3
+not 3 ~= 3	true
+(3) - 2 + 3 <= false or true and 5 or 1 - 0	error
+nil or false and 0 and - nil and 2 or 3 or (1)	3
+2 + 5 - 4 < - 3	false
+((true or nil) ~= false or not ((4)))	true
+2 - (3) <= 5 - 2 ~= 4 - 3	true
+not 1 - 4	error
+not not 1 and 0 or 5	0
+(((5)) + (0))	5
+not ((3)) > - 3 + 2	error
+2 - 2 - 1	-1
+(2) - 5 - 3	-6
+not true and nil and 1 or (4) - (0 - 3) - (2 - 1)	6
+1 ~= 3 and 5 + 2 or false and 3 or 1	7
+((not false))	true
+(4 ~= 4)	false
+2 == 0 == 3 > 4	error
+(5) - 1 > 4	false
+false and 4 or 2	2
+4 >= (- 0)	true
+(4 > 2)	true
+not 5 + 0	error
+not (2)	false
+(4) > 4	false
+true + 1 - 5 >= 2 + 2 + 3 and 4 > 0 and 4 - 5 or 1 < 5	error
+nil and 0 or 4 < 5 + 3	true
+not true and 4 or 1 < 4 + 0 and (1 + 1 + 4) or - (1) + 3	6
+not (3 - 4) < 0 - 1 + 1 - 1 and false	error
+not 3 - - 0 >= - - 2	error
+(not 1 ~= (true) or nil)	true
+nil and 1 or 4	4
+nil and 1 or 2 > - 0	true
+2 + 4 + 1 + 4	11
+((true - true) + nil or nil and (1) or true and 5 or 5 + - 3 + 2)	error
+3 and 4 - 2 or 3 - 2 + - 4 - - 3 + - 2	2
+(nil) + true and 5 + 1 or 1 - (3) + 1	error
+false > - nil	error
+not (- 1 - 1) and (5 < 2 and true) or - 5	-5
+2 < not nil and 5 or 2 - 5 + 2 <= 5 and true and 0 or 2 or 1 + 5	error
+(- (3))	-3
+5 + ((nil - nil and 2 or 3))	error
+true and 3 or 0	3
+false + (2)	error
+4 + 4 - 4 - 0 - (1)	3
+true == ((2))	false
+5 < 5	false
+(0) - 3 - 1 + 0	-4
+2 + 2 - 3 + 5	6
+- (2)	-2
+not 1 - 1 + false and 4 or 2	error
+false ~= true ~= nil and ((1)) or ((5)) - (3) and 3 or (4)	1
+((false or nil and (5) or - 3) == 0)	false
+true and nil or (2) ~= 3 or (true) and 2 ~= 1 and (3 - 5 - 5 - 4 + (1) + true) or (nil ~= true + 4 - 0 + 2)	true
+2 + 5 - 1 ~= (0) + (2 + 5)	true
+5 > (2) and false	false
+false ~= - 4	true
+0 or (nil)	0
+not 3 + 5 + (3) and false or nil or (1 - 2) + 3	error
+false ~= false and (true)	false
+(false) or true and false	false
+nil and - not 5 and 5 - 0 or 1 or - false and 3 or 5 - 2	1
+0 - 0 - false >= - nil	error
+(5) - 1	4
+3 ~= 0	true
+2 + 4 > 3 ~= 2 and true ~= nil and (2 + 4 + 3 + 0) or (((1)))	9
+5 <= - 4	false
+(((5) + (5 - 3)))	7
+(not - 2) and (nil and 3 or 2 - 5) or (2) < 4 + 2 and 3 or (0) - (1 + 0) - (2) - 4 + (1) - - 3 + 0	3
+3 > 5	false
+- 4 - 4	-8
+(1 - 0 + 1 - 3) <= - (- 0)	true
+(true - 1) - nil and 5 ~= 3 and false and not false and not 2 > 5 or 0 + 5	error
+((3) + - 4 - 4)	-5
+(false == true and 4 - 3 or 3) - (5 - 0) - 4	-6
+false and 4 or 2 > 3 ~= (4)	true
+nil or nil and false	nil
+(not 2 ~= 3)	true
+5 < 3	false
+4 > 2	true
+- (0 - 2 + 3)	-1
+((0 - 2) <= - 5 + 5 and (2) <= false and 2 or 2 or - 1 + 5)	error
+true ~= nil or true ~= true and not not 2	true
+nil or true == nil	false
+not not (3)	true
+(true and true)	true
+0 - - - true	error
+2 - 1 + (4)	5
+true and nil or false	false
+(nil + 0 + 5)	error
+4 <= - 1 ~= false and 2 or 2 ~= (5)	true
+- 3 + 1 ~= - 2 == 5 or nil and false	nil
+((5 - 1)) < 5	true
+3 > 3 and - 5 or (4)	4
+0 - 3 < 4 and 0 + (1) or - 1 < - - 4 - 4	1
+(not true or nil == not false or 4 - 4 + 1 + 3 == (4) - 2 + 2)	true
+- 5 + 4 + (2 + 3)	4
+nil <= 3	error
+nil and - 0 or 3 - 5 > false + 4	error
+not (5 - 5) ~= (0)	true
+(1 + (false and 3 or 1))	2
+5 + 0	5
+true or (false) ~= 5 ~= 4 and 4 >= nil	true
+((0 - 4)) - ((5)) - 0 < 4	true
+- 5 - 4 ~= 0 - 4	true
+1 >= 5	false
+((nil) and 1 + 3 or true)	true
+4 ~= 0	true
+1 ~= 0	true
+- 1 + 1 + 3 - 4 - (1 - 1) < - (false) + (0 - 0)	error
+5 ~= 2 - - nil and 4 or 4	error
+(- 1) <= (2) and (true and true) ~= not 4 or 5 < 0 and not 0 - 2 < - 0 and ((true)) or (0 - 4 - (5)) or 2 + (not 0) and 2 or 2 + 5 - (2)	true
+(4 ~= 1)	true
+nil and 5 or 4 ~= (3) and (0 + 1) or (4)	1
+(0 - 2) - - nil	error
+- 0 + (0)	0
+true and 3 or 3 == 3	3
+0 + 4 + nil and 3 or 5 + 3 ~= 2 + false	error
+false and 5 or 1 < - 5 and nil	false
+(2) and false or true == (true)	true
+false or true or (false)	true
+- 0 - 2 + 3 + 0 ~= nil and 0 or 3 and false and 2 - 5 or true and 0 or 2 or 0 + ((1) + (2))	0
+not false and nil	nil
+nil ~= nil or 2 ~= 2	false
+(1 < 3 and 4 or 0 + 4)	4
+5 >= 3 and not 5	false
+- 0 + ((1) - 5 - 1)	-5
+1 + 0	1
+(2) - (2) - (5) >= (- 1) + (- 0) and not - 1 - false and 3 or 3	3
+3 - 2 == (3) and (5)	false
+4 < - 5 + 2	false
+true and true ~= nil	true
+nil ~= 5 < 5 + 3	error
+- - 4 + 3 ~= 2	true
+(2 - 0) - 0 - - - 4 - not 2 and 2 or 0 - 1 <= 4 and (1) or 2 - (- 0) - - 4 - 0 - 1	error
+(4) or false ~= true == nil	4
+1 + 3	4
+nil or false - 5 - 3	error
+(1) + 5 > true and nil and 2 + 4 or 5	error
+2 + 3 + true and 2 or 3 < not 3 and 1 or - 2 ~= 0	error
+not 1 and 1 - 0 or (1) - (4)	-3
+false ~= false and nil or 1 - 1	0
+0 + 5 == 4 + 2	false
+4 - 0 < 0 and - 0 > 4 + 0	false
+true and 3 or 0 + 0 - - 5 - 5 + false ~= true and - 5 or 0 + 3 - (4) + (5)	3
+false or nil and 2 or (4) > (4 + 0)	false
+3 < (4)	true
+5 <= 0 or (nil) and true == false and (3) or 4 - 2 or (false and 1 or 2) <= (3 - 4) + 0 - 4 + 1	2
+nil + 5 + (0 + 3)	error
+- 1 - 4 - 0	-5
+0 - 4 - 3 > 4 and false or false and true or 4	4
+4 == 4 and 4 or - 0 ~= (2 + 1) and true and true and (false) or 0 - 1 ~= true and 4 or 0	4
+(4 == 1)	false
+0 == 4 and 4 + 2 or 3 - 0	3
+0 + false	error
+- 2 + 2 + 5 >= nil and 1 or 4 and 4 or 4 > 3	error
+- (4) + 3 - 1 ~= (2 - 0 + (3))	true
+- 2 - - - 3 + true	error
+2 > 4 and (5) or nil and 0 or 0	0
+(4) + 3 + 5	12
+true and 0 or 1	0
+- (5) - (2 + 2) == ((5 - 0 - 1 - 2))	false
+- - false and false and 3 + 2 or (3) - - true	error
+not 3 ~= 0 and (1 <= 3)	true
+5 + true and 1 or 1 + (4 + 4)	error
+4 > 4 or ((true)) and 4 < 4 or 3 <= 5	true
+((4 - 3))	1
+true and 1 or 4 - (4) + (3) - 5 + 1 ~= 1	1
+false or nil or nil or false	false
+5 - 2 - 1 ~= 0 - 3	true
+true and 0 or 2 > 3	0
+- ((- (4)))	4
+not 4 ~= 5	true
+(1 + - 4) + ((5))	2
+not 3 or not true or false	false
+false == not 2	true
+not nil or false ~= nil and false ~= not nil == not 2	true
+2 > 4	false
+- nil and 2 or 4	error
+false - (2 + 3 - 1)	error
+3 + 3	6
+(nil and nil and (nil) ~= 0 <= 0)	nil
+nil and nil == 2 ~= 5 or true and true ~= true and (1) or (4) - true and nil and 0 - 1 or 5 - 2 or 5	error
+1 + 5 < 2 - 4 and 1 >= 1 and not 3 and (false or true and false or false)	false
+(false and 5 or 2) - (4) + (0)	-2
+3 > 0 - (4)	true
+3 - 2 >= 3	false
+((4 - 1))	3
+0 - - 0 - 0 - 5 - (2)	-7
+1 >= 2 + 4 < 2 < 0 + 2 - 2	error
+- (5 - 3)	-2
+- (0 >= 3)	error
+(1) - 2 - 5 + ((4))	-2
+nil and nil or not true or 5 < 0 - 5	false
+1 ~= 4 or 3 <= 0	true
+(0) <= 4	true
+5 < - - 2	false
+(nil) == (true)	false
+(nil) or true ~= nil	true
+(1 + 5 - 0 + 4)	10
+5 - 0 + (3) and 2 > nil and 4 or 4 - 2 + 5 and 5 - - 4 + 2 - (4) + (((3))) or (not nil) + 3 >= 5 == true and (1) or ((1))	error
+- 5 - 0 > 4 - 5 + 0	false
+((3)) >= 5 and (3) - (true) or 4 - 1 - 0 + 0 + true and nil == nil or 0 - 5	error
+true and true and 3 or - 1 >= 3 or not false	3
+5 + 3	8
+(4) + - 3 - (true) and 2 or - 4 ~= (2 + 4)	error
+2 ~= 2	false
+4 + 3 <= 2 and (5) or 0 - 5 - 4 + (1)	-8
+(4) <= not true and 2 + 1 or 3 - 5 or 5 < 3 >= - 0	error
+not 0 - 2 - 2 + 1 ~= nil	error
+(1 or 3 + 1 <= (3))	1
+not 0 - 0 + 0	error
+0 + 4 > (1)	true
+(5) + 4	9
+not true or false	false
+not true and true == 0 > 5 ~= 4 ~= (5) <= 1 - (2)	false
+2 - 5 + 1	-2
+0 < 5 and - 4 or - 2 > 0 - 4 - 5	-4
+3 >= 0 >= 0	error
+5 > 4 and 0 - 5 or 2 - 3 + 2 < 2 - 1 >= (4)	-5
+0 + (5) == ((0))	false
+(- 0 + 2) < false == true + - (5)	error
+(true and 1 or 0) ~= - 4 + 5	false
+- - 3 + 3 + 2 + (2 - 1 - 3)	6
+(0) + not 3 > 3 and (1 - 1) or 0	error
+- 2 < 3 and 5 == 0 and 4 or 0 or (true) and 4 + 5 or 2 + 5 - not true and 4 or (2 + 2 - 0 - 5)	0
+2 - false + 0 - 1	error
+4 <= 4 or true or true	true
+4 - 3	1
+not not 5	true
+(- (4)) ~= (nil and 0 or 2 - 4) == not (nil) == 3 + 0 - (0)	false
+not (5) and (5 + (3)) > 2 - 3 + 1 + 3 - 1	false
+not 3 + 5 == 1 - 3 or 5 <= 5 and false or (1) - (3) ~= (5 + 4)	error
+not not 3 and (1) or true and false	1
+0 + 5 < 2 - 0 == 5 == 5	false
+((3) - (5) > (2) - - 0) and (nil) and (5) or (1) == ((4)) == 1 > (5 - 1)	error
+false and 3 or 4 > 3 or (2) < 1	true
+true and true and 1 or 3 or (1) < 0	1
+false == true and 1 >= 2	false
+not true and false	false
+((true) or 5)	true
+nil and 1 or 5 > (0)	true
+(- 4 + 0)	-4
+not nil == 5 < 4	error
+0 - 0 + 5	5
+5 - 0 < 2 + 1 == 4 < 1	error
+(1) - not 2 == 5	error
+(5) and 3 + 2 == (1) ~= 1 < 4 and 4 <= 3	error
+- (1 - 0 + 0) >= (1)	false
+((4) <= nil and 1 or 2) == - 3 < (true)	error
+(1 - 1)	0
+3 <= (1)	false
+- (3 + 2 - - 2) + 0	-7
+0 > 5	false
+(not 1 and 5 or 0 + 3 > 2 and 5 + 1 or - 3)	6
+1 + 5 - 5	1
+3 <= (0)	false
+((1) + false and 4 or 2)	error
+2 < 3 and false	false
+nil or 1 > 2	false
+2 > 2 and (0) or (2)	2
+- true and 0 or 1	error
+- (3) - 0 + 4 + (1) - (((0) + 2 - 4))	4
+(2) + 1	3
+1 ~= 4 and false or true and 0 or false and 3 or 4 - 1 + 0 ~= 4 - true - 0 - 1 and 3 >= 4 - (true and 1 or 5)	0
+(not false or false)	true
+2 <= 4 or 4 >= 5 or not 1 and 1 <= 5 or 3 <= - 2 - (4)	true
+2 == 1	false
+0 - - (4) + - 5	-1
+(3) > (3)	false
+(0 >= 5)	false
+3 + 5 - 2 ~= 3 or 5 + 0 >= 5 - 4 and 0 >= 5 == true	true
+((not (nil)))	true
+false ~= false or (3) == (3)	true
+not nil and 3	3
+- (true)	error
+5 >= 3	true
+(- 2) + (5) - 3 == ((1) - 1 - 0)	true

@@ -1,0 +1,7 @@
+Source: https://www.lua.org/tests/lua-5.5.1-tests.tar.gz
+SHA-256 of the archive: da07b543872dc0bb2ff12aabd0c248578d78df3eb6b67efdc537a46d455c7f31
+Contents: the *.lua files of the archive, copied unchanged. The C sources
+(libs/, ltests/) are not included.
+License: the test files refer to the copyright notice in lua.h of the Lua
+5.5.1 distribution (https://www.lua.org/ftp/lua-5.5.1.tar.gz), copied
+into LICENSE.

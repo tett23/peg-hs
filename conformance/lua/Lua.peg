@@ -1,0 +1,390 @@
+# Lua 5.5 の文法。ADR 0022 の適合性テストに使う。
+# マニュアルの「The Complete Syntax of Lua」をできるだけそのまま写す。
+# 字句の規則は参照実装の字句解析器（llex.c）に合わせる。
+%module Conformance.Lua.Parser
+%entry Exp
+%language OverloadedStrings
+%syntax
+%token Name
+%token Numeral
+%token LiteralString
+%token Ws
+%token Comment
+%trivia Ws
+%trivia Comment
+%inline Sp
+%inline KAnd
+%inline KBreak
+%inline KDo
+%inline KElse
+%inline KElseif
+%inline KEnd
+%inline KFalse
+%inline KFor
+%inline KFunction
+%inline KGoto
+%inline KIf
+%inline KIn
+%inline KLocal
+%inline KNil
+%inline KNot
+%inline KOr
+%inline KRepeat
+%inline KReturn
+%inline KThen
+%inline KTrue
+%inline KUntil
+%inline KWhile
+%inline KGlobal
+%nomemo LongClose
+
+%{
+import Conformance.Lua.Ast
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as T
+}%
+
+# チャンクとブロック ------------------------------------------------------------
+
+Chunk :: Block
+Chunk <- Sp b:Block { b }
+
+Block :: Block
+Block <- ss:Stat* r:RetStat? { Block ss r }
+
+RetStat :: [Exp]
+RetStat <- KReturn es:ExpList? (';' Sp)? { fromMaybe [] es }
+
+# 文 ------------------------------------------------------------------------------
+
+Stat :: Stat
+Stat <- ';' Sp { SEmpty }
+      / '::' Sp n:Name Sp '::' Sp { SLabel n }
+      / KBreak { SBreak }
+      / KGoto n:Name Sp { SGoto n }
+      / KDo b:Block KEnd { SDo b }
+      / KWhile c:Exp KDo b:Block KEnd { SWhile c b }
+      / KRepeat b:Block KUntil c:Exp { SRepeat b c }
+      / KIf c:Exp KThen b:Block eis:ElseIf* e:Else? KEnd { SIf ((c, b) : eis) e }
+      / KFor n:Name Sp '=' !'=' Sp a:Exp ',' Sp z:Exp s:MoreExp? KDo b:Block KEnd { SForNum n a z s b }
+      / KFor ns:NameList KIn es:ExpList KDo b:Block KEnd { SForIn ns es b }
+      / KFunction n:FuncName f:FuncBody { SFunction n f }
+      / KLocal KFunction n:Name Sp f:FuncBody { SLocalFunction n f }
+      / KLocal a:Attrib? ns:AttNames es:Init? { SLocal a ns (fromMaybe [] es) }
+      / GlobalStat
+      / vs:VarList '=' !'=' Sp es:ExpList { SAssign vs es }
+      / c:Call { SCall c }
+
+ElseIf :: (Exp, Block)
+ElseIf <- KElseif c:Exp KThen b:Block { (c, b) }
+
+Else :: Block
+Else <- KElse b:Block { b }
+
+# 参照実装は LUA_COMPAT_GLOBAL でビルドされており、global は予約語ではない。
+# 文の先頭の global は、次の字句が '<'、名前、'*'、function のいずれかのときだけ宣言になる。
+GlobalStat :: Stat
+GlobalStat <- KGlobal &('<' !'<' !'=' / Name / '*' / KFunction) s:GlobalBody { s }
+
+GlobalBody :: Stat
+GlobalBody <- KFunction n:Name Sp f:FuncBody { SGlobalFunction n f }
+            / a:Attrib? '*' Sp { SGlobalAll a }
+            / a:Attrib? ns:AttNames es:Init? { SGlobal a ns (fromMaybe [] es) }
+
+Attrib :: Text
+Attrib <- '<' !'<' !'=' Sp n:Name Sp '>' Sp { n }
+
+AttNames :: [(Text, Maybe Text)]
+AttNames <- n:Name Sp a:Attrib? ns:MoreAttName* { (n, a) : ns }
+
+MoreAttName :: (Text, Maybe Text)
+MoreAttName <- ',' Sp n:Name Sp a:Attrib? { (n, a) }
+
+FuncName :: FuncName
+FuncName <- n:Name Sp ns:DotName* m:ColonName? { FuncName (n : ns) m }
+
+Init :: [Exp]
+Init <- '=' !'=' Sp es:ExpList { es }
+
+DotName :: Text
+DotName <- '.' !'.' Sp n:Name Sp { n }
+
+ColonName :: Text
+ColonName <- ':' !':' Sp n:Name Sp { n }
+
+MoreVar :: Exp
+MoreVar <- ',' Sp v:Var { v }
+
+MoreName :: Text
+MoreName <- ',' Sp n:Name Sp { n }
+
+MoreExp :: Exp
+MoreExp <- ',' Sp e:Exp { e }
+
+VarList :: [Exp]
+VarList <- v:Var vs:MoreVar* { v : vs }
+
+NameList :: [Text]
+NameList <- n:Name Sp ns:MoreName* { n : ns }
+
+ExpList :: [Exp]
+ExpList <- e:Exp es:MoreExp* { e : es }
+
+# 前置式 --------------------------------------------------------------------------
+# prefixexp、var、functioncall の三つの規則は、互いを経由した間接の左再帰である。
+# マニュアルは prefixexp ::= var | functioncall | '(' exp ')' の順に書くが、
+# 順序付き選択では var が先にあると、成長の途中で名前だけの var が成功して
+# 呼び出しの選択肢が試されない。そのため functioncall を先に置く。
+
+PrefixExp :: Exp
+PrefixExp <- Call
+           / Var
+           / '(' Sp e:Exp ')' Sp { EParen e }
+
+Var :: Exp
+Var <- p:PrefixExp '[' !('='* '[') Sp k:Exp ']' Sp { EIndex p k }
+     / p:PrefixExp '.' !'.' Sp n:Name Sp { EField p n }
+     / n:Name Sp { EName n }
+
+Call :: Exp
+Call <- p:PrefixExp as:Args { ECall p as }
+      / p:PrefixExp ':' !':' Sp n:Name Sp as:Args { EMethod p n as }
+
+Args :: [Exp]
+Args <- '(' Sp es:ExpList? ')' Sp { fromMaybe [] es }
+      / t:Table { [t] }
+      / s:LiteralString Sp { [EStr s] }
+
+# 式 --------------------------------------------------------------------------------
+# 優先順位の低い順。左結合の段は左再帰、右結合の段（..、^）は右再帰で書く。
+
+Exp :: Exp
+Exp <- Or
+
+Or :: Exp
+Or <- l:Or KOr r:And { EBin "or" l r }
+    / And
+
+And :: Exp
+And <- l:And KAnd r:Cmp { EBin "and" l r }
+     / Cmp
+
+Cmp :: Exp
+Cmp <- l:Cmp o:CmpOp r:BOr { EBin o l r }
+     / BOr
+
+CmpOp :: Text
+CmpOp <- o:$('<=' / '>=' / '==' / '~=' / '<' !'<' / '>' !'>') Sp { o }
+
+BOr :: Exp
+BOr <- l:BOr '|' Sp r:BXor { EBin "|" l r }
+     / BXor
+
+BXor :: Exp
+BXor <- l:BXor '~' !'=' Sp r:BAnd { EBin "~" l r }
+      / BAnd
+
+BAnd :: Exp
+BAnd <- l:BAnd '&' Sp r:Shift { EBin "&" l r }
+      / Shift
+
+Shift :: Exp
+Shift <- l:Shift o:$('<<' / '>>') Sp r:Concat { EBin o l r }
+       / Concat
+
+Concat :: Exp
+Concat <- l:Add '..' !'.' Sp r:Concat { EBin ".." l r }
+        / Add
+
+Add :: Exp
+Add <- l:Add o:$[+\-] Sp r:Mul { EBin o l r }
+     / Mul
+
+Mul :: Exp
+Mul <- l:Mul o:$('*' / '//' / '/' / '%') Sp r:Unary { EBin o l r }
+     / Unary
+
+# 単項演算子は ^ より弱い。-a^b は -(a^b) であり、^ の右の項には単項演算子が付く
+Unary :: Exp
+Unary <- o:UnOp e:Unary { EUn o e }
+       / Pow
+
+UnOp :: Text
+UnOp <- KNot { "not" }
+      / o:$('-' / '#' / '~' !'=') Sp { o }
+
+Pow :: Exp
+Pow <- b:Simple '^' Sp e:Unary { EBin "^" b e }
+     / Simple
+
+Simple :: Exp
+Simple <- KNil { ENil }
+        / KFalse { EFalse }
+        / KTrue { ETrue }
+        / n:Numeral Sp { ENum n }
+        / s:LiteralString Sp { EStr s }
+        / '...' Sp { EVararg }
+        / KFunction f:FuncBody { EFunction f }
+        / Table
+        / PrefixExp
+
+FuncBody :: FuncBody
+FuncBody <- '(' Sp p:ParList? ')' Sp b:Block KEnd { let (ns, v) = fromMaybe ([], Nothing) p in FuncBody ns v b }
+
+ParList :: ([Text], Maybe (Maybe Text))
+ParList <- ns:NameList v:CommaVarArg? { (ns, v) }
+         / v:VarArg { ([], Just v) }
+
+VarArg :: Maybe Text
+VarArg <- '...' Sp n:Name Sp { Just n }
+        / '...' Sp { Nothing }
+
+CommaVarArg :: Maybe Text
+CommaVarArg <- ',' Sp v:VarArg { v }
+
+Table :: Exp
+Table <- '{' Sp fs:FieldList? '}' Sp { ETable (fromMaybe [] fs) }
+
+FieldList :: [Field]
+FieldList <- f:Field fs:MoreField* FieldSep? { f : fs }
+
+MoreField :: Field
+MoreField <- FieldSep f:Field { f }
+
+FieldSep :: ()
+FieldSep <- [,;] Sp { () }
+
+Field :: Field
+Field <- '[' !('='* '[') Sp k:Exp ']' Sp '=' !'=' Sp v:Exp { FKey k v }
+       / n:Name Sp '=' !'=' Sp v:Exp { FName n v }
+       / e:Exp { FPos e }
+
+# 字句 ------------------------------------------------------------------------------
+
+Name :: Text
+Name <- n:$([a-zA-Z_] [a-zA-Z0-9_]*) !{ isKeyword n } { n }
+
+# 参照実装の read_numeral と同じく、数の形かどうかを問わずに字句を切り出してから
+# 数に変換できるかを判定する。1..2 は数の誤りになる
+Numeral :: Text
+Numeral <- n:$(HexRaw / DecRaw) ![a-zA-Z_] &{ validNumeral n } { n }
+
+HexRaw :: ()
+HexRaw <- '0' [xX] ([pP] [+\-]? / [0-9a-fA-F.])* { () }
+
+DecRaw :: ()
+DecRaw <- &([0-9] / '.' [0-9]) ([eE] [+\-]? / [0-9a-fA-F.])* { () }
+
+LiteralString :: Text
+LiteralString <- s:$(ShortString / LongBracket) { s }
+
+ShortString :: ()
+ShortString <- '"' DqChar* '"' { () }
+             / '\'' SqChar* '\'' { () }
+
+DqChar :: ()
+DqChar <- '\\' Escape { () }
+        / ![\n\r\\"] . { () }
+
+SqChar :: ()
+SqChar <- '\\' Escape { () }
+        / ![\n\r\\'] . { () }
+
+Escape :: ()
+Escape <- [abfnrtv\\"'] { () }
+        / '\n' '\r'? { () }
+        / '\r' '\n'? { () }
+        / 'x' [0-9a-fA-F] [0-9a-fA-F] { () }
+        / 'z' [ \t\n\r\u{0B}\u{0C}]* { () }
+        / 'u{' h:$[0-9a-fA-F]+ '}' &{ hexValue h < 2 ^ (31 :: Int) } { () }
+        / d:$([0-9] [0-9]? [0-9]?) &{ read (T.unpack d) <= (255 :: Int) } { () }
+
+# 長括弧。閉じの = の数は開きと一致しなければならない
+LongBracket :: ()
+LongBracket <- '[' e:$'='* '[' (!LongClose(T.length e) .)* LongClose(T.length e) { () }
+
+LongClose(n :: Int) :: ()
+LongClose <- ']' e:$'='* &{ T.length e == n } ']' { () }
+
+Comment :: ()
+Comment <- '--' &('[' '='* '[') LongBracket { () }
+         / '--' !('[' '='* '[') (![\n\r] .)* { () }
+
+Ws :: ()
+Ws <- [ \t\n\r\u{0B}\u{0C}]+ { () }
+
+Sp :: ()
+Sp <- (Ws / Comment)* { () }
+
+# 予約語 ----------------------------------------------------------------------------
+
+KAnd :: ()
+KAnd <- 'and' ![a-zA-Z0-9_] Sp { () }
+
+KBreak :: ()
+KBreak <- 'break' ![a-zA-Z0-9_] Sp { () }
+
+KDo :: ()
+KDo <- 'do' ![a-zA-Z0-9_] Sp { () }
+
+KElse :: ()
+KElse <- 'else' ![a-zA-Z0-9_] Sp { () }
+
+KElseif :: ()
+KElseif <- 'elseif' ![a-zA-Z0-9_] Sp { () }
+
+KEnd :: ()
+KEnd <- 'end' ![a-zA-Z0-9_] Sp { () }
+
+KFalse :: ()
+KFalse <- 'false' ![a-zA-Z0-9_] Sp { () }
+
+KFor :: ()
+KFor <- 'for' ![a-zA-Z0-9_] Sp { () }
+
+KFunction :: ()
+KFunction <- 'function' ![a-zA-Z0-9_] Sp { () }
+
+KGoto :: ()
+KGoto <- 'goto' ![a-zA-Z0-9_] Sp { () }
+
+KIf :: ()
+KIf <- 'if' ![a-zA-Z0-9_] Sp { () }
+
+KIn :: ()
+KIn <- 'in' ![a-zA-Z0-9_] Sp { () }
+
+KLocal :: ()
+KLocal <- 'local' ![a-zA-Z0-9_] Sp { () }
+
+KNil :: ()
+KNil <- 'nil' ![a-zA-Z0-9_] Sp { () }
+
+KNot :: ()
+KNot <- 'not' ![a-zA-Z0-9_] Sp { () }
+
+KOr :: ()
+KOr <- 'or' ![a-zA-Z0-9_] Sp { () }
+
+KRepeat :: ()
+KRepeat <- 'repeat' ![a-zA-Z0-9_] Sp { () }
+
+KReturn :: ()
+KReturn <- 'return' ![a-zA-Z0-9_] Sp { () }
+
+KThen :: ()
+KThen <- 'then' ![a-zA-Z0-9_] Sp { () }
+
+KTrue :: ()
+KTrue <- 'true' ![a-zA-Z0-9_] Sp { () }
+
+KUntil :: ()
+KUntil <- 'until' ![a-zA-Z0-9_] Sp { () }
+
+KWhile :: ()
+KWhile <- 'while' ![a-zA-Z0-9_] Sp { () }
+
+# global は予約語ではないので、名前としても読める
+KGlobal :: ()
+KGlobal <- 'global' ![a-zA-Z0-9_] Sp { () }

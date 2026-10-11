@@ -16,6 +16,7 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 
 - JSON（[JSONTestSuite](https://github.com/nst/JSONTestSuite)）：受理すべき 95 件と拒否すべき 188 件のすべてに合格
 - CommonMark 0.31.2：仕様の例 652 件すべてに適合
+- Lua 5.5（Lua 5.5.1 の公式のテストスイート）：マニュアルの構文を間接の左再帰のまま書いた文法で、34 ファイルすべてを受理。優先順位、結合性、拒否は、参照実装から作った正解と一致
 
 仕様は [docs/specifications.md](docs/specifications.md)、`.peg` 記法の解説とサンプルは [docs/syntax.md](docs/syntax.md)、設計決定は [docs/adr/](docs/adr/) を参照。
 
@@ -76,6 +77,12 @@ CommonMark のテストは、結果を調べるためのオプションを受け
 
 ```sh
 cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
+```
+
+Lua のテストの正解は、参照実装の Lua 5.5.1 で作る。参照実装が要るのは、正解を作り直すときだけである。
+
+```sh
+conformance/lua/golden/regen.sh
 ```
 
 ## ライセンス

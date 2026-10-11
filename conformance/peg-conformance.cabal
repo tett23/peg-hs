@@ -38,7 +38,10 @@ library
     Conformance.CommonMark.V1.Inline
     Conformance.Json.Encode
     Conformance.Json.Parser
-  hs-source-dirs:   json bench commonmark
+    Conformance.Lua.Ast
+    Conformance.Lua.Eval
+    Conformance.Lua.Parser
+  hs-source-dirs:   json bench commonmark lua
   build-depends:
     , base
     , bytestring
@@ -99,6 +102,9 @@ benchmark peg-bench
   ghc-options:      -rtsopts "-with-rtsopts=-T"
   build-depends:
     , base
+    , bytestring
+    , directory
+    , filepath
     , containers
     , criterion        >=1.6 && <1.7
     , deepseq
@@ -123,5 +129,26 @@ test-suite commonmark-conformance
     , peg-codegen
     , peg-conformance
     , peg-runtime
+    , text
+  default-language: GHC2021
+
+-- ADR 0022. The golden data is made by lua/golden/regen.sh.
+test-suite lua-conformance
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          LuaMain.hs
+  hs-source-dirs:   test
+  ghc-options:      -Werror
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , peg-codegen
+    , peg-conformance
+    , peg-runtime
+    , tasty
+    , tasty-hunit
     , text
   default-language: GHC2021

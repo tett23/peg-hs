@@ -16,6 +16,7 @@ A PEG-to-Haskell parser generator with left recursion support.
 
 - JSON ([JSONTestSuite](https://github.com/nst/JSONTestSuite)): all 95 must-accept and 188 must-reject cases pass
 - CommonMark 0.31.2: all 652 spec examples pass
+- Lua 5.5 (the official test suite of Lua 5.5.1): all 34 files are accepted, with the grammar of the manual written as indirect left recursion; precedence, associativity and rejections agree with the reference implementation on generated cases
 
 See [docs/specifications.md](docs/specifications.md) for the specification, [docs/syntax.md](docs/syntax.md) for the `.peg` notation with examples, and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
 
@@ -75,6 +76,12 @@ The CommonMark test takes options for inspecting results: `--show N` prints one 
 
 ```sh
 cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
+```
+
+The golden data of the Lua test is made with the reference implementation, Lua 5.5.1, which is needed only to regenerate it:
+
+```sh
+conformance/lua/golden/regen.sh
 ```
 
 ## License

@@ -7,6 +7,11 @@ import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
 import qualified Conformance.Bench.NestedLR8 as NestedLR8
 import qualified Conformance.CommonMark as CommonMark
+import qualified Conformance.Lua.Parser as Lua
+import qualified Data.ByteString as B
+import qualified Data.Text.Encoding as TE
+import System.Directory (listDirectory)
+import System.FilePath (takeExtension, (</>))
 import Peg.Runtime.Syntax (syntaxRange)
 import qualified Conformance.Bench.Pathological as Pathological
 import Conformance.Json.Encode (encode)
@@ -56,6 +61,20 @@ size v = case v of
 specPath :: FilePath
 specPath = "data/commonmark-spec-0.31.2/spec.txt"
 
+-- The files of the Lua test suite, read as ADR 0022 reads them.
+luaSources :: IO [Text]
+luaSources = do
+  let dir = "data/lua-5.5.1-tests"
+  files <- filter ((== ".lua") . takeExtension) <$> listDirectory dir
+  mapM (fmap (prepare . TE.decodeLatin1) . B.readFile . (dir </>)) files
+  where
+    prepare t
+      | T.isPrefixOf (T.pack "#") t = T.dropWhile (/= '\n') t
+      | otherwise = t
+
+parseLua :: [Text] -> Int
+parseLua = sum . map (either (const 0) (length . show) . Lua.parse)
+
 -- An atom inside d parentheses, for the grammar of eight nested
 -- left-recursive levels (ADR 0024).
 nested :: Int -> Text
@@ -77,6 +96,7 @@ benchmarks = do
   jsonGrammar <- TIO.readFile "json/Json.peg"
   json <- evaluate (force (syntheticJson 10000))
   spec <- TIO.readFile specPath >>= evaluate . force
+  lua <- luaSources >>= evaluate . force
   defaultMain
     [ bgroup
         "json"
@@ -88,6 +108,10 @@ benchmarks = do
     , bgroup
         "commonmark"
         [ bench ("render the spec, " <> show (T.length spec) <> " characters") (whnf (either T.length T.length . CommonMark.toHtml) spec)
+        ]
+    , bgroup
+        "lua"
+        [ bench ("parse the test suite, " <> show (sum (map T.length lua)) <> " characters") (whnf parseLua lua)
         ]
     , bgroup
         "left recursion (eight nested levels)"
@@ -134,6 +158,18 @@ memory "commonmark" _ = withArgs [] $ do
   stats <- getRTSStats
   putStrLn $
     "commonmark spec, " <> show (T.length input) <> " characters: output length " <> show r
+      <> ", max live bytes " <> show (max_live_bytes stats)
+      <> " (input and program before parsing: " <> show (max_live_bytes base) <> ")"
+memory "lua" _ = withArgs [] $ do
+  input <- luaSources
+  _ <- evaluate (sum (map T.length input))
+  performMajorGC
+  base <- getRTSStats
+  r <- evaluate (parseLua input)
+  performMajorGC
+  stats <- getRTSStats
+  putStrLn $
+    "lua test suite, " <> show (sum (map T.length input)) <> " characters: shown size " <> show r
       <> ", max live bytes " <> show (max_live_bytes stats)
       <> " (input and program before parsing: " <> show (max_live_bytes base) <> ")"
 memory variant n = withArgs [] $ do
