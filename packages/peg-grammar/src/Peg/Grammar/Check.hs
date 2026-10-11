@@ -72,6 +72,7 @@ checkRules g firstRule =
         ++ languageErrors
         ++ nomemoErrors
         ++ syntaxErrors
+        ++ recoverErrors
 
     refs = [(l, n, length args) | r <- rules, a <- ruleAlts r, (l, n, args) <- itemsRefs (altItems a)]
 
@@ -107,7 +108,8 @@ checkRules g firstRule =
       ]
     startLoc = maybe (ruleLoc firstRule) locOf (grammarStart g)
 
-    reachable = reach (S.fromList (start : map unLoc (grammarEntries g))) [start] (map unLoc (grammarEntries g))
+    roots = map unLoc (grammarEntries g) ++ [unLoc r | (_, r) <- grammarRecovers g]
+    reachable = reach (S.fromList (start : roots)) [start] roots
     reach seen [] [] = seen
     reach seen [] (e : es) = reach seen [e] es
     reach seen (n : ns) es =
@@ -120,7 +122,7 @@ checkRules g firstRule =
             ]
        in reach (S.union seen (S.fromList next)) (next ++ ns) es
     reachabilityErrors =
-      [ Diagnostic (ruleLoc r) ("rule " <> ruleName r <> " is unreachable from the start and entry rules")
+      [ Diagnostic (ruleLoc r) ("rule " <> ruleName r <> " is unreachable from the start, entry and recovery rules")
       | r <- rules
       , not (S.member (ruleName r) reachable)
       ]
@@ -131,6 +133,26 @@ checkRules g firstRule =
       | Located l x <- grammarLanguages g
       , x `elem` ["RebindableSyntax"]
       ]
+
+    -- ADR 0021
+    usedLabels = S.fromList [n | r <- rules, a <- ruleAlts r, n <- concatMap (exprLabels . itemExpr) (altItems a)]
+    recoverErrors =
+      [ Diagnostic l ("undefined rule " <> n)
+      | (_, Located l n) <- grammarRecovers g
+      , not (M.member n ruleMap)
+      ]
+        ++ [ Diagnostic l ("the recovery rule " <> n <> " cannot take parameters")
+           | (_, Located l n) <- grammarRecovers g
+           , Just r <- [M.lookup n ruleMap]
+           , not (null (ruleParams r))
+           ]
+        ++ [ Diagnostic l ("the label " <> n <> " has more than one recovery rule")
+           | (n, _ : l : _) <- M.toList (M.fromListWith (flip (++)) [(n, [l]) | (Located l n, _) <- grammarRecovers g])
+           ]
+        ++ [ Diagnostic l ("the label " <> n <> " does not appear in the grammar")
+           | (Located l n, _) <- grammarRecovers g
+           , not (S.member n usedLabels)
+           ]
 
     -- ADR 0006, ADR 0017
     nomemoErrors =
@@ -168,6 +190,19 @@ checkRules g firstRule =
       , not (null (ruleParams r))
       , S.member (ruleName r) lr
       ]
+
+-- Labels written in an expression.
+exprLabels :: Expr -> [Text]
+exprLabels = \e -> case e of
+  ELabel _ x n -> n : exprLabels x
+  EGroup alts -> concatMap (concatMap (exprLabels . itemExpr)) alts
+  EStar x -> exprLabels x
+  EPlus x -> exprLabels x
+  EOpt x -> exprLabels x
+  EAnd x -> exprLabels x
+  ENot x -> exprLabels x
+  ECapture x -> exprLabels x
+  _ -> []
 
 showT :: Int -> Text
 showT = T.pack . show

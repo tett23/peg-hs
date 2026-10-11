@@ -228,6 +228,16 @@ checkTests =
         errorsOf "%module M\n%syntax\n%token B\n%inline B\nA :: ()\nA <- B { () }\nB :: ()\nB <- 'b' { () }\n" @?= [(4, 1)]
     , testCase "an entry rule cannot be %inline" $
         errorsOf "%module M\n%syntax\n%inline A\nA :: ()\nA <- 'a' { () }\n" @?= [(3, 1)]
+    , testCase "%recover expects a label and a rule" $
+        errorsOf "%module M\n%recover onlyone\nA :: ()\nA <- 'a' ^onlyone { () }\n" @?= [(2, 1)]
+    , testCase "a recovery rule cannot take parameters" $
+        errorsOf "%module M\n%recover l R\nA :: ()\nA <- 'a' ^l { () }\nR(n :: Int) :: ()\nR <- 'r' { () }\n" @?= [(2, 10)]
+    , testCase "a label has at most one recovery rule" $
+        errorsOf "%module M\n%recover l R\n%recover l S\nA :: ()\nA <- 'a' ^l { () }\nR :: ()\nR <- 'r' { () }\nS :: ()\nS <- 's' { () }\n" @?= [(3, 10)]
+    , testCase "a recovered label must appear in the grammar" $
+        errorsOf "%module M\n%recover l R\nA :: ()\nA <- 'a' { () }\nR :: ()\nR <- 'r' { () }\n" @?= [(2, 10)]
+    , testCase "recovery rules are reachable" $
+        errorsOf "%module M\n%recover l R\nA :: ()\nA <- 'a' ^l { () }\nR :: ()\nR <- 'r' { () }\n" @?= []
     , testCase "reserved names in verbatim code" $
         errorsOf "%module M\n%{\npeg'x = 1\ndata Peg'T = T\nimport qualified Data.Map as PegRt\n}%\nA :: ()\nA <- 'a' { () }\n" @?= [(3, 1), (4, 1), (5, 1)]
     ]

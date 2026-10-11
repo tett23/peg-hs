@@ -99,6 +99,11 @@ assemble items =
             , grammarTokens = [Located l a | TDirective l "token" _ a <- items]
             , grammarTrivia = [Located l a | TDirective l "trivia" _ a <- items]
             , grammarInline = [Located l a | TDirective l "inline" _ a <- items]
+            , grammarRecovers =
+                [ (Located al lab, Located al rule)
+                | TDirective _ "recover" al a <- items
+                , [lab, rule] <- [T.words a]
+                ]
             , grammarVerbatim = [Located l t | TVerbatim l t <- items]
             , grammarRules = rules
             }
@@ -107,7 +112,7 @@ assemble items =
   where
     directives = [(l, n, a) | TDirective l n _ a <- items]
     argLocs = [(n, al, a) | TDirective _ n al a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline"]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover"]
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
@@ -131,6 +136,13 @@ assemble items =
            ]
         ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n /= "syntax", T.null a]
         ++ [Diagnostic l "%syntax takes no argument" | (l, "syntax", a) <- directives, not (T.null a)]
+        ++ [ Diagnostic l "%recover expects a label and a rule name"
+           | (l, "recover", a) <- directives
+           , not (T.null a)
+           , case T.words a of
+               [lab, rule] -> not (isValidIdent lab && isValidIdent rule)
+               _ -> True
+           ]
         ++ [ Diagnostic l ("%language expects extension names, but got " <> x)
            | ("language", al, a) <- argLocs
            , Located l x <- splitExports al a

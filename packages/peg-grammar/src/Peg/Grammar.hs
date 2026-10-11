@@ -64,6 +64,8 @@ data Grammar = Grammar
   -- ^ @%trivia@: token rules that are trivia (whitespace, comments).
   , grammarInline :: [Located Text]
   -- ^ @%inline@: rules whose children are spliced into the caller's node.
+  , grammarRecovers :: [(Located Text, Located Text)]
+  -- ^ @%recover@: labels and their recovery rules.
   , grammarVerbatim :: [Located Text]
   -- ^ @%{ ... }%@ blocks, in order.
   , grammarRules :: [Rule]
