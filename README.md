@@ -9,11 +9,12 @@ A PEG-to-Haskell parser generator with left recursion support.
 - Each rule carries a result type and semantic actions, so generated parsers return your AST directly
 - Context-sensitive extensions (semantic predicates, parameterized rules, a read-only parse environment, and column references) for indentation-sensitive and forward-referencing syntax, designed so that packrat memoization and left recursion stay sound
 - Type errors in semantic actions are reported at their line and column in the `.peg` file
+- Optional lossless syntax trees in the style of rust-analyzer (`%syntax`), keeping every space and comment, for linters and formatters
 
 **Status: pre-release (0.1).** The generator, the runtime and the conformance tests are implemented. Not yet published on Hackage.
 
 - JSON ([JSONTestSuite](https://github.com/nst/JSONTestSuite)): all 95 must-accept and 188 must-reject cases pass
-- CommonMark 0.31.2: 649 of 652 spec examples pass; the remaining 3 need tabs to be partly consumed (to be addressed by ADR 0018)
+- CommonMark 0.31.2: all 652 spec examples pass
 
 See [docs/specifications.md](docs/specifications.md) for the specification, [docs/syntax.md](docs/syntax.md) for the `.peg` notation with examples, and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
 
@@ -61,6 +62,12 @@ For changes touching peg-runtime or peg-codegen, compare benchmark results befor
 
 ```sh
 cabal bench peg-conformance
+```
+
+Before turning memoisation off for a rule with `%nomemo`, check where memo entries accumulate and compare peak memory in separate processes (ADR 0017):
+
+```sh
+cd conformance && $(cabal list-bin peg-conformance:bench:peg-bench) --memo-report
 ```
 
 The CommonMark test takes options for inspecting results: `--show N` prints one example, `--report FILE` writes per-section results, and `--accept` records the current passing examples.

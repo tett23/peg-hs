@@ -9,11 +9,12 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 - 各規則が結果型とセマンティックアクションを持ち、生成されたパーサーは利用者の AST を直接返す
 - 字下げに依存する構文や前方参照を書くための文脈依存の拡張（意味述語、引数付き規則、読み取り専用の解析環境、桁の参照）。パックラットのメモ化と左再帰の正しさを保つように設計している
 - アクションの型の誤りは、`.peg` ファイルの行と桁で報告される
+- rust-analyzer に倣った、空白とコメントを失わない構文木（`%syntax`）。lint や formatter のため
 
 **ステータス：公開前（0.1）。** 生成器、実行時ライブラリ、適合性テストは実装済み。Hackage には未公開。
 
 - JSON（[JSONTestSuite](https://github.com/nst/JSONTestSuite)）：受理すべき 95 件と拒否すべき 188 件のすべてに合格
-- CommonMark 0.31.2：仕様の例 652 件中 649 件に適合。残る 3 件はタブの一部だけを消費する必要がある例で、ADR 0018 で対処する
+- CommonMark 0.31.2：仕様の例 652 件すべてに適合
 
 仕様は [docs/specifications.md](docs/specifications.md)、`.peg` 記法の解説とサンプルは [docs/syntax.md](docs/syntax.md)、設計決定は [docs/adr/](docs/adr/) を参照。
 
@@ -61,6 +62,12 @@ peg-runtime や peg-codegen に触れる変更では、変更前後で同一マ�
 
 ```sh
 cabal bench peg-conformance
+```
+
+`%nomemo` で規則のメモ化を外す前に、メモ表の項目がどの規則に集まっているかを調べ、外す前後の最大の常駐メモリを別々のプロセスで比べる（ADR 0017）。
+
+```sh
+cd conformance && $(cabal list-bin peg-conformance:bench:peg-bench) --memo-report
 ```
 
 CommonMark のテストは、結果を調べるためのオプションを受け付ける。
