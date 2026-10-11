@@ -52,11 +52,15 @@ test-suite peg-codegen-test
   other-modules:
     Fixture.Arith
     Fixture.Calc
+    Fixture.Extensions
     Fixture.Indent
     Fixture.Link
     Fixture.Located
     Fixture.Misc
+    Fixture.NoMemo
     Fixture.Sum
+    Fixture.Syntax
+    Fixture.Unicode
   build-depends:
     , base
     , bytestring

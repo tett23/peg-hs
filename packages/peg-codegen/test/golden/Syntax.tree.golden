@@ -1,0 +1,101 @@
+# 1
+Expr@0..1
+  Term@0..1
+    Factor@0..1
+      n: Num@0..1 "1"
+# 1 + 2
+Expr@0..5
+  l: Expr@0..1
+    Term@0..1
+      Factor@0..1
+        n: Num@0..1 "1"
+  Ws@1..2 " "
+  op: TEXT@2..3 "+"
+  Ws@3..4 " "
+  r: Term@4..5
+    Factor@4..5
+      n: Num@4..5 "2"
+# 1+2*3
+Expr@0..5
+  l: Expr@0..1
+    Term@0..1
+      Factor@0..1
+        n: Num@0..1 "1"
+  op: TEXT@1..2 "+"
+  r: Term@2..5
+    l: Term@2..3
+      Factor@2..3
+        n: Num@2..3 "2"
+    TEXT@3..4 "*"
+    r: Factor@4..5
+      n: Num@4..5 "3"
+# 1 + 2 * (3 # three
+ - 4)
+Expr@0..24
+  l: Expr@0..1
+    Term@0..1
+      Factor@0..1
+        n: Num@0..1 "1"
+  Ws@1..2 " "
+  op: TEXT@2..3 "+"
+  Ws@3..4 " "
+  r: Term@4..24
+    l: Term@4..5
+      Factor@4..5
+        n: Num@4..5 "2"
+    Ws@5..6 " "
+    TEXT@6..7 "*"
+    Ws@7..8 " "
+    r: Factor@8..24
+      TEXT@8..9 "("
+      e: Expr@9..23
+        l: Expr@9..10
+          Term@9..10
+            Factor@9..10
+              n: Num@9..10 "3"
+        Ws@10..11 " "
+        Comment@11..18 "# three"
+        Ws@18..20 "\n "
+        TEXT@20..21 "-"
+        Ws@21..22 " "
+        r: Term@22..23
+          Factor@22..23
+            n: Num@22..23 "4"
+      TEXT@23..24 ")"
+#   1
+error: 1:1: expected '(' or [0-9]
+# (1
+error: 1:3: expected '#', ')', '*', '+', '-', [ \t\n] or [0-9]
+# 1 + # trailing
+error: 1:15: expected '#', '(', [ \t\n], [0-9] or any character
+# 2 * 3 - 4 * 5 + 6
+Expr@0..17
+  l: Expr@0..13
+    l: Expr@0..5
+      Term@0..5
+        l: Term@0..1
+          Factor@0..1
+            n: Num@0..1 "2"
+        Ws@1..2 " "
+        TEXT@2..3 "*"
+        Ws@3..4 " "
+        r: Factor@4..5
+          n: Num@4..5 "3"
+    Ws@5..6 " "
+    TEXT@6..7 "-"
+    Ws@7..8 " "
+    r: Term@8..13
+      l: Term@8..9
+        Factor@8..9
+          n: Num@8..9 "4"
+      Ws@9..10 " "
+      TEXT@10..11 "*"
+      Ws@11..12 " "
+      r: Factor@12..13
+        n: Num@12..13 "5"
+  Ws@13..14 " "
+  op: TEXT@14..15 "+"
+  Ws@15..16 " "
+  r: Term@16..17
+    Factor@16..17
+      n: Num@16..17 "6"

@@ -1,0 +1,39 @@
+%module Fixture.Syntax
+%syntax
+%token Num
+%token Ws
+%token Comment
+%trivia Ws
+%trivia Comment
+%inline Sp
+%entry Term
+
+%{
+import Data.Text (unpack)
+}%
+
+# 空白とコメントを含む計算式。構文木のテスト（ADR 0019）に使う
+Expr :: Int
+Expr <- l:Expr Sp op:$'+' Sp r:Term { l + r }
+      / l:Expr Sp '-' Sp r:Term { l - r }
+      / Term
+
+Term :: Int
+Term <- l:Term Sp '*' Sp r:Factor { l * r }
+      / Factor
+
+Factor :: Int
+Factor <- '(' Sp e:Expr Sp ')' { e }
+        / n:Num { n }
+
+Num :: Int
+Num <- ds:$[0-9]+ { read (unpack ds) }
+
+Sp :: ()
+Sp <- (Ws / Comment)* { () }
+
+Ws :: ()
+Ws <- [ \t\n]+ { () }
+
+Comment :: ()
+Comment <- '#' (!'\n' .)* { () }

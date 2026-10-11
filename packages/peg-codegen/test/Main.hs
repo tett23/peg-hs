@@ -12,15 +12,20 @@ import qualified Data.Text.IO as TIO
 import Data.Version (showVersion)
 import qualified Fixture.Arith as Arith
 import qualified Fixture.Calc as Calc
+import qualified Fixture.Extensions as Extensions
 import qualified Fixture.Indent as Indent
 import qualified Fixture.Link as Link
 import qualified Fixture.Located as Located
 import qualified Fixture.Misc as Misc
+import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Sum as Sum
+import qualified Fixture.Syntax as Syntax
+import qualified Fixture.Unicode as Unicode
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Runtime
 import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
+import Peg.Runtime.Syntax
 import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
@@ -29,7 +34,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Property, elements, forAll, listOf, testProperty, (===))
+import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (===))
 
 main :: IO ()
 main =
@@ -46,12 +51,16 @@ main =
       , indentTests
       , linkTests
       , locatedTests
+      , extensionTests
+      , nomemoTests
+      , syntaxTests
+      , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
       , generatorErrorTests
       , compileTests
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Indent", "Link", "Located", "Misc", "Sum"]
+fixtures = ["Arith", "Calc", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Sum", "Syntax", "Unicode"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -203,8 +212,10 @@ generatorErrorTests =
     "generator errors"
     [ testCase "^label is reserved" $
         map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\nA :: ()\nA <- 'a' ^oops { () }\n") @?= [(3, 10)]
-    , testCase "%nomemo is reserved" $
-        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%nomemo A\nA :: ()\nA <- 'a' { () }\n") @?= [(2, 1)]
+    , testCase "%nomemo on a left-recursive rule" $
+        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%nomemo A\nA :: ()\nA <- A 'a' { () } / 'a' { () }\n") @?= [(2, 1)]
+    , testCase "%language RebindableSyntax is rejected" $
+        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%language LambdaCase, RebindableSyntax\nA :: ()\nA <- 'a' { () }\n") @?= [(2, 23)]
     ]
 
 -- Compiling generated code with GHC ------------------------------------------
@@ -276,3 +287,126 @@ compileTests =
               ]
         assertEqual err ExitSuccess ex
     ]
+
+-- ADR 0016 ---------------------------------------------------------------------
+
+extensionTests :: TestTree
+extensionTests =
+  testGroup
+    "%language (ADR 0016)"
+    [ testCase "pragmas come before the module line, in order" $ do
+        src <- TIO.readFile "test/fixtures/Extensions.peg"
+        case generateFromSource (fixtureOptions "Extensions") src of
+          Left ds -> assertFailure (show ds)
+          Right gen -> do
+            let ls = T.lines gen
+                (before, _) = break (T.isPrefixOf "module ") ls
+                pragmas = filter (T.isPrefixOf "{-# LANGUAGE") before
+            pragmas
+              @?= [ "{-# LANGUAGE " <> x <> " #-}"
+                  | x <- ["OverloadedStrings", "OverloadedLists", "LambdaCase", "Strict", "StrictData", "NoImplicitPrelude"]
+                  ]
+            assertBool "no implicit Prelude import was added" (not (any (== "import Prelude") ls))
+    , testCase "the same results as without extensions" $
+        mapM_
+          (\i -> (rendered (Extensions.parse i), rendered (Extensions.parseTerm i)) @?= (rendered (Arith.parse i), rendered (Arith.parseTerm i)))
+          ["2*3+4", "10-3-2", "2^3^2", "2*(3+4)", "1+*2", "", "(1"]
+    ]
+
+-- ADR 0017 ---------------------------------------------------------------------
+
+nomemoTests :: TestTree
+nomemoTests =
+  testGroup
+    "%nomemo (ADR 0017)"
+    [ testProperty "results and errors do not change" $
+        forAll (listOf (elements "ab1 <,_>\"\\あう\n!")) $ \s ->
+          let t = T.pack s in show (Misc.parse t) === show (NoMemo.parse t)
+    , testCase "rules without memoisation leave no memo entries" $ do
+        let (r, st) = NoMemo.peg'parseWith defaultConfig {cfgCount = True} "foo 1 <a1,_> bar"
+        assertBool "parse failed" (either (const False) (const True) r)
+        let byRule = M.filter (> 0) (statsEntriesByRule st)
+        assertBool ("unexpected entries: " <> show byRule) (not (M.member "Spaces" byRule) && not (M.member "Key" byRule))
+        assertBool "memoised rules still have entries" (M.member "Item" byRule)
+    ]
+
+-- ADR 0019 ---------------------------------------------------------------------
+
+treeOf :: Text -> SyntaxNode
+treeOf t = either (error . show) id (Syntax.parseSyntax t)
+
+syntaxInputs :: [Text]
+syntaxInputs =
+  [ "1"
+  , "1 + 2"
+  , "1+2*3"
+  , "1 + 2 * (3 # three\n - 4)"
+  , "  1"
+  , "(1"
+  , "1 + # trailing"
+  , "2 * 3 - 4 * 5 + 6"
+  ]
+
+syntaxTests :: TestTree
+syntaxTests =
+  testGroup
+    "syntax trees (ADR 0019)"
+    [ goldenVsString "debug display" "test/golden/Syntax.tree.golden" $
+        pure . BL.fromStrict . TE.encodeUtf8 . T.concat $
+          [ "# " <> t <> "\n" <> either (\e -> "error: " <> renderParseError e <> "\n") (debugTree Syntax.syntaxKindName) (Syntax.parseSyntax t)
+          | t <- syntaxInputs
+          ]
+    , testCase "lossless: the text of the tree is the input" $
+        mapM_ (\t -> fmap syntaxText (Syntax.parseSyntax t) @?= either Left (const (Right t)) (Syntax.parseSyntax t)) syntaxInputs
+    , testProperty "lossless on generated expressions" $
+        forAll genExpr $ \t -> fmap syntaxText (Syntax.parseSyntax t) === Right t
+    , testCase "the typed and the tree entry points agree" $
+        mapM_
+          (\t -> (either (Left . renderParseError) (const (Right ())) (Syntax.parse t)) @?= either (Left . renderParseError) (const (Right ())) (Syntax.parseSyntax t))
+          (syntaxInputs ++ ["", "+", "1 +", "1 2"])
+    , testCase "%entry has a tree entry point" $
+        fmap syntaxText (Syntax.parseSyntaxTerm "2 * 3") @?= Right "2 * 3"
+    , testCase "memoisation does not change the tree" $
+        mapM_
+          ( \t ->
+              fmap (debugTree Syntax.syntaxKindName) (fst (Syntax.peg'parseSyntaxWith defaultConfig {cfgMemo = False} t))
+                @?= fmap (debugTree Syntax.syntaxKindName) (fst (Syntax.peg'parseSyntaxWith defaultConfig t))
+          )
+          syntaxInputs
+    , testCase "typed accessors" $ do
+        let root = treeOf "1 + 2 * 3"
+        Just e <- pure (Syntax.castExprSyntax root)
+        fmap (\(Syntax.ExprSyntax n) -> syntaxText n) (Syntax.exprL e) @?= Just "1"
+        fmap (\(Syntax.TermSyntax n) -> syntaxText n) (Syntax.exprR e) @?= Just "2 * 3"
+        map elementText (Syntax.exprOp e) @?= ["+"]
+        Just (Syntax.TermSyntax t) <- pure (Syntax.exprR e)
+        Just term <- pure (Syntax.castTermSyntax t)
+        fmap (\(Syntax.FactorSyntax n) -> syntaxText n) (Syntax.termR term) @?= Just "3"
+        Just (Syntax.FactorSyntax f) <- pure (Syntax.termR term)
+        Just factor <- pure (Syntax.castFactorSyntax f)
+        fmap tokenText (Syntax.factorN factor) @?= Just "3"
+    , testCase "trivia are tokens of their own kind" $ do
+        let root = treeOf "1 # c\n+ 2"
+            kinds = [Syntax.syntaxKindName (tokenKind t) | t <- syntaxTokens root, Syntax.syntaxKindIsTrivia (tokenKind t)]
+        kinds @?= ["Ws", "Comment", "Ws", "Ws"]
+    , testCase "positions of nodes" $ do
+        let root = treeOf "1 +\n2"
+        syntaxPos root 4 @?= Pos 4 2 1
+    ]
+  where
+    elementText (TokenElement t) = tokenText t
+    elementText (NodeElement n) = syntaxText n
+
+genExpr :: Gen Text
+genExpr = T.pack <$> sized go
+  where
+    go n
+      | n <= 1 = atom
+      | otherwise =
+          oneof
+            [ atom
+            , do a <- go (n `div` 2); o <- elements ["+", "-", "*"]; s1 <- sp; s2 <- sp; b <- go (n `div` 2); pure (a <> s1 <> o <> s2 <> b)
+            , do s1 <- sp; s2 <- sp; a <- go (n `div` 2); pure ("(" <> s1 <> a <> s2 <> ")")
+            ]
+    atom = show <$> (choose (0, 999) :: Gen Int)
+    sp = elements ["", " ", "  ", "\n", " # c\n", "\t"]
