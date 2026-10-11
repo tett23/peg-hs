@@ -31,6 +31,9 @@ library
   exposed-modules:
     Peg.Runtime
     Peg.Runtime.Internal
+    Peg.Runtime.Syntax
+  other-modules:
+    Peg.Runtime.Position
   build-depends:
     , array       >=0.5   && <0.6
     , base        >=4.20  && <4.21

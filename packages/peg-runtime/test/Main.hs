@@ -3,7 +3,6 @@ module Main (main) where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
-import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Runtime.Internal
 import Test.Tasty

@@ -39,6 +39,7 @@ module Peg.Runtime.Internal
   , memo
   , memoArg
   , memoLR
+  , nomemo
     -- * Terminals
   , lit
   , cls
@@ -60,11 +61,34 @@ module Peg.Runtime.Internal
   , getOffset
   , spanFrom
   , askStore
+    -- * Syntax trees (ADR 0019)
+  , SyntaxKind (..)
+  , Child
+  , SyntaxNode
+  , SyntaxToken
+  , SyntaxElement
+  , syntaxRoot
+  , syntaxKind
+  , labeledElements
+  , labeledNode
+  , labeledToken
+  , labeledNodes
+  , labeledTokens
+  , node
+  , token
+  , plain
+  , label
+  , manyS
+  , many1S
+  , optionalS
+  , captureS
+  , labelText
+  , touch
   ) where
 
 import Control.Monad (ap, when)
 import Control.Monad.ST (ST, runST)
-import Data.Array.Unboxed (UArray, bounds, listArray, (!))
+import Data.Array.Unboxed ((!))
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IM
 import Data.Map.Strict (Map)
@@ -75,18 +99,8 @@ import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as TU
-
--- | A position in the input.
-data Pos = Pos
-  { posOffset :: !Int
-  -- ^ Byte offset into the UTF-8 encoded input, starting at 0.
-  , posLine :: !Int
-  -- ^ Line number, starting at 1. Only LF starts a new line.
-  , posColumn :: !Int
-  -- ^ Column, starting at 1. Each Unicode code point, including a tab,
-  -- counts as one column.
-  }
-  deriving (Eq, Ord, Show)
+import Peg.Runtime.Position
+import Peg.Runtime.Syntax
 
 -- | A range of the input, from 'spanStart' (inclusive) to 'spanEnd'
 -- (exclusive).
@@ -172,11 +186,13 @@ data Stats = Stats
   -- ^ How many times the body of each rule was evaluated at each offset.
   , statsMemoEntries :: !Int
   -- ^ The number of memo entries alive at the end of the parse.
+  , statsEntriesByRule :: !(Map Text Int)
+  -- ^ The memo entries alive at the end of the parse, by rule.
   }
   deriving (Eq, Show)
 
 emptyStats :: Stats
-emptyStats = Stats M.empty 0
+emptyStats = Stats M.empty 0 M.empty
 
 data Failure
   = NoFailure
@@ -202,7 +218,7 @@ data Ctx r s = Ctx
   , ctxLogs :: !(STRef s [[ST s ()]])
   , ctxStats :: !(STRef s Stats)
   , ctxConfig :: !Config
-  , ctxLines :: UArray Int Int
+  , ctxLines :: LineIndex
   }
 
 -- | A parser over a generated store @r@ in the state thread @s@.
@@ -270,36 +286,11 @@ currentError ctx =
 
 -- Positions ------------------------------------------------------------------
 
-lineIndex :: Text -> UArray Int Int
-lineIndex t = listArray (0, length starts - 1) starts
-  where
-    n = TU.lengthWord8 t
-    starts = 0 : go 0
-    go i
-      | i >= n = []
-      | otherwise =
-          let TU.Iter c d = TU.iter t i
-           in if c == '\n' then (i + d) : go (i + d) else go (i + d)
-
--- Index of the last line start that is <= the offset.
-lineOf :: UArray Int Int -> Int -> Int
-lineOf arr off = go lo hi
-  where
-    (lo, hi) = bounds arr
-    go a b
-      | a >= b = a
-      | otherwise =
-          let m = (a + b + 1) `div` 2
-           in if arr ! m <= off then go m b else go a (m - 1)
-
 slice :: Text -> Int -> Int -> Text
 slice t from to = TU.takeWord8 (to - from) (TU.dropWord8 from t)
 
 posAt :: Ctx r s -> Int -> Pos
-posAt ctx off = Pos off (l + 1) (T.length (slice (ctxInput ctx) start off) + 1)
-  where
-    l = lineOf (ctxLines ctx) off
-    start = ctxLines ctx ! l
+posAt ctx = posIn (ctxInput ctx) (ctxLines ctx)
 
 -- The 0-based column of an offset, expanding tabs to 'cfgTabstop'.
 colAt :: Ctx r s -> Int -> Int
@@ -477,10 +468,14 @@ countEval c name i =
     modifySTRef' (ctxStats c) $ \st ->
       st {statsEvaluations = M.insertWith (+) (name, i) 1 (statsEvaluations st)}
 
-bumpEntries :: Ctx r s -> Int -> ST s ()
-bumpEntries c d =
+bumpEntries :: Ctx r s -> Text -> Int -> ST s ()
+bumpEntries c name d =
   when (cfgCount (ctxConfig c)) $
-    modifySTRef' (ctxStats c) $ \st -> st {statsMemoEntries = statsMemoEntries st + d}
+    modifySTRef' (ctxStats c) $ \st ->
+      st
+        { statsMemoEntries = statsMemoEntries st + d
+        , statsEntriesByRule = M.insertWith (+) name d (statsEntriesByRule st)
+        }
 
 -- Evaluate a rule body with its own failure record, so that the failure can
 -- be stored in the memo entry and replayed on a hit.
@@ -513,8 +508,8 @@ memo sel rawName body = P $ \c i ->
         Nothing -> do
           (r, f) <- evalBody c name i body
           modifySTRef' t (IM.insert i (Entry r f))
-          bumpEntries c 1
-          logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c (-1))
+          bumpEntries c name 1
+          logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
           pure r
   where
     name = T.pack rawName
@@ -531,9 +526,17 @@ memoArg sel rawName k body = P $ \c i ->
         Nothing -> do
           (r, f) <- evalBody c name i body
           modifySTRef' t (IM.insertWith M.union i (M.singleton k (Entry r f)))
-          bumpEntries c 1
-          logUndo c (modifySTRef' t (IM.adjust (M.delete k) i) >> bumpEntries c (-1))
+          bumpEntries c name 1
+          logUndo c (modifySTRef' t (IM.adjust (M.delete k) i) >> bumpEntries c name (-1))
           pure r
+  where
+    name = T.pack rawName
+
+-- | A rule that is not memoised (@%nomemo@). Its body is evaluated on every
+-- call. The failure record is kept per evaluation as for memoised rules, so
+-- that turning memoisation off does not change the reported error.
+nomemo :: String -> P r s a -> P r s a
+nomemo rawName body = P $ \c i -> fst <$> evalBody c name i body
   where
     name = T.pack rawName
 
@@ -553,8 +556,8 @@ memoLR sel rawName body = P $ \c i -> do
       saved <- readSTRef (ctxFail c)
       writeSTRef (ctxFail c) NoFailure
       modifySTRef' t (IM.insert i (Entry Fail NoFailure))
-      bumpEntries c 1
-      logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c (-1))
+      bumpEntries c name 1
+      logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
       let grow lastRes lastEnd = do
             countEval c name i
             modifySTRef' (ctxLogs c) ([] :)
@@ -576,3 +579,66 @@ memoLR sel rawName body = P $ \c i -> do
       pure res
   where
     name = T.pack rawName
+
+-- Syntax trees -----------------------------------------------------------------
+
+-- In a grammar with @%syntax@, every parser returns its value together with
+-- the children it contributes to the syntax tree.
+
+-- | Record a rule invocation as a node.
+node :: SyntaxKind -> P r s (a, [Child]) -> P r s (a, [Child])
+node k p = P $ \c i ->
+  unP p c i >>= \case
+    Ok j (v, kids) -> pure (Ok j (v, [CNode k i j kids Nothing]))
+    Fail -> pure Fail
+
+-- | Record a rule invocation as a single token.
+token :: SyntaxKind -> P r s (a, [Child]) -> P r s (a, [Child])
+token k p = P $ \c i ->
+  unP p c i >>= \case
+    Ok j (v, _) -> pure (Ok j (v, [CToken k i j Nothing]))
+    Fail -> pure Fail
+
+-- | A parser that contributes nothing but text.
+plain :: P r s a -> P r s (a, [Child])
+plain = fmap (\x -> (x, []))
+
+-- | Label the children of a bound expression. If it produced no children
+-- but consumed text, the text becomes a labelled token.
+label :: String -> P r s (a, [Child]) -> P r s (a, [Child])
+label rawLabel p = P $ \c i ->
+  unP p c i >>= \case
+    Ok j (v, kids)
+      | null kids && j > i -> pure (Ok j (v, [CToken textKind i j (Just l)]))
+      | otherwise -> pure (Ok j (v, map (setLabel l) kids))
+    Fail -> pure Fail
+  where
+    l = T.pack rawLabel
+
+-- | Zero or more repetitions in syntax mode.
+manyS :: P r s (a, [Child]) -> P r s ([a], [Child])
+manyS = fmap (\xs -> (map fst xs, concatMap snd xs)) . many
+
+-- | One or more repetitions in syntax mode.
+many1S :: P r s (a, [Child]) -> P r s ([a], [Child])
+many1S = fmap (\xs -> (map fst xs, concatMap snd xs)) . many1
+
+-- | An optional match in syntax mode.
+optionalS :: P r s (a, [Child]) -> P r s (Maybe a, [Child])
+optionalS = fmap (maybe (Nothing, []) (\(v, k) -> (Just v, k))) . optional
+
+-- | The consumed text in syntax mode. The children are kept.
+captureS :: P r s (a, [Child]) -> P r s (Text, [Child])
+captureS p = P $ \c i ->
+  unP p c i >>= \case
+    Ok j (_, kids) -> pure (Ok j (slice (ctxInput c) i j, kids))
+    Fail -> pure Fail
+
+-- | A label or kind name from a string literal of generated code.
+labelText :: String -> Text
+labelText = T.pack
+
+-- | Mark a binding as used without evaluating it. In syntax mode a binding
+-- may exist only to label children in the tree.
+touch :: a -> P r s ()
+touch _ = pure ()
