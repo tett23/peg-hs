@@ -1,0 +1,29 @@
+%module Fixture.Calc
+%entry H
+
+%{
+import Data.Text (unpack)
+}%
+
+Start :: String
+Start <- L
+
+# 間接左再帰（Medeiros et al. 2014 の例）
+L :: String
+L <- p:P '.x' { p ++ ".x" }
+   / 'x' { "x" }
+
+P :: String
+P <- p:P '(n)' { p ++ "(n)" }
+   / L
+
+# 隠れ左再帰：nullable な接頭辞の後ろに自分自身がある
+H :: String
+H <- s:Sign? h:H '+' n:Digit { maybe "" id s ++ "(" ++ h ++ "+" ++ n ++ ")" }
+   / Digit
+
+Sign :: String
+Sign <- '-' { "-" }
+
+Digit :: String
+Digit <- d:$[0-9] { unpack d }

@@ -1,0 +1,13 @@
+%module Fixture.Sum
+
+%{
+import Data.Text (unpack)
+}%
+
+# 左結合の加算
+Sum :: Int
+Sum <- l:Sum '+' r:Num { l + r }
+     / Num
+
+Num :: Int
+Num <- ds:$[0-9]+ { read (unpack ds) }

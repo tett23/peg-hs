@@ -1,0 +1,278 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+module Main (main) where
+
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Map.Strict as M
+import qualified Data.Set as S
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as TIO
+import Data.Version (showVersion)
+import qualified Fixture.Arith as Arith
+import qualified Fixture.Calc as Calc
+import qualified Fixture.Indent as Indent
+import qualified Fixture.Link as Link
+import qualified Fixture.Located as Located
+import qualified Fixture.Misc as Misc
+import qualified Fixture.Sum as Sum
+import Peg.Codegen
+import Peg.Grammar (Diagnostic (..), Loc (..))
+import Peg.Runtime
+import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
+import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
+import System.Exit (ExitCode (..))
+import System.FilePath ((</>))
+import System.Info (fullCompilerVersion)
+import System.Process (readProcessWithExitCode)
+import Test.Tasty
+import Test.Tasty.Golden (goldenVsString)
+import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck (Property, elements, forAll, listOf, testProperty, (===))
+
+main :: IO ()
+main =
+  defaultMain $
+    testGroup
+      "peg-codegen"
+      [ regenerationTests
+      , goldenVsString "default options (Sum)" "test/golden/Sum.hs.golden" $
+          generateFixture Options {optSourceName = "test/fixtures/Sum.peg", optOutputName = "test/golden/Sum.hs.golden", optDebugEntry = False} "Sum"
+      , sumTests
+      , arithTests
+      , calcTests
+      , miscTests
+      , indentTests
+      , linkTests
+      , locatedTests
+      , generatorErrorTests
+      , compileTests
+      ]
+
+fixtures :: [String]
+fixtures = ["Arith", "Calc", "Indent", "Link", "Located", "Misc", "Sum"]
+
+fixtureOptions :: String -> Options
+fixtureOptions n =
+  Options
+    { optSourceName = "test/fixtures/" <> n <> ".peg"
+    , optOutputName = "test/generated/Fixture/" <> n <> ".hs"
+    , optDebugEntry = True
+    }
+
+generateFixture :: Options -> String -> IO BL.ByteString
+generateFixture opts n = do
+  src <- TIO.readFile ("test/fixtures/" <> n <> ".peg")
+  case generateFromSource opts src of
+    Left ds -> assertFailure (show ds) >> pure ""
+    Right code -> pure (BL.fromStrict (TE.encodeUtf8 code))
+
+-- The committed generated modules must be exactly what the generator
+-- produces now (ADR 0002, ADR 0010).
+regenerationTests :: TestTree
+regenerationTests =
+  testGroup
+    "committed fixtures are up to date"
+    [ testCase n $ do
+        expected <- BL.readFile (optOutputName (fixtureOptions n))
+        actual <- generateFixture (fixtureOptions n) n
+        assertBool ("regenerate with scripts/regen-fixtures.sh: " <> n) (actual == expected)
+    | n <- fixtures
+    ]
+
+flipE :: Either a b -> Either b a
+flipE = either Right Left
+
+rendered :: Either ParseError a -> Either Text a
+rendered = either (Left . renderParseError) Right
+
+sumTests :: TestTree
+sumTests =
+  testGroup
+    "Sum"
+    [ testCase "left associative sum" $ Sum.parse "1+2+3" @?= Right 6
+    , testCase "error" $ fmap renderParseError (flipE (Sum.parse "1+")) @?= Right "1:3: expected [0-9]"
+    ]
+
+arithTests :: TestTree
+arithTests =
+  testGroup
+    "Arith"
+    [ testCase "precedence" $ Arith.parse "2*3+4" @?= Right 10
+    , testCase "left associative subtraction" $ Arith.parse "10-3-2" @?= Right 5
+    , testCase "right associative power" $ Arith.parse "2^3^2" @?= Right 512
+    , testCase "parentheses" $ Arith.parse "2*(3+4)" @?= Right 14
+    , testCase "%entry Term" $ Arith.parseTerm "2*3" @?= Right 6
+    , testCase "%entry requires the whole input" $
+        rendered (Arith.parseTerm "2+3") @?= Left "1:2: expected '*', '^', [0-9] or end of input"
+    , testCase "the error example of syntax.md" $
+        rendered (Arith.parse "1+*2") @?= Left "1:3: expected '(' or [0-9]"
+    , testCase "memoisation does not change results or errors" $
+        mapM_
+          (\s -> fst (Arith.peg'parseWith defaultConfig {cfgMemo = False} s) @?= fst (Arith.peg'parseWith defaultConfig s))
+          ["1+2*3", "(1+2", "2^^3", "", "1+2*(3+4)-5^2", "((((1))))"]
+    ]
+
+calcTests :: TestTree
+calcTests =
+  testGroup
+    "Calc"
+    [ testCase "indirect left recursion" $ Calc.parse "x(n)(n).x(n).x" @?= Right "x(n)(n).x(n).x"
+    , testCase "hidden left recursion is left associative" $ Calc.parseH "1+2+3" @?= Right "((1+2)+3)"
+    , testCase "hidden left recursion with a single digit" $ Calc.parseH "7" @?= Right "7"
+    ]
+
+miscTests :: TestTree
+miscTests =
+  testGroup
+    "Misc"
+    [ testCase "items" $
+        Misc.parse "  foo_1 42 \"a\\\"b\" <ab12,_> あう \x1F600\n"
+          @?= Right [Misc.Word "foo_1", Misc.Number 42, Misc.Quoted "a\\\"b", Misc.Pair "12" "_", Misc.Word "あう", Misc.Word "smile"]
+    , testCase "trailing garbage" $
+        fmap (S.toList . parseErrorExpected) (flipE (Misc.parse "foo !"))
+          @?= Right
+            [ ExpectedLiteral "\"\\u{1F600}\""
+            , ExpectedLiteral "'\"'"
+            , ExpectedLiteral "'<'"
+            , ExpectedLiteral "'あ'"
+            , ExpectedClass "[ \\t\\n]"
+            , ExpectedClass "[0-9]"
+            , ExpectedClass "[a-z]"
+            ]
+    , testCase "each rule body runs at most once per offset without left recursion" $ do
+        let (r, st) = Misc.peg'parseWith defaultConfig {cfgCount = True} "foo 1 <a1,_> bar"
+        assertBool "parse failed" (either (const False) (const True) r)
+        assertBool "evaluated more than once" (all (<= 1) (M.elems (statsEvaluations st)))
+        statsMemoEntries st @?= M.size (statsEvaluations st)
+    ]
+
+indentTests :: TestTree
+indentTests =
+  testGroup
+    "Indent"
+    [ testCase "nested by indentation, with a tab stop of 2" $
+        Indent.parse "a\n  b\n\tc\n    d\ne\n"
+          @?= Right [Indent.Node "a" [Indent.Node "b" [], Indent.Node "c" [Indent.Node "d" []]], Indent.Node "e" []]
+    , testCase "odd indentation is rejected" $
+        assertBool "should fail" (either (const True) (const False) (Indent.parse "a\n b\n"))
+    , testCase "the same rule at the same offset with different arguments" $ do
+        let (r, st) = Indent.peg'parseWith defaultConfig {cfgCount = True} "a\n  b\nc\n"
+        r @?= Right [Indent.Node "a" [Indent.Node "b" []], Indent.Node "c" []]
+        -- Node(0), Node(2) and Node(4) all start at the offset of "c".
+        M.lookup ("Node", 6) (statsEvaluations st) @?= Just 3
+    , testProperty "memoisation does not change results (arguments, predicates, columns)" indentInvariant
+    ]
+
+indentInvariant :: Property
+indentInvariant =
+  forAll (listOf (elements "ab \t\n\n")) $ \s ->
+    let t = T.pack s
+     in fst (Indent.peg'parseWith defaultConfig {cfgMemo = False} t) === fst (Indent.peg'parseWith defaultConfig t)
+
+linkTests :: TestTree
+linkTests =
+  testGroup
+    "Link"
+    [ testCase "a defined link" $ Link.parse (S.fromList ["foo"]) "see [foo]" @?= Right ["see ", "foo"]
+    , testCase "an undefined link" $ assertBool "should fail" (either (const True) (const False) (Link.parse (S.fromList ["foo"]) "[bar]"))
+    ]
+
+locatedTests :: TestTree
+locatedTests =
+  testCase "spans of alternatives" $
+    Located.parse "1+22"
+      @?= Right
+        ( Located.Add
+            (Span (Pos 0 1 1) (Pos 4 1 5))
+            (Located.Lit (Span (Pos 0 1 1) (Pos 1 1 2)) 1)
+            (Located.Lit (Span (Pos 2 1 3) (Pos 4 1 5)) 22)
+        )
+
+-- Errors reported by the generator --------------------------------------------
+
+generatorErrors :: Text -> [(Int, Int, Text)]
+generatorErrors src = case generateFromSource defaultOptions src of
+  Left ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- ds]
+  Right _ -> []
+
+generatorErrorTests :: TestTree
+generatorErrorTests =
+  testGroup
+    "generator errors"
+    [ testCase "^label is reserved" $
+        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\nA :: ()\nA <- 'a' ^oops { () }\n") @?= [(3, 10)]
+    , testCase "%nomemo is reserved" $
+        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%nomemo A\nA :: ()\nA <- 'a' { () }\n") @?= [(2, 1)]
+    ]
+
+-- Compiling generated code with GHC ------------------------------------------
+
+ghc :: FilePath
+ghc = "ghc-" <> showVersion fullCompilerVersion
+
+-- Generate a module from a grammar and type-check it with GHC, using the
+-- runtime sources directly so that no package database is needed.
+typecheck :: String -> Text -> IO (ExitCode, String)
+typecheck name src = do
+  tmp <- getTemporaryDirectory
+  let dir = tmp </> "peg-codegen-test"
+      opts = Options {optSourceName = name <> ".peg", optOutputName = name <> ".hs", optDebugEntry = False}
+  createDirectoryIfMissing True dir
+  case generateFromSource opts src of
+    Left ds -> assertFailure (show ds) >> pure (ExitFailure 1, "")
+    Right code -> do
+      TIO.writeFile (dir </> name <> ".hs") code
+      (ex, _, err) <-
+        readProcessWithExitCode
+          ghc
+          ["-fno-code", "-i../peg-runtime/src", "-outputdir", dir </> "out", dir </> name <> ".hs"]
+          ""
+      pure (ex, err)
+
+compileTests :: TestTree
+compileTests =
+  testGroup
+    "compiling generated code"
+    [ testCase "type errors in actions point at the grammar" $ do
+        (ex, err) <-
+          typecheck "Bad" $
+            T.unlines
+              [ "%module Bad"
+              , ""
+              , "A :: Int"
+              , "A <- 'a' { 1 }"
+              , "   / 'b'    { not True }"
+              ]
+        ex @?= ExitFailure 1
+        assertBool ("error not reported at Bad.peg:5:15\n" <> err) ("Bad.peg:5:15" `T.isInfixOf` T.pack err)
+    , testCase "type errors in rule types point at the grammar" $ do
+        (_, err) <-
+          typecheck "BadType" $
+            T.unlines ["%module BadType", "", "A :: Intt", "A <- 'a' { 1 }"]
+        assertBool ("error not reported at BadType.peg:3:6\n" <> err) ("BadType.peg:3:6" `T.isInfixOf` T.pack err)
+    , testCase "argument types must be instances of Ord" $ do
+        (ex, err) <-
+          typecheck "NoOrd" $
+            T.unlines
+              [ "%module NoOrd"
+              , "A :: Int"
+              , "A <- B(id) { 1 }"
+              , "B(f :: Int -> Int) :: ()"
+              , "B <- 'b' { () }"
+              ]
+        ex @?= ExitFailure 1
+        assertBool ("expected a missing Ord instance\n" <> err) ("Ord" `T.isInfixOf` T.pack err)
+    , testCase "multi-line actions keep their layout" $ do
+        (ex, err) <-
+          typecheck "MultiLine" $
+            T.unlines
+              [ "%module MultiLine"
+              , "A :: Int"
+              , "A <- s:$'a'+ { case s of"
+              , "                 _ -> 1"
+              , "             }"
+              ]
+        assertEqual err ExitSuccess ex
+    ]

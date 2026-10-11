@@ -1,0 +1,14 @@
+%module Fixture.Link
+%env Set Text
+
+%{
+import Data.Set (Set, member)
+import Data.Text (Text)
+}%
+
+Links :: [Text]
+Links <- ls:Link* { ls }
+
+Link :: Text
+Link <- '[' l:$[a-z]+ ']' &{ member l _env } { l }
+      / !'[' w:$[a-z ]+ { w }

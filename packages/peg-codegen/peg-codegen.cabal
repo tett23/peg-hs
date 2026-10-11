@@ -1,0 +1,75 @@
+cabal-version:      3.0
+name:               peg-codegen
+version:            0.1.0.0
+synopsis:           Haskell code generation for peg-hs grammars
+description:
+  Turns a checked @.peg@ grammar into the text of a Haskell module.
+  Generation is a pure, deterministic function: the same grammar always
+  produces the same bytes. Generated modules depend only on @peg-runtime@.
+homepage:           https://github.com/tett23/peg-hs
+bug-reports:        https://github.com/tett23/peg-hs/issues
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+copyright:          2026 tett23
+category:           Parsing
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-source-files:
+  test/fixtures/*.peg
+  test/golden/*.hs.golden
+
+source-repository head
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  subdir:   packages/peg-codegen
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+library
+  import:           warnings
+  exposed-modules:  Peg.Codegen
+  build-depends:
+    , base         >=4.20 && <4.21
+    , containers   >=0.6  && <0.8
+    , peg-grammar  >=0.1  && <0.2
+    , text         >=2.0  && <2.2
+  hs-source-dirs:   src
+  default-language: GHC2021
+
+-- Generated fixture modules are committed under test/generated and compiled
+-- here, so that the tests exercise real generated code. The suite also
+-- regenerates them and checks that the output is byte-for-byte identical.
+-- The repository's cabal.project compiles this package with -Werror, so
+-- that warnings in generated code fail the build (ADR 0014).
+test-suite peg-codegen-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test test/generated
+  other-modules:
+    Fixture.Arith
+    Fixture.Calc
+    Fixture.Indent
+    Fixture.Link
+    Fixture.Located
+    Fixture.Misc
+    Fixture.Sum
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , directory     >=1.3  && <1.4
+    , filepath      >=1.4  && <1.6
+    , peg-codegen
+    , peg-grammar
+    , peg-runtime   >=0.1  && <0.2
+    , process       >=1.6  && <1.7
+    , tasty         >=1.4  && <1.6
+    , tasty-golden  >=2.3  && <2.4
+    , tasty-hunit   >=0.10 && <0.11
+    , tasty-quickcheck  >=0.10 && <0.12
+    , text
+  default-language: GHC2021

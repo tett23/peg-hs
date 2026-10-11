@@ -1,0 +1,34 @@
+cabal-version:      3.0
+name:               peg-cli
+version:            0.1.0.0
+synopsis:           Command line interface of the peg-hs parser generator
+description:
+  The @peg-hs@ executable reads a @.peg@ grammar and writes a Haskell
+  module that parses it. The generated module depends on @peg-runtime@.
+homepage:           https://github.com/tett23/peg-hs
+bug-reports:        https://github.com/tett23/peg-hs/issues
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+copyright:          2026 tett23
+category:           Parsing
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  subdir:   packages/peg-cli
+
+executable peg-hs
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+    , base         >=4.20 && <4.21
+    , filepath     >=1.4  && <1.6
+    , peg-codegen  >=0.1  && <0.2
+    , peg-grammar  >=0.1  && <0.2
+    , text         >=2.0  && <2.2
+  default-language: GHC2021

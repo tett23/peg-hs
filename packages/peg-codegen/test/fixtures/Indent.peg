@@ -1,0 +1,21 @@
+%module Fixture.Indent
+%tabstop 2
+%export Node(..)
+
+%{
+import Data.Text (Text)
+
+data Node = Node Text [Node]
+  deriving (Eq, Show)
+}%
+
+Doc :: [Node]
+Doc <- ns:Node(0)* { ns }
+
+Node(d :: Int) :: Node
+Node <- Exactly(d) n:$[a-z]+ '\n' cs:Node(d + 2)* { Node n cs }
+
+# 桁が w に達するまで空白を読み、その位置に空白が続かないことを確かめる
+Exactly(w :: Int) :: ()
+Exactly <- &{ _col == w } ![ \t] { () }
+         / &{ _col < w } [ \t] Exactly(w)

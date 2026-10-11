@@ -1,0 +1,17 @@
+%module Fixture.Located
+%export Expr(..)
+
+%{
+import Data.Text (unpack)
+import Peg.Runtime (Span)
+
+data Expr = Lit Span Int | Add Span Expr Expr
+  deriving (Eq, Show)
+}%
+
+Expr :: Expr
+Expr <- l:Expr '+' r:Lit { Add _span l r }
+      / Lit
+
+Lit :: Expr
+Lit <- ds:$[0-9]+ { Lit _span (read (unpack ds)) }
