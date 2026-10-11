@@ -20,6 +20,7 @@ main =
       , memoTests
       , leftRecursionTests
       , columnTests
+      , recoveryTests
       ]
 
 -- A store with no tables, for parsers that do not use rules.
@@ -255,4 +256,97 @@ columnTests =
     , testCase "multibyte character is one column" $ colAfter 4 "あ" "x" @?= 1
     , testCase "predicates see the column" $
         parseWith defaultConfig (lit "  " "s" >> predicate (== 2)) "  " @?= Right ()
+    ]
+
+-- Labelled failures and recovery (ADR 0021) ----------------------------------
+
+recover0 :: (forall s. P (NoStore s) s a) -> Text -> (Maybe a, [SyntaxError])
+recover0 p t = let (v, e, _) = runParserRecover defaultConfig (pure NoStore) p t in (v, e)
+
+ranges :: [SyntaxError] -> [(Maybe Text, (Int, Int))]
+ranges = map (\e -> (syntaxErrorLabel e, syntaxErrorRange e))
+
+-- Skip to the next ';' and consume it.
+toSemi :: P r s Text
+toSemi = "?" <$ (skipMany (cls [('\0', ':'), ('<', '\x10FFFF')] "[^;]") >> lit ";" "';'")
+
+-- The label is only reached when input remains: at the end of the input,
+-- failing is the normal end of the repetition and must not throw.
+stmt :: P r s Text
+stmt = andP anyChar >> labeled "stmt" (Just toSemi) (capture (lit "ok;" "'ok;'"))
+
+-- S <- Stmt* ; Stmt <- 'ok;' ^stmt, memoised
+data SR s = SR {tStmt :: Table s Text, tStmts :: Table s [Text]}
+
+newSR :: ST s (SR s)
+newSR = SR <$> newTable <*> newTable
+
+ruleS' :: P (SR s) s [Text]
+ruleS' = memo tStmts "S" (many ruleStmt)
+
+ruleStmt :: P (SR s) s Text
+ruleStmt = memo tStmt "Stmt" stmt
+
+-- E <- E '+' (N ^num) / N, recovering a number by skipping to the next '+'
+data SN s = SN {tE' :: Table s Tree, tN' :: Table s Tree}
+
+newSN :: ST s (SN s)
+newSN = SN <$> newTable <*> newTable
+
+ruleE' :: P (SN s) s Tree
+ruleE' =
+  memoLR tE' "E" $
+    choice
+      [ do l <- ruleE'; lit "+" "'+'"; Add l <$> labeled "num" (Just (Leaf (-1) <$ skipMany1 (cls [('\0', '*'), (',', '\x10FFFF')] "[^+]"))) ruleN'
+      , ruleN'
+      ]
+
+ruleN' :: P (SN s) s Tree
+ruleN' = memo tN' "N" (Leaf . read . T.unpack <$> capture (cls [('0', '9')] "[0-9]"))
+
+recoveryTests :: TestTree
+recoveryTests =
+  testGroup
+    "labelled failures and recovery (ADR 0021)"
+    [ testCase "choice does not catch a thrown label" $
+        fmap parseErrorLabel (flipE (parse0 (choice [labeled "x" Nothing (lit "a" "'a'"), lit "b" "'b'"]) "b"))
+          @?= Right (Just "x")
+    , testCase "a label thrown inside a lookahead is an ordinary failure" $
+        parse0 (notP (labeled "x" Nothing (lit "a" "'a'")) >> lit "b" "'b'") "b" @?= Right ()
+    , testCase "without recovery the parse fails with the label" $
+        fmap parseErrorLabel (flipE (parse0 (many stmt) "ok;bad;ok;")) @?= Right (Just "stmt")
+    , testCase "recovery skips to the synchronisation point" $ do
+        let (v, errs) = recover0 (many stmt) "ok;bad;ok;"
+        v @?= Just ["ok;", "?", "ok;"]
+        ranges errs @?= [(Just "stmt", (3, 7))]
+        map (S.toList . syntaxErrorExpected) errs @?= [[ExpectedLiteral "'ok;'"]]
+    , testCase "a recovery that consumes nothing records an empty range" $ do
+        let close = labeled "close" (Just (pure ())) (lit "]" "']'")
+            (v, errs) = recover0 (lit "[a" "'[a'" >> close >> capture (skipMany anyChar)) "[a b"
+        v @?= Just " b"
+        ranges errs @?= [(Just "close", (2, 2))]
+    , testCase "errors of an abandoned attempt are not reported" $ do
+        let first = labeled "l" (Just ("x" <$ skipMany1 (cls [('x', 'x')] "x"))) (capture (lit "a" "'a'")) <* lit "!" "'!'"
+            (v, errs) = recover0 (choice [first, capture (lit "xx?" "'xx?'")]) "xx?"
+        v @?= Just "xx?"
+        errs @?= []
+    , testCase "an unrecoverable start rule makes the whole input an error" $ do
+        let (v, errs) = recover0 (labeled "x" Nothing (lit "a" "'a'")) "bc"
+        v @?= Nothing
+        ranges errs @?= [(Just "x", (0, 2))]
+    , testCase "left over input is an error" $ do
+        let (v, errs) = recover0 (lit "a" "'a'") "abc"
+        v @?= Just ()
+        ranges errs @?= [(Nothing, (1, 3))]
+    , testCase "memoisation does not change recovered results" $
+        mapM_
+          ( \t ->
+              let run cfg = let (v, e, _) = runParserRecover cfg newSR ruleS' t in (v, e)
+               in run defaultConfig {cfgMemo = False} @?= run defaultConfig
+          )
+          ["ok;bad;ok;", "bad;bad;", "ok;", "", "ok;x", "x;ok;y;"]
+    , testCase "recovery inside left recursion keeps the tree left associative" $ do
+        let (v, errs, _) = runParserRecover defaultConfig newSN ruleE' "1+x+2"
+        v @?= Just (Add (Add (Leaf 1) (Leaf (-1))) (Leaf 2))
+        ranges errs @?= [(Just "num", (2, 3))]
     ]

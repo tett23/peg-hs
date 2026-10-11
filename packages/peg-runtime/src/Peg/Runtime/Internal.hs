@@ -84,12 +84,21 @@ module Peg.Runtime.Internal
   , captureS
   , labelText
   , touch
+    -- * Labelled failures and recovery (ADR 0021)
+  , SyntaxError (..)
+  , runParserRecover
+  , runSyntaxRecover
+  , labeled
+  , labeledS
+  , voidP
+  , voidS
   ) where
 
 import Control.Monad (ap, when)
 import Control.Monad.ST (ST, runST)
 import Data.Array.Unboxed ((!))
 import Data.IntMap.Strict (IntMap)
+import Data.List (sortOn)
 import qualified Data.IntMap.Strict as IM
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -135,6 +144,23 @@ data ParseError = ParseError
   }
   deriving (Eq, Show)
 
+-- | A syntax error that a recovering parse recovered from (ADR 0021).
+data SyntaxError = SyntaxError
+  { syntaxErrorLabel :: !(Maybe Text)
+  -- ^ The label that was thrown. 'Nothing' for input left over after the
+  -- start rule and for a start rule that could not be recovered.
+  , syntaxErrorRange :: !(Int, Int)
+  -- ^ The byte range the recovery skipped. It is empty when the recovery
+  -- consumed nothing.
+  , syntaxErrorPos :: Pos
+  -- ^ The position of the start of the range. Computed when used: the
+  -- column takes time proportional to the length of the line.
+  , syntaxErrorExpected :: !(Set Expected)
+  -- ^ What the parser expected at the farthest failure of the labelled
+  -- expression.
+  }
+  deriving (Eq, Show)
+
 -- | Render an error as @line:column: expected A, B or C@.
 renderParseError :: ParseError -> Text
 renderParseError e =
@@ -173,12 +199,15 @@ data Config = Config
   , cfgTabstop :: !Int
   -- ^ Tab stop used by the column passed to predicates and rule arguments.
   -- 0 means a tab counts as a single column.
+  , cfgRecover :: !Bool
+  -- ^ Recover from labelled failures with the recovery rules (ADR 0021).
+  -- Set by the recovering entry points.
   }
   deriving (Eq, Show)
 
 -- | Memoisation and discarding on, counting off, no tab stop.
 defaultConfig :: Config
-defaultConfig = Config {cfgMemo = True, cfgDiscard = True, cfgCount = False, cfgTabstop = 0}
+defaultConfig = Config {cfgMemo = True, cfgDiscard = True, cfgCount = False, cfgTabstop = 0, cfgRecover = False}
 
 -- | Counters collected when 'cfgCount' is on.
 data Stats = Stats
@@ -208,13 +237,36 @@ mergeFailure a@(Failure i xs) b@(Failure j ys)
   | otherwise = Failure i (S.union xs ys)
 
 -- | The result of running a parser at an offset.
-data Res a = Ok !Int a | Fail
+data Res a
+  = Ok !Int a
+  | Fail
+  | -- | A labelled failure: the position where the labelled expression was
+    -- tried and the label (ADR 0021).
+    Throw !Int !Text
+
+-- The syntax errors recorded so far: how many, and the errors, newest first.
+-- The count makes saving and comparing the log constant time.
+data ErrLog = ErrLog !Int [SyntaxError]
+
+-- The errors recorded by one evaluation: the first @n@ elements of a log.
+-- The list is shared with the log, so storing it in a memo entry copies
+-- nothing.
+data ErrSlice = ErrSlice !Int [SyntaxError]
+
+noErrors :: ErrSlice
+noErrors = ErrSlice 0 []
+
+-- Re-type a result that is not a success.
+failed :: Res a -> Res b
+failed (Throw i l) = Throw i l
+failed _ = Fail
 
 data Ctx r s = Ctx
   { ctxInput :: !Text
   , ctxLen :: !Int
   , ctxStore :: r
   , ctxFail :: !(STRef s Failure)
+  , ctxErrors :: !(STRef s ErrLog)
   , ctxLogs :: !(STRef s [[ST s ()]])
   , ctxStats :: !(STRef s Stats)
   , ctxConfig :: !Config
@@ -229,7 +281,7 @@ instance Functor (P r s) where
     P $ \c i ->
       p c i >>= \case
         Ok j x -> pure (Ok j (f x))
-        Fail -> pure Fail
+        bad -> pure (failed bad)
 
 instance Applicative (P r s) where
   pure x = P $ \_ i -> pure (Ok i x)
@@ -240,7 +292,7 @@ instance Monad (P r s) where
     P $ \c i ->
       p c i >>= \case
         Ok j x -> unP (k x) c j
-        Fail -> pure Fail
+        bad -> pure (failed bad)
 
 -- | Run the start rule over the whole input.
 --
@@ -252,37 +304,107 @@ runParser
   -> Text
   -> (Either ParseError a, Stats)
 runParser cfg mkStore start input = runST $ do
-  st <- mkStore
-  fref <- newSTRef NoFailure
-  logs <- newSTRef []
-  stats <- newSTRef emptyStats
-  let len = TU.lengthWord8 input
-      ctx =
-        Ctx
-          { ctxInput = input
-          , ctxLen = len
-          , ctxStore = st
-          , ctxFail = fref
-          , ctxLogs = logs
-          , ctxStats = stats
-          , ctxConfig = cfg
-          , ctxLines = lineIndex input
-          }
+  ctx <- newCtx cfg {cfgRecover = False} mkStore input
   r <- unP start ctx 0
   res <- case r of
-    Ok j x | j == len -> pure (Right x)
+    Ok j x | j == ctxLen ctx -> pure (Right x)
     Ok j _ -> do
       mergeFail ctx (Failure j (S.singleton ExpectedEnd))
-      Left <$> currentError ctx
-    Fail -> Left <$> currentError ctx
-  s <- readSTRef stats
+      Left <$> currentError ctx Nothing
+    Throw _ l -> Left <$> currentError ctx (Just l)
+    Fail -> Left <$> currentError ctx Nothing
+  s <- readSTRef (ctxStats ctx)
   pure (res, s)
 
-currentError :: Ctx r s -> ST s ParseError
-currentError ctx =
+newCtx :: Config -> ST s (store s) -> Text -> ST s (Ctx (store s) s)
+newCtx cfg mkStore input = do
+  st <- mkStore
+  fref <- newSTRef NoFailure
+  errs <- newSTRef (ErrLog 0 [])
+  logs <- newSTRef []
+  stats <- newSTRef emptyStats
+  pure
+    Ctx
+      { ctxInput = input
+      , ctxLen = TU.lengthWord8 input
+      , ctxStore = st
+      , ctxFail = fref
+      , ctxErrors = errs
+      , ctxLogs = logs
+      , ctxStats = stats
+      , ctxConfig = cfg
+      , ctxLines = lineIndex input
+      }
+
+currentError :: Ctx r s -> Maybe Text -> ST s ParseError
+currentError ctx failLabel =
   readSTRef (ctxFail ctx) >>= \case
-    NoFailure -> pure (ParseError (posAt ctx 0) S.empty Nothing)
-    Failure i xs -> pure (ParseError (posAt ctx i) xs Nothing)
+    NoFailure -> pure (ParseError (posAt ctx 0) S.empty failLabel)
+    Failure i xs -> pure (ParseError (posAt ctx i) xs failLabel)
+
+-- | Run the start rule over the whole input, recovering from labelled
+-- failures (ADR 0021). The value is 'Nothing' only if the start rule could
+-- not be recovered. Errors are sorted by position.
+runParserRecover
+  :: Config
+  -> (forall s. ST s (store s))
+  -> (forall s. P (store s) s a)
+  -> Text
+  -> (Maybe a, [SyntaxError], Stats)
+runParserRecover cfg mkStore start input =
+  let (value, errs, st) = recoverCore cfg mkStore start input
+   in (fmap snd value, errs, st)
+
+-- | 'runParserRecover' for a grammar with @%syntax@. Always returns a tree:
+-- input left over after the start rule, or the whole input if the start
+-- rule could not be recovered, becomes an error node.
+runSyntaxRecover
+  :: Config
+  -> (forall s. ST s (store s))
+  -> (forall s. P (store s) s (a, [Child]))
+  -> SyntaxKind
+  -> Text
+  -> (SyntaxNode, [SyntaxError], Stats)
+runSyntaxRecover cfg mkStore start k input =
+  let (value, errs, st) = recoverCore cfg mkStore start input
+      len = TU.lengthWord8 input
+      kids = case value of
+        Just (j, (_, ks))
+          | j == len -> ks
+          | otherwise -> ks ++ [CNode errorKind j len [] Nothing]
+        Nothing -> [CNode errorKind 0 len [] Nothing]
+   in (syntaxRoot input k kids, errs, st)
+
+-- The end of the start rule's match and its value, with all errors,
+-- including the one for left over input or an unrecoverable start rule.
+recoverCore
+  :: Config
+  -> (forall s. ST s (store s))
+  -> (forall s. P (store s) s a)
+  -> Text
+  -> (Maybe (Int, a), [SyntaxError], Stats)
+recoverCore cfg mkStore start input = runST $ do
+  ctx <- newCtx cfg {cfgRecover = True} mkStore input
+  r <- unP start ctx 0
+  errs <- (\(ErrLog _ xs) -> reverse xs) <$> readSTRef (ctxErrors ctx)
+  let len = ctxLen ctx
+  (value, all') <- case r of
+    Ok j x | j == len -> pure (Just (j, x), errs)
+    Ok j x -> do
+      mergeFail ctx (Failure j (S.singleton ExpectedEnd))
+      e <- wholeError ctx Nothing j
+      pure (Just (j, x), errs ++ [e])
+    Throw _ l -> (\e -> (Nothing, [e])) <$> wholeError ctx (Just l) 0
+    Fail -> (\e -> (Nothing, [e])) <$> wholeError ctx Nothing 0
+  st <- readSTRef (ctxStats ctx)
+  pure (value, sortOn syntaxErrorRange all', st)
+  where
+    wholeError ctx failLabel from = do
+      expected <-
+        readSTRef (ctxFail ctx) >>= \case
+          NoFailure -> pure S.empty
+          Failure _ xs -> pure xs
+      pure (SyntaxError failLabel (from, ctxLen ctx) (posAt ctx from) expected)
 
 -- Positions ------------------------------------------------------------------
 
@@ -349,21 +471,35 @@ anyChar = P $ \c i ->
 
 -- | Ordered choice: try each alternative in turn and take the first success.
 choice :: [P r s a] -> P r s a
-choice ps = P $ \c i ->
+choice ps = P $ \c i -> do
+  saved <- saveErrors c
   let go [] = pure Fail
       go (p : rest) =
         unP p c i >>= \case
           r@Ok {} -> pure r
-          Fail -> go rest
-   in go ps
+          Fail -> restoreErrors c saved >> go rest
+          r -> restoreErrors c saved >> pure r
+  go ps
+
+-- Errors are only recorded in recovery mode, so only then are they saved
+-- and restored when an attempt is abandoned.
+saveErrors :: Ctx r s -> ST s (Maybe ErrLog)
+saveErrors c
+  | cfgRecover (ctxConfig c) = Just <$> readSTRef (ctxErrors c)
+  | otherwise = pure Nothing
+
+restoreErrors :: Ctx r s -> Maybe ErrLog -> ST s ()
+restoreErrors c = maybe (pure ()) (writeSTRef (ctxErrors c))
 
 -- | Zero or more repetitions, collecting the results.
 many :: P r s a -> P r s [a]
 many p = P $ \c i ->
-  let go j acc =
+  let go j acc = do
+        saved <- saveErrors c
         unP p c j >>= \case
           Ok k x | k > j -> go k (x : acc)
-          _ -> pure (Ok j (reverse acc))
+          Throw t l -> restoreErrors c saved >> pure (Throw t l)
+          _ -> restoreErrors c saved >> pure (Ok j (reverse acc))
    in go i []
 
 -- | One or more repetitions, collecting the results.
@@ -373,10 +509,12 @@ many1 p = (:) <$> p <*> many p
 -- | Zero or more repetitions, discarding the results.
 skipMany :: P r s a -> P r s ()
 skipMany p = P $ \c i ->
-  let go j =
+  let go j = do
+        saved <- saveErrors c
         unP p c j >>= \case
           Ok k _ | k > j -> go k
-          _ -> pure (Ok j ())
+          Throw t l -> restoreErrors c saved >> pure (Throw t l)
+          _ -> restoreErrors c saved >> pure (Ok j ())
    in go i
 
 -- | One or more repetitions, discarding the results.
@@ -385,39 +523,47 @@ skipMany1 p = p >> skipMany p
 
 -- | An optional match.
 optional :: P r s a -> P r s (Maybe a)
-optional p = P $ \c i ->
+optional p = P $ \c i -> do
+  saved <- saveErrors c
   unP p c i >>= \case
     Ok j x -> pure (Ok j (Just x))
-    Fail -> pure (Ok i Nothing)
+    Fail -> restoreErrors c saved >> pure (Ok i Nothing)
+    r -> restoreErrors c saved >> pure (failed r)
 
 -- | An optional match, discarding the result.
 skipOptional :: P r s a -> P r s ()
 skipOptional p = () <$ optional p
 
--- | Positive lookahead. Consumes no input.
+-- | Positive lookahead. Consumes no input. A label thrown inside it is an
+-- ordinary failure (ADR 0021).
 andP :: P r s a -> P r s ()
-andP p = P $ \c i ->
-  unP p c i >>= \case
+andP p = P $ \c i -> do
+  saved <- saveErrors c
+  r <- unP p c i
+  restoreErrors c saved
+  case r of
     Ok _ _ -> pure (Ok i ())
-    Fail -> pure Fail
+    _ -> pure Fail
 
 -- | Negative lookahead. Consumes no input, and failures inside it are not
 -- reported.
 notP :: P r s a -> P r s ()
 notP p = P $ \c i -> do
   saved <- readSTRef (ctxFail c)
+  savedErrors <- saveErrors c
   r <- unP p c i
   writeSTRef (ctxFail c) saved
+  restoreErrors c savedErrors
   case r of
     Ok _ _ -> pure Fail
-    Fail -> pure (Ok i ())
+    _ -> pure (Ok i ())
 
 -- | The input consumed by a parser.
 capture :: P r s a -> P r s Text
 capture p = P $ \c i ->
   unP p c i >>= \case
     Ok j _ -> pure (Ok j (slice (ctxInput c) i j))
-    Fail -> pure Fail
+    bad -> pure (failed bad)
 
 -- | A semantic predicate. The function receives the current 0-based column.
 -- Consumes no input, and a failure is not reported.
@@ -446,7 +592,9 @@ askStore f = P $ \c i -> pure (Ok i (f (ctxStore c)))
 
 -- Memo tables ----------------------------------------------------------------
 
-data Entry a = Entry !(Res a) !Failure
+-- A memoised result with its failure record and the syntax errors recorded
+-- while evaluating it (newest first).
+data Entry a = Entry !(Res a) !Failure !ErrSlice
 
 -- | A sparse memo table for one rule, keyed by byte offset.
 type Table s a = STRef s (IntMap (Entry a))
@@ -478,16 +626,43 @@ bumpEntries c name d =
         }
 
 -- Evaluate a rule body with its own failure record, so that the failure can
--- be stored in the memo entry and replayed on a hit.
-evalBody :: Ctx r s -> Text -> Int -> P r s a -> ST s (Res a, Failure)
+-- be stored in the memo entry and replayed on a hit. In recovery mode the
+-- syntax errors recorded by a successful evaluation are returned as well;
+-- those of an unsuccessful one are discarded.
+evalBody :: Ctx r s -> Text -> Int -> P r s a -> ST s (Res a, Failure, ErrSlice)
 evalBody c name i body = do
   countEval c name i
   saved <- readSTRef (ctxFail c)
   writeSTRef (ctxFail c) NoFailure
+  before <- saveErrors c
   r <- unP body c i
   f <- readSTRef (ctxFail c)
   writeSTRef (ctxFail c) (mergeFailure saved f)
-  pure (r, f)
+  new <- case r of
+    Ok {} -> newErrors c before
+    _ -> noErrors <$ restoreErrors c before
+  pure (r, f, new)
+
+-- The errors recorded since a saved state.
+newErrors :: Ctx r s -> Maybe ErrLog -> ST s ErrSlice
+newErrors _ Nothing = pure noErrors
+newErrors c (Just (ErrLog old _)) = do
+  ErrLog now xs <- readSTRef (ctxErrors c)
+  pure (ErrSlice (now - old) xs)
+
+-- Add the errors of a slice to the log.
+appendSlice :: Ctx r s -> ErrSlice -> ST s ()
+appendSlice _ (ErrSlice 0 _) = pure ()
+appendSlice c (ErrSlice k xs) = modifySTRef' (ctxErrors c) (\(ErrLog n ys) -> ErrLog (n + k) (take k xs ++ ys))
+
+-- Replay a memo entry.
+replay :: Ctx r s -> Entry a -> ST s (Res a)
+replay c (Entry r f errs) = do
+  mergeFail c f
+  case r of
+    Ok {} -> appendSlice c errs
+    _ -> pure ()
+  pure r
 
 -- Record an undo action in the innermost growth loop, if any.
 logUndo :: Ctx r s -> ST s () -> ST s ()
@@ -500,14 +675,14 @@ logUndo c undo =
 memo :: (r -> Table s a) -> String -> P r s a -> P r s a
 memo sel rawName body = P $ \c i ->
   if not (cfgMemo (ctxConfig c))
-    then fst <$> evalBody c name i body
+    then (\(r, _, _) -> r) <$> evalBody c name i body
     else do
       let t = sel (ctxStore c)
       IM.lookup i <$> readSTRef t >>= \case
-        Just (Entry r f) -> r <$ mergeFail c f
+        Just e -> replay c e
         Nothing -> do
-          (r, f) <- evalBody c name i body
-          modifySTRef' t (IM.insert i (Entry r f))
+          (r, f, errs) <- evalBody c name i body
+          modifySTRef' t (IM.insert i (Entry r f errs))
           bumpEntries c name 1
           logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
           pure r
@@ -518,14 +693,14 @@ memo sel rawName body = P $ \c i ->
 memoArg :: Ord k => (r -> ArgTable s k a) -> String -> k -> P r s a -> P r s a
 memoArg sel rawName k body = P $ \c i ->
   if not (cfgMemo (ctxConfig c))
-    then fst <$> evalBody c name i body
+    then (\(r, _, _) -> r) <$> evalBody c name i body
     else do
       let t = sel (ctxStore c)
       (IM.lookup i <$> readSTRef t) >>= \m -> case m >>= M.lookup k of
-        Just (Entry r f) -> r <$ mergeFail c f
+        Just e -> replay c e
         Nothing -> do
-          (r, f) <- evalBody c name i body
-          modifySTRef' t (IM.insertWith M.union i (M.singleton k (Entry r f)))
+          (r, f, errs) <- evalBody c name i body
+          modifySTRef' t (IM.insertWith M.union i (M.singleton k (Entry r f errs)))
           bumpEntries c name 1
           logUndo c (modifySTRef' t (IM.adjust (M.delete k) i) >> bumpEntries c name (-1))
           pure r
@@ -536,7 +711,7 @@ memoArg sel rawName k body = P $ \c i ->
 -- call. The failure record is kept per evaluation as for memoised rules, so
 -- that turning memoisation off does not change the reported error.
 nomemo :: String -> P r s a -> P r s a
-nomemo rawName body = P $ \c i -> fst <$> evalBody c name i body
+nomemo rawName body = P $ \c i -> (\(r, _, _) -> r) <$> evalBody c name i body
   where
     name = T.pack rawName
 
@@ -551,15 +726,19 @@ memoLR :: (r -> Table s a) -> String -> P r s a -> P r s a
 memoLR sel rawName body = P $ \c i -> do
   let t = sel (ctxStore c)
   IM.lookup i <$> readSTRef t >>= \case
-    Just (Entry r f) -> r <$ mergeFail c f
+    Just e -> replay c e
     Nothing -> do
       saved <- readSTRef (ctxFail c)
       writeSTRef (ctxFail c) NoFailure
-      modifySTRef' t (IM.insert i (Entry Fail NoFailure))
+      before <- saveErrors c
+      modifySTRef' t (IM.insert i (Entry Fail NoFailure noErrors))
       bumpEntries c name 1
       logUndo c (modifySTRef' t (IM.delete i) >> bumpEntries c name (-1))
-      let grow lastRes lastEnd = do
+      -- Each iteration starts from the errors before the growth, so that
+      -- only the errors of the iteration that is kept remain.
+      let grow lastRes lastEnd lastErrs = do
             countEval c name i
+            restoreErrors c before
             modifySTRef' (ctxLogs c) ([] :)
             r <- unP body c i
             readSTRef (ctxLogs c) >>= \case
@@ -569,13 +748,19 @@ memoLR sel rawName body = P $ \c i -> do
               [] -> pure ()
             case r of
               Ok j x | j > lastEnd -> do
-                modifySTRef' t (IM.insert i (Entry (Ok j x) NoFailure))
-                grow r j
-              _ -> pure lastRes
-      res <- grow Fail (-1)
+                errs <- newErrors c before
+                modifySTRef' t (IM.insert i (Entry (Ok j x) NoFailure errs))
+                grow r j errs
+              Throw {} -> pure (r, noErrors)
+              _ -> pure (lastRes, lastErrs)
+      (res, errs) <- grow Fail (-1) noErrors
+      restoreErrors c before
+      case res of
+        Ok {} -> appendSlice c errs
+        _ -> pure ()
       f <- readSTRef (ctxFail c)
       writeSTRef (ctxFail c) (mergeFailure saved f)
-      modifySTRef' t (IM.insert i (Entry res f))
+      modifySTRef' t (IM.insert i (Entry res f errs))
       pure res
   where
     name = T.pack rawName
@@ -590,14 +775,14 @@ node :: SyntaxKind -> P r s (a, [Child]) -> P r s (a, [Child])
 node k p = P $ \c i ->
   unP p c i >>= \case
     Ok j (v, kids) -> pure (Ok j (v, [CNode k i j kids Nothing]))
-    Fail -> pure Fail
+    bad -> pure (failed bad)
 
 -- | Record a rule invocation as a single token.
 token :: SyntaxKind -> P r s (a, [Child]) -> P r s (a, [Child])
 token k p = P $ \c i ->
   unP p c i >>= \case
     Ok j (v, _) -> pure (Ok j (v, [CToken k i j Nothing]))
-    Fail -> pure Fail
+    bad -> pure (failed bad)
 
 -- | A parser that contributes nothing but text.
 plain :: P r s a -> P r s (a, [Child])
@@ -611,7 +796,7 @@ label rawLabel p = P $ \c i ->
     Ok j (v, kids)
       | null kids && j > i -> pure (Ok j (v, [CToken textKind i j (Just l)]))
       | otherwise -> pure (Ok j (v, map (setLabel l) kids))
-    Fail -> pure Fail
+    bad -> pure (failed bad)
   where
     l = T.pack rawLabel
 
@@ -632,7 +817,7 @@ captureS :: P r s (a, [Child]) -> P r s (Text, [Child])
 captureS p = P $ \c i ->
   unP p c i >>= \case
     Ok j (_, kids) -> pure (Ok j (slice (ctxInput c) i j, kids))
-    Fail -> pure Fail
+    bad -> pure (failed bad)
 
 -- | A label or kind name from a string literal of generated code.
 labelText :: String -> Text
@@ -642,3 +827,56 @@ labelText = T.pack
 -- may exist only to label children in the tree.
 touch :: a -> P r s ()
 touch _ = pure ()
+
+-- Labelled failures (ADR 0021) ----------------------------------------------
+
+-- | @e ^label@. If the parser fails, throw the label at the position where
+-- it was tried. In recovery mode, a recovery parser for the label is run
+-- from that position instead; if it succeeds, its value is the result and
+-- a syntax error is recorded. A label thrown inside the recovery parser
+-- makes the recovery fail.
+labeled :: String -> Maybe (P r s a) -> P r s a -> P r s a
+labeled = labeledWith (\_ _ v -> v)
+
+-- | 'labeled' in syntax mode: the recovered range becomes an error node
+-- whose children are those of the recovery rule.
+labeledS :: String -> Maybe (P r s (a, [Child])) -> P r s (a, [Child]) -> P r s (a, [Child])
+labeledS = labeledWith (\i j (v, kids) -> (v, [CNode errorKind i j (unwrap kids) Nothing]))
+  where
+    unwrap [CNode _ _ _ ks Nothing] = ks
+    unwrap ks = ks
+
+labeledWith :: (Int -> Int -> a -> a) -> String -> Maybe (P r s a) -> P r s a -> P r s a
+labeledWith wrap rawLabel recovery p = P $ \c i -> do
+  savedFail <- readSTRef (ctxFail c)
+  writeSTRef (ctxFail c) NoFailure
+  savedErrors <- saveErrors c
+  r <- unP p c i
+  local <- readSTRef (ctxFail c)
+  writeSTRef (ctxFail c) (mergeFailure savedFail local)
+  case r of
+    Fail -> do
+      restoreErrors c savedErrors
+      case recovery of
+        Just q | cfgRecover (ctxConfig c) ->
+          unP q c i >>= \case
+            Ok j v -> do
+              let expected = case local of
+                    Failure _ xs -> xs
+                    NoFailure -> S.empty
+              modifySTRef' (ctxErrors c) (\(ErrLog n xs) -> ErrLog (n + 1) (SyntaxError (Just l) (i, j) (posAt c i) expected : xs))
+              pure (Ok j (wrap i j v))
+            _ -> restoreErrors c savedErrors >> pure (Throw i l)
+        _ -> pure (Throw i l)
+    _ -> pure r
+  where
+    l = T.pack rawLabel
+
+-- | Discard the value of a recovery parser, for a label on an expression
+-- without a value.
+voidP :: P r s a -> P r s ()
+voidP = fmap (const ())
+
+-- | 'voidP' in syntax mode.
+voidS :: P r s (a, [Child]) -> P r s ((), [Child])
+voidS = fmap (\(_, kids) -> ((), kids))

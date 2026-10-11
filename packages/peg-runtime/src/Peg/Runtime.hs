@@ -14,6 +14,7 @@ module Peg.Runtime
   , ParseError (..)
   , Expected (..)
   , renderParseError
+  , SyntaxError (..)
   ) where
 
 import Peg.Runtime.Internal
