@@ -3,11 +3,11 @@
 # 要素の列を返し、同じ組み立て（Peg.Grammar.Assemble）を通る。両者が位置まで
 # 含めて同一の文法を返すことを移行テストとする（仕様書の「自己記述への移行」）。
 #
-# 識別子の文字は ASCII に限る。手書きのパーサーは Unicode の英字も受け付ける。
+# 識別子と空白の文字は、手書きのパーサーと同じ関数で判定する（ADR 0020）。
 %module Peg.Grammar.SelfHosted
 
 %{
-import Data.Char (chr, digitToInt, isHexDigit)
+import Data.Char (chr, digitToInt, isHexDigit, isSpace)
 import Data.Either (isRight, rights)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -78,7 +78,10 @@ Here <- { here _span }
 # 空白とコメント -------------------------------------------------------------------
 
 Ws :: ()
-Ws <- ([ \t\n\r\u{B}\u{C}] / Comment)* { () }
+Ws <- (SpaceChar / Comment)* { () }
+
+SpaceChar :: ()
+SpaceChar <- c:$. &{ isSpace (firstChar c) } { () }
 
 Comment :: ()
 Comment <- '#' (!'\n' .)* { () }
@@ -87,7 +90,13 @@ InlineSp :: ()
 InlineSp <- [ \t]* { () }
 
 Ident :: Text
-Ident <- t:$([A-Za-z_] [A-Za-z0-9_']*) { t }
+Ident <- t:$(IdentStart IdentChar*) { t }
+
+IdentStart :: ()
+IdentStart <- c:$. &{ isIdentStart (firstChar c) } { () }
+
+IdentChar :: ()
+IdentChar <- c:$. &{ isIdentChar (firstChar c) } { () }
 
 # 最上位の要素 ---------------------------------------------------------------------
 
@@ -95,7 +104,7 @@ Verbatim :: Top
 Verbatim <- '%{' l:Here b:$(!'}%' .)* '}%' { uncurry TVerbatim (verbatimBody l b) }
 
 Directive :: Top
-Directive <- l:Here '%' n:Ident InlineSp raw:$(!'\n' .)* { TDirective l n (directiveArg n raw) }
+Directive <- l:Here '%' n:Ident InlineSp al:Here raw:$(!'\n' .)* { TDirective l n al (directiveArg n raw) }
 
 Declaration :: Top
 Declaration <- l:Here n:Ident ps:ParamList? Ws '::' InlineSp tl:Here ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { TAnnot l n (maybe [] id ps) (Located tl (T.stripEnd ty)) }
@@ -235,4 +244,4 @@ HsChar <- '\'' '\\' . (!'\'' .)* '\'' { () }
         / '\'' { () }
 
 HsIdent :: ()
-HsIdent <- [A-Za-z0-9_] [A-Za-z0-9_']* { () }
+HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }

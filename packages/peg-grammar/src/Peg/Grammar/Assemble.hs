@@ -14,7 +14,7 @@ module Peg.Grammar.Assemble
   , directiveArg
   ) where
 
-import Data.Char (isAlpha, isAlphaNum, isDigit, isSpace)
+import Data.Char (isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isSpace)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -24,7 +24,8 @@ import Peg.Grammar
 
 -- | A top-level item of a grammar file.
 data Top
-  = TDirective Loc Text Text
+  = -- | Location of the directive, name, location of the argument, argument.
+    TDirective Loc Text Loc Text
   | TVerbatim Loc Text
   | TAnnot Loc Text [Param] (Located Text)
   | TDef Loc Text [Alt]
@@ -86,19 +87,27 @@ assemble items =
           Grammar
             { grammarModule = m
             , grammarStart = single "start"
-            , grammarEntries = [Located l a | TDirective l "entry" a <- items]
-            , grammarExports = concat [splitExports l a | TDirective l "export" a <- items]
+            , grammarEntries = [Located l a | TDirective l "entry" _ a <- items]
+            , grammarExports = concat [splitExports al a | TDirective _ "export" al a <- items]
             , grammarEnv = single "env"
             , grammarTabstop = tabstop
-            , grammarNoMemo = [Located l a | TDirective l "nomemo" a <- items]
+            , grammarNoMemo = [Located l a | TDirective l "nomemo" _ a <- items]
+            , grammarLanguages = concat [splitExports al a | TDirective _ "language" al a <- items]
+            , grammarSyntax = case [l | TDirective l "syntax" _ _ <- items] of
+                l : _ -> Just l
+                [] -> Nothing
+            , grammarTokens = [Located l a | TDirective l "token" _ a <- items]
+            , grammarTrivia = [Located l a | TDirective l "trivia" _ a <- items]
+            , grammarInline = [Located l a | TDirective l "inline" _ a <- items]
             , grammarVerbatim = [Located l t | TVerbatim l t <- items]
             , grammarRules = rules
             }
       Nothing -> Left [Diagnostic (Loc 1 1) "missing %module directive"]
     es -> Left (sortOn diagLoc es)
   where
-    directives = [(l, n, a) | TDirective l n a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo"]
+    directives = [(l, n, a) | TDirective l n _ a <- items]
+    argLocs = [(n, al, a) | TDirective _ n al a <- items]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline"]
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
@@ -117,13 +126,19 @@ assemble items =
     errors =
       [Diagnostic l ("unknown directive %" <> n) | (l, n, _) <- directives, n `notElem` known]
         ++ [ Diagnostic l ("duplicate %" <> n <> " directive")
-           | n <- ["module", "start", "env", "tabstop"]
+           | n <- ["module", "start", "env", "tabstop", "syntax"]
            , (l, _, _) : _ : _ <- [reverse [d | d@(_, n', _) <- directives, n' == n]]
            ]
-        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, T.null a]
+        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n /= "syntax", T.null a]
+        ++ [Diagnostic l "%syntax takes no argument" | (l, "syntax", a) <- directives, not (T.null a)]
+        ++ [ Diagnostic l ("%language expects extension names, but got " <> x)
+           | ("language", al, a) <- argLocs
+           , Located l x <- splitExports al a
+           , not (isExtensionName x)
+           ]
         ++ [ Diagnostic l ("%" <> n <> " expects a rule name")
            | (l, n, a) <- directives
-           , n `elem` ["start", "entry", "nomemo"]
+           , n `elem` ["start", "entry", "nomemo", "token", "trivia", "inline"]
            , not (T.null a)
            , not (isValidIdent a)
            ]
@@ -149,17 +164,28 @@ assemble items =
            ]
         ++ [Diagnostic (Loc 1 1) "the grammar has no rules" | null defs, isJust moduleName]
 
+-- The lexical form of a GHC language extension name.
+isExtensionName :: Text -> Bool
+isExtensionName t = case T.uncons t of
+  Just (c, rest) -> isAsciiUpper c && T.all (\x -> isAscii x && isAlphaNum x) rest
+  Nothing -> False
+
 -- Split export items at top-level commas.
 splitExports :: Loc -> Text -> [Located Text]
-splitExports l0 t = go l0 (T.unpack t) (0 :: Int) [] []
+splitExports l0 t = go l0 (T.unpack t) (0 :: Int) Nothing [] []
   where
-    go l [] _ cur acc = reverse (finish l cur acc)
-    go l (c : cs) d cur acc
-      | c == ',' && d == 0 = go (adv l c) cs d [] (finish l cur acc)
-      | c `elem` ("([" :: String) = go (adv l c) cs (d + 1) (c : cur) acc
-      | c `elem` (")]" :: String) = go (adv l c) cs (d - 1) (c : cur) acc
-      | otherwise = go (adv l c) cs d (c : cur) acc
-    adv (Loc ln col) _ = Loc ln (col + 1)
-    finish l cur acc =
+    -- The location of each item is that of its first non-space character.
+    go _ [] _ start cur acc = reverse (finish start cur acc)
+    go l (c : cs) d start cur acc
+      | c == ',' && d == 0 = go (adv l) cs d Nothing [] (finish start cur acc)
+      | c == ' ' && null cur = go (adv l) cs d start cur acc
+      | otherwise =
+          let d' = if c `elem` ("([" :: String) then d + 1 else if c `elem` (")]" :: String) then d - 1 else d
+              start' = maybe (Just l) Just start
+           in go (adv l) cs d' start' (c : cur) acc
+    adv (Loc ln col) = Loc ln (col + 1)
+    finish start cur acc =
       let s = T.strip (T.pack (reverse cur))
-       in if T.null s then acc else Located (Loc (locLine l) (locColumn l - length cur)) s : acc
+       in case start of
+            Just l | not (T.null s) -> Located l s : acc
+            _ -> acc

@@ -204,7 +204,8 @@ directive :: Loc -> Parser Top
 directive l = do
   name <- ident
   inlineSpaces
-  TDirective l name . directiveArg name <$> restOfLine
+  al <- getLoc
+  TDirective l name al . directiveArg name <$> restOfLine
 
 verbatim :: Parser Top
 verbatim = do

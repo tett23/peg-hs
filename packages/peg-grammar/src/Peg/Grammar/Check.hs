@@ -69,13 +69,22 @@ checkRules g firstRule =
         ++ concatMap altErrors rules
         ++ paramLrErrors
         ++ concatMap hygieneErrors (grammarVerbatim g)
+        ++ languageErrors
+        ++ nomemoErrors
+        ++ syntaxErrors
 
     refs = [(l, n, length args) | r <- rules, a <- ruleAlts r, (l, n, args) <- itemsRefs (altItems a)]
 
     undefinedErrors =
       [Diagnostic l ("undefined rule " <> n) | (l, n, _) <- refs, not (M.member n ruleMap)]
         ++ [ Diagnostic l ("undefined rule " <> n)
-           | Located l n <- maybe [] pure (grammarStart g) ++ grammarEntries g ++ grammarNoMemo g
+           | Located l n <-
+               maybe [] pure (grammarStart g)
+                 ++ grammarEntries g
+                 ++ grammarNoMemo g
+                 ++ grammarTokens g
+                 ++ grammarTrivia g
+                 ++ grammarInline g
            , not (M.member n ruleMap)
            ]
 
@@ -115,6 +124,43 @@ checkRules g firstRule =
       | r <- rules
       , not (S.member (ruleName r) reachable)
       ]
+
+    -- ADR 0016: extensions that change the meaning of the generated code.
+    languageErrors =
+      [ Diagnostic l ("%language " <> x <> " is not allowed: it changes the meaning of the generated code")
+      | Located l x <- grammarLanguages g
+      , x `elem` ["RebindableSyntax"]
+      ]
+
+    -- ADR 0006, ADR 0017
+    nomemoErrors =
+      [ Diagnostic l ("rule " <> n <> " takes part in left recursion and must be memoised")
+      | Located l n <- grammarNoMemo g
+      , S.member n lr
+      ]
+
+    -- ADR 0019
+    tokenNames = S.fromList (map unLoc (grammarTokens g))
+    syntaxErrors =
+      case grammarSyntax g of
+        Nothing ->
+          [ Diagnostic l ("%" <> d <> " requires %syntax")
+          | (d, xs) <- [("token", grammarTokens g), ("trivia", grammarTrivia g), ("inline", grammarInline g)]
+          , Located l _ <- xs
+          ]
+        Just _ ->
+          [ Diagnostic l ("%trivia " <> n <> " must name a %token rule")
+          | Located l n <- grammarTrivia g
+          , not (S.member n tokenNames)
+          ]
+            ++ [ Diagnostic l ("rule " <> n <> " cannot be both %token and %inline")
+               | Located l n <- grammarInline g
+               , S.member n tokenNames
+               ]
+            ++ [ Diagnostic l ("the entry rule " <> n <> " cannot be %inline: the root of the syntax tree needs a kind")
+               | Located l n <- grammarInline g
+               , n `elem` (start : map unLoc (grammarEntries g))
+               ]
 
     paramLrErrors =
       [ Diagnostic (ruleLoc r) ("rule " <> ruleName r <> " takes parameters and cannot take part in left recursion")

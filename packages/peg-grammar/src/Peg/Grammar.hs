@@ -53,7 +53,17 @@ data Grammar = Grammar
   , grammarTabstop :: Maybe (Located Int)
   -- ^ @%tabstop@: the tab stop used by @_col@.
   , grammarNoMemo :: [Located Text]
-  -- ^ @%nomemo@: reserved, not implemented.
+  -- ^ @%nomemo@: rules that are not memoised.
+  , grammarLanguages :: [Located Text]
+  -- ^ @%language@: language extensions of the generated module, in order.
+  , grammarSyntax :: Maybe Loc
+  -- ^ @%syntax@: also generate a lossless syntax tree.
+  , grammarTokens :: [Located Text]
+  -- ^ @%token@: rules that become single tokens in the syntax tree.
+  , grammarTrivia :: [Located Text]
+  -- ^ @%trivia@: token rules that are trivia (whitespace, comments).
+  , grammarInline :: [Located Text]
+  -- ^ @%inline@: rules whose children are spliced into the caller's node.
   , grammarVerbatim :: [Located Text]
   -- ^ @%{ ... }%@ blocks, in order.
   , grammarRules :: [Rule]

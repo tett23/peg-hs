@@ -78,6 +78,9 @@ selfHostingTests files =
       , "%module M\nA :: ()\nA <- B(1 + f (2, 3), x) B ('x') { () }\nB(n :: Int, c :: Char) :: ()\nB <- 'b' { () }\n"
       , "%module M\nA :: ()\nA <- B\n  C\nB :: ()\nB <- 'b' { () }\nC :: ()\nC <- ('c' / 'd' e:$'e')? { () }\n"
       , "%module M\n%{ import Y }%\nA :: Int\nA <- 'a' { let x = '\\'' in 1 }\n"
+      , "%module M\n数式 :: Int\n数式 <- 値:項 '+' 次の値:項 { 値 + 次の値 }\n項 :: Int\n項 <- 'n' { 1 }\n"
+      , "%module M\nÄußerung :: Text\nÄußerung\x3000<-\x3000größe:$'a'\x3000{ größe }\n"
+      , "%module M\nA :: Int\nA <- 'a' { let é' = 'x' in length [é'] }\n"
       ]
     invalidSnippets =
       [ "%module M\nA :: ()\nA <- '\\q' { () }\n"
@@ -209,6 +212,22 @@ checkTests =
         errorsOf "%module M\nA :: ()\nA <- B(1)\nB(n :: Int) :: ()\nB <- B(n) 'b' { () } / 'b' { () }\n" @?= [(5, 1)]
     , testCase "an entry rule cannot take parameters" $
         errorsOf "%module M\n%entry B\nA :: ()\nA <- 'a' { () }\nB(n :: Int) :: ()\nB <- 'b' { () }\n" @?= [(2, 1)]
+    , testCase "%language takes extension names" $
+        errorsOf "%module M\n%language OverloadedStrings, overloaded\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 30)]
+    , testCase "%language RebindableSyntax is rejected" $
+        errorsOf "%module M\n%language RebindableSyntax\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 11)]
+    , testCase "%nomemo on a left-recursive rule" $
+        errorsOf "%module M\n%nomemo A\nA :: ()\nA <- A 'a' { () } / 'a' { () }\n" @?= [(2, 1)]
+    , testCase "%token requires %syntax" $
+        errorsOf "%module M\n%token A\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 1)]
+    , testCase "%syntax takes no argument" $
+        errorsOf "%module M\n%syntax yes\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 1)]
+    , testCase "%trivia must name a %token rule" $
+        errorsOf "%module M\n%syntax\n%trivia A\nA :: ()\nA <- 'a' { () }\n" @?= [(3, 1)]
+    , testCase "a rule cannot be both %token and %inline" $
+        errorsOf "%module M\n%syntax\n%token B\n%inline B\nA :: ()\nA <- B { () }\nB :: ()\nB <- 'b' { () }\n" @?= [(4, 1)]
+    , testCase "an entry rule cannot be %inline" $
+        errorsOf "%module M\n%syntax\n%inline A\nA :: ()\nA <- 'a' { () }\n" @?= [(3, 1)]
     , testCase "reserved names in verbatim code" $
         errorsOf "%module M\n%{\npeg'x = 1\ndata Peg'T = T\nimport qualified Data.Map as PegRt\n}%\nA :: ()\nA <- 'a' { () }\n" @?= [(3, 1), (4, 1), (5, 1)]
     ]
