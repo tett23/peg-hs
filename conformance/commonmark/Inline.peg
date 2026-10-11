@@ -5,6 +5,8 @@
 # 原文と、強調の区切り記号の前後の文字をオフセットから求めるために使う。
 # 強調の組み立ては解析後の処理（Emphasis.hs）が行う。
 %module Conformance.CommonMark.Inline
+%syntax
+%language OverloadedStrings
 %env InlineEnv
 %export InlineEnv(..)
 
@@ -42,7 +44,7 @@ decValue = T.foldl' (\n c -> n * 10 + digitToInt c) 0
 normalizeCode :: Text -> Text
 normalizeCode t =
   let s = T.map (\c -> if c == '\n' then ' ' else c) t
-   in case T.stripPrefix (T.pack " ") s >>= T.stripSuffix (T.pack " ") of
+   in case T.stripPrefix " " s >>= T.stripSuffix " " of
         Just inner | not (T.all (== ' ') s) -> inner
         _ -> s
 
@@ -60,7 +62,7 @@ refLink make env contents label = case lookupRef env label of
   Nothing -> Str T.empty
 
 domainLabelOk :: Text -> Bool
-domainLabelOk l = T.length l <= 63 && T.takeEnd 1 l /= T.pack "-"
+domainLabelOk l = T.length l <= 63 && T.takeEnd 1 l /= "-"
 }%
 
 Inlines :: [Inline]
@@ -114,13 +116,13 @@ Break <- ' ' ' '+ '\n' { HardBreak }
 
 Escape :: Inline
 Escape <- '\\' c:$[!-/:-@\[-`{-~] { Str c }
-        / '\\' { Str (T.pack "\\") }
+        / '\\' { Str "\\" }
 
 EntityRef :: Inline
 EntityRef <- '&' n:$[A-Za-z0-9]+ ';' &{ M.member n entities } { Str (M.findWithDefault T.empty n entities) }
            / '&#' d:$[0-9]+ ';' &{ T.length d <= 7 } { Str (codePoint (decValue d)) }
            / '&#' [xX] h:$[0-9a-fA-F]+ ';' &{ T.length h <= 6 } { Str (codePoint (hexValue h)) }
-           / '&' { Str (T.pack "&") }
+           / '&' { Str "&" }
 
 Other :: Inline
 Other <- c:$[!<\[\]] { Str c }
@@ -150,7 +152,7 @@ Ticks <- r:$'`'+ { Str r }
 
 AutolinkI :: Inline
 AutolinkI <- '<' u:$(Scheme ':' (![\u{0}-\u{20}<>] .)*) '>' { Autolink u u }
-           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink (T.pack "mailto:" <> e) e }
+           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink ("mailto:" <> e) e }
 
 Scheme :: ()
 Scheme <- s:$([A-Za-z] [A-Za-z0-9+.\-]+) &{ T.length s <= 32 } { () }
@@ -225,7 +227,7 @@ LinkText <- s:Off is:LinkItem* e:Off { (concat is, slice _env s e) }
 
 LinkItem :: [Inline]
 LinkItem <- !'[' !']' i:InlineNoLink { [i] }
-          / !LinkI '[' is:LinkItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+          / !LinkI '[' is:LinkItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
 
 ImageText :: ([Inline], Text)
 ImageText <- s:Off is:ImageItem* e:Off { (concat is, slice _env s e) }
@@ -233,7 +235,7 @@ ImageText <- s:Off is:ImageItem* e:Off { (concat is, slice _env s e) }
 ImageItem :: [Inline]
 ImageItem <- l:LinkI { [l] }
            / !'[' !']' i:InlineNoLink { [i] }
-           / '[' is:ImageItem* ']' { [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] }
+           / '[' is:ImageItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
 
 InlineTail :: (Text, Maybe Text)
 InlineTail <- '(' LWs d:Dest? t:TitlePart? LWs ')' { (maybe T.empty id d, t) }

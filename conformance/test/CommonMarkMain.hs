@@ -13,9 +13,14 @@
 module Main (main) where
 
 import qualified Conformance.CommonMark as CM
+import qualified Conformance.CommonMark.Block as Block
+import qualified Conformance.CommonMark.Inline as Inline
+import Peg.Runtime.Syntax (syntaxText)
 import Conformance.CommonMark.Emphasis (resolveEmphasis)
 import Conformance.CommonMark.Types (Inline (..))
-import Control.Monad (forM_, unless, when)
+import Control.Monad (forM, forM_, unless, when)
+import Data.List (isSuffixOf, sort)
+import System.Directory (listDirectory)
 import qualified Data.ByteString as B
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
@@ -108,6 +113,7 @@ main = do
       failures <- readFailures
       expected <- readPassing
       regenOk <- and <$> mapM regenerated ["Block", "Inline"]
+      tabProblems <- nestedTabProblems
       let problems =
             [T.pack ("expected 652 examples, found " <> show (length examples)) | length examples /= 652]
               ++ [T.pack ("example " <> show n <> " now passes; run with --accept") | n <- S.toList (passed `S.difference` expected)]
@@ -121,6 +127,8 @@ main = do
                  , [s] /= [exSection ex | ex <- examples, exNumber ex == n]
                  ]
               ++ emphasisProblems
+              ++ concatMap losslessProblems examples
+              ++ tabProblems
       putStrLn ("CommonMark 0.31.2: " <> show (S.size passed) <> " of " <> show (length examples) <> " examples pass")
       unless (null problems) $ do
         mapM_ TIO.putStrLn problems
@@ -229,3 +237,30 @@ attribute failures ex
     orderedMarker t =
       let (ds, rest) = T.span (`elem` ['0' .. '9']) t
        in not (T.null ds) && T.length ds <= 9 && (T.isPrefixOf (T.pack ".") rest || T.isPrefixOf (T.pack ")") rest)
+
+-- Nested containers with partly consumed tabs, against the output of the
+-- reference implementation (ADR 0018).
+nestedTabProblems :: IO [Text]
+nestedTabProblems = do
+  names <- filter (".md" `isSuffixOf`) <$> listDirectory "commonmark/tabs"
+  fmap concat . forM (sort names) $ \name -> do
+    let base = take (length name - 3) name
+    md <- TIO.readFile ("commonmark/tabs/" <> name)
+    expected <- TIO.readFile ("commonmark/tabs/" <> base <> ".html")
+    pure [T.pack ("nested tabs: " <> base <> " differs from the reference: " <> show actual) | let actual = CM.toHtml md, actual /= Right expected]
+
+-- The syntax trees of both grammars reproduce their input (ADR 0019).
+losslessProblems :: Example -> [Text]
+losslessProblems ex =
+  [ T.pack ("example " <> show (exNumber ex) <> ": the block syntax tree differs from the input")
+  | either (const False) (/= md) (fmap syntaxText (Block.parseSyntax md))
+  ]
+    ++ case CM.leafTexts md of
+      Left _ -> []
+      Right (refs, leaves) ->
+        [ T.pack ("example " <> show (exNumber ex) <> ": the inline syntax tree differs from " <> show leaf)
+        | leaf <- leaves
+        , either (const True) (/= leaf) (fmap syntaxText (Inline.parseSyntax (Inline.InlineEnv refs leaf) leaf))
+        ]
+  where
+    md = exMarkdown ex

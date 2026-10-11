@@ -5,6 +5,8 @@
 # 字下げは b からの相対で判定する。葉ブロックは生のインライン文字列を返し、
 # インラインの解析は Inline.peg が行う。
 %module Conformance.CommonMark.Block
+%syntax
+%language OverloadedStrings
 %tabstop 4
 
 %{
@@ -50,7 +52,7 @@ segRest cs = case segment cs of
 
 -- Join paragraph lines; the final line loses its trailing whitespace.
 joinPara :: [Text] -> Text
-joinPara = T.dropWhileEnd isSpace . T.intercalate (T.pack "\n")
+joinPara = T.dropWhileEnd isSpace . T.intercalate "\n"
 
 -- Remove the optional closing sequence of an ATX heading.
 stripAtx :: Text -> Text
@@ -60,7 +62,7 @@ stripAtx t =
    in if T.null withoutHashes
         then T.empty
         else
-          if T.length withoutHashes < T.length s && T.takeEnd 1 withoutHashes `elem` [T.pack " ", T.pack "\t"]
+          if T.length withoutHashes < T.length s && T.takeEnd 1 withoutHashes `elem` [" ", "\t"]
             then T.strip withoutHashes
             else T.strip s
 
@@ -95,19 +97,24 @@ blockTags =
   , "th", "thead", "title", "tr", "track", "ul"
   ]
 
+-- Virtual spaces: the columns of a tab beyond the logical column (ADR 0018).
+virt :: Int -> Text
+virt n = T.replicate (max 0 n) " "
+
 validLabel :: Text -> Bool
 validLabel l = T.length l <= 999 && not (T.all isSpace l)
 }%
 
 Document :: [Block]
-Document <- bs:Blocks([]) { bs }
+Document <- bs:Blocks([], 0) { bs }
           / !. { [] }
 
-Blocks(cs :: [Container]) :: [Block]
-Blocks <- b:Block(cs, _col) bs:MoreBlock(cs)* { b : bs }
+# b は最初のブロックの論理桁（ADR 0018）
+Blocks(cs :: [Container], b :: Int) :: [Block]
+Blocks <- x:Block(cs, b) xs:MoreBlock(cs)* { x : xs }
 
 MoreBlock(cs :: [Container]) :: Block
-MoreBlock <- &. Prefix(cs) b:Block(cs, _col) { b }
+MoreBlock <- &. p:Prefix(cs, _col) x:Block(cs, p) { x }
 
 Block(cs :: [Container], b :: Int) :: Block
 Block <- BlankLine
@@ -123,22 +130,29 @@ Block <- BlankLine
 
 # 継続の接頭辞 ----------------------------------------------------------------
 
-Prefix(cs :: [Container]) :: ()
-Prefix <- &{ null cs } { () }
-        / &{ startsQuote cs } QPre(_col) Prefix(segRest cs) { () }
-        / &{ itemsThenQuote cs } ToCol(_col + segWidth cs) QPre(_col) Prefix(segRest cs) { () }
-        / &{ onlyItems cs } &BlankRest { () }
-        / &{ onlyItems cs } ToCol(_col + segWidth cs) { () }
+# 接頭辞を読み、その後の論理桁を返す。b は接頭辞の手前の論理桁。
+# タブが接頭辞の幅を越えても、論理桁は接頭辞が本来消費する桁とする（ADR 0018）
+Prefix(cs :: [Container], b :: Int) :: Int
+Prefix <- &{ null cs } { b }
+        / &{ startsQuote cs } l:QPre(b) r:Prefix(segRest cs, l) { r }
+        / &{ itemsThenQuote cs } ToCol(b + segWidth cs) l:QPre(b + segWidth cs) r:Prefix(segRest cs, l) { r }
+        / &{ onlyItems cs } &BlankRest c:Col(_col) { c }
+        / &{ onlyItems cs } ToCol(b + segWidth cs) { b + segWidth cs }
 
 # 遅延継続行のための、できるだけ長い部分的な接頭辞
-Partial(cs :: [Container]) :: ()
-Partial <- &{ startsQuote cs } QPre(_col) Partial(segRest cs) { () }
-         / &{ itemsThenQuote cs } ToCol(_col + segWidth cs) QPre(_col) Partial(segRest cs) { () }
-         / &{ onlyItems cs } ToCol(_col + segWidth cs) { () }
-         / { () }
+Partial(cs :: [Container], b :: Int) :: Int
+Partial <- &{ startsQuote cs } l:QPre(b) r:Partial(segRest cs, l) { r }
+         / &{ itemsThenQuote cs } ToCol(b + segWidth cs) l:QPre(b + segWidth cs) r:Partial(segRest cs, l) { r }
+         / &{ onlyItems cs } ToCol(b + segWidth cs) { b + segWidth cs }
+         / c:Col(_col) { c }
 
-QPre(b :: Int) :: ()
-QPre <- [ \t]* &{ _col - b <= 3 } '>' [ \t]? { () }
+# 引用の記号と、省略可能な空白一つ。空白がタブでも 1 桁だけを数える
+QPre(b :: Int) :: Int
+QPre <- [ \t]* &{ _col - b <= 3 } '>' c:Col(_col) l:QSp(c) { l }
+
+QSp(c :: Int) :: Int
+QSp <- [ \t] { c + 1 }
+     / { c }
 
 # 桁 w まで空白を読む
 ToCol(w :: Int) :: ()
@@ -184,17 +198,17 @@ IndentedCode(cs :: [Container], b :: Int) :: Block
 IndentedCode <- f:CodeLine(b) ms:CodeMore(cs)* { CodeBlock Nothing (T.concat (f : concat ms)) }
 
 CodeLine(b :: Int) :: Text
-CodeLine <- ToCol(b + 4) !BlankRest t:$(!Newline .)+ EOL { t <> T.pack "\n" }
+CodeLine <- ToCol(b + 4) c:Col(_col) !BlankRest t:$(!Newline .)+ EOL { virt (c - b - 4) <> t <> "\n" }
 
 CodeMore(cs :: [Container]) :: [Text]
-CodeMore <- bl:CodeBlank(cs)* &. Prefix(cs) l:CodeLine(_col) { bl ++ [l] }
+CodeMore <- bl:CodeBlank(cs)* &. p:Prefix(cs, _col) l:CodeLine(p) { bl ++ [l] }
 
 CodeBlank(cs :: [Container]) :: Text
-CodeBlank <- &. Prefix(cs) t:BlankIn(_col) { t }
+CodeBlank <- &. p:Prefix(cs, _col) t:BlankIn(p) { t }
 
 BlankIn(b :: Int) :: Text
-BlankIn <- ToCol(b + 4) t:$[ \t]* Newline { t <> T.pack "\n" }
-         / [ \t]* Newline { T.pack "\n" }
+BlankIn <- ToCol(b + 4) c:Col(_col) t:$[ \t]* Newline { virt (c - b - 4) <> t <> "\n" }
+         / [ \t]* Newline { "\n" }
 
 # フェンスで囲まれたコードブロック ---------------------------------------------
 
@@ -205,16 +219,16 @@ FencedCode(cs :: [Container], b :: Int) :: Block
 FencedCode <- o:FenceOpen(b) ls:FenceLines(cs, fst o) { CodeBlock (infoOf (snd o)) (T.concat ls) }
 
 FenceLines(cs :: [Container], fi :: FenceInfo) :: [Text]
-FenceLines <- &. Prefix(cs) ClosingFence(fi, _col) { [] }
-            / &. Prefix(cs) l:FenceContent(fi, _col) ls:FenceLines(cs, fi) { l : ls }
+FenceLines <- &. p:Prefix(cs, _col) ClosingFence(fi, p) { [] }
+            / &. p:Prefix(cs, _col) l:FenceContent(fi, p) ls:FenceLines(cs, fi) { l : ls }
             / { [] }
 
 ClosingFence(fi :: FenceInfo, b :: Int) :: ()
 ClosingFence <- Sp3(b) f:$('`'+ / '~'+) &{ closes fi f } [ \t]* EOL { () }
 
 FenceContent(fi :: FenceInfo, b :: Int) :: Text
-FenceContent <- StripUpTo(b + fenceIndent fi) t:$(!Newline .)+ EOL { t <> T.pack "\n" }
-              / StripUpTo(b + fenceIndent fi) Newline { T.pack "\n" }
+FenceContent <- StripUpTo(b + fenceIndent fi) c:Col(_col) t:$(!Newline .)+ EOL { virt (c - b - fenceIndent fi) <> t <> "\n" }
+              / StripUpTo(b + fenceIndent fi) Newline { "\n" }
 
 StripUpTo(w :: Int) :: ()
 StripUpTo <- &{ _col >= w } { () }
@@ -224,9 +238,9 @@ StripUpTo <- &{ _col >= w } { () }
 # 区切り線と ATX 見出し ------------------------------------------------------------
 
 ThematicBreak(b :: Int) :: Block
-ThematicBreak <- Sp3(b) s:$('*' [ \t]*)+ &{ T.count (T.pack "*") s >= 3 } EOL { ThematicBreak }
-               / Sp3(b) s:$('-' [ \t]*)+ &{ T.count (T.pack "-") s >= 3 } EOL { ThematicBreak }
-               / Sp3(b) s:$('_' [ \t]*)+ &{ T.count (T.pack "_") s >= 3 } EOL { ThematicBreak }
+ThematicBreak <- Sp3(b) s:$('*' [ \t]*)+ &{ T.count "*" s >= 3 } EOL { ThematicBreak }
+               / Sp3(b) s:$('-' [ \t]*)+ &{ T.count "-" s >= 3 } EOL { ThematicBreak }
+               / Sp3(b) s:$('_' [ \t]*)+ &{ T.count "_" s >= 3 } EOL { ThematicBreak }
 
 AtxHeading(b :: Int) :: Block
 AtxHeading <- Sp3(b) h:$'#'+ &{ T.length h <= 6 } (&BlankRest / [ \t]+) t:$(!Newline .)* EOL { Heading (T.length h) (stripAtx t) }
@@ -234,13 +248,13 @@ AtxHeading <- Sp3(b) h:$'#'+ &{ T.length h <= 6 } (&BlankRest / [ \t]+) t:$(!New
 # HTML ブロック --------------------------------------------------------------------
 
 HtmlBlock(cs :: [Container], b :: Int) :: Block
-HtmlBlock <- &HtmlStart1(b) ls:HtmlEndLines(cs, map T.pack ["</pre>", "</script>", "</style>", "</textarea>"]) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &(Sp3(b) '<!--') ls:HtmlEndLines(cs, [T.pack "-->"]) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &(Sp3(b) '<?') ls:HtmlEndLines(cs, [T.pack "?>"]) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &(Sp3(b) '<!' [A-Za-z]) ls:HtmlEndLines(cs, [T.pack ">"]) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &(Sp3(b) '<![CDATA[') ls:HtmlEndLines(cs, [T.pack "]]>"]) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &HtmlStart6(b) ls:HtmlBlankLines(cs) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
-           / &HtmlStart7(b) ls:HtmlBlankLines(cs) { HtmlBlock (T.intercalate (T.pack "\n") ls) }
+HtmlBlock <- &HtmlStart1(b) ls:HtmlEndLines(cs, b, ["</pre>", "</script>", "</style>", "</textarea>"]) { HtmlBlock (T.intercalate "\n" ls) }
+           / &(Sp3(b) '<!--') ls:HtmlEndLines(cs, b, ["-->"]) { HtmlBlock (T.intercalate "\n" ls) }
+           / &(Sp3(b) '<?') ls:HtmlEndLines(cs, b, ["?>"]) { HtmlBlock (T.intercalate "\n" ls) }
+           / &(Sp3(b) '<!' [A-Za-z]) ls:HtmlEndLines(cs, b, [">"]) { HtmlBlock (T.intercalate "\n" ls) }
+           / &(Sp3(b) '<![CDATA[') ls:HtmlEndLines(cs, b, ["]]>"]) { HtmlBlock (T.intercalate "\n" ls) }
+           / &HtmlStart6(b) ls:HtmlBlankLines(cs, b) { HtmlBlock (T.intercalate "\n" ls) }
+           / &HtmlStart7(b) ls:HtmlBlankLines(cs, b) { HtmlBlock (T.intercalate "\n" ls) }
 
 HtmlStart1(b :: Int) :: ()
 HtmlStart1 <- Sp3(b) '<' n:$[A-Za-z]+ &{ lowerIn type1Tags n } ([ \t] / '>' / &EOL) { () }
@@ -263,29 +277,29 @@ AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+ { () }
            / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\'' { () }
            / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"' { () }
 
-HtmlEndLines(cs :: [Container], es :: [Text]) :: [Text]
-HtmlEndLines <- l:LineRest1 &{ hasEnd es l } { [l] }
-              / l:LineRest1 ls:HtmlEndMore(cs, es) { l : ls }
+HtmlEndLines(cs :: [Container], b :: Int, es :: [Text]) :: [Text]
+HtmlEndLines <- c:Col(_col) l:LineRest1 &{ hasEnd es l } { [virt (c - b) <> l] }
+              / c:Col(_col) l:LineRest1 ls:HtmlEndMore(cs, es) { (virt (c - b) <> l) : ls }
 
 HtmlEndMore(cs :: [Container], es :: [Text]) :: [Text]
-HtmlEndMore <- &. Prefix(cs) l:LineNL &{ hasEnd es l } { [l] }
-             / &. Prefix(cs) l:LineNL ls:HtmlEndMore(cs, es) { l : ls }
+HtmlEndMore <- &. p:Prefix(cs, _col) c:Col(_col) l:LineNL &{ hasEnd es l } { [virt (c - p) <> l] }
+             / &. p:Prefix(cs, _col) c:Col(_col) l:LineNL ls:HtmlEndMore(cs, es) { (virt (c - p) <> l) : ls }
              / { [] }
 
-HtmlBlankLines(cs :: [Container]) :: [Text]
-HtmlBlankLines <- l:LineRest1 ls:HtmlBlankMore(cs) { l : ls }
+HtmlBlankLines(cs :: [Container], b :: Int) :: [Text]
+HtmlBlankLines <- c:Col(_col) l:LineRest1 ls:HtmlBlankMore(cs) { (virt (c - b) <> l) : ls }
 
 HtmlBlankMore(cs :: [Container]) :: [Text]
-HtmlBlankMore <- &. Prefix(cs) !BlankRest l:LineNL ls:HtmlBlankMore(cs) { l : ls }
+HtmlBlankMore <- &. p:Prefix(cs, _col) !BlankRest c:Col(_col) l:LineNL ls:HtmlBlankMore(cs) { (virt (c - p) <> l) : ls }
                / { [] }
 
 # 引用とリスト項目 ----------------------------------------------------------------
 
 BlockQuoteB(cs :: [Container], b :: Int) :: Block
-BlockQuoteB <- Sp3(b) '>' [ \t]? bs:QuoteBody(cs) { BlockQuote bs }
+BlockQuoteB <- Sp3(b) '>' c:Col(_col) l:QSp(c) bs:QuoteBody(cs, l) { BlockQuote bs }
 
-QuoteBody(cs :: [Container]) :: [Block]
-QuoteBody <- bs:Blocks(cs ++ [Quote]) { bs }
+QuoteBody(cs :: [Container], l :: Int) :: [Block]
+QuoteBody <- bs:Blocks(cs ++ [Quote], l) { bs }
            / !. { [] }
 
 ListItemB(cs :: [Container], b :: Int) :: Block
@@ -299,15 +313,16 @@ Marker <- c:$[\-+*] { Bullet (firstChar c) }
 ItemBody(cs :: [Container], b :: Int, c :: Int) :: [Block]
 ItemBody <- [ \t]* Newline bs:EmptyStart(cs ++ [ItemAt (c + 1 - b)]) { bs }
           / [ \t]* !. { [] }
-          / &(ToCol(c + 5) !BlankRest) [ \t] bs:Blocks(cs ++ [ItemAt (c + 1 - b)]) { bs }
-          / [ \t]+ bs:ItemContent(cs, _col - b) { bs }
+          / &(ToCol(c + 5) !BlankRest) [ \t] bs:Blocks(cs ++ [ItemAt (c + 1 - b)], c + 1) { bs }
+          / [ \t]+ w:Col(_col) bs:ItemContent(cs, b, w) { bs }
 
-ItemContent(cs :: [Container], w :: Int) :: [Block]
-ItemContent <- bs:Blocks(cs ++ [ItemAt w]) { bs }
+# w は内容の論理桁
+ItemContent(cs :: [Container], b :: Int, w :: Int) :: [Block]
+ItemContent <- bs:Blocks(cs ++ [ItemAt (w - b)], w) { bs }
 
 # 空行で始まるリスト項目。空行は高々 1 行
 EmptyStart(cs :: [Container]) :: [Block]
-EmptyStart <- &. Prefix(cs) !BlankRest bs:Blocks(cs) { bs }
+EmptyStart <- &. p:Prefix(cs, _col) !BlankRest bs:Blocks(cs, p) { bs }
             / { [] }
 
 # リンク参照定義 --------------------------------------------------------------------
@@ -319,11 +334,11 @@ LabelBody :: ()
 LabelBody <- ('\\' . / ![\[\]] .)+ { () }
 
 DefWs(cs :: [Container]) :: ()
-DefWs <- [ \t]* Newline Prefix(cs) [ \t]* { () }
+DefWs <- [ \t]* Newline Prefix(cs, _col) [ \t]* { () }
        / [ \t]* { () }
 
 DefWs1(cs :: [Container]) :: ()
-DefWs1 <- [ \t]* Newline Prefix(cs) [ \t]* { () }
+DefWs1 <- [ \t]* Newline Prefix(cs, _col) [ \t]* { () }
         / [ \t]+ { () }
 
 Dest :: Text
@@ -344,7 +359,7 @@ Title <- '"' ts:TitleChar(cs, '"')* '"' { T.concat ts }
 
 TitleChar(cs :: [Container], q :: Char) :: Text
 TitleChar <- '\\' c:$. { T.cons '\\' c }
-           / Newline !BlankRest Prefix(cs) { T.pack "\n" }
+           / Newline !BlankRest Prefix(cs, _col) { "\n" }
            / !Newline c:$. &{ firstChar c /= q && not (q == ')' && firstChar c == '(') } { c }
 
 # 段落と setext 見出し ----------------------------------------------------------------
@@ -357,11 +372,11 @@ ParaLine :: Text
 ParaLine <- !BlankRest t:$(!Newline .)+ EOL { t }
 
 ParaCont(cs :: [Container]) :: Text
-ParaCont <- &. Prefix(cs) !SetextLine(_col) !Interrupt(_col) [ \t]* l:ParaLine { l }
-          / &. !Prefix(cs) Partial(cs) !AnyStart(_col) [ \t]* l:ParaLine { l }
+ParaCont <- &. p:Prefix(cs, _col) !SetextLine(p) !Interrupt(p) [ \t]* l:ParaLine { l }
+          / &. !Prefix(cs, _col) p:Partial(cs, _col) !AnyStart(p) [ \t]* l:ParaLine { l }
 
 SetextUnder(cs :: [Container]) :: Int
-SetextUnder <- &. Prefix(cs) l:SetextLine(_col) { l }
+SetextUnder <- &. p:Prefix(cs, _col) l:SetextLine(p) { l }
 
 SetextLine(b :: Int) :: Int
 SetextLine <- Sp3(b) '='+ [ \t]* EOL { 1 }

@@ -1,0 +1,11 @@
+Reference outputs for ADR 0018: inputs where a tab is partly consumed by
+the prefix of nested containers. The *.html files are the output of
+commonmark.js 0.31.2 (the reference implementation for spec 0.31.2).
+
+To regenerate, in a scratch directory:
+
+  npm install commonmark@0.31.2
+  node generate-reference.js <this directory>
+
+generate-reference.js lists the inputs and writes both the .md and .html
+files.

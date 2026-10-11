@@ -6,6 +6,7 @@
 module Conformance.CommonMark
   ( toHtml
   , toHtmlV1
+  , leafTexts
   ) where
 
 import qualified Conformance.CommonMark.Block as Block
@@ -39,6 +40,21 @@ toHtml = convert (Grammars Block.parse (\refs t -> Inline.parse (InlineEnv refs 
 -- for the first snapshot of ADR 0011.
 toHtmlV1 :: Text -> Either Text Text
 toHtmlV1 = convert (Grammars V1Block.parse (const V1Inline.parse))
+
+-- | The reference definitions and the raw inline texts of all leaf blocks,
+-- for checking the inline syntax trees (ADR 0019).
+leafTexts :: Text -> Either Text (RefMap, [Text])
+leafTexts src = do
+  blocks <- either (Left . renderParseError) Right (Block.parse src)
+  let assembled = assemble blocks
+  pure (collectRefs assembled, concatMap leaves assembled)
+  where
+    leaves b = case b of
+      Paragraph t -> [t]
+      Heading _ t -> [t]
+      BlockQuote bs -> concatMap leaves bs
+      List _ _ items -> concatMap (concatMap leaves) items
+      _ -> []
 
 convert :: Grammars -> Text -> Either Text Text
 convert g src = do
