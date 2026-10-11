@@ -1,21 +1,29 @@
 # peg-hs
 
-PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生成するツールチェーン。
+A PEG-to-Haskell parser generator with left recursion support.
 
-- 標準 PEG の全構文と、直接・間接の左再帰をサポートする（bounded left recursion, Medeiros et al. 2014）
-- happy / alex 方式のスタンドアロン生成器。`.peg` から決定的に `.hs` を生成する
-- 各規則が結果型とセマンティックアクションを持ち、パーサーは利用者の AST を直接返す
+[日本語版 README](README.ja.md)
 
-仕様は [docs/specifications.md](docs/specifications.md)、設計決定は [docs/adr/](docs/adr/) を参照。
+- Accepts the full standard PEG syntax plus direct and indirect left recursion, based on bounded left recursion (Medeiros et al. 2014)
+- Standalone code generator in the style of happy / alex: deterministically generates `.hs` from `.peg` (byte-identical output for identical input)
+- Each rule carries a result type and semantic actions, so generated parsers return your AST directly
 
-## 開発
+**Status: design phase.** The specification and ADRs are complete; implementation has not started.
 
-クローン後、git の hook を有効化する。
-コミット済みの ADR の変更は [adr-guard](https://github.com/tett23/adr-guard) が pre-commit hook と CI で拒否する。
+See [docs/specifications.md](docs/specifications.md) for the specification and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
+
+## Development
+
+After cloning, enable the git hooks.
+Committed ADRs are immutable: [adr-guard](https://github.com/tett23/adr-guard) rejects changes to them in the pre-commit hook and in CI.
 
 ```sh
 git config core.hooksPath .githooks
 ```
 
-性能の退行は手元のベンチマークで検出する。
-peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（ADR 0007）。
+Performance regressions are caught with local benchmarks.
+For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine (ADR 0007).
+
+## License
+
+[MIT](LICENSE)
