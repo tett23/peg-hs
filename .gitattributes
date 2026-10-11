@@ -1,0 +1,2 @@
+# Test data must keep its exact bytes, including CRLF line endings.
+conformance/data/** -text

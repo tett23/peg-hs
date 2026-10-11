@@ -48,6 +48,7 @@ if [ -d conformance/json ]; then
       "$peg" bench/NestedLR$n.peg -o bench/Conformance/Bench/NestedLR$n.hs --debug-entry >/dev/null
     done
     "$peg" lua/Lua.peg -o lua/Conformance/Lua/Parser.hs --debug-entry >/dev/null
+    "$peg" toml/Toml.peg -o toml/Conformance/Toml/Parser.hs >/dev/null
     "$peg" commonmark/Block.peg -o commonmark/Conformance/CommonMark/Block.hs >/dev/null
     "$peg" commonmark/Inline.peg -o commonmark/Conformance/CommonMark/Inline.hs >/dev/null
     "$peg" commonmark/v1/Block.peg -o commonmark/Conformance/CommonMark/V1/Block.hs >/dev/null

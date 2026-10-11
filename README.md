@@ -17,6 +17,7 @@ A PEG-to-Haskell parser generator with left recursion support.
 - JSON ([JSONTestSuite](https://github.com/nst/JSONTestSuite)): all 95 must-accept and 188 must-reject cases pass
 - CommonMark 0.31.2: all 652 spec examples pass
 - Lua 5.5 (the official test suite of Lua 5.5.1): all 34 files are accepted, with the grammar of the manual written as indirect left recursion; precedence, associativity and rejections agree with the reference implementation on generated cases
+- TOML 1.1.0 ([toml-test](https://github.com/toml-lang/toml-test) v2.2.0): all 214 valid documents match the expected JSON and all 467 invalid ones are rejected; every input gives a lossless tree when recovering
 
 See [docs/specifications.md](docs/specifications.md) for the specification, [docs/syntax.md](docs/syntax.md) for the `.peg` notation with examples, and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
 

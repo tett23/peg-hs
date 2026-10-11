@@ -3,9 +3,9 @@ name:               peg-conformance
 version:            0.1.0.0
 synopsis:           Conformance tests of peg-hs with grammars of real languages
 description:
-  Not published. Grammars of real languages (JSON, CommonMark) written in
-  the peg-hs notation, checked against public test suites (ADR 0010,
-  ADR 0011), and the benchmarks of ADR 0007.
+  Not published. Grammars of real languages (JSON, CommonMark, Lua, TOML)
+  written in the peg-hs notation, checked against public test suites
+  (ADR 0010, ADR 0011, ADR 0022, ADR 0023), and the benchmarks of ADR 0007.
 license:            MIT
 license-file:       LICENSE
 author:             tett23
@@ -41,7 +41,10 @@ library
     Conformance.Lua.Ast
     Conformance.Lua.Eval
     Conformance.Lua.Parser
-  hs-source-dirs:   json bench commonmark lua
+    Conformance.Toml.Document
+    Conformance.Toml.Parser
+    Conformance.Toml.Types
+  hs-source-dirs:   json bench commonmark lua toml
   build-depends:
     , base
     , bytestring
@@ -150,5 +153,27 @@ test-suite lua-conformance
     , peg-runtime
     , tasty
     , tasty-hunit
+    , text
+  default-language: GHC2021
+
+-- ADR 0023. The stages of the invalid cases are in toml/invalid-stages.golden.
+test-suite toml-conformance
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          TomlMain.hs
+  hs-source-dirs:   test
+  ghc-options:      -Werror
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , filepath
+    , peg-codegen
+    , peg-conformance
+    , peg-runtime
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , tasty-quickcheck
     , text
   default-language: GHC2021

@@ -1,0 +1,294 @@
+# TOML 1.1.0 の文法。ADR 0023 の適合性テストに使う。
+# toml.abnf を写す。ABNF の引用符の文字列は大文字と小文字を区別しない（"T"、"e"、"Z"）。
+# キーの重複や表の再定義は文法では検出せず、組み立て（Conformance.Toml.Document）で検出する。
+%module Conformance.Toml.Parser
+%language OverloadedStrings
+%entry DateTime
+%syntax
+%token Ws
+%token Comment
+%token Newline
+%token BasicString
+%token LiteralString
+%token MlBasicString
+%token MlLiteralString
+%token UnquotedKey
+%token Boolean
+%token Integer
+%token Float
+%token DateTime
+%trivia Ws
+%trivia Comment
+%inline Wcn
+%recover eq MissingEq
+%recover value SkipValue
+%recover table SkipHeader
+%recover eol SkipLine
+
+%{
+import Conformance.Toml.Types
+import Data.Char (chr)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as T
+
+num :: Text -> Int
+num = read . T.unpack
+
+codePoint :: Text -> Text
+codePoint = T.singleton . chr . fromInteger . integerIn 16
+
+signed :: Num a => Maybe Bool -> a -> a
+signed (Just True) x = negate x
+signed _ x = x
+}%
+
+# 文書と行 --------------------------------------------------------------------------
+
+Toml :: [Line]
+Toml <- l:Expression ls:MoreLine* { l : ls }
+
+MoreLine :: Line
+MoreLine <- Newline l:Expression { l }
+
+# 行の終わりのラベルは、その行がそれ以上どの形にもなりえない位置にだけ付く
+Expression :: Line
+Expression <- Ws? l:KeyVal Ws? Comment? (EndOfLine ^eol) { l }
+            / Ws? l:Table Ws? Comment? (EndOfLine ^eol) { l }
+            / Ws? Comment? (EndOfLine ^eol) { LBlank }
+
+EndOfLine :: ()
+EndOfLine <- &Newline { () }
+           / !. { () }
+
+# キーを読んだ後は、キーと値の組のほかに成り立つ形がない
+KeyVal :: Line
+KeyVal <- k:Key (KeyValSep ^eq) v:(Val ^value) { LKeyVal _span k v }
+
+Table :: Line
+Table <- '[[' k:(ArrayTableBody ^table) { LArrayTable _span k }
+       / '[' k:(StdTableBody ^table) { LTable _span k }
+
+ArrayTableBody :: Key
+ArrayTableBody <- Ws? k:Key Ws? ']]' { k }
+
+StdTableBody :: Key
+StdTableBody <- Ws? k:Key Ws? ']' { k }
+
+# キー ------------------------------------------------------------------------------
+
+Key :: Key
+Key <- k:SimpleKey ks:DotKey* { k : ks }
+
+DotKey :: Text
+DotKey <- Ws? '.' Ws? k:SimpleKey { k }
+
+SimpleKey :: Text
+SimpleKey <- BasicString
+           / LiteralString
+           / UnquotedKey
+
+UnquotedKey :: Text
+UnquotedKey <- k:$[A-Za-z0-9_\-]+ { k }
+
+KeyValSep :: ()
+KeyValSep <- Ws? '=' Ws? { () }
+
+# 値 --------------------------------------------------------------------------------
+# 日時は数より先に、浮動小数点数は整数より先に試す。どれも数字で始まりうるため
+
+Val :: Val
+Val <- s:String { VString s }
+     / b:Boolean { VBool b }
+     / Array
+     / InlineTable
+     / d:DateTime { VDateTime d }
+     / f:Float { VFloat f }
+     / i:Integer { VInteger i }
+
+Boolean :: Bool
+Boolean <- 'true' { True }
+         / 'false' { False }
+
+# 文字列 ----------------------------------------------------------------------------
+
+# 三つの引用符で始まる値は複数行の文字列であり、空の文字列と引用符には分けない
+String :: Text
+String <- MlBasicString
+        / !'"""' s:BasicString { s }
+        / MlLiteralString
+        / !'\'\'\'' s:LiteralString { s }
+
+BasicString :: Text
+BasicString <- '"' cs:BasicChar* '"' { T.concat cs }
+
+BasicChar :: Text
+BasicChar <- '\\' e:Escape { e }
+           / c:$[ \t\u{21}\u{23}-\u{5B}\u{5D}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}] { c }
+
+Escape :: Text
+Escape <- '"' { "\"" }
+        / '\\' { "\\" }
+        / 'b' { "\b" }
+        / 'e' { "\ESC" }
+        / 'f' { "\f" }
+        / 'n' { "\n" }
+        / 'r' { "\r" }
+        / 't' { "\t" }
+        / 'x' h:$([0-9a-fA-F] [0-9a-fA-F]) { codePoint h }
+        / 'u' h:$([0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]) &{ scalarValue (integerIn 16 h) } { codePoint h }
+        / 'U' h:$([0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]) &{ scalarValue (integerIn 16 h) } { codePoint h }
+
+# 閉じの """ の直前には引用符を二つまで置ける。""""" は引用符二つと閉じである
+MlBasicString :: Text
+MlBasicString <- '"""' Newline? cs:MlbItem* q:$('""' &'"""' / '"' &'"""')? '"""' { T.concat cs <> q }
+
+MlbItem :: Text
+MlbItem <- !'"""' i:MlbChar { i }
+
+MlbChar :: Text
+MlbChar <- '\\' [ \t]* Newline ([ \t] / Newline)* { "" }
+         / BasicChar
+         / Newline { "\n" }
+         / '"' { "\"" }
+
+LiteralString :: Text
+LiteralString <- '\'' cs:$LiteralChar* '\'' { cs }
+
+LiteralChar :: ()
+LiteralChar <- [\t\u{20}-\u{26}\u{28}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}] { () }
+
+MlLiteralString :: Text
+MlLiteralString <- '\'\'\'' Newline? cs:MllItem* q:$('\'\'' &'\'\'\'' / '\'' &'\'\'\'')? '\'\'\'' { T.concat cs <> q }
+
+MllItem :: Text
+MllItem <- !'\'\'\'' i:MllChar { i }
+
+MllChar :: Text
+MllChar <- c:$LiteralChar { c }
+         / Newline { "\n" }
+         / '\'' { "'" }
+
+# 数 --------------------------------------------------------------------------------
+
+Integer :: Integer
+Integer <- '0x' h:$([0-9a-fA-F] ('_'? [0-9a-fA-F])*) { integerIn 16 h }
+         / '0o' o:$([0-7] ('_'? [0-7])*) { integerIn 8 o }
+         / '0b' b:$([01] ('_'? [01])*) { integerIn 2 b }
+         / s:Sign? d:DecUnsigned { signed s (integerIn 10 d) }
+
+# 符号が負なら True
+Sign :: Bool
+Sign <- '-' { True }
+      / '+' { False }
+
+DecUnsigned :: Text
+DecUnsigned <- d:$([1-9] ('_'? [0-9])+ / [0-9]) { d }
+
+Float :: Double
+Float <- s:Sign? m:$FloatBody { signed s (floatOf m) }
+       / s:Sign? 'inf' { signed s (1 / 0) }
+       / Sign? 'nan' { 0 / 0 }
+
+FloatBody :: ()
+FloatBody <- DecUnsigned '.' [0-9] ('_'? [0-9])* ([eE] [+\-]? [0-9] ('_'? [0-9])*)? { () }
+           / DecUnsigned [eE] [+\-]? [0-9] ('_'? [0-9])* { () }
+
+# 日時 ------------------------------------------------------------------------------
+# 月、日、時、分、秒の範囲は文法で検査し、暦の上で存在する日付かどうかは組み立てで検査する
+
+DateTime :: DateTime
+DateTime <- d:FullDate [Tt ] t:PartialTime o:Offset { DateTime (Just d) (Just t) (Just o) }
+          / d:FullDate [Tt ] t:PartialTime { DateTime (Just d) (Just t) Nothing }
+          / d:FullDate { DateTime (Just d) Nothing Nothing }
+          / t:PartialTime { DateTime Nothing (Just t) Nothing }
+
+FullDate :: (Int, Int, Int)
+FullDate <- y:$([0-9] [0-9] [0-9] [0-9]) '-' m:$([0-9] [0-9]) '-' d:$([0-9] [0-9]) &{ num m >= 1 && num m <= 12 && num d >= 1 && num d <= 31 } { (num y, num m, num d) }
+
+PartialTime :: Time
+PartialTime <- h:$([0-9] [0-9]) ':' m:$([0-9] [0-9]) s:Seconds? &{ num h <= 23 && num m <= 59 } { let (sec, frac) = fromMaybe (0, "") s in Time (num h) (num m) sec frac }
+
+Seconds :: (Int, Text)
+Seconds <- ':' s:$([0-9] [0-9]) f:SecFrac? &{ num s <= 60 } { (num s, fromMaybe "" f) }
+
+SecFrac :: Text
+SecFrac <- '.' f:$[0-9]+ { f }
+
+Offset :: Int
+Offset <- [Zz] { 0 }
+        / s:Sign h:$([0-9] [0-9]) ':' m:$([0-9] [0-9]) &{ num h <= 23 && num m <= 59 } { signed (Just s) (num h * 60 + num m) }
+
+# 配列とインラインの表 --------------------------------------------------------------
+
+Array :: Val
+Array <- '[' Wcn vs:Elements? Wcn ']' { VArray (fromMaybe [] vs) }
+
+Elements :: [Val]
+Elements <- v:Val Wcn vs:MoreElement* (',' Wcn)? { v : vs }
+
+MoreElement :: Val
+MoreElement <- ',' Wcn v:Val Wcn { v }
+
+InlineTable :: Val
+InlineTable <- '{' Wcn kvs:InlineKeyVals? Wcn '}' { VInline (fromMaybe [] kvs) }
+
+InlineKeyVals :: [(Key, Val)]
+InlineKeyVals <- kv:InlineKeyVal Wcn kvs:MoreInlineKeyVal* (',' Wcn)? { kv : kvs }
+
+MoreInlineKeyVal :: (Key, Val)
+MoreInlineKeyVal <- ',' Wcn kv:InlineKeyVal Wcn { kv }
+
+InlineKeyVal :: (Key, Val)
+InlineKeyVal <- k:Key KeyValSep v:Val { (k, v) }
+
+# 空白、コメント、改行 --------------------------------------------------------------
+
+Wcn :: ()
+Wcn <- (Ws / Comment? Newline)* { () }
+
+Ws :: ()
+Ws <- [ \t]+ { () }
+
+Comment :: ()
+Comment <- '#' [\t\u{20}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]* { () }
+
+Newline :: ()
+Newline <- '\n' { () }
+         / '\r\n' { () }
+
+# 回復の規則 ------------------------------------------------------------------------
+
+# = がなければ、空白だけを読んで = があったものとみなす
+MissingEq :: ()
+MissingEq <- [ \t]* { () }
+
+# 壊れた値を読み飛ばす。複数行の文字列と括弧は閉じまで、それ以外は行の終わりまで。
+# 文法と同じところで閉じるように、文字列のエスケープと括弧の中のコメントを読む
+SkipValue :: Val
+SkipValue <- '"""' SkipString { VInvalid }
+           / '\'\'\'' (!'\'\'\'' .)* '\'\'\''? { VInvalid }
+           / SkipBracket { VInvalid }
+           / (!Newline .)* { VInvalid }
+
+SkipString :: ()
+SkipString <- (!'"""' ('\\' . / .))* '"""'? { () }
+
+SkipBracket :: ()
+SkipBracket <- '[' SkipInBracket* (']' / !.) { () }
+             / '{' SkipInBracket* ('}' / !.) { () }
+
+SkipInBracket :: ()
+SkipInBracket <- SkipBracket
+               / '"""' SkipString { () }
+               / '\'\'\'' (!'\'\'\'' .)* '\'\'\''? { () }
+               / '"' (![\n"] ('\\' . / .))* '"'? { () }
+               / '\'' (![\n'] .)* '\''? { () }
+               / '#' (!Newline .)* { () }
+               / ![\]}] . { () }
+
+SkipHeader :: Key
+SkipHeader <- (!Newline .)* { [] }
+
+SkipLine :: ()
+SkipLine <- (!Newline .)* { () }
