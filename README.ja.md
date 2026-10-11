@@ -14,6 +14,15 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 
 ## 開発
 
+ツールチェーンは ghcup が recommended とする版を使う（GHC 9.10.3、cabal-install 3.16.1.0、HLS 2.14.0.0）。
+コンパイラの版は `cabal.project` で固定する。
+[mise](https://mise.jdx.dev/) を使う場合は、同梱の `mise.toml` が ghcup のバイナリをプロジェクトの PATH に加える。
+
+```sh
+ghcup install ghc 9.10.3
+ghcup install cabal 3.16.1.0
+```
+
 クローン後、git の hook を有効化する。
 コミット済みの ADR は変更不可であり、[adr-guard](https://github.com/tett23/adr-guard) が pre-commit hook と CI で変更を拒否する。
 

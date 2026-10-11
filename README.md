@@ -14,6 +14,15 @@ See [docs/specifications.md](docs/specifications.md) for the specification and [
 
 ## Development
 
+The toolchain is the one ghcup marks as recommended: GHC 9.10.3, cabal-install 3.16.1.0, and HLS 2.14.0.0.
+`cabal.project` pins the compiler version.
+If you use [mise](https://mise.jdx.dev/), the bundled `mise.toml` puts ghcup's binaries on the project's `PATH`.
+
+```sh
+ghcup install ghc 9.10.3
+ghcup install cabal 3.16.1.0
+```
+
 After cloning, enable the git hooks.
 Committed ADRs are immutable: [adr-guard](https://github.com/tett23/adr-guard) rejects changes to them in the pre-commit hook and in CI.
 
