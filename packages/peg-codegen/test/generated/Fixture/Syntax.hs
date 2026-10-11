@@ -4,8 +4,8 @@ module Fixture.Syntax
   , parseTerm
   , parseSyntax
   , parseSyntaxTerm
-  , syntaxKindName
-  , syntaxKindIsTrivia
+  , nameOfSyntaxKind
+  , isTriviaSyntaxKind
   , syntaxKindExpr
   , syntaxKindTerm
   , syntaxKindFactor
@@ -107,8 +107,8 @@ syntaxKindComment :: PegRt.SyntaxKind
 syntaxKindComment = PegRt.SyntaxKind 7
 
 -- | The name of a syntax kind.
-syntaxKindName :: PegRt.SyntaxKind -> PegRt.Text
-syntaxKindName peg'k = PegRt.labelText (case peg'k of
+nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text
+nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of
   { PegRt.SyntaxKind 0 -> "TEXT"
   ; PegRt.SyntaxKind 1 -> "ERROR"
   ; PegRt.SyntaxKind 2 -> "Expr"
@@ -121,8 +121,8 @@ syntaxKindName peg'k = PegRt.labelText (case peg'k of
   })
 
 -- | Whether a syntax kind is trivia (@%trivia@).
-syntaxKindIsTrivia :: PegRt.SyntaxKind -> PegPrelude.Bool
-syntaxKindIsTrivia peg'k = PegPrelude.elem peg'k [syntaxKindWs, syntaxKindComment]
+isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool
+isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k [syntaxKindWs, syntaxKindComment]
 
 -- | A node of the rule @Expr@.
 newtype ExprSyntax = ExprSyntax PegRt.SyntaxNode
@@ -139,7 +139,7 @@ exprL (ExprSyntax peg'n) = PegPrelude.fmap ExprSyntax (PegRt.labeledNode syntaxK
 
 -- | The children bound to @op@ in the rule @Expr@.
 exprOp :: ExprSyntax -> [PegRt.SyntaxElement]
-exprOp (ExprSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "op") peg'n
+exprOp (ExprSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "op") peg'n
 
 -- | The children bound to @r@ in the rule @Expr@.
 exprR :: ExprSyntax -> PegPrelude.Maybe TermSyntax

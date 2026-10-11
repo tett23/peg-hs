@@ -1,0 +1,59 @@
+# Golem の段落の構造を模した、構文エラーからの回復のテスト用の文法（ADR 0021）。
+# 空行で区切ったブロックと、角括弧のコマンドからなる。壊れたブロックは次の
+# 空行まで読み飛ばし、閉じていないコマンドは段落の終わりで閉じたとみなす。
+%module Fixture.Recover
+%syntax
+%token Sep
+%trivia Sep
+%recover block SkipBlock
+%recover close CloseAtParagraphEnd
+%recover name MissingName
+%export Block(..), Inline(..)
+
+%{
+import Data.Text (Text)
+import qualified Data.Text as T
+
+data Block = Para [Inline] | ErrorBlock
+  deriving (Eq, Show)
+
+data Inline = Plain Text | Command Text [Inline]
+  deriving (Eq, Show)
+}%
+
+Doc :: [Block]
+Doc <- Sep? bs:Item* { bs }
+
+# 入力が残っているときだけブロックを試す。入力の終わりは繰り返しの正当な終わり
+Item :: Block
+Item <- &. b:(Para ^block) Sep? { b }
+
+Para :: Block
+Para <- is:Inline+ { Para is }
+
+Inline :: Inline
+Inline <- Command
+        / t:$(![\[\]] !ParaEnd .)+ { Plain t }
+
+Command :: Inline
+Command <- '[' n:(Name ^name) body:Inline* (']' ^close) { Command n body }
+
+Name :: Text
+Name <- n:$[a-z]+ { n }
+
+ParaEnd :: ()
+ParaEnd <- '\n' ('\n' / !.) { () }
+         / !. { () }
+
+Sep :: ()
+Sep <- '\n'+ { () }
+
+# 回復の規則
+SkipBlock :: Block
+SkipBlock <- (!ParaEnd .)* { ErrorBlock }
+
+CloseAtParagraphEnd :: ()
+CloseAtParagraphEnd <- &ParaEnd { () }
+
+MissingName :: Text
+MissingName <- { T.pack "?" }

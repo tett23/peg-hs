@@ -18,6 +18,7 @@ import qualified Fixture.Link as Link
 import qualified Fixture.Located as Located
 import qualified Fixture.Misc as Misc
 import qualified Fixture.NoMemo as NoMemo
+import qualified Fixture.Recover as Recover
 import qualified Fixture.Sum as Sum
 import qualified Fixture.Syntax as Syntax
 import qualified Fixture.Unicode as Unicode
@@ -34,7 +35,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (===))
+import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===))
 
 main :: IO ()
 main =
@@ -54,13 +55,14 @@ main =
       , extensionTests
       , nomemoTests
       , syntaxTests
+      , recoveryTests
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
       , generatorErrorTests
       , compileTests
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Sum", "Syntax", "Unicode"]
+fixtures = ["Arith", "Calc", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Unicode"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -210,8 +212,8 @@ generatorErrorTests :: TestTree
 generatorErrorTests =
   testGroup
     "generator errors"
-    [ testCase "^label is reserved" $
-        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\nA :: ()\nA <- 'a' ^oops { () }\n") @?= [(3, 10)]
+    [ testCase "%recover names an undefined rule" $
+        map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%recover oops Missing\nA :: ()\nA <- 'a' ^oops { () }\n") @?= [(2, 10)]
     , testCase "%nomemo on a left-recursive rule" $
         map (\(l, c, _) -> (l, c)) (generatorErrors "%module M\n%nomemo A\nA :: ()\nA <- A 'a' { () } / 'a' { () }\n") @?= [(2, 1)]
     , testCase "%language RebindableSyntax is rejected" $
@@ -353,7 +355,7 @@ syntaxTests =
     "syntax trees (ADR 0019)"
     [ goldenVsString "debug display" "test/golden/Syntax.tree.golden" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.concat $
-          [ "# " <> t <> "\n" <> either (\e -> "error: " <> renderParseError e <> "\n") (debugTree Syntax.syntaxKindName) (Syntax.parseSyntax t)
+          [ "# " <> t <> "\n" <> either (\e -> "error: " <> renderParseError e <> "\n") (debugTree Syntax.nameOfSyntaxKind) (Syntax.parseSyntax t)
           | t <- syntaxInputs
           ]
     , testCase "lossless: the text of the tree is the input" $
@@ -369,8 +371,8 @@ syntaxTests =
     , testCase "memoisation does not change the tree" $
         mapM_
           ( \t ->
-              fmap (debugTree Syntax.syntaxKindName) (fst (Syntax.peg'parseSyntaxWith defaultConfig {cfgMemo = False} t))
-                @?= fmap (debugTree Syntax.syntaxKindName) (fst (Syntax.peg'parseSyntaxWith defaultConfig t))
+              fmap (debugTree Syntax.nameOfSyntaxKind) (fst (Syntax.peg'parseSyntaxWith defaultConfig {cfgMemo = False} t))
+                @?= fmap (debugTree Syntax.nameOfSyntaxKind) (fst (Syntax.peg'parseSyntaxWith defaultConfig t))
           )
           syntaxInputs
     , testCase "typed accessors" $ do
@@ -387,7 +389,7 @@ syntaxTests =
         fmap tokenText (Syntax.factorN factor) @?= Just "3"
     , testCase "trivia are tokens of their own kind" $ do
         let root = treeOf "1 # c\n+ 2"
-            kinds = [Syntax.syntaxKindName (tokenKind t) | t <- syntaxTokens root, Syntax.syntaxKindIsTrivia (tokenKind t)]
+            kinds = [Syntax.nameOfSyntaxKind (tokenKind t) | t <- syntaxTokens root, Syntax.isTriviaSyntaxKind (tokenKind t)]
         kinds @?= ["Ws", "Comment", "Ws", "Ws"]
     , testCase "positions of nodes" $ do
         let root = treeOf "1 +\n2"
@@ -410,3 +412,55 @@ genExpr = T.pack <$> sized go
             ]
     atom = show <$> (choose (0, 999) :: Gen Int)
     sp = elements ["", " ", "  ", "\n", " # c\n", "\t"]
+
+-- ADR 0021 ---------------------------------------------------------------------
+
+errorRanges :: [SyntaxError] -> [(Maybe Text, (Int, Int))]
+errorRanges = map (\e -> (syntaxErrorLabel e, syntaxErrorRange e))
+
+errorNodes :: SyntaxNode -> [(Int, Int)]
+errorNodes n = [syntaxRange n | syntaxKind n == errorKind] ++ concatMap errorNodes (syntaxChildren n)
+
+recoveryTests :: TestTree
+recoveryTests =
+  testGroup
+    "recovery (ADR 0021)"
+    [ testCase "a valid document parses the same way in both modes" $ do
+        let doc = "a [b c] d\n\ne [f]"
+            expected = [Recover.Para [Recover.Plain "a ", Recover.Command "b" [Recover.Plain " c"], Recover.Plain " d"], Recover.Para [Recover.Plain "e ", Recover.Command "f" []]]
+        Recover.parse doc @?= Right expected
+        Recover.parseRecover doc @?= (Just expected, [])
+        let (tree, errs) = Recover.parseSyntaxRecover doc
+        (syntaxText tree, errs, errorNodes tree) @?= (doc, [], [])
+    , testCase "without recovery the parse fails with the label" $
+        fmap parseErrorLabel (flipE (Recover.parse "ok\n\n] broken")) @?= Right (Just "block")
+    , testCase "a broken block becomes an error node; its neighbours are intact" $ do
+        let doc = "good one\n\n] broken [x\n\ngood two"
+            (v, errs) = Recover.parseRecover doc
+        v @?= Just [Recover.Para [Recover.Plain "good one"], Recover.ErrorBlock, Recover.Para [Recover.Plain "good two"]]
+        errorRanges errs @?= [(Just "block", (10, 21))]
+        let (tree, _) = Recover.parseSyntaxRecover doc
+        syntaxText tree @?= doc
+        errorNodes tree @?= [(10, 21)]
+    , testCase "an unclosed command is closed at the end of its paragraph" $ do
+        let doc = "see [b unclosed\n\nnext"
+            (v, errs) = Recover.parseRecover doc
+        v @?= Just [Recover.Para [Recover.Plain "see ", Recover.Command "b" [Recover.Plain " unclosed"]], Recover.Para [Recover.Plain "next"]]
+        errorRanges errs @?= [(Just "close", (15, 15))]
+        let (tree, _) = Recover.parseSyntaxRecover doc
+        errorNodes tree @?= [(15, 15)]
+    , testCase "a missing command name is inserted" $ do
+        let (v, errs) = Recover.parseRecover "x [ y]"
+        v @?= Just [Recover.Para [Recover.Plain "x ", Recover.Command "?" [Recover.Plain " y"]]]
+        errorRanges errs @?= [(Just "name", (3, 3))]
+    , testProperty "every input gives a lossless tree" $
+        forAll (T.pack <$> listOf (elements "ab []\n\nx\x3042")) $ \t ->
+          let (tree, errs) = Recover.parseSyntaxRecover t
+           in syntaxText tree === t .&&. all (\e -> fst (syntaxErrorRange e) <= snd (syntaxErrorRange e)) errs
+    , testProperty "memoisation does not change recovered trees and errors" $
+        forAll (T.pack <$> listOf (elements "ab []\n\n")) $ \t ->
+          let run cfg = let (tree, errs, _) = Recover.peg'parseSyntaxRecoverWith cfg t in (debugTree Recover.nameOfSyntaxKind tree, errs)
+           in run defaultConfig {cfgMemo = False} === run defaultConfig
+    , testCase "a valid input never reports errors in recovery mode" $
+        mapM_ (\t -> snd (Recover.parseRecover t) @?= []) ["x", "x\n\ny", "[a]", "[a [b c] d]\n"]
+    ]

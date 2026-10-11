@@ -52,20 +52,14 @@ generateFromSource opts src = parseGrammar src >>= generate opts
 generate :: Options -> Grammar -> Either [Diagnostic] Text
 generate opts g = do
   analysis <- check g
-  case unimplemented g of
-    [] -> Right (finalize opts (render opts g analysis))
-    es -> Left es
+  Right (finalize opts (render opts g analysis))
 
-unimplemented :: Grammar -> [Diagnostic]
-unimplemented g =
-  [ Diagnostic l ("failure labels (^" <> name <> ") are reserved but not implemented yet (ADR 0005)")
-       | r <- grammarRules g
-       , a <- ruleAlts r
-       , (l, name) <- concatMap (labels . itemExpr) (altItems a)
-       ]
+-- Labels written anywhere in the grammar (ADR 0021).
+grammarLabels :: Grammar -> [Text]
+grammarLabels g = [name | r <- grammarRules g, a <- ruleAlts r, name <- concatMap (labels . itemExpr) (altItems a)]
   where
     labels e = case e of
-      ELabel l x name -> (l, name) : labels x
+      ELabel _ x name -> name : labels x
       EGroup alts -> concatMap (concatMap (labels . itemExpr)) alts
       EStar x -> labels x
       EPlus x -> labels x
@@ -145,6 +139,7 @@ render opts g an =
         ++ map verbatimBlock (grammarVerbatim g)
         ++ entryDecls
         ++ syntaxEntryDecls
+        ++ recoverEntryDecls
         ++ debugDecls
         ++ syntaxDecls env
         ++ [configDecl, storeDecl, newStoreDecl]
@@ -160,10 +155,15 @@ render opts g an =
     exports =
       [entryName k | (k, _) <- entries]
         ++ ["parseSyntax" <> maybe "" id k | syntax, (k, _) <- entries]
+        ++ ["parseRecover" <> maybe "" id k | recovering, (k, _) <- entries]
+        ++ ["parseSyntaxRecover" <> maybe "" id k | recovering, syntax, (k, _) <- entries]
         ++ syntaxExports env
         ++ map unLoc (grammarExports g)
         ++ ["peg'parseWith" | optDebugEntry opts]
         ++ ["peg'parseSyntaxWith" | optDebugEntry opts, syntax]
+        ++ ["peg'parseRecoverWith" | optDebugEntry opts, recovering]
+        ++ ["peg'parseSyntaxRecoverWith" | optDebugEntry opts, recovering, syntax]
+    recovering = not (null (grammarLabels g))
     -- In syntax mode a rule returns its value with its tree children.
     valueOf = if syntax then "PegPrelude.fmap PegPrelude.fst " else ""
     wrapValue e = if syntax then valueOf <> "(" <> e <> ")" else e
@@ -198,6 +198,53 @@ render opts g an =
               ]
             | (k, n) <- entries
             ]
+      | otherwise = []
+    recoverEntryDecls
+      | recovering =
+          concat
+            [ [ "-- | Parse the whole input with the rule @" <> n <> "@, recovering from labelled failures."
+              , "-- The value is 'PegPrelude.Nothing' only if the rule could not be recovered."
+              , "parseRecover" <> maybe "" id k <> " :: " <> envParamType <> "PegRt.Text -> (PegPrelude.Maybe (" <> resultType n <> "), [PegRt.SyntaxError])"
+              , "parseRecover" <> maybe "" id k <> envArg <> " peg'input ="
+              , "  let (peg'v, peg'e, _) = PegRt.runParserRecover peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " peg'input"
+              , "   in (" <> valueOf <> "peg'v, peg'e)"
+              , ""
+              ]
+                ++ ( if syntax
+                       then
+                         [ "-- | The lossless syntax tree of the whole input, recovering from labelled failures."
+                         , "-- Always returns a tree; unrecovered input becomes error nodes."
+                         , "parseSyntaxRecover" <> maybe "" id k <> " :: " <> envParamType <> "PegRt.Text -> (PegRt.SyntaxNode, [PegRt.SyntaxError])"
+                         , "parseSyntaxRecover" <> maybe "" id k <> envArg <> " peg'input ="
+                         , "  let (peg'n, peg'e, _) = PegRt.runSyntaxRecover peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " " <> kindVar n <> " peg'input"
+                         , "   in (peg'n, peg'e)"
+                         , ""
+                         ]
+                       else []
+                   )
+            | (k, n) <- entries
+            ]
+            ++ ( if optDebugEntry opts
+                   then
+                     [ "-- | Like 'peg'parseWith', recovering. Only meant for testing the generator."
+                     , "peg'parseRecoverWith :: PegRt.Config -> " <> envParamType <> "PegRt.Text -> (PegPrelude.Maybe (" <> resultType start <> "), [PegRt.SyntaxError], PegRt.Stats)"
+                     , "peg'parseRecoverWith peg'cfg" <> envArg <> " peg'input ="
+                     , "  let (peg'v, peg'e, peg's) = PegRt.runParserRecover peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore" <> envArg <> ") " <> ruleVar start <> " peg'input"
+                     , "   in (" <> valueOf <> "peg'v, peg'e, peg's)"
+                     , ""
+                     ]
+                       ++ ( if syntax
+                              then
+                                [ "-- | Like 'peg'parseSyntaxWith', recovering. Only meant for testing the generator."
+                                , "peg'parseSyntaxRecoverWith :: PegRt.Config -> " <> envParamType <> "PegRt.Text -> (PegRt.SyntaxNode, [PegRt.SyntaxError], PegRt.Stats)"
+                                , "peg'parseSyntaxRecoverWith peg'cfg" <> envArg <> " peg'input ="
+                                , "  PegRt.runSyntaxRecover peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore" <> envArg <> ") " <> ruleVar start <> " " <> kindVar start <> " peg'input"
+                                , ""
+                                ]
+                              else []
+                          )
+                   else []
+               )
       | otherwise = []
     debugDecls
       | optDebugEntry opts =
@@ -422,7 +469,9 @@ exprCode env expr = case expr of
   EAnd x -> wrap "PegRt.andP" x
   ENot x -> wrap "PegRt.notP" x
   ECapture x -> wrap "PegRt.capture" x
-  ELabel _ x _ -> exprCode env x
+  ELabel _ x name -> do
+    e <- exprCode env x
+    pure ("PegRt.labeled " <> hsString name <> " " <> recoveryCode env False (hasValue x) name <> " (" <> e <> ")")
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
   where
@@ -495,7 +544,7 @@ syntaxExports :: Env -> [Text]
 syntaxExports env
   | not (envSyntax env) = []
   | otherwise =
-      ["syntaxKindName", "syntaxKindIsTrivia"]
+      ["nameOfSyntaxKind", "isTriviaSyntaxKind"]
         ++ [kindVar n | (n, _) <- kindNumbers g]
         ++ concat
           [ [syntaxTypeName (ruleName r) <> "(..)", castName (ruleName r)]
@@ -518,8 +567,8 @@ syntaxDecls env
         | (n, k) <- kinds
         ]
         ++ [ "-- | The name of a syntax kind."
-           , "syntaxKindName :: PegRt.SyntaxKind -> PegRt.Text"
-           , "syntaxKindName peg'k = PegRt.labelText (case peg'k of"
+           , "nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text"
+           , "nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of"
            , "  { PegRt.SyntaxKind 0 -> " <> hsString "TEXT"
            , "  ; PegRt.SyntaxKind 1 -> " <> hsString "ERROR"
            ]
@@ -528,8 +577,8 @@ syntaxDecls env
            , "  })"
            , ""
            , "-- | Whether a syntax kind is trivia (@%trivia@)."
-           , "syntaxKindIsTrivia :: PegRt.SyntaxKind -> PegPrelude.Bool"
-           , "syntaxKindIsTrivia peg'k = PegPrelude.elem peg'k [" <> T.intercalate ", " [kindVar n | n <- map unLoc (grammarTrivia g)] <> "]"
+           , "isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool"
+           , "isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k [" <> T.intercalate ", " [kindVar n | n <- map unLoc (grammarTrivia g)] <> "]"
            , ""
            ]
         ++ concatMap typed (nodeRules g)
@@ -558,7 +607,7 @@ syntaxDecls env
             ManyNodes x -> ("[" <> syntaxTypeName x <> "]", "PegPrelude.map " <> syntaxTypeName x <> " (PegRt.labeledNodes " <> kindVar x <> " " <> lbl <> " peg'n)")
             OneToken x -> ("PegPrelude.Maybe PegRt.SyntaxToken", "PegRt.labeledToken " <> kindVar x <> " " <> lbl <> " peg'n")
             ManyTokens x -> ("[PegRt.SyntaxToken]", "PegRt.labeledTokens " <> kindVar x <> " " <> lbl <> " peg'n")
-            Elements -> ("[PegRt.SyntaxElement]", "PegRt.labeledElements syntaxKindIsTrivia " <> lbl <> " peg'n")
+            Elements -> ("[PegRt.SyntaxElement]", "PegRt.labeledElements isTriviaSyntaxKind " <> lbl <> " peg'n")
        in [ "-- | The children bound to @" <> b <> "@ in the rule @" <> n <> "@."
           , name <> " :: " <> ty <> " -> " <> resTy
           , name <> " (" <> ty <> " peg'n) = " <> body
@@ -639,7 +688,9 @@ exprCodeS env expr = case expr of
   EAnd x -> wrap "PegRt.plain PegPrelude.. PegRt.andP" x
   ENot x -> wrap "PegRt.plain PegPrelude.. PegRt.notP" x
   ECapture x -> wrap "PegRt.captureS" x
-  ELabel _ x _ -> exprCodeS env x
+  ELabel _ x name -> do
+    e <- exprCodeS env x
+    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (hasValue x) name <> " (" <> e <> ")")
   where
     plainOf = do
       e <- exprCode env expr
@@ -647,3 +698,14 @@ exprCodeS env expr = case expr of
     wrap f x = do
       e <- exprCodeS env x
       pure ("(" <> f <> ") (" <> e <> ")")
+
+-- The recovery parser for a label, if the grammar gives one (ADR 0021). A
+-- label on an expression without a value discards the recovery's value.
+recoveryCode :: Env -> Bool -> Bool -> Text -> Text
+recoveryCode env syntaxMode valued name =
+  case [unLoc r | (Located _ l, r) <- grammarRecovers (envGrammar env), l == name] of
+    r : _
+      | valued -> "(PegPrelude.Just " <> ruleVar r <> ")"
+      | syntaxMode -> "(PegPrelude.Just (PegRt.voidS " <> ruleVar r <> "))"
+      | otherwise -> "(PegPrelude.Just (PegRt.voidP " <> ruleVar r <> "))"
+    [] -> "PegPrelude.Nothing"

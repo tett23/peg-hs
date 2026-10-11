@@ -3,8 +3,8 @@
 module Conformance.CommonMark.Block
   ( parse
   , parseSyntax
-  , syntaxKindName
-  , syntaxKindIsTrivia
+  , nameOfSyntaxKind
+  , isTriviaSyntaxKind
   , syntaxKindDocument
   , syntaxKindBlocks
   , syntaxKindMoreBlock
@@ -658,8 +658,8 @@ syntaxKindInterrupt :: PegRt.SyntaxKind
 syntaxKindInterrupt = PegRt.SyntaxKind 65
 
 -- | The name of a syntax kind.
-syntaxKindName :: PegRt.SyntaxKind -> PegRt.Text
-syntaxKindName peg'k = PegRt.labelText (case peg'k of
+nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text
+nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of
   { PegRt.SyntaxKind 0 -> "TEXT"
   ; PegRt.SyntaxKind 1 -> "ERROR"
   ; PegRt.SyntaxKind 2 -> "Document"
@@ -730,8 +730,8 @@ syntaxKindName peg'k = PegRt.labelText (case peg'k of
   })
 
 -- | Whether a syntax kind is trivia (@%trivia@).
-syntaxKindIsTrivia :: PegRt.SyntaxKind -> PegPrelude.Bool
-syntaxKindIsTrivia peg'k = PegPrelude.elem peg'k []
+isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool
+isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k []
 
 -- | A node of the rule @Document@.
 newtype DocumentSyntax = DocumentSyntax PegRt.SyntaxNode
@@ -922,7 +922,7 @@ castLineRest1Syntax peg'n =
 
 -- | The children bound to @t@ in the rule @LineRest1@.
 lineRest1T :: LineRest1Syntax -> [PegRt.SyntaxElement]
-lineRest1T (LineRest1Syntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+lineRest1T (LineRest1Syntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @LineNL@.
 newtype LineNLSyntax = LineNLSyntax PegRt.SyntaxNode
@@ -935,7 +935,7 @@ castLineNLSyntax peg'n =
 
 -- | The children bound to @t@ in the rule @LineNL@.
 lineNLT :: LineNLSyntax -> [PegRt.SyntaxElement]
-lineNLT (LineNLSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+lineNLT (LineNLSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @BlankLine@.
 newtype BlankLineSyntax = BlankLineSyntax PegRt.SyntaxNode
@@ -978,7 +978,7 @@ codeLineC (CodeLineSyntax peg'n) = PegPrelude.fmap ColSyntax (PegRt.labeledNode 
 
 -- | The children bound to @t@ in the rule @CodeLine@.
 codeLineT :: CodeLineSyntax -> [PegRt.SyntaxElement]
-codeLineT (CodeLineSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+codeLineT (CodeLineSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @CodeMore@.
 newtype CodeMoreSyntax = CodeMoreSyntax PegRt.SyntaxNode
@@ -1033,7 +1033,7 @@ blankInC (BlankInSyntax peg'n) = PegPrelude.fmap ColSyntax (PegRt.labeledNode sy
 
 -- | The children bound to @t@ in the rule @BlankIn@.
 blankInT :: BlankInSyntax -> [PegRt.SyntaxElement]
-blankInT (BlankInSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+blankInT (BlankInSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @FenceOpen@.
 newtype FenceOpenSyntax = FenceOpenSyntax PegRt.SyntaxNode
@@ -1046,7 +1046,7 @@ castFenceOpenSyntax peg'n =
 
 -- | The children bound to @f@ in the rule @FenceOpen@.
 fenceOpenF :: FenceOpenSyntax -> [PegRt.SyntaxElement]
-fenceOpenF (FenceOpenSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "f") peg'n
+fenceOpenF (FenceOpenSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "f") peg'n
 
 -- | The children bound to @i@ in the rule @FenceOpen@.
 fenceOpenI :: FenceOpenSyntax -> PegPrelude.Maybe ColSyntax
@@ -1054,7 +1054,7 @@ fenceOpenI (FenceOpenSyntax peg'n) = PegPrelude.fmap ColSyntax (PegRt.labeledNod
 
 -- | The children bound to @info@ in the rule @FenceOpen@.
 fenceOpenInfo :: FenceOpenSyntax -> [PegRt.SyntaxElement]
-fenceOpenInfo (FenceOpenSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "info") peg'n
+fenceOpenInfo (FenceOpenSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "info") peg'n
 
 -- | A node of the rule @FencedCode@.
 newtype FencedCodeSyntax = FencedCodeSyntax PegRt.SyntaxNode
@@ -1105,7 +1105,7 @@ castClosingFenceSyntax peg'n =
 
 -- | The children bound to @f@ in the rule @ClosingFence@.
 closingFenceF :: ClosingFenceSyntax -> [PegRt.SyntaxElement]
-closingFenceF (ClosingFenceSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "f") peg'n
+closingFenceF (ClosingFenceSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "f") peg'n
 
 -- | A node of the rule @FenceContent@.
 newtype FenceContentSyntax = FenceContentSyntax PegRt.SyntaxNode
@@ -1122,7 +1122,7 @@ fenceContentC (FenceContentSyntax peg'n) = PegPrelude.fmap ColSyntax (PegRt.labe
 
 -- | The children bound to @t@ in the rule @FenceContent@.
 fenceContentT :: FenceContentSyntax -> [PegRt.SyntaxElement]
-fenceContentT (FenceContentSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+fenceContentT (FenceContentSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @StripUpTo@.
 newtype StripUpToSyntax = StripUpToSyntax PegRt.SyntaxNode
@@ -1144,7 +1144,7 @@ castThematicBreakSyntax peg'n =
 
 -- | The children bound to @s@ in the rule @ThematicBreak@.
 thematicBreakS :: ThematicBreakSyntax -> [PegRt.SyntaxElement]
-thematicBreakS (ThematicBreakSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "s") peg'n
+thematicBreakS (ThematicBreakSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "s") peg'n
 
 -- | A node of the rule @AtxHeading@.
 newtype AtxHeadingSyntax = AtxHeadingSyntax PegRt.SyntaxNode
@@ -1157,11 +1157,11 @@ castAtxHeadingSyntax peg'n =
 
 -- | The children bound to @h@ in the rule @AtxHeading@.
 atxHeadingH :: AtxHeadingSyntax -> [PegRt.SyntaxElement]
-atxHeadingH (AtxHeadingSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "h") peg'n
+atxHeadingH (AtxHeadingSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "h") peg'n
 
 -- | The children bound to @t@ in the rule @AtxHeading@.
 atxHeadingT :: AtxHeadingSyntax -> [PegRt.SyntaxElement]
-atxHeadingT (AtxHeadingSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+atxHeadingT (AtxHeadingSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @HtmlBlock@.
 newtype HtmlBlockSyntax = HtmlBlockSyntax PegRt.SyntaxNode
@@ -1174,7 +1174,7 @@ castHtmlBlockSyntax peg'n =
 
 -- | The children bound to @ls@ in the rule @HtmlBlock@.
 htmlBlockLs :: HtmlBlockSyntax -> [PegRt.SyntaxElement]
-htmlBlockLs (HtmlBlockSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "ls") peg'n
+htmlBlockLs (HtmlBlockSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "ls") peg'n
 
 -- | A node of the rule @HtmlStart1@.
 newtype HtmlStart1Syntax = HtmlStart1Syntax PegRt.SyntaxNode
@@ -1187,7 +1187,7 @@ castHtmlStart1Syntax peg'n =
 
 -- | The children bound to @n@ in the rule @HtmlStart1@.
 htmlStart1N :: HtmlStart1Syntax -> [PegRt.SyntaxElement]
-htmlStart1N (HtmlStart1Syntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "n") peg'n
+htmlStart1N (HtmlStart1Syntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @HtmlStart6@.
 newtype HtmlStart6Syntax = HtmlStart6Syntax PegRt.SyntaxNode
@@ -1200,7 +1200,7 @@ castHtmlStart6Syntax peg'n =
 
 -- | The children bound to @n@ in the rule @HtmlStart6@.
 htmlStart6N :: HtmlStart6Syntax -> [PegRt.SyntaxElement]
-htmlStart6N (HtmlStart6Syntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "n") peg'n
+htmlStart6N (HtmlStart6Syntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @HtmlStart7@.
 newtype HtmlStart7Syntax = HtmlStart7Syntax PegRt.SyntaxNode
@@ -1213,7 +1213,7 @@ castHtmlStart7Syntax peg'n =
 
 -- | The children bound to @n@ in the rule @HtmlStart7@.
 htmlStart7N :: HtmlStart7Syntax -> [PegRt.SyntaxElement]
-htmlStart7N (HtmlStart7Syntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "n") peg'n
+htmlStart7N (HtmlStart7Syntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @TagName@.
 newtype TagNameSyntax = TagNameSyntax PegRt.SyntaxNode
@@ -1400,15 +1400,15 @@ castMarkerSyntax peg'n =
 
 -- | The children bound to @c@ in the rule @Marker@.
 markerC :: MarkerSyntax -> [PegRt.SyntaxElement]
-markerC (MarkerSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "c") peg'n
+markerC (MarkerSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "c") peg'n
 
 -- | The children bound to @d@ in the rule @Marker@.
 markerD :: MarkerSyntax -> [PegRt.SyntaxElement]
-markerD (MarkerSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "d") peg'n
+markerD (MarkerSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "d") peg'n
 
 -- | The children bound to @n@ in the rule @Marker@.
 markerN :: MarkerSyntax -> [PegRt.SyntaxElement]
-markerN (MarkerSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "n") peg'n
+markerN (MarkerSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @ItemBody@.
 newtype ItemBodySyntax = ItemBodySyntax PegRt.SyntaxNode
@@ -1421,7 +1421,7 @@ castItemBodySyntax peg'n =
 
 -- | The children bound to @bs@ in the rule @ItemBody@.
 itemBodyBs :: ItemBodySyntax -> [PegRt.SyntaxElement]
-itemBodyBs (ItemBodySyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "bs") peg'n
+itemBodyBs (ItemBodySyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "bs") peg'n
 
 -- | The children bound to @w@ in the rule @ItemBody@.
 itemBodyW :: ItemBodySyntax -> PegPrelude.Maybe ColSyntax
@@ -1472,7 +1472,7 @@ refDefD (RefDefSyntax peg'n) = PegPrelude.fmap DestSyntax (PegRt.labeledNode syn
 
 -- | The children bound to @l@ in the rule @RefDef@.
 refDefL :: RefDefSyntax -> [PegRt.SyntaxElement]
-refDefL (RefDefSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "l") peg'n
+refDefL (RefDefSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "l") peg'n
 
 -- | The children bound to @t@ in the rule @RefDef@.
 refDefT :: RefDefSyntax -> PegPrelude.Maybe DefTitleSyntax
@@ -1516,7 +1516,7 @@ castDestSyntax peg'n =
 
 -- | The children bound to @d@ in the rule @Dest@.
 destD :: DestSyntax -> [PegRt.SyntaxElement]
-destD (DestSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "d") peg'n
+destD (DestSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "d") peg'n
 
 -- | A node of the rule @DestRaw@.
 newtype DestRawSyntax = DestRawSyntax PegRt.SyntaxNode
@@ -1564,7 +1564,7 @@ castTitleCharSyntax peg'n =
 
 -- | The children bound to @c@ in the rule @TitleChar@.
 titleCharC :: TitleCharSyntax -> [PegRt.SyntaxElement]
-titleCharC (TitleCharSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "c") peg'n
+titleCharC (TitleCharSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "c") peg'n
 
 -- | A node of the rule @ParagraphB@.
 newtype ParagraphBSyntax = ParagraphBSyntax PegRt.SyntaxNode
@@ -1598,7 +1598,7 @@ castParaLineSyntax peg'n =
 
 -- | The children bound to @t@ in the rule @ParaLine@.
 paraLineT :: ParaLineSyntax -> [PegRt.SyntaxElement]
-paraLineT (ParaLineSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "t") peg'n
+paraLineT (ParaLineSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "t") peg'n
 
 -- | A node of the rule @ParaCont@.
 newtype ParaContSyntax = ParaContSyntax PegRt.SyntaxNode
@@ -1615,7 +1615,7 @@ paraContL (ParaContSyntax peg'n) = PegPrelude.fmap ParaLineSyntax (PegRt.labeled
 
 -- | The children bound to @p@ in the rule @ParaCont@.
 paraContP :: ParaContSyntax -> [PegRt.SyntaxElement]
-paraContP (ParaContSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "p") peg'n
+paraContP (ParaContSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "p") peg'n
 
 -- | A node of the rule @SetextUnder@.
 newtype SetextUnderSyntax = SetextUnderSyntax PegRt.SyntaxNode

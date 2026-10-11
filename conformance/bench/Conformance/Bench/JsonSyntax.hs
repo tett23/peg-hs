@@ -2,8 +2,8 @@
 module Conformance.Bench.JsonSyntax
   ( parse
   , parseSyntax
-  , syntaxKindName
-  , syntaxKindIsTrivia
+  , nameOfSyntaxKind
+  , isTriviaSyntaxKind
   , syntaxKindJson
   , syntaxKindValue
   , syntaxKindObject
@@ -226,8 +226,8 @@ syntaxKindWs :: PegRt.SyntaxKind
 syntaxKindWs = PegRt.SyntaxKind 20
 
 -- | The name of a syntax kind.
-syntaxKindName :: PegRt.SyntaxKind -> PegRt.Text
-syntaxKindName peg'k = PegRt.labelText (case peg'k of
+nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text
+nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of
   { PegRt.SyntaxKind 0 -> "TEXT"
   ; PegRt.SyntaxKind 1 -> "ERROR"
   ; PegRt.SyntaxKind 2 -> "Json"
@@ -253,8 +253,8 @@ syntaxKindName peg'k = PegRt.labelText (case peg'k of
   })
 
 -- | Whether a syntax kind is trivia (@%trivia@).
-syntaxKindIsTrivia :: PegRt.SyntaxKind -> PegPrelude.Bool
-syntaxKindIsTrivia peg'k = PegPrelude.elem peg'k [syntaxKindWs]
+isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool
+isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k [syntaxKindWs]
 
 -- | A node of the rule @Json@.
 newtype JsonSyntax = JsonSyntax PegRt.SyntaxNode
@@ -413,7 +413,7 @@ castNumberSyntax peg'n =
 
 -- | The children bound to @n@ in the rule @Number@.
 numberN :: NumberSyntax -> [PegRt.SyntaxElement]
-numberN (NumberSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "n") peg'n
+numberN (NumberSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @IntPart@.
 newtype IntPartSyntax = IntPartSyntax PegRt.SyntaxNode
@@ -466,7 +466,7 @@ castUnitSyntax peg'n =
 
 -- | The children bound to @c@ in the rule @Unit@.
 unitC :: UnitSyntax -> [PegRt.SyntaxElement]
-unitC (UnitSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "c") peg'n
+unitC (UnitSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "c") peg'n
 
 -- | The children bound to @e@ in the rule @Unit@.
 unitE :: UnitSyntax -> PegPrelude.Maybe EscapeSyntax
@@ -483,7 +483,7 @@ castEscapeSyntax peg'n =
 
 -- | The children bound to @h@ in the rule @Escape@.
 escapeH :: EscapeSyntax -> [PegRt.SyntaxElement]
-escapeH (EscapeSyntax peg'n) = PegRt.labeledElements syntaxKindIsTrivia (PegRt.labelText "h") peg'n
+escapeH (EscapeSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "h") peg'n
 
 -- | A node of the rule @Hex@.
 newtype HexSyntax = HexSyntax PegRt.SyntaxNode
