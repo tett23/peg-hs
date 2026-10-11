@@ -5,10 +5,16 @@ peg-hs は PEG 定義から Haskell のパーサーを生成するツールチ�
 ## ディレクトリ構成
 
 - **docs/specifications.md** 製品仕様書。実装の詳細はここに書かない
+- **docs/syntax.md** .peg 記法の利用者向け解説とサンプル。採択済みの ADR の内容だけを反映する。記法に関わる ADR のステータスを採択にしたときは、同じコミットでこの文書を更新し、冒頭の「反映している ADR」の一覧も更新する
 - **docs/adr/** リポジトリ全体の ADR を配置する。ADR のファイル名は連番+何を実装するか。ADR には実装すること、実装しないこと、テスト設計、あればトレードオフを含める。ADR は連番の通りに /goal で自動実装される。ADR はコミット後、変更不可。変更が必要な場合は新たな ADR を作成する
 - **packages/** cabal パッケージ（peg-runtime, peg-grammar, peg-codegen, peg-cli）を配置する
 - **conformance/** 実在する言語の文法による適合性テスト（非公開パッケージ peg-conformance）と、取り込んだテストデータを配置する
 - **docs/conformance/** 適合率のスナップショットを配置する。コミット後は変更不可
+
+## 言語
+
+- Haddock（公開モジュールの API 文書）は英語で書く
+- ADR、仕様書、syntax.md は日本語で書く
 
 ## 関連リポジトリ
 

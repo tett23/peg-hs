@@ -7,10 +7,12 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 - 標準 PEG の全構文と、直接と間接の左再帰を受理する（bounded left recursion, Medeiros et al. 2014）
 - happy / alex 方式のスタンドアロン生成器。`.peg` から決定的に `.hs` を生成する（同一入力からバイト単位で同一の出力）
 - 各規則が結果型とセマンティックアクションを持ち、生成されたパーサーは利用者の AST を直接返す
+- 字下げに依存する構文や前方参照を書くための文脈依存の拡張（意味述語、引数付き規則、読み取り専用の解析環境、桁の参照）。パックラットのメモ化と左再帰の正しさを保つように設計している
+- アクションの型の誤りは、`.peg` ファイルの行と桁で報告される
 
 **ステータス：設計フェーズ。** 仕様書と ADR は完成しており、実装は未着手。
 
-仕様は [docs/specifications.md](docs/specifications.md)、設計決定は [docs/adr/](docs/adr/) を参照。
+仕様は [docs/specifications.md](docs/specifications.md)、`.peg` 記法の解説とサンプルは [docs/syntax.md](docs/syntax.md)、設計決定は [docs/adr/](docs/adr/) を参照。
 
 ## 開発
 

@@ -7,10 +7,12 @@ A PEG-to-Haskell parser generator with left recursion support.
 - Accepts the full standard PEG syntax plus direct and indirect left recursion, based on bounded left recursion (Medeiros et al. 2014)
 - Standalone code generator in the style of happy / alex: deterministically generates `.hs` from `.peg` (byte-identical output for identical input)
 - Each rule carries a result type and semantic actions, so generated parsers return your AST directly
+- Context-sensitive extensions (semantic predicates, parameterized rules, a read-only parse environment, and column references) for indentation-sensitive and forward-referencing syntax, designed so that packrat memoization and left recursion stay sound
+- Type errors in semantic actions are reported at their line and column in the `.peg` file
 
 **Status: design phase.** The specification and ADRs are complete; implementation has not started.
 
-See [docs/specifications.md](docs/specifications.md) for the specification and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
+See [docs/specifications.md](docs/specifications.md) for the specification, [docs/syntax.md](docs/syntax.md) for the `.peg` notation with examples, and [docs/adr/](docs/adr/) for design decisions. These documents are currently written in Japanese.
 
 ## Development
 
