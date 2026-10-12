@@ -99,11 +99,14 @@ lint や formatter のように、空白とコメントを扱う用途のため�
 ### 文法ファイルの道具
 
 文法ファイルのための道具を、peg-hs のコマンドとエディタの支援として持つ。
+コマンドは `peg-hs <command>` の形のサブコマンドであり、生成も `peg-hs gen` とする（[ADR 0037](adr/0037-cli-subcommands.md)）。
+結果は標準出力に、誤りと警告は標準エラー出力に書き、終了状態は成功が 0、検査で問題が見つかった場合が 1、使い方の誤りが 2 である。
 
 - **整形** `peg-hs fmt`：流儀を一つに固定した整形。設定と整形を止める指示は持たない（[ADR 0032](adr/0032-grammar-formatter.md)）
 - **lint** `peg-hs lint`：偽陽性のない固定の規則だけを持つ lint。利用者は規則を加えられず、警告を抑制できない（[ADR 0033](adr/0033-grammar-linter.md)）
 - **シンタックスハイライト**：TextMate と tree-sitter の文法（[ADR 0034](adr/0034-syntax-highlighting.md)）と、言語サーバーの semantic tokens（[ADR 0035](adr/0035-language-server.md)）
 - **言語サーバー** `peg-hs lsp`：診断、整形、semantic tokens、定義への移動、参照の検索、ホバー、文書の記号（[ADR 0035](adr/0035-language-server.md)）
+- **解析の表示** `peg-hs parse`：文法で入力を解析し、AST（アクションの値）と CST（ロスレスな構文木）を表示する。生成したパーサーを `ghc` でコンパイルして実行する（[ADR 0036](adr/0036-parse-command.md)）
 
 `fmt` と `lint` は、ファイルを指定しなければ、現在のディレクトリから再帰的にたどったすべての `.peg` ファイルを対象にする。
 
@@ -180,7 +183,7 @@ packages/
   peg-grammar   -- .peg 記法のパーサー（自己記述）、文法 AST、静的検査、整形と lint の本体
   peg-codegen   -- 文法 AST から Haskell ソースへの純関数変換
   peg-lsp       -- 言語サーバーの本体（ADR 0035）
-  peg-cli       -- CLI ドライバ（生成、fmt、lint、lsp の起動と、ファイル入出力、診断表示）
+  peg-cli       -- CLI ドライバ（gen、fmt、lint、lsp、parse のサブコマンドと、ファイル入出力、診断表示）
 ```
 
 ```
@@ -220,7 +223,7 @@ peg-runtime → peg-grammar → peg-codegen（左再帰なし）→ JSON の適�
 その後に、言語拡張の指定（[ADR 0016](adr/0016-language-extensions.md)）、メモ化の選択（[ADR 0017](adr/0017-nomemo-implementation.md)）、タブの部分消費（[ADR 0018](adr/0018-tab-partial-consumption.md)）、ロスレスな構文木（[ADR 0019](adr/0019-lossless-syntax-tree.md)）を実装する。
 エラーからの回復（[ADR 0021](adr/0021-error-recovery.md)）の後に、Lua（[ADR 0022](adr/0022-lua-conformance.md)）と TOML（[ADR 0023](adr/0023-toml-conformance.md)）の適合性テストを行う。二つは互いに独立である。Lua の前に、入れ子の左再帰の評価の回数の修正（[ADR 0024](adr/0024-discard-seed-dependents-only.md)）を行う。
 自己記述のパーサーへの切り替えは、CommonMark の全件適合を含むすべての検査に合格した後に行った（[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)）。
-その後に、単位の値（[ADR 0030](adr/0030-unit-values-are-not-counted.md)）、規則の雛形（[ADR 0031](adr/0031-rule-templates.md)）、整形（[ADR 0032](adr/0032-grammar-formatter.md)）、lint（[ADR 0033](adr/0033-grammar-linter.md)）、シンタックスハイライト（[ADR 0034](adr/0034-syntax-highlighting.md)）、言語サーバー（[ADR 0035](adr/0035-language-server.md)）の順に実装する。
+その後に、単位の値（[ADR 0030](adr/0030-unit-values-are-not-counted.md)）、規則の雛形（[ADR 0031](adr/0031-rule-templates.md)）、サブコマンドへの分割（[ADR 0037](adr/0037-cli-subcommands.md)）、整形（[ADR 0032](adr/0032-grammar-formatter.md)）、lint（[ADR 0033](adr/0033-grammar-linter.md)）、シンタックスハイライト（[ADR 0034](adr/0034-syntax-highlighting.md)）、言語サーバー（[ADR 0035](adr/0035-language-server.md)）、解析の表示（[ADR 0036](adr/0036-parse-command.md)）の順に実装する。
 ADR の連番は決定の順であり、実装の順ではない。
 
 記法の利用者向けの解説は `docs/syntax.md` に置く。
