@@ -29,6 +29,9 @@ cabal run peg-hs -- Grammar.peg -o Grammar.hs
 
 生成されたモジュールは `peg-runtime` パッケージだけに依存し、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。
 
+生成器は、正しい入力を拒否するかもしれないラベルを警告する（ADR 0028）。
+`--Werror` を付けると警告で生成を止め、文法に `%safe label` を書くと、作者が確かめたラベルの警告を止められる。
+
 ## 開発
 
 ツールチェーンは ghcup が recommended とする版を使う（GHC 9.10.3、cabal-install 3.16.1.0、HLS 2.14.0.0）。

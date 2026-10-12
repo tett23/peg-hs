@@ -29,6 +29,8 @@ cabal run peg-hs -- Grammar.peg -o Grammar.hs
 
 The generated module depends only on the `peg-runtime` package and exports `parse :: Text -> Either ParseError a` for the start rule.
 
+The generator warns about labels that may make the grammar reject valid input (ADR 0028). `--Werror` makes a warning fail the generation, and `%safe label` in the grammar silences the warning for a label checked by hand.
+
 ## Development
 
 The toolchain is the one ghcup marks as recommended: GHC 9.10.3, cabal-install 3.16.1.0, and HLS 2.14.0.0.
