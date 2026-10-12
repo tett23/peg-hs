@@ -23,8 +23,10 @@ env:
   # versions (ADR 0013).
   GHC_VERSION: '9.10.3'
   CABAL_VERSION: '3.16.1.0'
-  # GHC and cabal go to ~/.ghcup, which is cached (ADR 0039).
-  GHCUP_INSTALL_BASE_PREFIX: /home/runner
+  # GHC and cabal go to /home/runner/toolchain/.ghcup, which is cached
+  # (ADR 0039). The runner's ~/.ghcup is a link to a directory of root, which
+  # the cache cannot restore.
+  GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
 
 jobs:
   haskell:
@@ -35,16 +37,17 @@ jobs:
           persist-credentials: false
       - uses: actions/cache@v6
         with:
-          path: ~/.ghcup
+          path: /home/runner/toolchain/.ghcup
           key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
       - name: Install GHC and cabal
         id: toolchain
         run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
           ghcup install ghc "$GHC_VERSION" --set
           ghcup install cabal "$CABAL_VERSION" --set
-          echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
           # Without a config file, cabal also prints a note before the path.
-          echo "store=$("$HOME/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
       # The build of the previous run; cabal compiles what changed since
       # (ADR 0039).
       - uses: actions/cache@v6
@@ -88,16 +91,17 @@ jobs:
           persist-credentials: false
       - uses: actions/cache/restore@v6
         with:
-          path: ~/.ghcup
+          path: /home/runner/toolchain/.ghcup
           key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
       - name: Install GHC and cabal
         id: toolchain
         run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
           ghcup install ghc "$GHC_VERSION" --set
           ghcup install cabal "$CABAL_VERSION" --set
-          echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
           # Without a config file, cabal also prints a note before the path.
-          echo "store=$("$HOME/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v6
         with:
           path: dist-newstyle
