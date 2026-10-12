@@ -54,6 +54,8 @@ test-suite peg-lsp-test
   import:           warnings
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
+  -- The tests run in parallel (ADR 0039).
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
   hs-source-dirs:   test
   build-depends:
     , base

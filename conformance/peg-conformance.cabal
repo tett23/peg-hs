@@ -59,7 +59,7 @@ test-suite json-conformance
   type:             exitcode-stdio-1.0
   main-is:          JsonMain.hs
   hs-source-dirs:   test
-  ghc-options:      -Werror
+  ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
     , base
     , bytestring
@@ -82,7 +82,7 @@ test-suite complexity
   type:             exitcode-stdio-1.0
   main-is:          ComplexityMain.hs
   hs-source-dirs:   test
-  ghc-options:      -Werror
+  ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
     , base
     , bytestring
@@ -124,6 +124,8 @@ test-suite commonmark-conformance
   import:           warnings
   type:             exitcode-stdio-1.0
   main-is:          CommonMarkMain.hs
+  -- The tests run in parallel (ADR 0039).
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
   hs-source-dirs:   test
   build-depends:
     , base
@@ -142,7 +144,7 @@ test-suite lua-conformance
   type:             exitcode-stdio-1.0
   main-is:          LuaMain.hs
   hs-source-dirs:   test
-  ghc-options:      -Werror
+  ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
     , base
     , bytestring
@@ -163,7 +165,7 @@ test-suite toml-conformance
   type:             exitcode-stdio-1.0
   main-is:          TomlMain.hs
   hs-source-dirs:   test
-  ghc-options:      -Werror
+  ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
     , base
     , bytestring

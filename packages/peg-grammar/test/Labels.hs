@@ -45,16 +45,20 @@ labelTests files =
             [ n : map ("  " <>) (either (map renderD) (map renderD) (warningsOf src))
             | (n, src) <- unsafeSnippets ++ [("indirect left recursion", indirect)]
             ]
-    , testCase "the notation's grammar accepts the same language without its labels" $ do
-        srcs <- mapM TIO.readFile files
-        let differ =
-              [ (f, m)
-              | (f, src) <- zip files srcs
-              , m <- mutants src
-              , either (const Nothing) Just (parseGrammar m)
-                  /= either (const Nothing) Just (either (const (Left [])) assemble (SelfHostedNoLabels.parse m))
-              ]
-        assertBool (show (length differ) <> " mutants differ, the first ones:\n" <> unlines [f <> ":\n" <> T.unpack m | (f, m) <- take 3 differ]) (null differ)
+    -- One test per grammar file, so that they run in parallel (ADR 0039).
+    , testGroup
+        "the notation's grammar accepts the same language without its labels"
+        [ testCase f $ do
+            src <- TIO.readFile f
+            let differ =
+                  [ m
+                  | m <- mutants src
+                  , either (const Nothing) Just (parseGrammar m)
+                      /= either (const Nothing) Just (either (const (Left [])) assemble (SelfHostedNoLabels.parse m))
+                  ]
+            assertBool (show (length differ) <> " mutants differ, the first ones:\n" <> unlines (map T.unpack (take 3 differ))) (null differ)
+        | f <- files
+        ]
     , testGroup "precise in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- preciseSnippets]
     , testGroup "still unsafe in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- stillUnsafeSnippets]
     , testCase "the recovery rules become entries once each (ADR 0038)" $

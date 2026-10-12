@@ -62,6 +62,8 @@ ADRs live in `docs/adr/`.
 - After changing the generator or a grammar, regenerate them with `scripts/regen-fixtures.sh`
 - Grammars are committed formatted with `peg-hs fmt`; CI runs `peg-hs fmt --check` ([ADR 0032](docs/adr/0032-grammar-formatter.md))
 - Grammars have no warnings of `peg-hs lint`, which CI runs ([ADR 0033](docs/adr/0033-grammar-linter.md))
+- CI does not build or test a change of `docs/` and Markdown files only; adr-guard still checks it. A new push to a pull request stops the run of the previous push ([ADR 0039](docs/adr/0039-faster-ci.md))
+- Test suites run their tests in parallel. Each test uses files and directories that no other test uses ([ADR 0039](docs/adr/0039-faster-ci.md))
 - To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
 
 ### Performance
