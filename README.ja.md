@@ -34,6 +34,8 @@ cabal run peg-hs -- Grammar.peg -o Grammar.hs
 
 ## 開発
 
+変更の進め方（ADR、テストを先に書くこと、コミットとリリース）は [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) に定める。
+
 ツールチェーンは ghcup が recommended とする版を使う（GHC 9.10.3、cabal-install 3.16.1.0、HLS 2.14.0.0）。
 コンパイラの版は `cabal.project` で固定する。
 [mise](https://mise.jdx.dev/) を使う場合は、同梱の `mise.toml` が ghcup のバイナリをプロジェクトの PATH に加える。

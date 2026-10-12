@@ -33,6 +33,8 @@ The generator warns about labels that may make the grammar reject valid input (A
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how changes are made: ADRs, tests first, commits and releases.
+
 The toolchain is the one ghcup marks as recommended: GHC 9.10.3, cabal-install 3.16.1.0, and HLS 2.14.0.0.
 `cabal.project` pins the compiler version.
 If you use [mise](https://mise.jdx.dev/), the bundled `mise.toml` puts ghcup's binaries on the project's `PATH`.
