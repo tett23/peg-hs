@@ -1,0 +1,22 @@
+== AST
+Add (Add (Num 1) (Num 2)) (Num 3)
+== CST
+Expr@0..12
+  l: Expr@0..6
+    l: Expr@0..1
+      Term@0..1
+        d: TEXT@0..1 "1"
+    Sp@1..2
+      TEXT@1..2 " "
+    TEXT@2..3 "+"
+    Sp@3..4
+      TEXT@3..4 " "
+    r: Term@4..6
+      d: TEXT@4..6 "22"
+  Sp@6..7
+    TEXT@6..7 " "
+  TEXT@7..8 "+"
+  Sp@8..9
+    TEXT@8..9 " "
+  r: Term@9..12
+    d: TEXT@9..12 "333"
