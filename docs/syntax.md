@@ -662,3 +662,4 @@ parseSyntaxRecover :: Text -> (SyntaxNode, [SyntaxError])    -- %syntax の文�
 ラベル、範囲（バイトオフセット）、範囲の始まりの位置、送出の時点の期待集合を持つ。
 ラベルから利用者向けのメッセージへの対応は、利用者が持つ。
 
+
