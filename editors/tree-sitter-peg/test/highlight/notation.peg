@@ -1,0 +1,33 @@
+%module Example # the module
+# <- @keyword.directive
+#        ^ @string.special
+#                ^ @comment
+%language OverloadedStrings
+
+Expr :: Int
+# <- @function
+#    ^ @keyword.operator
+Expr <- l:Expr '+' r:Term ^term { l + r }
+     #  ^ @variable.parameter
+     #    ^ @function.call
+     #         ^ @string
+     #                    ^ @label
+     / Term
+
+Term :: Int
+Term <- !'-' [0-9]+ . T<'x'> { _span }
+     #  ^ @operator
+     #   ^ @string
+     #       ^ @string.regexp
+     #            ^ @operator
+     #              ^ @constant.builtin
+     #                ^ @function.call
+     #                 ^ @punctuation.bracket
+     #                         ^ @variable.builtin
+     / '\n' { 0 }
+     #  ^ @string.escape
+     / 'y' { 1 }
+
+T<p> :: Int
+T<p> <- p { 0 }
+#    ^ @keyword.operator

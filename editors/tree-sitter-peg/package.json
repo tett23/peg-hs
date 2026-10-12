@@ -1,0 +1,22 @@
+{
+  "name": "tree-sitter-peg",
+  "version": "0.1.0",
+  "description": "The .peg notation of peg-hs for tree-sitter",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "test": "tree-sitter test"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.peg",
+      "file-types": [
+        "peg"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm",
+      "injection-regex": "^peg$"
+    }
+  ]
+}

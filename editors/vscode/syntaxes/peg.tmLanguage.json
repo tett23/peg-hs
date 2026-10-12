@@ -1,0 +1,484 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "peg-hs",
+  "scopeName": "source.peg",
+  "fileTypes": [
+    "peg"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#verbatim"
+    },
+    {
+      "include": "#directive"
+    },
+    {
+      "include": "#annotation"
+    },
+    {
+      "include": "#definition"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.peg",
+      "match": "#.*$"
+    },
+    "verbatim": {
+      "name": "meta.embedded.block.haskell",
+      "begin": "^\\s*(%\\{)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.embedded.begin.peg"
+        }
+      },
+      "end": "(\\}%)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.embedded.end.peg"
+        }
+      },
+      "contentName": "source.haskell",
+      "patterns": [
+        {
+          "include": "#haskell-string"
+        },
+        {
+          "include": "source.haskell"
+        }
+      ]
+    },
+    "directive": {
+      "match": "^\\s*(%[\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
+      "captures": {
+        "1": {
+          "name": "keyword.other.directive.peg"
+        },
+        "2": {
+          "name": "string.unquoted.directive.peg"
+        },
+        "3": {
+          "name": "comment.line.number-sign.peg"
+        }
+      }
+    },
+    "annotation": {
+      "begin": "^([\\p{L}_][\\p{L}\\p{N}_']*)(?=(?:\\s*<[^>\\n]*>)?(?:\\s*\\([^\\n]*\\))?\\s*::)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.rule.peg"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#template-parameters"
+        },
+        {
+          "begin": "\\(",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.parameters.begin.peg"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.parameters.end.peg"
+            }
+          },
+          "contentName": "meta.embedded.parameters.peg source.haskell",
+          "patterns": [
+            {
+              "include": "#haskell-nested"
+            },
+            {
+              "include": "#haskell-string"
+            },
+            {
+              "include": "#haskell-char"
+            },
+            {
+              "include": "#reserved-binding"
+            },
+            {
+              "include": "source.haskell"
+            }
+          ]
+        },
+        {
+          "match": "(::)\\s*(.*)$",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.definition.peg"
+            },
+            "2": {
+              "name": "meta.embedded.type.peg source.haskell",
+              "patterns": [
+                {
+                  "include": "#haskell-string"
+                },
+                {
+                  "include": "source.haskell"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "definition": {
+      "begin": "^([\\p{L}_][\\p{L}\\p{N}_']*)(?=(?:\\s*<[^>\\n]*>)?\\s*<-)",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.rule.peg"
+        }
+      },
+      "end": "(?=^\\s*(?:%|[\\p{L}_][\\p{L}\\p{N}_']*(?:\\s*<[^>\\n]*>)?(?:\\s*\\([^\\n]*\\))?\\s*(?:::|<-)))",
+      "patterns": [
+        {
+          "include": "#template-parameters"
+        },
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "template-parameters": {
+      "begin": "\\G\\s*(<)(?!-)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.template.peg"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.template.peg"
+        }
+      },
+      "patterns": [
+        {
+          "match": "::",
+          "name": "keyword.operator.definition.peg"
+        },
+        {
+          "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
+          "name": "variable.parameter.template.peg"
+        }
+      ]
+    },
+    "expression": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#predicate"
+        },
+        {
+          "include": "#action"
+        },
+        {
+          "include": "#literal-single"
+        },
+        {
+          "include": "#literal-double"
+        },
+        {
+          "include": "#class"
+        },
+        {
+          "include": "#label"
+        },
+        {
+          "include": "#binding"
+        },
+        {
+          "include": "#call"
+        },
+        {
+          "include": "#template-call"
+        },
+        {
+          "match": "<-|::",
+          "name": "keyword.operator.definition.peg"
+        },
+        {
+          "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
+          "name": "variable.other.rule.peg"
+        },
+        {
+          "match": "/",
+          "name": "keyword.operator.choice.peg"
+        },
+        {
+          "match": "[*+?&!$]",
+          "name": "keyword.operator.peg"
+        },
+        {
+          "match": "\\.",
+          "name": "constant.language.any.peg"
+        },
+        {
+          "match": "[()]",
+          "name": "punctuation.section.group.peg"
+        }
+      ]
+    },
+    "action": {
+      "name": "meta.embedded.action.peg",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.action.begin.peg"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.action.end.peg"
+        }
+      },
+      "contentName": "source.haskell",
+      "patterns": [
+        {
+          "include": "#haskell-nested"
+        },
+        {
+          "include": "#haskell-string"
+        },
+        {
+          "include": "#haskell-char"
+        },
+        {
+          "include": "#reserved-binding"
+        },
+        {
+          "include": "source.haskell"
+        }
+      ]
+    },
+    "predicate": {
+      "name": "meta.embedded.predicate.peg",
+      "begin": "([&!])\\s*(\\{)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.peg"
+        },
+        "2": {
+          "name": "punctuation.section.predicate.begin.peg"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.predicate.end.peg"
+        }
+      },
+      "contentName": "source.haskell",
+      "patterns": [
+        {
+          "include": "#haskell-nested"
+        },
+        {
+          "include": "#haskell-string"
+        },
+        {
+          "include": "#haskell-char"
+        },
+        {
+          "include": "#reserved-binding"
+        },
+        {
+          "include": "source.haskell"
+        }
+      ]
+    },
+    "call": {
+      "begin": "([\\p{L}_][\\p{L}\\p{N}_']*)(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "variable.other.rule.peg"
+        },
+        "2": {
+          "name": "punctuation.section.arguments.begin.peg"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.arguments.end.peg"
+        }
+      },
+      "contentName": "meta.embedded.arguments.peg source.haskell",
+      "patterns": [
+        {
+          "include": "#haskell-nested"
+        },
+        {
+          "include": "#haskell-string"
+        },
+        {
+          "include": "#haskell-char"
+        },
+        {
+          "include": "#reserved-binding"
+        },
+        {
+          "include": "source.haskell"
+        }
+      ]
+    },
+    "template-call": {
+      "begin": "([\\p{L}_][\\p{L}\\p{N}_']*)(<)(?!-)",
+      "beginCaptures": {
+        "1": {
+          "name": "variable.other.rule.peg"
+        },
+        "2": {
+          "name": "punctuation.definition.template.peg"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.template.peg"
+        }
+      },
+      "patterns": [
+        {
+          "match": ",",
+          "name": "punctuation.separator.template.peg"
+        },
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "literal-single": {
+      "name": "string.quoted.single.peg",
+      "begin": "'",
+      "end": "'|$",
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "literal-double": {
+      "name": "string.quoted.double.peg",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "class": {
+      "name": "string.regexp.class.peg",
+      "begin": "\\[",
+      "end": "\\]|$",
+      "patterns": [
+        {
+          "include": "#escape"
+        }
+      ]
+    },
+    "escape": {
+      "name": "constant.character.escape.peg",
+      "match": "\\\\(?:u\\{[0-9a-fA-F]*\\}|.)"
+    },
+    "label": {
+      "name": "entity.name.tag.label.peg",
+      "match": "\\^\\s*[\\p{L}_][\\p{L}\\p{N}_']*"
+    },
+    "binding": {
+      "name": "variable.parameter.binding.peg",
+      "match": "[\\p{L}_][\\p{L}\\p{N}_']*:(?!:)"
+    },
+    "reserved-binding": {
+      "name": "variable.language.peg",
+      "match": "(?<![\\p{L}\\p{N}_'])(?:_span|_env|_col)(?![\\p{L}\\p{N}_'])"
+    },
+    "haskell-nested": {
+      "patterns": [
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "#haskell-nested"
+            },
+            {
+              "include": "#haskell-string"
+            },
+            {
+              "include": "#haskell-char"
+            },
+            {
+              "include": "#reserved-binding"
+            },
+            {
+              "include": "source.haskell"
+            }
+          ]
+        },
+        {
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            {
+              "include": "#haskell-nested"
+            },
+            {
+              "include": "#haskell-string"
+            },
+            {
+              "include": "#haskell-char"
+            },
+            {
+              "include": "#reserved-binding"
+            },
+            {
+              "include": "source.haskell"
+            }
+          ]
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            {
+              "include": "#haskell-nested"
+            },
+            {
+              "include": "#haskell-string"
+            },
+            {
+              "include": "#haskell-char"
+            },
+            {
+              "include": "#reserved-binding"
+            },
+            {
+              "include": "source.haskell"
+            }
+          ]
+        }
+      ]
+    },
+    "haskell-string": {
+      "name": "string.quoted.double.haskell",
+      "match": "\"(?:[^\"\\\\]|\\\\.)*\""
+    },
+    "haskell-char": {
+      "name": "string.quoted.single.haskell",
+      "match": "(?<![\\p{L}\\p{N}_'])'(?:\\\\.[^'\\n]*|[^\\\\\\n])'"
+    }
+  }
+}

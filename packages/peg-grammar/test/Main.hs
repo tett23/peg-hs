@@ -15,6 +15,7 @@ import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
 import Labels (labelTests)
 import Lint (lintTests)
+import Ranges (rangeTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -26,6 +27,8 @@ import Test.Tasty.HUnit
 main :: IO ()
 main = do
   files <- grammarFiles
+  -- The editor grammars are missing in a source tarball.
+  editors <- doesDirectoryExist "../../editors/test"
   defaultMain $
     testGroup
       "peg-grammar"
@@ -39,6 +42,7 @@ main = do
       , labelTests files
       , formatTests files
       , lintTests files
+      , testGroup "editor grammars" [rangeTests files | editors]
       ]
 
 -- Every grammar in the repository. Directories outside this package are

@@ -1,0 +1,286 @@
+========================================================================
+directives and a verbatim block
+========================================================================
+
+%module Example.Grammar # a comment
+%syntax
+%{
+import Data.Map (Map)
+f = \x -> case x of { _ -> x }
+}%
+
+------------------------------------------------------------------------
+
+(source_file
+  (directive
+    (directive_name)
+    (directive_argument))
+  (comment)
+  (directive
+    (directive_name))
+  (verbatim
+    (haskell)))
+
+========================================================================
+annotations
+========================================================================
+
+Expr(n :: Int, s :: Text) :: Maybe [Int]
+List<p :: a, sep> :: [a]
+
+------------------------------------------------------------------------
+
+(source_file
+  (annotation
+    (rule_name
+      (identifier))
+    (parameters
+      (haskell)
+      (haskell))
+    (type))
+  (annotation
+    (rule_name
+      (identifier))
+    (template_parameters
+      (template_parameter
+        (identifier)
+        (identifier))
+      (template_parameter
+        (identifier)))
+    (type)))
+
+========================================================================
+alternatives and the end of a definition
+========================================================================
+
+A <- B C { () }
+   / D
+E <- 'e'
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell)))
+      (alternative
+        (item
+          (rule_reference
+            (identifier))))))
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (literal))))))
+
+========================================================================
+prefixes, suffixes, bindings and labels
+========================================================================
+
+A <- x:B? !C* &'d' $(E+) F ^label &{ x > 0 } !{ False } . { x }
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (binding
+            (identifier))
+          (repetition
+            (rule_reference
+              (identifier))))
+        (item
+          (lookahead
+            (repetition
+              (rule_reference
+                (identifier)))))
+        (item
+          (lookahead
+            (literal)))
+        (item
+          (capture
+            (group
+              (item
+                (repetition
+                  (rule_reference
+                    (identifier)))))))
+        (item
+          (labeled
+            (rule_reference
+              (identifier))
+            (label
+              (identifier))))
+        (item
+          (predicate
+            (haskell)))
+        (item
+          (predicate
+            (haskell)))
+        (item
+          (any))
+        (action
+          (haskell))))))
+
+========================================================================
+groups, calls and templates
+========================================================================
+
+A <- (B / C D / ) Call(x + 1, [y, z]) List<'a' / 'b', ','> T<(X Y)>
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (group
+            (item
+              (rule_reference
+                (identifier)))
+            (item
+              (rule_reference
+                (identifier)))
+            (item
+              (rule_reference
+                (identifier)))))
+        (item
+          (call
+            (rule_reference)
+            (haskell)
+            (haskell)))
+        (item
+          (template_call
+            (rule_reference)
+            (template_argument
+              (item
+                (literal))
+              (item
+                (literal)))
+            (template_argument
+              (item
+                (literal)))))
+        (item
+          (template_call
+            (rule_reference)
+            (template_argument
+              (item
+                (group
+                  (item
+                    (rule_reference
+                      (identifier)))
+                  (item
+                    (rule_reference
+                      (identifier))))))))))))
+
+========================================================================
+literals and classes
+========================================================================
+
+A <- '#' "a\"b" '\u{1F600}' [a-z\]\-] [#] { () }
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (literal))
+        (item
+          (literal
+            (escape)))
+        (item
+          (literal
+            (escape)))
+        (item
+          (class
+            (escape)
+            (escape)))
+        (item
+          (class))
+        (action
+          (haskell))))))
+
+========================================================================
+actions with braces and strings
+========================================================================
+
+A <- B { "}" } / C { f {x = 1} } / D { '}' : g' x } / E {
+    multi
+  }
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell)))
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell)))
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell)))
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell))))))
+
+========================================================================
+reserved bindings
+========================================================================
+
+A <- B { (_span, _env, _col) }
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (action
+          (haskell
+            (reserved_binding)
+            (reserved_binding)
+            (reserved_binding)))))))

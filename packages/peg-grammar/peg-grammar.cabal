@@ -39,6 +39,7 @@ library
     Peg.Grammar.Assemble
     Peg.Grammar.Check
     Peg.Grammar.Format
+    Peg.Grammar.Highlight
     Peg.Grammar.Labels
     Peg.Grammar.Lint
     Peg.Grammar.Parser
@@ -63,6 +64,7 @@ test-suite peg-grammar-test
     Format
     Labels
     Lint
+    Ranges
     SelfHostedNoLabels
   build-depends:
     , base

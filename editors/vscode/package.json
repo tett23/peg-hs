@@ -1,0 +1,48 @@
+{
+  "name": "peg-hs",
+  "displayName": "peg-hs",
+  "description": "The .peg notation of peg-hs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tett23/peg-hs"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "peg",
+        "aliases": [
+          "peg-hs",
+          "peg"
+        ],
+        "extensions": [
+          ".peg"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "peg",
+        "scopeName": "source.peg",
+        "path": "./syntaxes/peg.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.haskell": "haskell",
+          "meta.embedded.action.peg": "haskell",
+          "meta.embedded.predicate.peg": "haskell",
+          "meta.embedded.arguments.peg": "haskell",
+          "meta.embedded.parameters.peg": "haskell",
+          "meta.embedded.type.peg": "haskell"
+        }
+      }
+    ]
+  }
+}
