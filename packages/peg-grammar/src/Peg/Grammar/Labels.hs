@@ -188,8 +188,9 @@ data Frame
   | FStar Expr Loc
   | FPlus Expr Loc
   | FOpt
-  | FAnd
-  | FNot
+  | -- | A lookahead, with the location of its item.
+    FAnd Loc
+  | FNot Loc
   | FLabel
   | FCapture
 
@@ -200,8 +201,8 @@ frameKey = \case
   FStar _ _ -> (2, 0)
   FPlus _ _ -> (3, 0)
   FOpt -> (4, 0)
-  FAnd -> (5, 0)
-  FNot -> (6, 0)
+  FAnd _ -> (5, 0)
+  FNot _ -> (6, 0)
   FLabel -> (7, 0)
   FCapture -> (8, 0)
 
@@ -237,8 +238,8 @@ sites r =
           EStar x -> exprSites (FStar x l : fs) l x
           EPlus x -> exprSites (FPlus x l : fs) l x
           EOpt x -> exprSites (FOpt : fs) l x
-          EAnd x -> exprSites (FAnd : fs) l x
-          ENot x -> exprSites (FNot : fs) l x
+          EAnd x -> exprSites (FAnd l : fs) l x
+          ENot x -> exprSites (FNot l : fs) l x
           ECapture x -> exprSites (FCapture : fs) l x
           ELabel _ x _ -> exprSites (FLabel : fs) l x
           _ -> []
@@ -383,8 +384,10 @@ failed ctx rule fs k = visit rule fs Failed k $ case fs of
   FStar _ _ : rest -> succeeded ctx rule rest k
   FPlus _ _ : rest -> allOf [failed ctx rule rest k, succeeded ctx rule rest k]
   FOpt : rest -> succeeded ctx rule rest k
-  FAnd : _ -> pure Safe
-  FNot : _ -> pure Safe
+  -- A throw inside a lookahead is a failure of the lookahead's body, which
+  -- has failed here without the label too.
+  FAnd _ : _ -> pure Safe
+  FNot _ : _ -> pure Safe
   FLabel : rest -> failed ctx rule rest k
   FCapture : rest -> failed ctx rule rest k
   [] -> ruleFailed ctx rule k
@@ -415,8 +418,10 @@ succeeded ctx rule fs k = visit rule fs Succeeded k $ case fs of
   FStar x l : rest -> again x l rest
   FPlus x l : rest -> again x l rest
   FOpt : rest -> succeeded ctx rule rest k
-  FAnd : rest -> succeeded ctx rule rest everything
-  FNot : rest -> failed ctx rule rest everything
+  -- Without the label, the body of the lookahead can succeed, while the
+  -- throw makes it fail: the lookahead decides the other way.
+  FAnd l : _ -> pure (Unsafe ("the lookahead at " <> showLoc l <> " can match"))
+  FNot l : _ -> pure (Unsafe ("the lookahead at " <> showLoc l <> " can match"))
   FLabel : rest -> succeeded ctx rule rest k
   FCapture : rest -> succeeded ctx rule rest k
   [] -> ruleSucceeded ctx rule k

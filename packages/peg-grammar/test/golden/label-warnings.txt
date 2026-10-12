@@ -8,6 +8,8 @@ a failure in another rule
   5:11: the label l may reject valid input: where it fails, the alternative at 3:17 can match
 the input can end
   3:11: the label l may reject valid input: where it fails, the input can end after the rule S, which is an entry
+a repetition inside a negative lookahead
+  3:10: the label l may reject valid input: where it fails, the lookahead at 3:6 can match
 the growth of left recursion stops
   5:13: the label l may reject valid input: where it fails, the parse can continue at 3:8
 indirect left recursion

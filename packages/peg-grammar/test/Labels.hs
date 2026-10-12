@@ -91,6 +91,7 @@ unsafeSnippets =
   , ("an optional whose failure lets the rest match", grammar ["S :: ()", "S <- ('a' ^l)? 'b' { () }"])
   , ("a failure in another rule", grammar ["S :: ()", "S <- A { () } / 'a' 'c' { () }", "A :: ()", "A <- 'a' ('b' ^l) { () }"])
   , ("the input can end", grammar ["S :: ()", "S <- 'a' ('b' ^l)? { () }"])
+  , ("a repetition inside a negative lookahead", grammar ["S :: ()", "S <- !((('a' ^l) 'b')*) { () }"])
   , ( "the growth of left recursion stops"
     , grammar ["S :: ()", "S <- E '+' 'x' { () }", "E :: ()", "E <- E '+' (T ^l) { () } / T { () }", "T :: ()", "T <- [0-9] { () }"]
     )
