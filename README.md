@@ -60,6 +60,9 @@ After changing the generator or a grammar, regenerate them:
 scripts/regen-fixtures.sh
 ```
 
+The parser of the `.peg` notation is generated from the notation's own grammar, `packages/peg-grammar/grammar/Peg.peg` (ADR 0027).
+To add a construct to the notation and use it in `Peg.peg` itself, regenerate twice: first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator.
+
 Performance regressions are caught with local benchmarks.
 For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine (ADR 0007).
 

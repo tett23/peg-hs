@@ -60,6 +60,11 @@ cabal test all
 scripts/regen-fixtures.sh
 ```
 
+`.peg` 記法のパーサーは、記法自身の文法 `packages/peg-grammar/grammar/Peg.peg` から生成している（ADR 0027）。
+記法に構文を加え、その構文を `Peg.peg` 自身で使う場合は、二回に分けて生成し直す。
+まず、その構文を受理する規則を、その構文を使わずに加えて生成し直す。
+次に、`Peg.peg` でその構文を使い、新しい生成器で生成し直す。
+
 性能の退行は手元のベンチマークで検出する。
 peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（ADR 0007）。
 
