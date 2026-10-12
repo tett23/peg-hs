@@ -6,6 +6,7 @@ module Main (main) where
 
 import qualified Conformance.Json.Parser as Json
 import Conformance.Toml.Document (BuildError (..), Value (..), build)
+import qualified Conformance.Toml.NoLabels as NoLabels
 import qualified Conformance.Toml.Parser as Toml
 import Conformance.Toml.Types (DateTime (..), Time (..))
 import qualified Data.ByteString as B
@@ -16,7 +17,9 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
-import Peg.Codegen (Options (..), generateFromSource)
+import Peg.Codegen (Options (..), generate, generateFromSource)
+import Peg.Grammar.Labels (stripLabelsAs)
+import Peg.Grammar.Parser (parseGrammar)
 import Peg.Runtime (ParseError (..), Pos (..), Span (..), SyntaxError (..), renderParseError)
 import Peg.Runtime.Syntax
 import System.FilePath (takeExtension, (</>))
@@ -64,6 +67,13 @@ main = do
     testGroup
       "TOML 1.1.0 (ADR 0023)"
       [ testCase "the committed parser is up to date" regenerated
+      , testCase "the committed parser without labels is up to date (ADR 0028)" regeneratedNoLabels
+      , testCase "the grammar accepts the same inputs without its labels (ADR 0028)" $ do
+          let mutants t =
+                t : concat [[T.take i t <> T.drop (i + 1) t, T.take (i + 1) t <> T.drop i t] | i <- [0 .. T.length t - 1]]
+              accepts p t = either (const False) (const True) (p t)
+              bad = [m | (_, t) <- decoded, m <- mutants t, accepts Toml.parse m /= accepts NoLabels.parse m]
+          assertBool (show (length bad) <> " inputs differ, the first ones: " <> show (take 3 bad)) (null bad)
       , testGroup "valid: the document is the expected JSON" [testCase f (validCase f (inputs M.! f)) | f <- valid]
       , testGroup "invalid: rejected" [testCase f (invalidCase (inputs M.! f)) | f <- invalid]
       , goldenVsString "invalid: the stage that rejects each input" "toml/invalid-stages.golden" $
@@ -255,6 +265,15 @@ recoveredInPlace b
     (s, e) = breakRange b
     inside n = let (x, y) = syntaxRange n in x >= s && y <= e
     others = [shape x | x <- expressions tree, fst (syntaxRange x) /= s]
+
+regeneratedNoLabels :: Assertion
+regeneratedNoLabels = do
+  src <- TIO.readFile "toml/Toml.peg"
+  committed <- B.readFile "toml/Conformance/Toml/NoLabels.hs"
+  let opts = Options {optSourceName = "toml/Toml.peg", optOutputName = "toml/Conformance/Toml/NoLabels.hs", optDebugEntry = False}
+  case parseGrammar src >>= generate opts . stripLabelsAs (T.pack "Conformance.Toml.NoLabels") of
+    Left ds -> assertFailure (show ds)
+    Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
 
 regenerated :: Assertion
 regenerated = do

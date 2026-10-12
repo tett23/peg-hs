@@ -21,15 +21,19 @@ import qualified Fixture.Located as Located
 import qualified Fixture.Misc as Misc
 import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
+import qualified Fixture.RecoverNoLabels as RecoverNoLabels
 import qualified Fixture.Sum as Sum
 import qualified Fixture.Syntax as Syntax
 import qualified Fixture.Unicode as Unicode
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
+import Peg.Grammar.Labels (stripLabelsAs)
+import Peg.Grammar.Parser (parseGrammar)
 import Peg.Runtime
 import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
 import Peg.Runtime.Syntax
-import System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
+import Control.Monad (when)
+import System.Directory (createDirectoryIfMissing, doesFileExist, getTemporaryDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
 import System.Info (fullCompilerVersion)
@@ -37,7 +41,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===))
+import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===), withNumTests)
 
 main :: IO ()
 main =
@@ -45,6 +49,7 @@ main =
     testGroup
       "peg-codegen"
       [ regenerationTests
+      , variantTests
       , goldenVsString "default options (Sum)" "test/golden/Sum.hs.golden" $
           generateFixture Options {optSourceName = "test/fixtures/Sum.peg", optOutputName = "test/golden/Sum.hs.golden", optDebugEntry = False} "Sum"
       , sumTests
@@ -128,6 +133,34 @@ unusedInput = "$12;$ab;&x1;!.;*1a2;?z;?;^42;"
 
 unusedExpected :: [Text]
 unusedExpected = ["12", "ab", "x1", "none", "many", "optional", "optional", "42"]
+
+-- The self-hosted parser of the notation (ADR 0027), and the grammars
+-- without labels used to test that the labels are safe (ADR 0028), are up
+-- to date. The files of peg-grammar are missing in a source tarball.
+variantTests :: TestTree
+variantTests =
+  testGroup
+    "committed self-hosted parser and label-free variants are up to date"
+    [ check "self-hosted parser" "../peg-grammar" "grammar/Peg.peg" "src/Peg/Grammar/SelfHosted.hs" Nothing
+    , check "self-hosted parser without labels" "../peg-grammar" "grammar/Peg.peg" "test/generated/SelfHostedNoLabels.hs" (Just "SelfHostedNoLabels")
+    , check "Recover without labels" "." "test/fixtures/Recover.peg" "test/generated/Fixture/RecoverNoLabels.hs" (Just "Fixture.RecoverNoLabels")
+    , testProperty "the Recover fixture accepts the same inputs without its labels" $
+        withNumTests 3000 $ forAll (T.pack <$> listOf (elements "ab[] \n")) $ \t ->
+          either (const False) (const True) (Recover.parse t) === either (const False) (const True) (RecoverNoLabels.parse t)
+    ]
+  where
+    check name dir src out strip = testCase name $ do
+      exists <- doesFileExist (dir </> src)
+      when exists $ do
+        grammarText <- TIO.readFile (dir </> src)
+        committed <- BL.readFile (dir </> out)
+        let opts = Options {optSourceName = src, optOutputName = out, optDebugEntry = False}
+            code = case strip of
+              Nothing -> generateFromSource opts grammarText
+              Just m -> parseGrammar grammarText >>= generate opts . stripLabelsAs m
+        case code of
+          Left ds -> assertFailure (show ds)
+          Right c -> assertBool ("regenerate with scripts/regen-fixtures.sh: " <> out) (BL.fromStrict (TE.encodeUtf8 c) == committed)
 
 flipE :: Either a b -> Either b a
 flipE = either Right Left

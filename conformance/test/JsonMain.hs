@@ -67,6 +67,11 @@ main = do
           , testCase "labels do not change the accepted language" $ do
               rs <- mapM (\f -> (,) f <$> labelsAgree f) files
               assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testCase "labels do not change the accepted language on mutated valid cases (ADR 0028)" $ do
+              srcs <- mapM (\f -> TE.decodeUtf8' <$> B.readFile (dataDir </> f)) (named "y_")
+              let mutants t = concat [[T.take i t <> T.drop (i + 1) t, T.take (i + 1) t <> T.drop i t] | i <- [0 .. T.length t - 1]]
+                  bad = [m | Right t <- srcs, m <- mutants t, isRight (Json.parse m) /= isRight (JsonRecover.parse m)]
+              assertBool ("differ: " <> show (take 3 bad)) (null bad)
           , testCase "every rejected case gives a lossless tree with errors" $ do
               rs <- mapM (\f -> (,) f <$> recoversOnFile f) (named "n_")
               assertBool ("failed: " <> show [f | (f, False) <- rs]) (all snd rs)

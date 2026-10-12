@@ -27,6 +27,13 @@ peg=$("$cabal" list-bin exe:peg-hs)
   done
   # Golden output of the default options.
   "$peg" test/fixtures/Sum.peg -o test/golden/Sum.hs.golden >/dev/null
+  # The recovery fixture without its labels, for the label safety tests (ADR 0028).
+  "$peg" test/fixtures/Recover.peg -o test/generated/Fixture/RecoverNoLabels.hs --strip-labels Fixture.RecoverNoLabels >/dev/null
+)
+# The notation's grammar without its labels, for the label safety tests (ADR 0028).
+(
+  cd packages/peg-grammar
+  "$peg" grammar/Peg.peg -o test/generated/SelfHostedNoLabels.hs --strip-labels SelfHostedNoLabels >/dev/null
 )
 
 # Conformance grammars.
@@ -49,6 +56,7 @@ if [ -d conformance/json ]; then
     done
     "$peg" lua/Lua.peg -o lua/Conformance/Lua/Parser.hs --debug-entry >/dev/null
     "$peg" toml/Toml.peg -o toml/Conformance/Toml/Parser.hs >/dev/null
+    "$peg" toml/Toml.peg -o toml/Conformance/Toml/NoLabels.hs --strip-labels Conformance.Toml.NoLabels >/dev/null
     "$peg" commonmark/Block.peg -o commonmark/Conformance/CommonMark/Block.hs >/dev/null
     "$peg" commonmark/Inline.peg -o commonmark/Conformance/CommonMark/Inline.hs >/dev/null
     "$peg" commonmark/v1/Block.peg -o commonmark/Conformance/CommonMark/V1/Block.hs >/dev/null

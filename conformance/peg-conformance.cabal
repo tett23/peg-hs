@@ -42,6 +42,7 @@ library
     Conformance.Lua.Eval
     Conformance.Lua.Parser
     Conformance.Toml.Document
+    Conformance.Toml.NoLabels
     Conformance.Toml.Parser
     Conformance.Toml.Types
   hs-source-dirs:   json bench commonmark lua toml
@@ -169,6 +170,7 @@ test-suite toml-conformance
     , containers
     , filepath
     , peg-codegen
+    , peg-grammar
     , peg-conformance
     , peg-runtime
     , tasty
