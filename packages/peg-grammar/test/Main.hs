@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser
+import Labels (labelTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -29,6 +30,7 @@ main = do
       , analysisTests
       , repositoryGrammarTests files
       , errorReportTests
+      , labelTests files
       ]
 
 -- Every grammar in the repository. Directories outside this package are

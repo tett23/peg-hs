@@ -66,6 +66,8 @@ data Grammar = Grammar
   -- ^ @%inline@: rules whose children are spliced into the caller's node.
   , grammarRecovers :: [(Located Text, Located Text)]
   -- ^ @%recover@: labels and their recovery rules.
+  , grammarSafe :: [Located Text]
+  -- ^ @%safe@: labels the author has checked to be safe (ADR 0028).
   , grammarVerbatim :: [Located Text]
   -- ^ @%{ ... }%@ blocks, in order.
   , grammarRules :: [Rule]
@@ -127,7 +129,7 @@ data Expr
   | ENot Expr
   | -- | @$e@: the consumed text.
     ECapture Expr
-  | -- | @e ^label@: reserved, not implemented.
+  | -- | @e ^label@: throw the label when @e@ fails (ADR 0021).
     ELabel Loc Expr Text
   | -- | @&{ e }@ ('True') or @!{ e }@ ('False').
     EPred Bool (Located Text)

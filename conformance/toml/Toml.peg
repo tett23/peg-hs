@@ -24,6 +24,10 @@
 %recover value SkipValue
 %recover table SkipHeader
 %recover eol SkipLine
+# 見出しのラベルは、一文字目では配列の表 [[ と表 [ を区別できないため、ラベルの
+# 安全性の検査（ADR 0028）が危険と判定する。二文字目まで見れば、[[ の後に表の
+# 見出しが成り立たないので安全である
+%safe table
 
 %{
 import Conformance.Toml.Types

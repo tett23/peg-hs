@@ -56,7 +56,7 @@ import qualified Prelude as PegPrelude
 import qualified Peg.Runtime.Internal as PegRt
 import Prelude
 
-{-# LINE 14 "test/fixtures/Recover.peg" #-}
+{-# LINE 19 "test/fixtures/Recover.peg" #-}
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -69,7 +69,7 @@ data Inline = Plain Text | Command Text [Inline]
 
 -- | Parse the whole input with the rule @Doc@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 75 "test/generated/Fixture/Recover.hs" #-}
     )
@@ -84,7 +84,7 @@ parseSyntax peg'input =
 -- | Parse the whole input with the rule @Doc@, recovering from labelled failures.
 -- The value is 'PegPrelude.Nothing' only if the rule could not be recovered.
 parseRecover :: PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 90 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.SyntaxError])
@@ -101,7 +101,7 @@ parseSyntaxRecover peg'input =
 
 -- | Like 'peg'parseWith', recovering. Only meant for testing the generator.
 peg'parseRecoverWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 107 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.SyntaxError], PegRt.Stats)
@@ -117,7 +117,7 @@ peg'parseSyntaxRecoverWith peg'cfg peg'input =
 -- | Run the start rule with a runtime configuration and return statistics.
 -- Only meant for testing the generator.
 peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 123 "test/generated/Fixture/Recover.hs" #-}
     ), PegRt.Stats)
@@ -321,57 +321,57 @@ peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
   { peg'memo'Doc :: PegRt.Table peg's ((
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 327 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Item :: PegRt.Table peg's ((
-{-# LINE 28 "test/fixtures/Recover.peg" #-}
+{-# LINE 33 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Block
 {-# LINE 332 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Para :: PegRt.Table peg's ((
-{-# LINE 31 "test/fixtures/Recover.peg" #-}
+{-# LINE 36 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Block
 {-# LINE 337 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Inline :: PegRt.Table peg's ((
-{-# LINE 34 "test/fixtures/Recover.peg" #-}
+{-# LINE 39 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 342 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Command :: PegRt.Table peg's ((
-{-# LINE 38 "test/fixtures/Recover.peg" #-}
+{-# LINE 43 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 12 #-}Inline
 {-# LINE 347 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Name :: PegRt.Table peg's ((
-{-# LINE 41 "test/fixtures/Recover.peg" #-}
+{-# LINE 46 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Text
 {-# LINE 352 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ParaEnd :: PegRt.Table peg's ((
-{-# LINE 44 "test/fixtures/Recover.peg" #-}
+{-# LINE 49 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 357 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Sep :: PegRt.Table peg's ((
-{-# LINE 48 "test/fixtures/Recover.peg" #-}
+{-# LINE 53 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 362 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'SkipBlock :: PegRt.Table peg's ((
-{-# LINE 52 "test/fixtures/Recover.peg" #-}
+{-# LINE 57 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 14 #-}Block
 {-# LINE 367 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'CloseAtParagraphEnd :: PegRt.Table peg's ((
-{-# LINE 55 "test/fixtures/Recover.peg" #-}
+{-# LINE 60 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 24 #-}()
 {-# LINE 372 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MissingName :: PegRt.Table peg's ((
-{-# LINE 58 "test/fixtures/Recover.peg" #-}
+{-# LINE 63 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 16 #-}Text
 {-# LINE 377 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -382,7 +382,7 @@ peg'newStore =
   Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
 peg'rule'Doc :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 24 "test/fixtures/Recover.peg" #-}
+{-# LINE 29 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}[Block]
 {-# LINE 388 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -395,7 +395,7 @@ peg'rule'Doc =
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 25 "test/fixtures/Recover.peg" #-}
+{-# LINE 30 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 23 #-} bs 
 {-# LINE 401 "test/generated/Fixture/Recover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
@@ -403,7 +403,7 @@ peg'rule'Doc =
       ]))
 
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 28 "test/fixtures/Recover.peg" #-}
+{-# LINE 33 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Block
 {-# LINE 409 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -419,7 +419,7 @@ peg'rule'Item =
           ; (_, peg'k4) <- (PegRt.optionalS) (peg'rule'Sep)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 29 "test/fixtures/Recover.peg" #-}
+{-# LINE 34 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 34 #-} b 
 {-# LINE 425 "test/generated/Fixture/Recover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4])
@@ -427,7 +427,7 @@ peg'rule'Item =
       ]))
 
 peg'rule'Para :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 31 "test/fixtures/Recover.peg" #-}
+{-# LINE 36 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Block
 {-# LINE 433 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -439,7 +439,7 @@ peg'rule'Para =
           ; PegRt.touch is
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 32 "test/fixtures/Recover.peg" #-}
+{-# LINE 37 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 21 #-} Para is 
 {-# LINE 445 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k0)
@@ -447,7 +447,7 @@ peg'rule'Para =
       ]))
 
 peg'rule'Inline :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 34 "test/fixtures/Recover.peg" #-}
+{-# LINE 39 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 453 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -466,7 +466,7 @@ peg'rule'Inline =
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 36 "test/fixtures/Recover.peg" #-}
+{-# LINE 41 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 37 #-} Plain t 
 {-# LINE 472 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k5)
@@ -474,7 +474,7 @@ peg'rule'Inline =
       ]))
 
 peg'rule'Command :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 38 "test/fixtures/Recover.peg" #-}
+{-# LINE 43 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 12 #-}Inline
 {-# LINE 480 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -494,7 +494,7 @@ peg'rule'Command =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 39 "test/fixtures/Recover.peg" #-}
+{-# LINE 44 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 58 #-} Command n body 
 {-# LINE 500 "test/generated/Fixture/Recover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k6])
@@ -502,7 +502,7 @@ peg'rule'Command =
       ]))
 
 peg'rule'Name :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 41 "test/fixtures/Recover.peg" #-}
+{-# LINE 46 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 9 #-}Text
 {-# LINE 508 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -514,7 +514,7 @@ peg'rule'Name =
           ; PegRt.touch n
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 42 "test/fixtures/Recover.peg" #-}
+{-# LINE 47 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 20 #-} n 
 {-# LINE 520 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k0)
@@ -522,7 +522,7 @@ peg'rule'Name =
       ]))
 
 peg'rule'ParaEnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 44 "test/fixtures/Recover.peg" #-}
+{-# LINE 49 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 528 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -538,7 +538,7 @@ peg'rule'ParaEnd =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 45 "test/fixtures/Recover.peg" #-}
+{-# LINE 50 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 30 #-} () 
 {-# LINE 544 "test/generated/Fixture/Recover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3])
@@ -547,7 +547,7 @@ peg'rule'ParaEnd =
           ; (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 46 "test/fixtures/Recover.peg" #-}
+{-# LINE 51 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 16 #-} () 
 {-# LINE 553 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k4)
@@ -555,7 +555,7 @@ peg'rule'ParaEnd =
       ]))
 
 peg'rule'Sep :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 48 "test/fixtures/Recover.peg" #-}
+{-# LINE 53 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 561 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -566,7 +566,7 @@ peg'rule'Sep =
           ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.lit "\n" "'\\n'"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 49 "test/fixtures/Recover.peg" #-}
+{-# LINE 54 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 15 #-} () 
 {-# LINE 572 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k0)
@@ -574,7 +574,7 @@ peg'rule'Sep =
       ]))
 
 peg'rule'SkipBlock :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 52 "test/fixtures/Recover.peg" #-}
+{-# LINE 57 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 14 #-}Block
 {-# LINE 580 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -588,7 +588,7 @@ peg'rule'SkipBlock =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 53 "test/fixtures/Recover.peg" #-}
+{-# LINE 58 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 29 #-} ErrorBlock 
 {-# LINE 594 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k2)
@@ -596,7 +596,7 @@ peg'rule'SkipBlock =
       ]))
 
 peg'rule'CloseAtParagraphEnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 55 "test/fixtures/Recover.peg" #-}
+{-# LINE 60 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 24 #-}()
 {-# LINE 602 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -607,7 +607,7 @@ peg'rule'CloseAtParagraphEnd =
           ; (_, peg'k0) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'ParaEnd)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 56 "test/fixtures/Recover.peg" #-}
+{-# LINE 61 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 34 #-} () 
 {-# LINE 613 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k0)
@@ -615,7 +615,7 @@ peg'rule'CloseAtParagraphEnd =
       ]))
 
 peg'rule'MissingName :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 58 "test/fixtures/Recover.peg" #-}
+{-# LINE 63 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 16 #-}Text
 {-# LINE 621 "test/generated/Fixture/Recover.hs" #-}
     ), [PegRt.Child])
@@ -625,7 +625,7 @@ peg'rule'MissingName =
       [ do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 59 "test/fixtures/Recover.peg" #-}
+{-# LINE 64 "test/fixtures/Recover.peg" #-}
  {-# COLUMN 17 #-} T.pack "?" 
 {-# LINE 631 "test/generated/Fixture/Recover.hs" #-}
     ), [])

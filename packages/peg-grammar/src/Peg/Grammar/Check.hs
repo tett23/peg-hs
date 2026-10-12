@@ -153,6 +153,11 @@ checkRules g firstRule =
            | (Located l n, _) <- grammarRecovers g
            , not (S.member n usedLabels)
            ]
+        -- ADR 0028
+        ++ [ Diagnostic l ("the label " <> n <> " does not appear in the grammar")
+           | Located l n <- grammarSafe g
+           , not (S.member n usedLabels)
+           ]
 
     -- ADR 0006, ADR 0017
     nomemoErrors =

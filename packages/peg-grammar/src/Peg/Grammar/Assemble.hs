@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Turning the top-level items of a grammar file into a 'Grammar'.
+--
+-- The parser of the notation, generated from @grammar/Peg.peg@ (ADR 0027),
+-- calls these functions from its actions. They are exposed for that parser
+-- and for tests of it; use "Peg.Grammar.Parser" to read a grammar.
 module Peg.Grammar.Assemble
   ( Top (..)
   , assemble
@@ -25,22 +29,29 @@ import Peg.Grammar
 data Top
   = -- | Location of the directive, name, location of the argument, argument.
     TDirective Loc Text Loc Text
-  | TVerbatim Loc Text
-  | TAnnot Loc Text [Param] (Located Text)
-  | TDef Loc Text [Alt]
+  | -- | Location of the body and the body.
+    TVerbatim Loc Text
+  | -- | Location, rule name, parameters, type.
+    TAnnot Loc Text [Param] (Located Text)
+  | -- | Location, rule name, alternatives.
+    TDef Loc Text [Alt]
   deriving (Eq, Show)
 
+-- | Whether a character can start an identifier (ADR 0020).
 isIdentStart :: Char -> Bool
 isIdentStart c = isAlpha c || c == '_'
 
+-- | Whether a character can follow the first one of an identifier.
 isIdentChar :: Char -> Bool
 isIdentChar c = isAlphaNum c || c == '_' || c == '\''
 
+-- | Whether a text is an identifier.
 isValidIdent :: Text -> Bool
 isValidIdent t = case T.uncons t of
   Just (c, rest) -> isIdentStart c && T.all isIdentChar rest
   Nothing -> False
 
+-- | The location after a text that starts at the given location.
 advanceLoc :: Loc -> Text -> Loc
 advanceLoc = T.foldl' step
   where
@@ -103,6 +114,7 @@ assemble items =
                 | TDirective _ "recover" al a <- items
                 , [lab, rule] <- [T.words a]
                 ]
+            , grammarSafe = [Located l a | TDirective l "safe" _ a <- items]
             , grammarVerbatim = [Located l t | TVerbatim l t <- items]
             , grammarRules = rules
             }
@@ -111,7 +123,7 @@ assemble items =
   where
     directives = [(l, n, a) | TDirective l n _ a <- items]
     argLocs = [(n, al, a) | TDirective _ n al a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover"]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe"]
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
@@ -146,6 +158,11 @@ assemble items =
            | ("language", al, a) <- argLocs
            , Located l x <- splitExports al a
            , not (isExtensionName x)
+           ]
+        ++ [ Diagnostic l "%safe expects a label name"
+           | (l, "safe", a) <- directives
+           , not (T.null a)
+           , not (isValidIdent a)
            ]
         ++ [ Diagnostic l ("%" <> n <> " expects a rule name")
            | (l, n, a) <- directives

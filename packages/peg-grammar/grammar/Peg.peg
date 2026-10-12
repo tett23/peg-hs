@@ -6,6 +6,32 @@
 # 識別子と空白の文字は Peg.Grammar.Assemble の関数で判定する（ADR 0020）。
 %module Peg.Grammar.SelfHosted
 
+# 次のラベルは、ラベルの安全性の検査（ADR 0028）が危険と判定するが、安全である。
+# 識別子と空白の文字は意味述語で判定しており、検査は意味述語がどの文字でも成功
+# しうるとみなすため、空白や識別子で始まる別の選択肢と区別できない。安全なことは、
+# ラベルを外した文法との受理の一致のテストで確かめている。
+%safe verbatim
+%safe ident
+%safe type
+%safe argument
+%safe paramform
+%safe paramtype
+%safe argcode
+%safe expression
+%safe groupaction
+%safe paren
+%safe literal
+%safe escape
+%safe ubrace
+%safe uclose
+%safe uescape
+%safe emptyclass
+%safe class
+%safe range
+%safe action
+%safe hsstring
+%safe hschar
+
 %{
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)
 import Data.Text (Text)
@@ -184,7 +210,8 @@ Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
          / Ws o:$ClassLit { EClass (classRanges o) o }
          / Ws '.' { EAny }
          / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
-         / Ws l:Here n:Ident args:CallArgs? { ERef l n (maybe [] id args) }
+         / Ws l:Here n:Ident args:CallArgs { ERef l n args }
+         / Ws l:Here n:Ident !'(' { ERef l n [] }
 
 CallArgs :: [Located Text]
 CallArgs <- '(' cs:ArgChunks { cs }
@@ -248,7 +275,7 @@ HsPart <- HsNested
         / HsString
         / HsChar
         / HsIdent
-        / ![()\[\]{}] . { () }
+        / ![()\[\]{}"'] . { () }
 
 HsParen :: ()
 HsParen <- '(' HsInner* ')' { () }
@@ -263,16 +290,18 @@ HsInner <- HsNested
          / HsString
          / HsChar
          / HsIdent
-         / ![()\[\]{}] . { () }
+         / ![()\[\]{}"'] . { () }
 
 HsString :: ()
 HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring) { () }
 
-# 識別子の文字の直後にない引用符は文字リテラルの始まり
+# 識別子の文字の直後にない引用符は文字リテラルの始まり。
+# 引用符はこの規則と HsString でだけ読む。閉じていない文字列や文字リテラルは、
+# ラベルがなくても拒否される（ラベルは誤りの文言のため、ADR 0028）
 HsChar :: ()
 HsChar <- '\'' '\\' . (!'\'' .)* ('\'' ^hschar) { () }
         / '\'' . '\'' { () }
-        / '\'' { () }
+        / '\'' !'\\' { () }
 
 HsIdent :: ()
 HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }

@@ -8,6 +8,11 @@
 %recover block SkipBlock
 %recover close CloseAtParagraphEnd
 %recover name MissingName
+# コマンドの名前と閉じ括弧のラベルは、ラベルの安全性の検査（ADR 0028）が危険と
+# 判定する。失敗した位置から段落の繰り返しが続きうるとみなすためだが、続きの
+# 段落は同じ [ で同じように失敗するので、安全である
+%safe name
+%safe close
 %export Block(..), Inline(..)
 
 %{
