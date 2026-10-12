@@ -35,6 +35,8 @@ peg=$("$cabal" list-bin exe:peg-hs)
   "$peg" gen test/fixtures/Sum.peg -o test/golden/Sum.hs.golden >/dev/null
   # The recovery fixture without its labels, for the label safety tests (ADR 0028).
   "$peg" gen test/fixtures/Recover.peg -o test/generated/Fixture/RecoverNoLabels.hs --strip-labels Fixture.RecoverNoLabels >/dev/null
+  # Two labels with one recovery rule, without the labels (ADR 0038).
+  "$peg" gen test/fixtures/RecoverShared.peg -o test/generated/Fixture/RecoverSharedNoLabels.hs --strip-labels Fixture.RecoverSharedNoLabels >/dev/null
 )
 # The notation's grammar without its labels, for the label safety tests (ADR 0028).
 (

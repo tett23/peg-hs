@@ -55,6 +55,24 @@ labelTests files =
                   /= either (const Nothing) Just (either (const (Left [])) assemble (SelfHostedNoLabels.parse m))
               ]
         assertBool (show (length differ) <> " mutants differ, the first ones:\n" <> unlines [f <> ":\n" <> T.unpack m | (f, m) <- take 3 differ]) (null differ)
+    , testGroup "precise in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- preciseSnippets]
+    , testGroup "still unsafe in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- stillUnsafeSnippets]
+    , testCase "the recovery rules become entries once each (ADR 0038)" $
+        fmap (map unLoc . grammarEntries . stripLabelsAs "N") (parseGrammar sharedRecovery) @?= Right ["Skip"]
+    , testCase "a rule named twice in %entry is an error (ADR 0038)" $
+        fmap (const ()) (parseGrammar (grammar ["%entry A", "%entry A", "S :: ()", "S <- A { () }", "A :: ()", "A <- 'a' { () }"]) >>= check)
+          @?= Left [Diagnostic (Loc 3 1) "the rule A is named in %entry twice"]
+    , testProperty "with parameters, constant predicates and long literals, a grammar without warnings accepts the same language without its labels (ADR 0038)" $
+        withNumTests 3000 $
+          forAll genGrammarWithParams $ \src -> case parseGrammar src >>= check >> parseGrammar src of
+            Left _ -> discard
+            Right g
+              | not (null (labelWarnings g)) -> label "warned" True
+              | not (hasLabels g) -> label "no labels" True
+              | otherwise ->
+                  let sameOn s = run True g s == run False g s || isNothing (run True g s) || isNothing (run False g s)
+                      bad = filter (not . sameOn) paramInputs
+                   in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
     , testProperty "a grammar without warnings accepts the same language without its labels" $
         withNumTests 3000 $
           forAll genGrammar $ \src -> case parseGrammar src >>= check >> parseGrammar src of
@@ -110,6 +128,140 @@ safeSnippets =
     , grammar ["S :: ()", "S <- E { () }", "E :: ()", "E <- E '+' (T ^l) { () } / T { () }", "T :: ()", "T <- [0-9] { () }"]
     )
   ]
+
+-- The shapes of the labels of Golem's grammar that the check of ADR 0028
+-- warned about although they are safe (ADR 0038).
+preciseSnippets :: [(Text, Text)]
+preciseSnippets =
+  [ ( "a common prefix through calls with the same arguments"
+    , grammar
+        [ "S :: ()"
+        , "S <- B(0) 'x' { () }"
+        , "B(n :: Int) :: ()"
+        , "B <- Bad(n) { () } / Orphan(n) { () } / P(n) { () }"
+        , "Bad(n :: Int) :: ()"
+        , "Bad <- Ind(n) [ \\t] (&{ False })^l { () }"
+        , "Orphan(n :: Int) :: ()"
+        , "Orphan <- Ind(n) '=:' { () }"
+        , "P(n :: Int) :: ()"
+        , "P <- Ind(n) ![ \\t] 'p' { () }"
+        , "Ind(n :: Int) :: ()"
+        , "Ind <- &{ n == 0 } { () } / ' ' Ind(n - 1) { () }"
+        ]
+    )
+  , ( "a later alternative that a constant predicate makes fail"
+    , grammar
+        [ "S :: ()"
+        , "S <- I+ !. { () }"
+        , "I :: ()"
+        , "I <- C { () } / Bad { () } / T { () }"
+        , "C :: ()"
+        , "C <- '[' 'a' (']')^l { () }"
+        , "Bad :: ()"
+        , "Bad <- '[' &{ False } { () }"
+        , "T :: ()"
+        , "T <- [a-z]+ { () }"
+        ]
+    )
+  , ( "the second character of a known prefix"
+    , grammar
+        [ "S :: ()"
+        , "S <- E+ !. { () }"
+        , "E :: ()"
+        , "E <- Cm { () } / T { () }"
+        , "Cm :: ()"
+        , "Cm <- '%%' (!'%%' [a-z%])* ('%%')^l { () }"
+        , "T :: ()"
+        , "T <- (!'%%' [a-z%])+ { () }"
+        ]
+    )
+  , ( "a known prefix against a rule that needs a letter"
+    , grammar
+        [ "S :: ()"
+        , "S <- X+ !. { () }"
+        , "X :: ()"
+        , "X <- '[=' [0-9]+ (']')^l { () } / '[' Id ']' { () } / [a-z]+ { () }"
+        , "Id :: ()"
+        , "Id <- [a-z]+ { () }"
+        ]
+    )
+  , ( "a known prefix from a rule of literals against a negative lookahead"
+    , grammar
+        [ "S :: ()"
+        , "S <- A+ !. { () }"
+        , "A :: ()"
+        , "A <- Splat [a-z]+ (']')^l { () } / !Splat W { () }"
+        , "Splat :: ()"
+        , "Splat <- '**[' { () } / '*[' { () }"
+        , "W :: ()"
+        , "W <- [a-z*\\[]+ { () }"
+        ]
+    )
+  ]
+
+-- Shapes that the improvements of ADR 0038 must not take for safe.
+stillUnsafeSnippets :: [(Text, Text)]
+stillUnsafeSnippets =
+  [ ( "calls with different arguments"
+    , grammar
+        [ "S :: ()"
+        , "S <- B(0) 'x' { () }"
+        , "B(n :: Int) :: ()"
+        , "B <- Bad(n) { () } / Orphan(n + 1) { () }"
+        , "Bad(n :: Int) :: ()"
+        , "Bad <- Ind(n) [ \\t] (&{ False })^l { () }"
+        , "Orphan(n :: Int) :: ()"
+        , "Orphan <- Ind(n) '=:' { () }"
+        , "Ind(n :: Int) :: ()"
+        , "Ind <- &{ n == 0 } { () } / ' ' Ind(n - 1) { () }"
+        ]
+    )
+  , ( "a binding that shadows a parameter"
+    , grammar
+        [ "S :: ()"
+        , "S <- B(0) 'x' { () }"
+        , "B(n :: Int) :: ()"
+        , "B <- Bad(n) { () } / Orphan(n) { () }"
+        , "Bad(n :: Int) :: ()"
+        , "Bad <- n:Cnt Ind(n) [ \\t] (&{ False })^l { () }"
+        , "Orphan(n :: Int) :: ()"
+        , "Orphan <- Cnt Ind(n) '=:' { () }"
+        , "Cnt :: Int"
+        , "Cnt <- [0-9] { 0 }"
+        , "Ind(n :: Int) :: ()"
+        , "Ind <- &{ n == 0 } { () } / ' ' Ind(n - 1) { () }"
+        ]
+    )
+  , ("a predicate that is not constant", grammar ["S :: ()", "S <- '[' 'a' (']')^l { () } / '[' &{ x } [a-z] { () }"])
+  , ("a known prefix that the lookahead does not exclude", grammar ["S :: ()", "S <- '%' 'x' ('y')^l { () } / (!'%%' [%a-z])+ { () }"])
+  , ( "a rule whose predicate reads the environment"
+    , T.replace "%module M\n" "%module M\n%env Int\n" $
+        grammar
+          [ "S :: ()"
+          , "S <- B(0) 'x' { () }"
+          , "B(n :: Int) :: ()"
+          , "B <- Bad(n) { () } / Orphan(n) { () }"
+          , "Bad(n :: Int) :: ()"
+          , "Bad <- Ind(n) [ \\t] (&{ False })^l { () }"
+          , "Orphan(n :: Int) :: ()"
+          , "Orphan <- &{ _env > 0 } Ind(n) '=:' { () }"
+          , "Ind(n :: Int) :: ()"
+          , "Ind <- &{ n == 0 } { () } / ' ' Ind(n - 1) { () }"
+          ]
+    )
+  ]
+
+-- Two labels with one recovery rule (ADR 0038).
+sharedRecovery :: Text
+sharedRecovery =
+  grammar
+    [ "%recover a Skip"
+    , "%recover b Skip"
+    , "S :: ()"
+    , "S <- '(' ('x')^a (')')^b { () }"
+    , "Skip :: ()"
+    , "Skip <- (![)] .)* { () }"
+    ]
 
 indirect :: Text
 indirect = grammar ["S :: ()", "S <- A { () }", "A :: ()", "A <- B 'x' ('y' ^l) { () } / 'a' { () }", "B :: ()", "B <- A 'z' { () } / 'b' { () }"]
@@ -199,7 +351,10 @@ run withLabels g input = case grammarRules g of
         expr x i fuel >>= \case
           Fail | withLabels -> Just Throw
           r -> Just r
-      EPred _ _ -> Just (Ok i)
+      EPred b (Located _ c)
+        | T.strip c == "False" -> Just (if b then Fail else Ok i)
+        | T.strip c == "True" -> Just (if b then Ok i else Fail)
+        | otherwise -> Just (Ok i)
       EDiscard x -> expr x i fuel
       ETemplate {} -> Nothing
     star x i fuel =
@@ -256,3 +411,55 @@ genExpr n d
         , (1, elements ["[ab]", ".", "!."])
         , (2, elements (take n ["S", "A", "B"]))
         ]
+
+-- Random grammars with parameters, constant predicates and literals of two
+-- characters (ADR 0038). The predicates that are not constant succeed in the
+-- interpreter; the check must not rely on their values.
+genGrammarWithParams :: Gen Text
+genGrammarWithParams = do
+  s <- genAltsP False
+  a <- genAltsP True
+  b <- genAltsP True
+  pure $
+    grammar
+      [ "S :: ()"
+      , "S <- " <> s <> " / 'c' A(0) B(0) I(0) { () }"
+      , "A(n :: Int) :: ()"
+      , "A <- " <> a
+      , "B(n :: Int) :: ()"
+      , "B <- " <> b
+      , "I(n :: Int) :: ()"
+      , "I <- &{ n == 0 } { () } / ' ' I(n - 1) { () }"
+      ]
+  where
+    genAltsP p = do
+      k <- choose (1, 3)
+      alts <- vectorOf k (genSeqP p (2 :: Int))
+      pure (T.intercalate " / " [x <> " { () }" | x <- alts])
+    genSeqP p d = do
+      k <- choose (1, 3)
+      T.unwords <$> vectorOf k (genExprP p d)
+    genExprP p d
+      | d <= 0 = atom p
+      | otherwise =
+          frequency
+            [ (5, atom p)
+            , (1, (\x -> "(" <> x <> ")*") <$> consuming)
+            , (1, (\x -> "(" <> x <> ")?") <$> consuming)
+            , (1, (\x -> "!(" <> x <> ")") <$> genSeqP p (d - 1))
+            , (2, (\x y -> "(" <> x <> " / " <> y <> ")") <$> genSeqP p (d - 1) <*> genSeqP p (d - 1))
+            , (3, (\x -> "(" <> x <> " ^l)") <$> genSeqP p (d - 1))
+            ]
+    -- Repetitions of expressions that match the empty string are errors.
+    consuming = elements ["'a'", "' '", "'[='", "'%%'", "[a=]", "'a' I(0)"]
+    atom p =
+      frequency $
+        [ (4, elements ["'a'", "' '", "'['", "'[='", "'%%'", "'%'", "'=a'"])
+        , (1, elements ["[a=]", ".", "&{ False }", "&{ True }", "&{ x }", "!{ False }"])
+        , (2, elements ["A(0)", "B(1)"])
+        ]
+          ++ [(3, elements ["I(n)", "A(n)", "B(n)", "A(n + 1)", "I(n - 1)"]) | p]
+
+paramInputs :: [String]
+paramInputs = concatMap (\n -> sequence (replicate n " a[=%")) [0 .. 4]
+

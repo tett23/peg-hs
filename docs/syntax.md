@@ -5,7 +5,7 @@ peg-hs の文法定義ファイル（`.peg`）の書き方を、例を中心に�
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [0001](adr/0001-bounded-left-recursion.md)、[0003](adr/0003-typed-semantic-actions.md)、[0004](adr/0004-peg-notation.md)、[0005](adr/0005-error-reporting.md)、[0006](adr/0006-memoization-control.md)、[0008](adr/0008-source-positions.md)、[0012](adr/0012-context-sensitive-extensions.md)、[0014](adr/0014-generated-module-api.md)、[0015](adr/0015-implementation-deviations.md)、[0016](adr/0016-language-extensions.md)、[0017](adr/0017-nomemo-implementation.md)、[0019](adr/0019-lossless-syntax-tree.md)、[0020](adr/0020-unicode-identifiers-self-hosted.md)、[0021](adr/0021-error-recovery.md)、[0026](adr/0026-discard-unused-values.md)、[0028](adr/0028-label-safety-check.md)、[0030](adr/0030-unit-values-are-not-counted.md)、[0031](adr/0031-rule-templates.md) である。
+反映している ADR は [0001](adr/0001-bounded-left-recursion.md)、[0003](adr/0003-typed-semantic-actions.md)、[0004](adr/0004-peg-notation.md)、[0005](adr/0005-error-reporting.md)、[0006](adr/0006-memoization-control.md)、[0008](adr/0008-source-positions.md)、[0012](adr/0012-context-sensitive-extensions.md)、[0014](adr/0014-generated-module-api.md)、[0015](adr/0015-implementation-deviations.md)、[0016](adr/0016-language-extensions.md)、[0017](adr/0017-nomemo-implementation.md)、[0019](adr/0019-lossless-syntax-tree.md)、[0020](adr/0020-unicode-identifiers-self-hosted.md)、[0021](adr/0021-error-recovery.md)、[0026](adr/0026-discard-unused-values.md)、[0028](adr/0028-label-safety-check.md)、[0030](adr/0030-unit-values-are-not-counted.md)、[0031](adr/0031-rule-templates.md)、[0038](adr/0038-label-check-precision-and-strip-labels-entries.md) である。
 
 ## 最小の例
 
@@ -41,7 +41,7 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 |---|---|---|
 | `%module A.B.C` | 生成するモジュールの名前。必須 | 0004 |
 | `%start Name` | 開始規則。省略すると、最初に定義した規則が開始規則になる | 0004 |
-| `%entry Name` | 開始規則以外の規則にも入口 `parseName` を生成する | 0014 |
+| `%entry Name` | 開始規則以外の規則にも入口 `parseName` を生成する。同じ規則を二度書くとエラー | 0014、0038 |
 | `%export 項目, ...` | verbatim ブロックで定義した名前を生成モジュールから公開する | 0014 |
 | `%env 型` | 解析全体で不変な環境の型を宣言する | 0012 |
 | `%tabstop N` | `_col` の計算で、タブを N の倍数の桁まで進める | 0012 |
@@ -606,15 +606,22 @@ CloseAtParagraphEnd <- &(BlankLine / !.) { () }
 危険かもしれないラベルは警告として報告し、生成は続ける。
 
 ```
-peg-hs Grammar.peg
+peg-hs gen Grammar.peg
 Grammar.peg:3:11: warning: the label l may reject valid input: where it fails, the alternative at 3:28 can match
 ```
 
 この例は、`S <- 'a' ('b' ^l) { () } / 'a' 'c' { () }` の `l` への警告である。
 `ac` は二つめの選択肢で受理できるが、ラベルがあると一つめの選択肢の `'b'` で送出して止まる。
 
-検査は入力の次の一文字で判定する近似であり、安全なラベルに警告することがある。
-意味述語で文字を判定する規則（`c:$. &{ isAlpha c }` など）は、どの文字でも成功しうるものとして扱われるので、その規則で始まる選択肢が近くにあると警告が出やすい。
+検査は入力の次の一文字を基本に判定する近似であり、安全なラベルに警告することがある。
+次の三つは、一文字より先まで見て判定する（[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)）。
+
+- **規則の呼び出しを越えた共通の接頭辞**：失敗した選択肢がそれまでに読んだ要素と、後の選択肢が同じ要素で始まるなら、その部分を除いて比べる。後の選択肢の先頭の規則の呼び出し、グループ、繰り返しは、その中身に置き換えて比べる。引数のある規則は、仮引数を実引数に置き換えたうえで、引数の字句が一致する呼び出しを同じものとみなす（`B(n) <- Bad(n) / Orphan(n)` の `Bad` と `Orphan` がどちらも `Ind(n)` で始まる場合など）
+- **定数の意味述語**：`&{ False }` と `!{ True }` は決して成功せず、`&{ True }` と `!{ False }` は必ず成功するものとして扱う
+- **既知の接頭辞**：失敗した選択肢がリテラル（またはリテラルだけの選択肢からなる規則）で始まるなら、入力がその文字列で始まることを使い、後の選択肢がその入力で必ず失敗するかを確かめる（`'%%'` の後の `!'%%'`、`'[='` の後の `'[' Ident` など）
+
+それでも、意味述語で文字を判定する規則（`c:$. &{ isAlpha c }` など）は、どの文字でも成功しうるものとして扱われるので、その規則で始まる選択肢が近くにあると警告が出やすい。
+引数の値の大小（`Ind(n)` と `Ind(n + 2)` が読む空白の数の違いなど）も判定しない。
 安全なことを確かめたラベルは、`%safe` で警告を止める。
 理由はコメントに書く。
 
@@ -624,7 +631,7 @@ Grammar.peg:3:11: warning: the label l may reject valid input: where it fails, t
 ```
 
 `%safe` に書いたラベルが文法に現れなければ、エラーになる。
-`peg-hs --Werror` は、警告があれば生成せずに失敗する。
+`peg-hs gen --Werror` は、警告があれば生成せずに失敗する。
 
 ### 二つのモード
 

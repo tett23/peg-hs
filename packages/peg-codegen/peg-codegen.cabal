@@ -62,6 +62,8 @@ test-suite peg-codegen-test
     Fixture.NoMemo
     Fixture.Recover
     Fixture.RecoverNoLabels
+    Fixture.RecoverShared
+    Fixture.RecoverSharedNoLabels
     Fixture.Sum
     Fixture.Syntax
     Fixture.Unicode

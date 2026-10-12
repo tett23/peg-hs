@@ -138,6 +138,11 @@ checkRules g firstRule =
       , Just r <- [M.lookup n ruleMap]
       , not (null (ruleParams r))
       ]
+        -- Each name makes one entry point (ADR 0038).
+        ++ [ Diagnostic l ("the rule " <> n <> " is named in %entry twice")
+           | (k, Located l n) <- zip [0 :: Int ..] (grammarEntries g)
+           , n `elem` map unLoc (take k (grammarEntries g))
+           ]
     startLoc = maybe (ruleLoc firstRule) locOf (grammarStart g)
 
     roots = map unLoc (grammarEntries g) ++ [unLoc r | (_, r) <- grammarRecovers g]

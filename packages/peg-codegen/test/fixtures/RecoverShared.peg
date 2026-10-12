@@ -1,0 +1,11 @@
+# 二つのラベルが一つの回復の規則を使う文法。ラベルを外した変種の入口が
+# 重複しないことの確認に使う（ADR 0038）
+%module Fixture.RecoverShared
+%recover a Skip
+%recover b Skip
+
+S :: ()
+S <- '(' ('x') ^a (')') ^b { () }
+
+Skip :: ()
+Skip <- (![)] .)* { () }

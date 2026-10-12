@@ -22,6 +22,7 @@ import qualified Fixture.Misc as Misc
 import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverNoLabels as RecoverNoLabels
+import qualified Fixture.RecoverSharedNoLabels as RecoverSharedNoLabels
 import qualified Fixture.Sum as Sum
 import qualified Fixture.Syntax as Syntax
 import qualified Fixture.Templates as Templates
@@ -187,6 +188,9 @@ variantTests =
           assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.peg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n" src == derived)
     , check "self-hosted parser without labels" "../peg-grammar" "grammar/Peg.peg" "test/generated/SelfHostedNoLabels.hs" (Just "SelfHostedNoLabels")
     , check "Recover without labels" "." "test/fixtures/Recover.peg" "test/generated/Fixture/RecoverNoLabels.hs" (Just "Fixture.RecoverNoLabels")
+    , check "RecoverShared without labels, with one entry for the recovery rule (ADR 0038)" "." "test/fixtures/RecoverShared.peg" "test/generated/Fixture/RecoverSharedNoLabels.hs" (Just "Fixture.RecoverSharedNoLabels")
+    , testCase "RecoverShared without labels parses like with them (ADR 0038)" $
+        map (either (const False) (const True) . RecoverSharedNoLabels.parse) ["(x)", "()", "(x"] @?= [True, False, False]
     , testProperty "the Recover fixture accepts the same inputs without its labels" $
         withNumTests 3000 $ forAll (T.pack <$> listOf (elements "ab[] \n")) $ \t ->
           either (const False) (const True) (Recover.parse t) === either (const False) (const True) (RecoverNoLabels.parse t)

@@ -11,8 +11,12 @@
 -- and, at every point where the parser would otherwise try another way
 -- (a later alternative, the end of a repetition, a caller, the end of the
 -- growth of left recursion), shows from the next character of the input
--- that the other way cannot succeed. It is an approximation: a label it
--- calls safe is safe, but it may warn about a safe label.
+-- that the other way cannot succeed. A later alternative is compared after
+-- the part it shares with what has matched, through calls of rules with the
+-- same arguments, and against the texts that matched literals are known to
+-- be; constant predicates are known to succeed or fail (ADR 0038). It is an
+-- approximation: a label it calls safe is safe, but it may warn about a
+-- safe label.
 module Peg.Grammar.Labels
   ( labelWarnings
   , stripLabels
@@ -20,7 +24,9 @@ module Peg.Grammar.Labels
   ) where
 
 import Data.Graph (SCC (..), stronglyConnComp)
+import Data.Char (isAlpha, isAlphaNum)
 import Data.List (sortOn)
+import Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -154,7 +160,19 @@ exprAbs p = \case
   ELabel _ x _ -> exprAbs p x
   EDiscard x -> exprAbs p x
   ETemplate {} -> Abs everything everything none
-  EPred _ _ -> Abs none everything none
+  EPred b c -> case constantPred b c of
+    Just True -> epsilon
+    Just False -> bottom
+    Nothing -> Abs none everything none
+
+-- | The value of a predicate whose code is the constant @True@ or @False@
+-- (ADR 0038): @&{ False }@ and @!{ True }@ never succeed, @&{ True }@ and
+-- @!{ False }@ always do.
+constantPred :: Bool -> Located Text -> Maybe Bool
+constantPred positive (Located _ c) = case T.strip c of
+  "True" -> Just positive
+  "False" -> Just (not positive)
+  _ -> Nothing
 
 fixpoint :: [Rule] -> (Env -> Pass) -> Env
 fixpoint rules mk = go (M.fromList [(ruleName r, bottom) | r <- rules]) (0 :: Int)
@@ -282,9 +300,14 @@ data Ctx = Ctx
   -- ^ Other rules taking part in left recursion.
   , ctxGrowing :: Text -> Int -> Bool
   -- ^ Whether an alternative of a rule is a growing one.
+  , ctxRules :: M.Map Text Rule
+  , ctxExpandable :: Set Text
+  -- ^ Rules whose calls can be replaced by their alternatives (ADR 0038).
   }
 
-type Visited = Set (Text, [(Int, Int)], Mode, CharSet)
+-- The rule, the frames, the mode, the next characters, and the items known
+-- to have matched (ADR 0038).
+type Visited = Set (Text, [(Int, Int)], Mode, CharSet, Text)
 
 -- The contexts already followed, so that recursion in the grammar ends.
 newtype State s a = State {runState :: s -> (a, s)}
@@ -316,7 +339,7 @@ labelWarnings g =
   [ Diagnostic l msg
   | Site rule fs l (ELabel _ x name) <- concatMap sites rules
   , name `notElem` safe
-  , Just msg <- [verdictMessage name (evalState (failed ctx rule fs (everything `minus` sureOf x)) S.empty)]
+  , Just msg <- [verdictMessage name (evalState (failed ctx rule fs ([], 0) (everything `minus` sureOf x)) S.empty)]
   ]
   where
     rules = grammarRules g
@@ -338,7 +361,13 @@ labelWarnings g =
         , ctxDirectLr = direct
         , ctxOtherLr = other
         , ctxGrowing = growing
+        , ctxRules = M.fromList [(ruleName r, r) | r <- rules]
+        , ctxExpandable = S.fromList [ruleName r | r <- rules, expandable r] `S.difference` (direct `S.union` other)
         }
+    expandable r = not (any (any (exprMentions isTemplateOrEnv . itemExpr) . altItems) (ruleAlts r))
+    isTemplateOrEnv = \case
+      ETemplate {} -> True
+      e -> any (elem "_env" . identifiers) (exprCodes e)
 
 verdictMessage :: Text -> Verdict -> Maybe Text
 verdictMessage name = \case
@@ -349,58 +378,81 @@ verdictMessage name = \case
 showLoc :: Loc -> Text
 showLoc (Loc l c) = T.pack (show l) <> ":" <> T.pack (show c)
 
-visit :: Text -> [Frame] -> Mode -> CharSet -> State Visited Verdict -> State Visited Verdict
-visit rule fs mode k act = do
-  let key = (rule, map frameKey fs, mode, k)
+visit :: Text -> [Frame] -> Mode -> ([Item], Int) -> CharSet -> State Visited Verdict -> State Visited Verdict
+visit rule fs mode (pre, lifts) k act = do
+  let key = (rule, map frameKey fs, mode, k, T.pack (show (lifts, map (plainExpr . itemExpr) pre)))
   seen <- gets (S.member key)
   if seen then pure Safe else modify' (S.insert key) >> act
 
 allOf :: [State Visited Verdict] -> State Visited Verdict
 allOf = foldr (\a acc -> a >>= \v -> if v == Safe then acc else pure v) (pure Safe)
 
--- The next character is in k at the start of an expression that failed.
-failed :: Ctx -> Text -> [Frame] -> CharSet -> State Visited Verdict
-failed ctx rule fs k = visit rule fs Failed k $ case fs of
+-- The expression of the innermost frame failed after the items pre had
+-- matched from its start, and the next character is then in k. The items
+-- let a later alternative that starts the same way, even through calls of
+-- rules, be compared after the common part (ADR 0038).
+failed :: Ctx -> Text -> [Frame] -> ([Item], Int) -> CharSet -> State Visited Verdict
+failed ctx rule fs (pre0, lifts) k0 = visit rule fs Failed (pre, lifts) k $ case fs of
   FSeq items j : FAlts alts i body : rest -> do
-    let kAt m = before (take (j - m) (drop m items)) k
+    let matched = take j items ++ pre
+        kAt m = beforeItems ctx (drop m matched) k
         growingAlt = body && S.member rule (ctxDirectLr ctx) && ctxGrowing ctx rule i
         later =
           [ (al, a)
           | (i', (al, a)) <- drop (i + 1) (zip [0 ..] alts)
           , not growingAlt || ctxGrowing ctx rule i'
           ]
-        laterCheck (al, a) =
-          let m = commonPrefix items a
-           in if m > j
-                then Safe
-                else
-                  if possible (seqAbs (ctxPass ctx) (drop m a)) `meets` kAt m
-                    then Unsafe ("the alternative at " <> showLoc al <> " can match")
-                    else Safe
+        laterCheck (al, a)
+          | commonPrefix items a > j = Safe
+          | otherwise = foldr andAlso Safe [compareWith al a' | a' <- expansions ctx expandDepth matched a]
+        compareWith al a' =
+          let m = commonPrefix matched a'
+              rest' = drop m a'
+           in if possible (seqAbs (ctxPass ctx) rest') `meets` kAt m && not (knownFails ctx (drop m matched) rest')
+                then Unsafe ("the alternative at " <> showLoc al <> " can match")
+                else Safe
     if body && S.member rule (ctxOtherLr ctx) && ctxGrowing ctx rule i
       then pure (Unchecked ("it is in a growing alternative of " <> rule <> ", which takes part in indirect or hidden left recursion"))
       else case foldr andAlso Safe (map laterCheck later) of
         Safe
           | growingAlt -> succeeded ctx rule [] (kAt 1)
-          | otherwise -> failed ctx rule rest (kAt 0)
+          | otherwise -> failed ctx rule rest (matched, lifts) k
         v -> pure v
-  FStar _ _ : rest -> succeeded ctx rule rest k
-  FPlus _ _ : rest -> allOf [failed ctx rule rest k, succeeded ctx rule rest k]
-  FOpt : rest -> succeeded ctx rule rest k
+  FStar _ _ : rest -> succeeded ctx rule rest kStart
+  FPlus _ _ : rest -> allOf [failed ctx rule rest (pre, lifts) k, succeeded ctx rule rest kStart]
+  FOpt : rest -> succeeded ctx rule rest kStart
   -- A throw inside a lookahead is a failure of the lookahead's body, which
   -- has failed here without the label too.
   FAnd _ : _ -> pure Safe
   FNot _ : _ -> pure Safe
-  FLabel : rest -> failed ctx rule rest k
-  FCapture : rest -> failed ctx rule rest k
-  [] -> ruleFailed ctx rule k
+  FLabel : rest -> failed ctx rule rest (pre, lifts) k
+  FCapture : rest -> failed ctx rule rest (pre, lifts) k
+  [] -> ruleFailed ctx rule (pre, lifts) k
   _ -> pure Safe
   where
-    before prefix k' = let a = seqAbs (ctxPass ctx) prefix in absConsume a `union` (absEmpty a `intersect` k')
+    -- A long prefix is replaced by the characters at its start, so that
+    -- following recursion in the grammar ends.
+    (pre, k) = if length pre0 > maxPrefix then ([], beforeItems ctx pre0 k0) else (pre0, k0)
+    kStart = beforeItems ctx pre k
+
+-- The next character at the start of a sequence that matched and was
+-- followed by a character in k.
+beforeItems :: Ctx -> [Item] -> CharSet -> CharSet
+beforeItems ctx prefix k = let a = seqAbs (ctxPass ctx) prefix in absConsume a `union` (absEmpty a `intersect` k)
+
+-- Bounds that make the following of calls end: the matched items, the
+-- code after replacing parameters (a recursive call wraps the arguments in
+-- parentheses again at each level), the calls the items are carried
+-- through, and the depth of expanding calls.
+maxPrefix, maxCode', maxLifts, expandDepth :: Int
+maxPrefix = 8
+maxLifts = 3
+maxCode' = 64
+expandDepth = 8
 
 -- The next character is in k at the end of an expression that succeeded.
 succeeded :: Ctx -> Text -> [Frame] -> CharSet -> State Visited Verdict
-succeeded ctx rule fs k = visit rule fs Succeeded k $ case fs of
+succeeded ctx rule fs k = visit rule fs Succeeded ([], 0) k $ case fs of
   FSeq items j : alts@(FAlts _ i body) : rest -> do
     let after = drop (j + 1) items
         a = seqAbs (ctxPass ctx) after
@@ -415,8 +467,8 @@ succeeded ctx rule fs k = visit rule fs Succeeded k $ case fs of
           next : _ | absConsume a `meets` k -> pure (Unsafe ("the parse can continue at " <> showLoc (itemLoc next)))
           _ ->
             allOf $
-              [failed ctx rule (FSeq items (j + 1) : alts : rest) k | not (null after)]
-                ++ [failed ctx rule (FSeq items m : alts : rest) everything | m <- [j + 2 .. length items - 1]]
+              [failed ctx rule (FSeq items (j + 1) : alts : rest) ([], 0) k | not (null after)]
+                ++ [failed ctx rule (FSeq items m : alts : rest) ([], 0) everything | m <- [j + 2 .. length items - 1]]
                 ++ [ended (absEmpty a `intersect` k) | absEmpty a `meets` k]
   FStar x l : rest -> again x l rest
   FPlus x l : rest -> again x l rest
@@ -434,10 +486,19 @@ succeeded ctx rule fs k = visit rule fs Succeeded k $ case fs of
       | possible (exprAbs (ctxPass ctx) x) `meets` k = pure (Unsafe ("the repetition at " <> showLoc l <> " can continue"))
       | otherwise = succeeded ctx rule rest k
 
-ruleFailed :: Ctx -> Text -> CharSet -> State Visited Verdict
-ruleFailed ctx rule k
+ruleFailed :: Ctx -> Text -> ([Item], Int) -> CharSet -> State Visited Verdict
+ruleFailed ctx rule (pre, lifts) k
   | S.member rule (ctxRecovery ctx) = pure Safe
-  | otherwise = allOf [failed ctx (siteRule s) (siteFrames s) k | s <- callersOf ctx rule]
+  | otherwise = allOf [uncurry (failed ctx (siteRule s) (siteFrames s)) (lift s) | s <- callersOf ctx rule]
+  where
+    -- The matched items in the caller: the parameters are replaced by the
+    -- arguments of the call. Without that, only their first characters.
+    lift (Site _ _ _ (ERef _ _ args))
+      | lifts < maxLifts
+      , Just pre' <- M.lookup rule (ctxRules ctx) >>= \r -> paramMap r args >>= \pm -> substItems pm pre
+      , all ((<= maxCode') . T.length) (concatMap (exprCodes . itemExpr) pre') =
+          ((pre', lifts + 1), k)
+    lift _ = (([], 0), beforeItems ctx pre k)
 
 ruleSucceeded :: Ctx -> Text -> CharSet -> State Visited Verdict
 ruleSucceeded ctx rule k
@@ -459,24 +520,261 @@ callersOf ctx rule =
       _ -> False
 
 -- The length of the common prefix of two sequences, ignoring locations
--- and bindings.
+-- and bindings. Two items whose code reads a binding are the same only if
+-- the bindings before them are (ADR 0038).
 commonPrefix :: [Item] -> [Item] -> Int
-commonPrefix xs ys = length (takeWhile id (zipWith (\a b -> plain (itemExpr a) == plain (itemExpr b)) xs ys))
+commonPrefix = go 0 [] []
   where
-    plain = \case
-      ERef _ n args -> ERef noLoc n [Located noLoc (unLoc a) | a <- args]
-      EGroup alts -> EGroup (map (map (\i -> Item noLoc Nothing (plain (itemExpr i)))) alts)
-      EStar x -> EStar (plain x)
-      EPlus x -> EPlus (plain x)
-      EOpt x -> EOpt (plain x)
-      EAnd x -> EAnd (plain x)
-      ENot x -> ENot (plain x)
-      ECapture x -> ECapture (plain x)
-      ELabel _ x n -> ELabel noLoc (plain x) n
-      EDiscard x -> EDiscard (plain x)
-      EPred b (Located _ c) -> EPred b (Located noLoc c)
-      e -> e
+    go n bx by (a : as) (b : bs)
+      | plainExpr (itemExpr a) == plainExpr (itemExpr b)
+          && (bx == by || not (any (readsAny (catMaybes (bx ++ by))) (exprCodes (itemExpr a)))) =
+          go (n + 1) (itemBind a : bx) (itemBind b : by) as bs
+    go n _ _ _ _ = n
+    readsAny names code = any (`elem` names) (identifiers code)
+
+plainExpr :: Expr -> Expr
+plainExpr = \case
+  ERef _ n args -> ERef noLoc n [Located noLoc (unLoc a) | a <- args]
+  EGroup alts -> EGroup (map (map (\i -> Item noLoc Nothing (plainExpr (itemExpr i)))) alts)
+  EStar x -> EStar (plainExpr x)
+  EPlus x -> EPlus (plainExpr x)
+  EOpt x -> EOpt (plainExpr x)
+  EAnd x -> EAnd (plainExpr x)
+  ENot x -> ENot (plainExpr x)
+  ECapture x -> ECapture (plainExpr x)
+  ELabel _ x n -> ELabel noLoc (plainExpr x) n
+  EDiscard x -> EDiscard (plainExpr x)
+  EPred b (Located _ c) -> EPred b (Located noLoc c)
+  ETemplate _ n as -> ETemplate noLoc n (map plainExpr as)
+  e -> e
+  where
     noLoc = Loc 0 0
+
+-- The Haskell code of an expression: arguments and predicates.
+exprCodes :: Expr -> [Text]
+exprCodes = \case
+  ERef _ _ args -> map unLoc args
+  EPred _ c -> [unLoc c]
+  e -> concatMap exprCodes (subExprs e)
+
+exprMentions :: (Expr -> Bool) -> Expr -> Bool
+exprMentions p e = p e || any (exprMentions p) (subExprs e)
+
+subExprs :: Expr -> [Expr]
+subExprs = \case
+  EGroup alts -> map itemExpr (concat alts)
+  EStar x -> [x]
+  EPlus x -> [x]
+  EOpt x -> [x]
+  EAnd x -> [x]
+  ENot x -> [x]
+  ECapture x -> [x]
+  ELabel _ x _ -> [x]
+  EDiscard x -> [x]
+  ETemplate _ _ as -> as
+  _ -> []
+
+-- The identifiers of Haskell code.
+identifiers :: Text -> [Text]
+identifiers = filter (\t -> maybe False (identStart . fst) (T.uncons t)) . T.split (not . identChar)
+  where
+    identStart c = isAlpha c || c == '_'
+
+identChar :: Char -> Bool
+identChar c = isAlphaNum c || c == '_' || c == '\''
+
+-- Calls across rules (ADR 0038) -------------------------------------------------
+
+-- The parameters of a rule and the arguments of a call, in parentheses.
+paramMap :: Rule -> [Located Text] -> Maybe (M.Map Text Text)
+paramMap r args
+  | length (ruleParams r) == length args = Just (M.fromList (zip (map paramName (ruleParams r)) [paren (unLoc a) | a <- args]))
+  | otherwise = Nothing
+  where
+    -- An identifier or a number stays as it is, so that the same argument
+    -- passed on through several calls is written the same way.
+    paren a
+      | T.all identChar (T.strip a) && not (T.null (T.strip a)) = T.strip a
+      | otherwise = "(" <> T.strip a <> ")"
+
+-- Items with the parameters replaced, token by token, in their code.
+-- Nothing when a binding has the name of a parameter, or when code that
+-- reads a parameter may bind names itself.
+substItems :: M.Map Text Text -> [Item] -> Maybe [Item]
+substItems pm = mapM item
+  where
+    item (Item l b e)
+      | maybe False (`M.member` pm) b = Nothing
+      | otherwise = Item l b <$> expr e
+    expr = \case
+      ERef l n as -> ERef l n <$> mapM code as
+      EPred b c -> EPred b <$> code c
+      EGroup alts -> EGroup <$> mapM (mapM item) alts
+      EStar x -> EStar <$> expr x
+      EPlus x -> EPlus <$> expr x
+      EOpt x -> EOpt <$> expr x
+      EAnd x -> EAnd <$> expr x
+      ENot x -> ENot <$> expr x
+      ECapture x -> ECapture <$> expr x
+      ELabel l x n -> (\x' -> ELabel l x' n) <$> expr x
+      EDiscard x -> EDiscard <$> expr x
+      ETemplate l n as -> ETemplate l n <$> mapM expr as
+      e -> Just e
+    code (Located l c)
+      | not (any (`M.member` pm) ws) = Just (Located l c)
+      | any (`elem` ws) ["let", "where", "case", "of", "do"] || any (`T.isInfixOf` c) ["\\", "->", "<-"] = Nothing
+      | otherwise = Just (Located l (rewrite c))
+      where
+        ws = identifiers c
+    rewrite t = case T.uncons t of
+      Nothing -> ""
+      Just (c, _)
+        | identChar c ->
+            let (w, rest) = T.span identChar t
+             in M.findWithDefault w w pm <> rewrite rest
+        | otherwise -> let (o, rest) = T.break identChar t in o <> rewrite rest
+
+-- The alternatives of a rule called with arguments, in the caller.
+expandCall :: Ctx -> Text -> [Located Text] -> Maybe [[Item]]
+expandCall ctx n args = do
+  r <- M.lookup n (ctxRules ctx)
+  if S.member n (ctxExpandable ctx) then Just () else Nothing
+  pm <- paramMap r args
+  mapM (substItems pm . altItems) (ruleAlts r)
+
+-- A later alternative with the calls that differ from the matched items
+-- replaced by the alternatives of their rules, each way it can go.
+expansions :: Ctx -> Int -> [Item] -> [Item] -> [[Item]]
+expansions ctx depth matched a =
+  let m = commonPrefix matched a
+   in case drop m a of
+        Item l _ e : rest
+          | m < length matched
+          , depth > 0
+          , Just alts <- unfold l e ->
+              let xs = concat [expansions ctx (depth - 1) matched (take m a ++ alt ++ rest) | alt <- alts]
+               in if length xs > maxExpansions then [a] else xs
+        _ -> [a]
+  where
+    -- The ways an item can start: the alternatives of a call or a group,
+    -- one iteration of a repetition, or nothing for an optional item.
+    unfold l = \case
+      ERef _ n args -> expandCall ctx n args
+      EGroup alts -> Just alts
+      EPlus x -> Just [[Item l Nothing x, Item l Nothing (EStar x)]]
+      EStar x -> Just [[Item l Nothing x, Item l Nothing (EStar x)], []]
+      EOpt x -> Just [[Item l Nothing x], []]
+      ECapture x -> Just [[Item l Nothing x]]
+      EDiscard x -> Just [[Item l Nothing x]]
+      ELabel _ x _ -> Just [[Item l Nothing x]]
+      _ -> Nothing
+
+maxExpansions :: Int
+maxExpansions = 64
+
+-- Known prefixes (ADR 0038) ---------------------------------------------------
+
+-- The texts that the input starts with, when matched items start with
+-- literals: a literal, or a rule whose alternatives are literals.
+knownStrings :: Ctx -> [Item] -> [Text]
+knownStrings ctx items = filter (not . T.null) (go items)
+  where
+    go [] = [""]
+    go (i : rest) = case literals (itemExpr i) of
+      Just ts -> take 16 [T.take maxKnown (t <> s) | t <- ts, s <- if T.length t >= maxKnown then [""] else go rest]
+      Nothing -> [""]
+    literals = \case
+      ELit t _ -> Just [t]
+      ECapture x -> literals x
+      ELabel _ x _ -> literals x
+      EDiscard x -> literals x
+      ERef _ n [] | Just r <- M.lookup n (ctxRules ctx), not (null (ruleAlts r)) -> concat <$> mapM (sequenceLiterals . altItems) (ruleAlts r)
+      _ -> Nothing
+    sequenceLiterals is = map T.concat . sequence <$> mapM (literalsOnly . itemExpr) is
+    literalsOnly = \case
+      ELit t _ -> Just [t]
+      _ -> Nothing
+
+maxKnown :: Int
+maxKnown = 4
+
+-- Whether a sequence fails on every input that starts with one of the known
+-- texts.
+knownFails :: Ctx -> [Item] -> [Item] -> Bool
+knownFails ctx matched rest = case knownStrings ctx matched of
+  [] -> False
+  ss -> all (\t -> all (== SFail) (simSeq ctx expandDepth t (map itemExpr rest))) ss
+
+-- The outcome of an expression on an input that starts with a known text:
+-- it fails, it succeeds with the rest of the text left, or it cannot be
+-- told from the text.
+data Sim = SFail | SOk Text | SUnknown
+  deriving (Eq)
+
+simSeq :: Ctx -> Int -> Text -> [Expr] -> [Sim]
+simSeq _ _ t [] = [SOk t]
+simSeq ctx d t (e : es) = capSim (concatMap next (simExpr ctx d t e))
+  where
+    next = \case
+      SOk t' -> simSeq ctx d t' es
+      r -> [r]
+
+capSim :: [Sim] -> [Sim]
+capSim rs = let rs' = foldr (\r acc -> if r `elem` acc then acc else r : acc) [] rs in if length rs' > 16 then [SUnknown] else rs'
+
+simExpr :: Ctx -> Int -> Text -> Expr -> [Sim]
+simExpr ctx d t = \case
+  ELit l _
+    | T.null l -> [SOk t]
+    | T.take n l /= T.take n t -> [SFail]
+    | T.length l <= T.length t -> [SOk (T.drop (T.length l) t)]
+    | otherwise -> [SUnknown]
+    where
+      n = min (T.length l) (T.length t)
+  EClass rs _ -> one (\c -> any (\(a, b) -> a <= c && c <= b) rs)
+  EAny -> one (const True)
+  ERef _ n args
+    | d > 0, Just alts <- expandCall ctx n args -> choice (d - 1) alts
+    | otherwise -> [SUnknown]
+  EGroup alts -> choice d alts
+  EStar x -> star x t
+  EPlus x -> capSim (concatMap (\case SOk t' -> star x t'; r -> [r]) (simExpr ctx d t x))
+  EOpt x -> capSim (concatMap (\case SFail -> [SOk t]; r -> [r]) (simExpr ctx d t x))
+  EAnd x -> let rs = simExpr ctx d t x in if all (== SFail) rs then [SFail] else if all isOk rs then [SOk t] else [SUnknown]
+  ENot x -> let rs = simExpr ctx d t x in if all (== SFail) rs then [SOk t] else if all isOk rs then [SFail] else [SUnknown]
+  ECapture x -> simExpr ctx d t x
+  -- The other labels are absent in the grammar the check is about.
+  ELabel _ x _ -> simExpr ctx d t x
+  EDiscard x -> simExpr ctx d t x
+  EPred b c -> case constantPred b c of
+    Just True -> [SOk t]
+    Just False -> [SFail]
+    Nothing -> [SUnknown]
+  ETemplate {} -> [SUnknown]
+  where
+    one p = case T.uncons t of
+      Nothing -> [SUnknown]
+      Just (c, rest) -> if p c then [SOk rest] else [SFail]
+    isOk = \case
+      SOk _ -> True
+      _ -> False
+    choice d' = \case
+      [] -> [SFail]
+      alt : rest ->
+        let rs = simSeq ctx d' t (map itemExpr alt)
+         in if all (== SFail) rs
+              then choice d' rest
+              else if SFail `notElem` rs then rs else capSim (filter (/= SFail) rs ++ choice d' rest)
+    star x t' =
+      capSim $
+        concatMap
+          ( \case
+              SFail -> [SOk t']
+              SOk t'' | T.length t'' < T.length t' -> star x t''
+              SOk t'' -> [SOk t'']
+              SUnknown -> [SUnknown]
+          )
+          (simExpr ctx d t' x)
 
 -- Left recursion: rules with direct left recursion only, other rules in
 -- left recursion, and which alternatives grow.
@@ -560,10 +858,22 @@ stripLabels g =
   g
     { grammarRecovers = []
     , grammarSafe = []
-    , grammarEntries = grammarEntries g ++ [r | (_, r) <- grammarRecovers g, unLoc r `notElem` map unLoc (grammarEntries g)]
+    , grammarEntries = grammarEntries g ++ recoveryEntries
     , grammarRules = [r {ruleAlts = map alt (ruleAlts r)} | r <- grammarRules g]
     }
   where
+    -- One entry for each recovery rule that is not an entry or the start
+    -- rule already, however many labels it recovers (ADR 0038).
+    recoveryEntries = go (start : map unLoc (grammarEntries g)) [r | (_, r) <- grammarRecovers g]
+      where
+        go _ [] = []
+        go seen (r : rs)
+          | unLoc r `elem` seen = go seen rs
+          | otherwise = r : go (unLoc r : seen) rs
+    start = case (grammarStart g, grammarRules g) of
+      (Just s, _) -> unLoc s
+      (Nothing, r : _) -> ruleName r
+      _ -> ""
     alt a = a {altItems = map item (altItems a)}
     item i = i {itemExpr = expr (itemExpr i)}
     expr = \case
