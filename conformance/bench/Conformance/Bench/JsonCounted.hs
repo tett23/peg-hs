@@ -207,7 +207,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 41 "bench/JsonCounted.peg" #-}
- {-# COLUMN 18 #-} Bool True 
+ {-# COLUMN 17 #-} Bool True 
 {-# LINE 212 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -216,7 +216,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 42 "bench/JsonCounted.peg" #-}
- {-# COLUMN 19 #-} Bool False 
+ {-# COLUMN 18 #-} Bool False 
 {-# LINE 221 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -225,7 +225,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 43 "bench/JsonCounted.peg" #-}
- {-# COLUMN 20 #-} Number n 
+ {-# COLUMN 19 #-} Number n 
 {-# LINE 230 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -234,7 +234,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 44 "bench/JsonCounted.peg" #-}
- {-# COLUMN 20 #-} String s 
+ {-# COLUMN 19 #-} String s 
 {-# LINE 239 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -273,7 +273,7 @@ peg'rule'Object =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 50 "bench/JsonCounted.peg" #-}
- {-# COLUMN 23 #-} Object [] 
+ {-# COLUMN 22 #-} Object [] 
 {-# LINE 278 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -371,7 +371,7 @@ peg'rule'Array =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 63 "bench/JsonCounted.peg" #-}
- {-# COLUMN 22 #-} Array [] 
+ {-# COLUMN 21 #-} Array [] 
 {-# LINE 376 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -485,7 +485,7 @@ peg'rule'IntPart =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 79 "bench/JsonCounted.peg" #-}
- {-# COLUMN 26 #-} () 
+ {-# COLUMN 25 #-} () 
 {-# LINE 490 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -576,7 +576,7 @@ peg'rule'Unit =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 93 "bench/JsonCounted.peg" #-}
- {-# COLUMN 59 #-} ord (T.foldr const ' ' c) 
+ {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
 {-# LINE 581 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -604,7 +604,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 97 "bench/JsonCounted.peg" #-}
- {-# COLUMN 17 #-} 0x5C 
+ {-# COLUMN 16 #-} 0x5C 
 {-# LINE 609 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -613,7 +613,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 98 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x2F 
+ {-# COLUMN 15 #-} 0x2F 
 {-# LINE 618 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -622,7 +622,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 99 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x08 
+ {-# COLUMN 15 #-} 0x08 
 {-# LINE 627 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -631,7 +631,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 100 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x0C 
+ {-# COLUMN 15 #-} 0x0C 
 {-# LINE 636 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -640,7 +640,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 101 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x0A 
+ {-# COLUMN 15 #-} 0x0A 
 {-# LINE 645 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -649,7 +649,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 102 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x0D 
+ {-# COLUMN 15 #-} 0x0D 
 {-# LINE 654 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -658,7 +658,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 103 "bench/JsonCounted.peg" #-}
- {-# COLUMN 16 #-} 0x09 
+ {-# COLUMN 15 #-} 0x09 
 {-# LINE 663 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
@@ -673,7 +673,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 104 "bench/JsonCounted.peg" #-}
- {-# COLUMN 37 #-} hexValue h 
+ {-# COLUMN 36 #-} hexValue h 
 {-# LINE 678 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }

@@ -467,7 +467,7 @@ peg'rule'Inline =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 41 "test/fixtures/Recover.peg" #-}
- {-# COLUMN 37 #-} Plain t 
+ {-# COLUMN 36 #-} Plain t 
 {-# LINE 472 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k5)
           }
@@ -548,7 +548,7 @@ peg'rule'ParaEnd =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 51 "test/fixtures/Recover.peg" #-}
- {-# COLUMN 16 #-} () 
+ {-# COLUMN 15 #-} () 
 {-# LINE 553 "test/generated/Fixture/Recover.hs" #-}
     ), peg'k4)
           }

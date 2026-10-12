@@ -18,7 +18,11 @@ build-type:         Simple
 tested-with:        GHC == 9.10.3
 extra-source-files:
   grammar/Peg.peg
+  grammar/PegSyntax.peg
+  grammar/SyntaxVariant.txt
   test/golden/*.txt
+  test/golden/format/*.peg
+  test/golden/format/*.txt
 
 source-repository head
   type:     git
@@ -34,11 +38,13 @@ library
     Peg.Grammar
     Peg.Grammar.Assemble
     Peg.Grammar.Check
+    Peg.Grammar.Format
     Peg.Grammar.Labels
     Peg.Grammar.Parser
     Peg.Grammar.Templates
   other-modules:
     Peg.Grammar.SelfHosted
+    Peg.Grammar.SelfHostedSyntax
   build-depends:
     , base         >=4.20  && <4.21
     , containers   >=0.6   && <0.8
@@ -53,6 +59,7 @@ test-suite peg-grammar-test
   main-is:          Main.hs
   hs-source-dirs:   test test/generated
   other-modules:
+    Format
     Labels
     SelfHostedNoLabels
   build-depends:

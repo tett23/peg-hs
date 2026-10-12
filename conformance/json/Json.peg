@@ -38,16 +38,16 @@ Json <- Ws v:Value Ws { v }
 
 Value :: Value
 Value <- 'null' { Null }
-       / 'true' { Bool True }
-       / 'false' { Bool False }
-       / n:Number { Number n }
-       / s:String { String s }
-       / Array
-       / Object
+      / 'true' { Bool True }
+      / 'false' { Bool False }
+      / n:Number { Number n }
+      / s:String { String s }
+      / Array
+      / Object
 
 Object :: Value
 Object <- '{' Ws ms:Members '}' { Object ms }
-        / '{' Ws '}' { Object [] }
+       / '{' Ws '}' { Object [] }
 
 Members :: [(Text, Value)]
 Members <- m:Member ms:MoreMember* { m : ms }
@@ -60,7 +60,7 @@ Member <- k:String Ws ':' Ws v:Value Ws { (k, v) }
 
 Array :: Value
 Array <- '[' Ws vs:Elements ']' { Array vs }
-       / '[' Ws ']' { Array [] }
+      / '[' Ws ']' { Array [] }
 
 Elements :: [Value]
 Elements <- e:Element es:MoreElement* { e : es }
@@ -76,7 +76,7 @@ Number <- n:$('-'? IntPart Frac? Exp?) { n }
 
 IntPart :: ()
 IntPart <- '0' { () }
-         / [1-9] [0-9]* { () }
+        / [1-9] [0-9]* { () }
 
 Frac :: ()
 Frac <- '.' [0-9]+ { () }
@@ -90,18 +90,18 @@ String <- '"' us:Unit* '"' { T.pack (decodeUnits us) }
 # 文字列の一要素。\u エスケープは UTF-16 の符号単位として返す
 Unit :: Int
 Unit <- '\\' e:Escape { e }
-      / c:$[\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}] { ord (T.foldr const ' ' c) }
+     / c:$[\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}] { ord (T.foldr const ' ' c) }
 
 Escape :: Int
 Escape <- '"' { 0x22 }
-        / '\\' { 0x5C }
-        / '/' { 0x2F }
-        / 'b' { 0x08 }
-        / 'f' { 0x0C }
-        / 'n' { 0x0A }
-        / 'r' { 0x0D }
-        / 't' { 0x09 }
-        / 'u' h:$(Hex Hex Hex Hex) { hexValue h }
+       / '\\' { 0x5C }
+       / '/' { 0x2F }
+       / 'b' { 0x08 }
+       / 'f' { 0x0C }
+       / 'n' { 0x0A }
+       / 'r' { 0x0D }
+       / 't' { 0x09 }
+       / 'u' h:$(Hex Hex Hex Hex) { hexValue h }
 
 Hex :: ()
 Hex <- [0-9a-fA-F] { () }

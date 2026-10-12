@@ -1,0 +1,26 @@
+# A grammar written carelessly, for the formatter (ADR 0032).
+%module Example.Format # the module
+%language OverloadedStrings
+%{
+import Data.Text (Text)
+}%
+
+# The start rule.
+Items :: [Text]
+Items <- is:Item* { is }
+
+Item :: Text
+Item <- w:$([a-z]+) Sp { w } # a word
+     / &[0-9] n:$[0-9]+ Sp { n }
+     / ("(" Sp) Item Sp ")" Sp
+       { "group" }
+     / Op<'+'> x:Item ^item {
+       x <> "!"
+     }
+
+Op<o> :: ()
+Op<o> <- o Sp { () }
+
+Sp :: ()
+Sp <- [ \t\n]* { () } # spaces
+# the end

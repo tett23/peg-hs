@@ -121,7 +121,7 @@ peg'rule'Link =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 14 "test/fixtures/Link.peg" #-}
- {-# COLUMN 26 #-} w 
+ {-# COLUMN 25 #-} w 
 {-# LINE 126 "test/generated/Fixture/Link.hs" #-}
     )
           }

@@ -271,7 +271,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 15 "test/fixtures/DiscardSyntax.peg" #-}
- {-# COLUMN 45 #-} t 
+ {-# COLUMN 44 #-} t 
 {-# LINE 276 "test/generated/Fixture/DiscardSyntax.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k8, peg'k9, peg'k10])
           }
@@ -287,7 +287,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 16 "test/fixtures/DiscardSyntax.peg" #-}
- {-# COLUMN 36 #-} pack "none" 
+ {-# COLUMN 35 #-} pack "none" 
 {-# LINE 292 "test/generated/Fixture/DiscardSyntax.hs" #-}
     ), PegPrelude.concat [peg'k11, peg'k14, peg'k15, peg'k16])
           }
@@ -302,7 +302,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 17 "test/fixtures/DiscardSyntax.peg" #-}
- {-# COLUMN 32 #-} pack "many" 
+ {-# COLUMN 31 #-} pack "many" 
 {-# LINE 307 "test/generated/Fixture/DiscardSyntax.hs" #-}
     ), PegPrelude.concat [peg'k17, peg'k20, peg'k21])
           }
@@ -317,7 +317,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 18 "test/fixtures/DiscardSyntax.peg" #-}
- {-# COLUMN 32 #-} pack "optional" 
+ {-# COLUMN 31 #-} pack "optional" 
 {-# LINE 322 "test/generated/Fixture/DiscardSyntax.hs" #-}
     ), PegPrelude.concat [peg'k22, peg'k25, peg'k26])
           }
@@ -335,7 +335,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 19 "test/fixtures/DiscardSyntax.peg" #-}
- {-# COLUMN 42 #-} t 
+ {-# COLUMN 41 #-} t 
 {-# LINE 340 "test/generated/Fixture/DiscardSyntax.hs" #-}
     ), PegPrelude.concat [peg'k27, peg'k31, peg'k32])
           }

@@ -38,7 +38,7 @@ Para <- is:Inline+ { Para is }
 
 Inline :: Inline
 Inline <- Command
-        / t:$(![\[\]] !ParaEnd .)+ { Plain t }
+       / t:$(![\[\]] !ParaEnd .)+ { Plain t }
 
 Command :: Inline
 Command <- '[' n:(Name ^name) body:Inline* (']' ^close) { Command n body }
@@ -48,7 +48,7 @@ Name <- n:$[a-z]+ { n }
 
 ParaEnd :: ()
 ParaEnd <- '\n' ('\n' / !.) { () }
-         / !. { () }
+        / !. { () }
 
 Sep :: ()
 Sep <- '\n'+ { () }

@@ -153,13 +153,13 @@ peg'rule'Exactly w =
           }
       , do { PegRt.predicate (\_col -> 
 {-# LINE 21 "test/fixtures/Indent.peg" #-}
- {-# COLUMN 14 #-} _col < w 
+ {-# COLUMN 13 #-} _col < w 
 {-# LINE 158 "test/generated/Fixture/Indent.hs" #-}
     )
           ; PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"
           ; peg'v0 <- PegRt.withCol (\_col -> peg'rule'Exactly (
 {-# LINE 21 "test/fixtures/Indent.peg" #-}
- {-# COLUMN 40 #-}w
+ {-# COLUMN 39 #-}w
 {-# LINE 164 "test/generated/Fixture/Indent.hs" #-}
     ))
           ; PegPrelude.pure peg'v0

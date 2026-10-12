@@ -1,0 +1,382 @@
+# peg-hs の記法（ADR 0004、0005、0012、0014）を peg-hs 自身で書いた文法。
+# 生成したパーサーは最上位の要素の列を返し、組み立て（Peg.Grammar.Assemble）を通る。
+# 誤りの文言は、ラベル（ADR 0021）から Peg.Grammar.Parser の対応表で作る（ADR 0027）。
+# ラベルは、そこで失敗したらどの選択肢でも成功しえない位置にだけ付ける。
+#
+# 識別子と空白の文字は Peg.Grammar.Assemble の関数で判定する（ADR 0020）。
+%module Peg.Grammar.SelfHostedSyntax
+
+# 次のラベルは、ラベルの安全性の検査（ADR 0028）が危険と判定するが、安全である。
+# 識別子と空白の文字は意味述語で判定しており、検査は意味述語がどの文字でも成功
+# しうるとみなすため、空白や識別子で始まる別の選択肢と区別できない。安全なことは、
+# ラベルを外した文法との受理の一致のテストで確かめている。
+%safe verbatim
+%safe ident
+%safe type
+%safe argument
+%safe paramform
+%safe paramtype
+%safe argcode
+%safe expression
+%safe groupaction
+%safe paren
+%safe literal
+%safe escape
+%safe ubrace
+%safe uclose
+%safe uescape
+%safe emptyclass
+%safe class
+%safe range
+%safe action
+%safe hsstring
+%safe hschar
+
+%{
+import Data.Char (chr, digitToInt, isHexDigit, isSpace)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Peg.Grammar
+import Peg.Grammar.Assemble
+import Peg.Runtime (Pos (..), Span (..))
+
+here :: Span -> Loc
+here s = Loc (posLine (spanStart s)) (posColumn (spanStart s))
+
+firstChar :: Text -> Char
+firstChar = T.foldr const ' '
+
+-- Characters of the inside of a literal or class, with escapes decoded.
+-- The flag marks an unescaped '-', which can form a range in a class.
+tokens :: Text -> [(Char, Bool)]
+tokens = go . T.unpack
+  where
+    -- Recovery (ADR 0035) can reach here with an invalid escape.
+    go ('\\' : 'u' : '{' : rest) =
+      let (h, rest') = span isHexDigit rest
+          n = foldl (\m d -> m * 16 + toInteger (digitToInt d)) 0 h
+       in (if n <= 0x10FFFF then chr (fromInteger n) else '\xFFFD', False) : go (drop 1 rest')
+    go ('\\' : c : rest) = (escape c, False) : go rest
+    go (c : rest) = (c, c == '-') : go rest
+    go [] = []
+    escape c = case c of
+      'n' -> '\n'
+      't' -> '\t'
+      'r' -> '\r'
+      _ -> c
+
+inside :: Text -> Text
+inside = T.drop 1 . T.dropEnd 1
+
+decodeLiteral :: Text -> Text
+decodeLiteral = T.pack . map fst . tokens . inside
+
+classRanges :: Text -> [(Char, Char)]
+classRanges = go . tokens . inside
+  where
+    go ((a, _) : (_, True) : (b, _) : rest) = (a, b) : go rest
+    go ((a, _) : rest) = (a, a) : go rest
+    go [] = []
+
+validHex :: Text -> Bool
+validHex h = not (T.null h) && T.foldl' (\n d -> n * 16 + toInteger (digitToInt d)) 0 h <= (0x10FFFF :: Integer)
+
+-- Every range of a class item is non-empty.
+nonEmptyRanges :: Text -> Bool
+nonEmptyRanges item = all (uncurry (<=)) (classRanges (T.concat [T.pack "[", item, T.pack "]"]))
+
+paramFormMessage :: Text
+paramFormMessage = T.pack "expected a parameter of the form name :: Type"
+
+paramError :: Loc -> Text -> Maybe Text
+paramError l c = either Just (const Nothing) (toParam (Located l c))
+
+param :: Loc -> Text -> Param
+param l c = either (const (Param T.empty (Located l c))) id (toParam (Located l c))
+
+applyOp :: Expr -> Char -> Expr
+applyOp e c = case c of
+  '*' -> EStar e
+  '+' -> EPlus e
+  _ -> EOpt e
+}%
+
+File :: [Top]
+File <- Ws ts:TopItem* (!.) ^top { ts }
+
+TopItem :: Top
+TopItem <- &. t:(TopOne ^topitem) Ws { t }
+
+TopOne :: Top
+TopOne <- Verbatim
+       / Directive
+       / Declaration
+
+Here :: Loc
+Here <- { here _span }
+
+# 空白とコメント -------------------------------------------------------------------
+Ws :: ()
+Ws <- (SpaceChar / Comment)* { () }
+
+SpaceChar :: ()
+SpaceChar <- c:$. &{ isSpace (firstChar c) } { () }
+
+Comment :: ()
+Comment <- '#' (!'\n' .)* { () }
+
+InlineSp :: ()
+InlineSp <- [ \t]* { () }
+
+Ident :: Text
+Ident <- t:$(IdentStart IdentChar*) { t }
+
+IdentStart :: ()
+IdentStart <- c:$. &{ isIdentStart (firstChar c) } { () }
+
+IdentChar :: ()
+IdentChar <- c:$. &{ isIdentChar (firstChar c) } { () }
+
+# 最上位の要素 ---------------------------------------------------------------------
+Verbatim :: Top
+Verbatim <- '%{' l:Here b:$(!'}%' .)* ('}%' ^verbatim) { uncurry TVerbatim (verbatimBody l b) }
+
+Directive :: Top
+Directive <- l:Here '%' n:(Ident ^ident) InlineSp al:Here raw:$(!'\n' .)* { TDirective l n al (directiveArg n raw) }
+
+Declaration :: Top
+# 三つめの選択肢は必ずラベルを送出する。最上位の識別子は宣言の始まりでしかありえない。
+# 値は、回復（ADR 0035）したときにだけ使われる
+Declaration <- l:Here n:Ident tps:TemplateParams? ps:ParamList? Ws '::' InlineSp tl:Here ty:(TypeText ^type) { TAnnot l n (maybe [] id ps) (maybe [] id tps) (Located tl ty) }
+            / l:Here n:Ident tps:TemplateParams? Ws '<-' as:Alts { TDef l n (maybe [] (map templateParamName) tps) as }
+            / Ident TemplateParams? ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { TVerbatim (Loc 0 0) T.empty }
+
+# 雛形の引数（ADR 0031）。型注釈では値を使う引数に型変数を付ける
+TemplateParams :: [TemplateParam]
+TemplateParams <- '<' Ws p:TemplateParam ps:(Ws ',' Ws TemplateParam)* Ws '>' { p : ps }
+
+TemplateParam :: TemplateParam
+TemplateParam <- n:Ident ty:(Ws '::' Ws Ident)? { TemplateParam n ty }
+
+TypeText :: Text
+TypeText <- ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { T.stripEnd ty }
+
+ParamList :: [Param]
+ParamList <- '(' ps:ParamChunks { ps }
+
+ParamChunks :: [Param]
+ParamChunks <- p:ParamChunk ',' rest:ParamChunks { p : rest }
+            / p:ParamChunk ')' { [p] }
+
+ParamChunk :: Param
+ParamChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&{ paramError l c /= Just paramFormMessage }) ^paramform (&{ paramError l c == Nothing }) ^paramtype (&[,)]) ^argcode { param l c }
+
+# 選択肢と式 -----------------------------------------------------------------------
+Alts :: [Alt]
+Alts <- a:Alt as:MoreAlt* { a : as }
+
+MoreAlt :: Alt
+MoreAlt <- Ws '/' a:Alt { a }
+
+Alt :: Alt
+Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
+
+Item :: Item
+Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }
+     / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
+
+DeclStart :: ()
+DeclStart <- Ident TemplateParams? HsParen? Ws ('::' / '<-') { () }
+
+Binding :: Text
+Binding <- n:Ident ':' !':' { n }
+
+PrefixE :: Expr
+PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
+        / Ws '&' Ws e:(PrefixE ^expression) { EAnd e }
+        / Ws '!' Ws '{' c:PredCode { EPred False c }
+        / Ws '!' Ws e:(PrefixE ^expression) { ENot e }
+        / Ws '$' e:(PrefixE ^expression) { ECapture e }
+        / Labeled
+
+Labeled :: Expr
+Labeled <- e:SuffixE lab:LabelPart? { maybe e (\(l, n) -> ELabel l e n) lab }
+
+LabelPart :: (Loc, Text)
+LabelPart <- Ws l:Here '^' n:Ident { (l, n) }
+
+SuffixE :: Expr
+SuffixE <- p:Primary ops:PostOp* { foldl applyOp p ops }
+
+PostOp :: Char
+PostOp <- Ws c:$[*+?] { firstChar c }
+
+Primary :: Expr
+Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
+        / Ws o:$Lit2 { ELit (decodeLiteral o) o }
+        / Ws o:$ClassLit { EClass (classRanges o) o }
+        / Ws '.' { EAny }
+        / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
+        / Ws l:Here n:Ident args:CallArgs { ERef l n args }
+        / Ws l:Here n:Ident as:TemplateArgs { ETemplate l n as }
+        / Ws l:Here n:Ident !'(' { ERef l n [] }
+
+# 雛形の呼び出しの引数。引数は選択と逐次を含む式であり、, か > で終わる
+TemplateArgs :: [Expr]
+TemplateArgs <- '<' !'-' a:TemplateArg as:(Ws ',' TemplateArg)* Ws '>' { a : as }
+
+TemplateArg :: Expr
+TemplateArg <- g:GroupAlts { case g of { [[Item _ Nothing e]] -> e; _ -> EGroup g } }
+
+CallArgs :: [Located Text]
+CallArgs <- '(' cs:ArgChunks { cs }
+
+GroupAlts :: [[Item]]
+GroupAlts <- s:Item* ss:MoreGroup* { s : ss }
+
+MoreGroup :: [Item]
+MoreGroup <- Ws '/' s:Item* { s }
+
+# リテラルと文字クラス -------------------------------------------------------------------
+Lit1 :: ()
+Lit1 <- '\'' (Escape / !['\\\n] .)* ('\'' ^literal) { () }
+
+Lit2 :: ()
+Lit2 <- '"' (Escape / !["\\\n] .)* ('"' ^literal) { () }
+
+Escape :: ()
+Escape <- '\\' (EscapeBody ^escape) { () }
+
+EscapeBody :: ()
+EscapeBody <- [ntr\\'"\]\[\-] { () }
+           / 'u' ('{' ^ubrace) h:$[0-9a-fA-F]* ('}' ^uclose) (&{ validHex h }) ^uescape { () }
+
+ClassLit :: ()
+ClassLit <- '[' (!']') ^emptyclass ClassItem* (']' ^class) { () }
+
+ClassItem :: ()
+ClassItem <- s:$(ClassChar ('-' !']' ClassChar)?) (&{ nonEmptyRanges s }) ^range { () }
+
+ClassChar :: ()
+ClassChar <- Escape
+          / ![\]\\\n] . { () }
+
+# Haskell の断片 -------------------------------------------------------------------
+Action :: Located Text
+Action <- '{' l:Here c:$ActionCode ('}' ^action) { Located l c }
+
+PredCode :: Located Text
+PredCode <- l:Here c:$ActionCode ('}' ^action) { Located l c }
+
+ArgChunks :: [Located Text]
+ArgChunks <- c:ArgChunk ',' rest:ArgChunks { c : rest }
+          / c:ArgChunk ')' { [c] }
+
+ArgChunk :: Located Text
+ArgChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&[,)]) ^argcode { Located l c }
+
+# 深さ 0 の '}' の手前まで
+ActionCode :: ()
+ActionCode <- HsPart* { () }
+
+# 深さ 0 の ',' か ')' の手前まで
+ArgCode :: ()
+ArgCode <- (!',' HsPart)* { () }
+
+HsPart :: ()
+HsPart <- HsNested
+       / HsString
+       / HsChar
+       / HsIdent
+       / ![()\[\]{}"'] . { () }
+
+HsParen :: ()
+HsParen <- '(' HsInner* ')' { () }
+
+HsNested :: ()
+HsNested <- HsParen
+         / '[' HsInner* ']' { () }
+         / '{' HsInner* '}' { () }
+
+HsInner :: ()
+HsInner <- HsNested
+        / HsString
+        / HsChar
+        / HsIdent
+        / ![()\[\]{}"'] . { () }
+
+HsString :: ()
+HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring) { () }
+
+# 識別子の文字の直後にない引用符は文字リテラルの始まり。
+# 引用符はこの規則と HsString でだけ読む。閉じていない文字列や文字リテラルは、
+# ラベルがなくても拒否される（ラベルは誤りの文言のため、ADR 0028）
+HsChar :: ()
+HsChar <- '\'' '\\' . (!'\'' .)* ('\'' ^hschar) { () }
+       / '\'' . '\'' { () }
+       / '\'' !'\\' { () }
+
+HsIdent :: ()
+HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }
+
+# ---------------------------------------------------------------------------------
+# ここから下は構文木の変種（grammar/PegSyntax.peg）にだけ加わる。
+# 再生成のスクリプトが、grammar/Peg.peg の %module を置き換え、TopItem の
+# 送出を加え、この文書を末尾に加えて変種を作る（ADR 0032、0035）。
+%syntax
+%token Comment
+%trivia Comment
+%token SpaceChar
+%trivia SpaceChar
+%token Ident
+%token Lit1
+%token Lit2
+%token ClassLit
+%token ActionCode
+%token ArgCode
+%token TypeText
+%token InlineSp
+%inline Ws
+%inline TopItem
+%inline TopOne
+%inline Here
+%safe topitem
+%recover top SkipToTop
+%recover topitem RecoverTop
+%recover ident RecoverText
+%recover verbatim SkipToTop
+%recover type RecoverText
+%recover decl SkipToTop
+%recover params SkipToTop
+%recover paramform SkipToTop
+%recover paramtype SkipToTop
+%recover argument SkipToTop
+%recover argcode SkipToTop
+%recover expression RecoverExpr
+%recover groupaction SkipToTop
+%recover paren SkipToTop
+%recover literal SkipToTop
+%recover escape SkipToTop
+%recover ubrace SkipToTop
+%recover uclose SkipToTop
+%recover uescape SkipToTop
+%recover emptyclass SkipToTop
+%recover class SkipToTop
+%recover range SkipToTop
+%recover action SkipToTop
+%recover hsstring SkipToTop
+%recover hschar SkipToTop
+
+# 回復の規則（ADR 0035）。どのラベルの送出からも、次の最上位の要素の手前まで
+# 読み飛ばす。行頭の空白、/、# でない文字を、最上位の要素の始まりとみなす
+SkipToTop :: ()
+SkipToTop <- (!('\n' ![ \t\r\n/#]) .)* { () }
+
+RecoverTop :: Top
+RecoverTop <- SkipToTop { TVerbatim (Loc 0 0) T.empty }
+
+RecoverText :: Text
+RecoverText <- SkipToTop { T.empty }
+
+RecoverExpr :: Expr
+RecoverExpr <- SkipToTop { EAny }

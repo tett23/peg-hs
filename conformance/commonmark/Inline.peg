@@ -70,39 +70,38 @@ Inlines <- is:Inline* { is }
 
 Inline :: Inline
 Inline <- Break
-        / Space
-        / Escape
-        / EntityRef
-        / CodeSpan
-        / Ticks
-        / AutolinkI
-        / RawHtmlI
-        / ImageI
-        / LinkI
-        / DelimRun
-        / TextRun
-        / Other
+       / Space
+       / Escape
+       / EntityRef
+       / CodeSpan
+       / Ticks
+       / AutolinkI
+       / RawHtmlI
+       / ImageI
+       / LinkI
+       / DelimRun
+       / TextRun
+       / Other
 
 # リンクの文字列の中で使う要素。リンクと角括弧は別に扱う
 InlineNoLink :: Inline
 InlineNoLink <- Break
-              / Space
-              / Escape
-              / EntityRef
-              / CodeSpan
-              / Ticks
-              / AutolinkI
-              / RawHtmlI
-              / ImageI
-              / DelimRun
-              / TextRun
-              / OtherNoBracket
+             / Space
+             / Escape
+             / EntityRef
+             / CodeSpan
+             / Ticks
+             / AutolinkI
+             / RawHtmlI
+             / ImageI
+             / DelimRun
+             / TextRun
+             / OtherNoBracket
 
 Off :: Int
 Off <- { posOffset (spanStart _span) }
 
 # 文字と改行 ------------------------------------------------------------------------
-
 TextRun :: Inline
 TextRun <- t:$(![\\&`<!\[\]*_ \n] .)+ { Str t }
 
@@ -111,18 +110,18 @@ Space <- s:$' '+ !'\n' { Str s }
 
 Break :: Inline
 Break <- ' ' ' '+ '\n' { HardBreak }
-       / '\\' '\n' { HardBreak }
-       / ' '? '\n' { SoftBreak }
+      / '\\' '\n' { HardBreak }
+      / ' '? '\n' { SoftBreak }
 
 Escape :: Inline
 Escape <- '\\' c:$[!-/:-@\[-`{-~] { Str c }
-        / '\\' { Str "\\" }
+       / '\\' { Str "\\" }
 
 EntityRef :: Inline
 EntityRef <- '&' n:$[A-Za-z0-9]+ ';' &{ M.member n entities } { Str (M.findWithDefault T.empty n entities) }
-           / '&#' d:$[0-9]+ ';' &{ T.length d <= 7 } { Str (codePoint (decValue d)) }
-           / '&#' [xX] h:$[0-9a-fA-F]+ ';' &{ T.length h <= 6 } { Str (codePoint (hexValue h)) }
-           / '&' { Str "&" }
+          / '&#' d:$[0-9]+ ';' &{ T.length d <= 7 } { Str (codePoint (decValue d)) }
+          / '&#' [xX] h:$[0-9a-fA-F]+ ';' &{ T.length h <= 6 } { Str (codePoint (hexValue h)) }
+          / '&' { Str "&" }
 
 Other :: Inline
 Other <- c:$[!<\[\]] { Str c }
@@ -131,7 +130,6 @@ OtherNoBracket :: Inline
 OtherNoBracket <- c:$[!<] { Str c }
 
 # コードスパン ----------------------------------------------------------------------
-
 CodeSpan :: Inline
 CodeSpan <- o:$'`'+ c:CodeBody(T.length o) { Code (normalizeCode c) }
 
@@ -140,7 +138,7 @@ CodeBody <- ps:CodePart(n)* CloseTicks(n) { T.concat ps }
 
 CodePart(n :: Int) :: Text
 CodePart <- !CloseTicks(n) r:$'`'+ { r }
-          / t:$(!'`' .)+ { t }
+         / t:$(!'`' .)+ { t }
 
 CloseTicks(n :: Int) :: ()
 CloseTicks <- r:$'`'+ &{ T.length r == n } { () }
@@ -149,10 +147,9 @@ Ticks :: Inline
 Ticks <- r:$'`'+ { Str r }
 
 # 自動リンクと生の HTML ----------------------------------------------------------------
-
 AutolinkI :: Inline
 AutolinkI <- '<' u:$(Scheme ':' (![\u{0}-\u{20}<>] .)*) '>' { Autolink u u }
-           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink ("mailto:" <> e) e }
+          / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink ("mailto:" <> e) e }
 
 Scheme :: ()
 Scheme <- s:$([A-Za-z] [A-Za-z0-9+.\-]+) &{ T.length s <= 32 } { () }
@@ -183,17 +180,17 @@ Attr <- TWs [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
 
 AttrValue :: ()
 AttrValue <- TWs? '=' TWs? (![ \t\n"'=<>`] .)+ { () }
-           / TWs? '=' TWs? '\'' (!'\'' .)* '\'' { () }
-           / TWs? '=' TWs? '"' (!'"' .)* '"' { () }
+          / TWs? '=' TWs? '\'' (!'\'' .)* '\'' { () }
+          / TWs? '=' TWs? '"' (!'"' .)* '"' { () }
 
 TWs :: ()
 TWs <- [ \t]* '\n' [ \t]* { () }
-     / [ \t]+ { () }
+    / [ \t]+ { () }
 
 HtmlComment :: ()
 HtmlComment <- '<!-->' { () }
-             / '<!--->' { () }
-             / '<!--' (!'-->' .)* '-->' { () }
+            / '<!--->' { () }
+            / '<!--' (!'-->' .)* '-->' { () }
 
 ProcInstr :: ()
 ProcInstr <- '<?' (!'?>' .)* '?>' { () }
@@ -205,18 +202,17 @@ CData :: ()
 CData <- '<![CDATA[' (!']]>' .)* ']]>' { () }
 
 # リンクと画像 ----------------------------------------------------------------------
-
 LinkI :: Inline
 LinkI <- '[' lt:LinkText ']' tl:InlineTail { Link (fst lt) (fst tl) (snd tl) }
-       / '[' lt:LinkText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Link _env (fst lt) lab }
-       / '[' lt:LinkText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
-       / '[' lt:LinkText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
+      / '[' lt:LinkText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Link _env (fst lt) lab }
+      / '[' lt:LinkText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
+      / '[' lt:LinkText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Link _env (fst lt) (snd lt) }
 
 ImageI :: Inline
 ImageI <- '!' '[' lt:ImageText ']' tl:InlineTail { Image (fst lt) (fst tl) (snd tl) }
-        / '!' '[' lt:ImageText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Image _env (fst lt) lab }
-        / '!' '[' lt:ImageText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
-        / '!' '[' lt:ImageText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
+       / '!' '[' lt:ImageText ']' '[' lab:$LabelBody ']' &{ hasRef _env lab } { refLink Image _env (fst lt) lab }
+       / '!' '[' lt:ImageText ']' '[' ']' &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
+       / '!' '[' lt:ImageText ']' !('[' ']') !('[' LabelBody ']') &{ hasRef _env (snd lt) } { refLink Image _env (fst lt) (snd lt) }
 
 LabelBody :: ()
 LabelBody <- ('\\' . / ![\[\]] .)+ { () }
@@ -227,15 +223,15 @@ LinkText <- s:Off is:LinkItem* e:Off { (concat is, slice _env s e) }
 
 LinkItem :: [Inline]
 LinkItem <- !'[' !']' i:InlineNoLink { [i] }
-          / !LinkI '[' is:LinkItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
+         / !LinkI '[' is:LinkItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
 
 ImageText :: ([Inline], Text)
 ImageText <- s:Off is:ImageItem* e:Off { (concat is, slice _env s e) }
 
 ImageItem :: [Inline]
 ImageItem <- l:LinkI { [l] }
-           / !'[' !']' i:InlineNoLink { [i] }
-           / '[' is:ImageItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
+          / !'[' !']' i:InlineNoLink { [i] }
+          / '[' is:ImageItem* ']' { [Str "["] ++ concat is ++ [Str "]"] }
 
 InlineTail :: (Text, Maybe Text)
 InlineTail <- '(' LWs d:Dest? t:TitlePart? LWs ')' { (maybe T.empty id d, t) }
@@ -245,7 +241,7 @@ LWs <- [ \t]* ('\n' [ \t]*)? { () }
 
 Dest :: Text
 Dest <- '<' d:$('\\' . / ![<>\n] .)* '>' { d }
-      / !'<' d:$DestRaw { d }
+     / !'<' d:$DestRaw { d }
 
 DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n()\u{0}-\u{1F}] .)+ { () }
@@ -255,11 +251,10 @@ TitlePart <- ([ \t]+ ('\n' [ \t]*)? / [ \t]* '\n' [ \t]*) t:Title { t }
 
 Title :: Text
 Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
-       / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
-       / '(' t:$('\\' . / ![()] .)* ')' { t }
+      / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
+      / '(' t:$('\\' . / ![()] .)* ')' { t }
 
 # 強調の区切り記号 ------------------------------------------------------------------
-
 DelimRun :: Inline
 DelimRun <- s:Off r:$'*'+ e:Off { Delim '*' (T.length r) s e }
-          / s:Off r:$'_'+ e:Off { Delim '_' (T.length r) s e }
+         / s:Off r:$'_'+ e:Off { Delim '_' (T.length r) s e }

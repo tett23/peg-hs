@@ -138,7 +138,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 14 "test/fixtures/Discard.peg" #-}
- {-# COLUMN 45 #-} t 
+ {-# COLUMN 44 #-} t 
 {-# LINE 143 "test/generated/Fixture/Discard.hs" #-}
     )
           }
@@ -154,7 +154,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 15 "test/fixtures/Discard.peg" #-}
- {-# COLUMN 36 #-} pack "none" 
+ {-# COLUMN 35 #-} pack "none" 
 {-# LINE 159 "test/generated/Fixture/Discard.hs" #-}
     )
           }
@@ -169,7 +169,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 16 "test/fixtures/Discard.peg" #-}
- {-# COLUMN 32 #-} pack "many" 
+ {-# COLUMN 31 #-} pack "many" 
 {-# LINE 174 "test/generated/Fixture/Discard.hs" #-}
     )
           }
@@ -184,7 +184,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 17 "test/fixtures/Discard.peg" #-}
- {-# COLUMN 32 #-} pack "optional" 
+ {-# COLUMN 31 #-} pack "optional" 
 {-# LINE 189 "test/generated/Fixture/Discard.hs" #-}
     )
           }
@@ -201,7 +201,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 18 "test/fixtures/Discard.peg" #-}
- {-# COLUMN 42 #-} t 
+ {-# COLUMN 41 #-} t 
 {-# LINE 206 "test/generated/Fixture/Discard.hs" #-}
     )
           }

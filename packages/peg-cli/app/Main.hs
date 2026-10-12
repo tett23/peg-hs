@@ -1,6 +1,7 @@
 -- | @peg-hs@: the command line tool of peg-hs (ADR 0037).
 module Main (main) where
 
+import Command.Fmt (fmtCommand)
 import Command.Gen (genCommand)
 import Data.List (find, isSuffixOf)
 import Data.Version (showVersion)
@@ -11,7 +12,7 @@ import System.Exit (ExitCode (..), exitWith)
 import System.IO (hPutStr, stderr)
 
 commands :: [Command]
-commands = [genCommand]
+commands = [genCommand, fmtCommand]
 
 overview :: String
 overview =

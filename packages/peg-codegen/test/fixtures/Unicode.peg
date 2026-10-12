@@ -3,7 +3,7 @@
 # Unicode の規則名と束縛名（ADR 0020）
 式 :: Int
 式 <- 左:式 '＋' 右:数 { 左 + 右 }
-    / 数
+  / 数
 
 数 :: Int
 数 <- 桁:$[0-9]+ { read (unpackDigits 桁) }

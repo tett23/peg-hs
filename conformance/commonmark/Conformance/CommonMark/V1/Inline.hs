@@ -82,197 +82,197 @@ data Peg'Store peg's = Peg'Store
 {-# LINE 83 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'TextRun :: PegRt.Table peg's (
-{-# LINE 86 "commonmark/v1/Inline.peg" #-}
+{-# LINE 85 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}Inline
 {-# LINE 88 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Space :: PegRt.Table peg's (
-{-# LINE 89 "commonmark/v1/Inline.peg" #-}
+{-# LINE 88 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 93 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Break :: PegRt.Table peg's (
-{-# LINE 92 "commonmark/v1/Inline.peg" #-}
+{-# LINE 91 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 98 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Escape :: PegRt.Table peg's (
-{-# LINE 97 "commonmark/v1/Inline.peg" #-}
+{-# LINE 96 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 103 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'EntityRef :: PegRt.Table peg's (
-{-# LINE 101 "commonmark/v1/Inline.peg" #-}
+{-# LINE 100 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Inline
 {-# LINE 108 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Other :: PegRt.Table peg's (
-{-# LINE 107 "commonmark/v1/Inline.peg" #-}
+{-# LINE 106 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 113 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'OtherNoBracket :: PegRt.Table peg's (
-{-# LINE 110 "commonmark/v1/Inline.peg" #-}
+{-# LINE 109 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 19 #-}Inline
 {-# LINE 118 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'CodeSpan :: PegRt.Table peg's (
-{-# LINE 115 "commonmark/v1/Inline.peg" #-}
+{-# LINE 113 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 123 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Body1 :: PegRt.Table peg's (
-{-# LINE 120 "commonmark/v1/Inline.peg" #-}
+{-# LINE 118 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 128 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Body2 :: PegRt.Table peg's (
-{-# LINE 123 "commonmark/v1/Inline.peg" #-}
+{-# LINE 121 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 133 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Body3 :: PegRt.Table peg's (
-{-# LINE 126 "commonmark/v1/Inline.peg" #-}
+{-# LINE 124 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 138 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Ticks :: PegRt.Table peg's (
-{-# LINE 129 "commonmark/v1/Inline.peg" #-}
+{-# LINE 127 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 143 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'AutolinkI :: PegRt.Table peg's (
-{-# LINE 134 "commonmark/v1/Inline.peg" #-}
+{-# LINE 131 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Inline
 {-# LINE 148 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Scheme :: PegRt.Table peg's (
-{-# LINE 138 "commonmark/v1/Inline.peg" #-}
+{-# LINE 135 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}()
 {-# LINE 153 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'EmailLocal :: PegRt.Table peg's (
-{-# LINE 141 "commonmark/v1/Inline.peg" #-}
+{-# LINE 138 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}()
 {-# LINE 158 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'EmailDomain :: PegRt.Table peg's (
-{-# LINE 144 "commonmark/v1/Inline.peg" #-}
+{-# LINE 141 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 163 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'DomainLabel :: PegRt.Table peg's (
-{-# LINE 147 "commonmark/v1/Inline.peg" #-}
+{-# LINE 144 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 168 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'RawHtmlI :: PegRt.Table peg's (
-{-# LINE 150 "commonmark/v1/Inline.peg" #-}
+{-# LINE 147 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 173 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'OpenTag :: PegRt.Table peg's (
-{-# LINE 153 "commonmark/v1/Inline.peg" #-}
+{-# LINE 150 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 178 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'ClosingTag :: PegRt.Table peg's (
-{-# LINE 156 "commonmark/v1/Inline.peg" #-}
+{-# LINE 153 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}()
 {-# LINE 183 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'TagName :: PegRt.Table peg's (
-{-# LINE 159 "commonmark/v1/Inline.peg" #-}
+{-# LINE 156 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 188 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Attr :: PegRt.Table peg's (
-{-# LINE 162 "commonmark/v1/Inline.peg" #-}
+{-# LINE 159 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}()
 {-# LINE 193 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'AttrValue :: PegRt.Table peg's (
-{-# LINE 165 "commonmark/v1/Inline.peg" #-}
+{-# LINE 162 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}()
 {-# LINE 198 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'TWs :: PegRt.Table peg's (
-{-# LINE 170 "commonmark/v1/Inline.peg" #-}
+{-# LINE 167 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 203 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'HtmlComment :: PegRt.Table peg's (
-{-# LINE 174 "commonmark/v1/Inline.peg" #-}
+{-# LINE 171 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 208 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'ProcInstr :: PegRt.Table peg's (
-{-# LINE 179 "commonmark/v1/Inline.peg" #-}
+{-# LINE 176 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}()
 {-# LINE 213 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Decl :: PegRt.Table peg's (
-{-# LINE 182 "commonmark/v1/Inline.peg" #-}
+{-# LINE 179 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}()
 {-# LINE 218 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'CData :: PegRt.Table peg's (
-{-# LINE 185 "commonmark/v1/Inline.peg" #-}
+{-# LINE 182 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 223 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'LinkI :: PegRt.Table peg's (
-{-# LINE 190 "commonmark/v1/Inline.peg" #-}
+{-# LINE 186 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 228 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'ImageI :: PegRt.Table peg's (
-{-# LINE 193 "commonmark/v1/Inline.peg" #-}
+{-# LINE 189 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 233 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'LinkItem :: PegRt.Table peg's (
-{-# LINE 196 "commonmark/v1/Inline.peg" #-}
+{-# LINE 192 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}[Inline]
 {-# LINE 238 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'ImageItem :: PegRt.Table peg's (
-{-# LINE 200 "commonmark/v1/Inline.peg" #-}
+{-# LINE 196 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}[Inline]
 {-# LINE 243 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'InlineTail :: PegRt.Table peg's (
-{-# LINE 205 "commonmark/v1/Inline.peg" #-}
+{-# LINE 201 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}(Text, Maybe Text)
 {-# LINE 248 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'LWs :: PegRt.Table peg's (
-{-# LINE 208 "commonmark/v1/Inline.peg" #-}
+{-# LINE 204 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 253 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Dest :: PegRt.Table peg's (
-{-# LINE 211 "commonmark/v1/Inline.peg" #-}
+{-# LINE 207 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}Text
 {-# LINE 258 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'DestRaw :: PegRt.Table peg's (
-{-# LINE 215 "commonmark/v1/Inline.peg" #-}
+{-# LINE 211 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 263 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'TitlePart :: PegRt.Table peg's (
-{-# LINE 218 "commonmark/v1/Inline.peg" #-}
+{-# LINE 214 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Text
 {-# LINE 268 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'Title :: PegRt.Table peg's (
-{-# LINE 221 "commonmark/v1/Inline.peg" #-}
+{-# LINE 217 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Text
 {-# LINE 273 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
   , peg'memo'DelimRun :: PegRt.Table peg's (
-{-# LINE 228 "commonmark/v1/Inline.peg" #-}
+{-# LINE 223 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 278 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -415,7 +415,7 @@ peg'rule'Off =
       ])
 
 peg'rule'TextRun :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 86 "commonmark/v1/Inline.peg" #-}
+{-# LINE 85 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}Inline
 {-# LINE 421 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -429,7 +429,7 @@ peg'rule'TextRun =
           }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 87 "commonmark/v1/Inline.peg" #-}
+{-# LINE 86 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 40 #-} Str t 
 {-# LINE 435 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -437,7 +437,7 @@ peg'rule'TextRun =
       ])
 
 peg'rule'Space :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 89 "commonmark/v1/Inline.peg" #-}
+{-# LINE 88 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 443 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -449,7 +449,7 @@ peg'rule'Space =
           ; PegRt.notP (PegRt.lit "\n" "'\\n'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 90 "commonmark/v1/Inline.peg" #-}
+{-# LINE 89 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 25 #-} Str s 
 {-# LINE 455 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -457,7 +457,7 @@ peg'rule'Space =
       ])
 
 peg'rule'Break :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 92 "commonmark/v1/Inline.peg" #-}
+{-# LINE 91 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 463 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -470,7 +470,7 @@ peg'rule'Break =
           ; PegRt.lit "\n" "'\\n'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 93 "commonmark/v1/Inline.peg" #-}
+{-# LINE 92 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 25 #-} HardBreak 
 {-# LINE 476 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -480,8 +480,8 @@ peg'rule'Break =
           ; PegRt.lit "\n" "'\\n'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 94 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 21 #-} HardBreak 
+{-# LINE 93 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 20 #-} HardBreak 
 {-# LINE 486 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -490,15 +490,15 @@ peg'rule'Break =
           ; PegRt.lit "\n" "'\\n'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 95 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 21 #-} SoftBreak 
+{-# LINE 94 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 20 #-} SoftBreak 
 {-# LINE 496 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 97 "commonmark/v1/Inline.peg" #-}
+{-# LINE 96 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 504 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -510,7 +510,7 @@ peg'rule'Escape =
           ; c <- PegRt.capture (PegRt.cls [('!', '/'), (':', '@'), ('[', '`'), ('{', '~')] "[!-/:-@\\[-`{-~]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 98 "commonmark/v1/Inline.peg" #-}
+{-# LINE 97 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 36 #-} Str c 
 {-# LINE 516 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -519,15 +519,15 @@ peg'rule'Escape =
           ; PegRt.lit "\\" "'\\\\'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 99 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 17 #-} Str (T.pack "\\") 
+{-# LINE 98 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 16 #-} Str (T.pack "\\") 
 {-# LINE 525 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'EntityRef :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 101 "commonmark/v1/Inline.peg" #-}
+{-# LINE 100 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Inline
 {-# LINE 533 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -540,7 +540,7 @@ peg'rule'EntityRef =
           ; PegRt.lit ";" "';'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 102 "commonmark/v1/Inline.peg" #-}
+{-# LINE 101 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 39 #-} entityOrLiteral n 
 {-# LINE 546 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -551,8 +551,8 @@ peg'rule'EntityRef =
           ; PegRt.lit ";" "';'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 103 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 34 #-} numeric 7 d 
+{-# LINE 102 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 33 #-} numeric 7 d 
 {-# LINE 557 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -563,8 +563,8 @@ peg'rule'EntityRef =
           ; PegRt.lit ";" "';'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 104 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 48 #-} hexNumeric x h 
+{-# LINE 103 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 47 #-} hexNumeric x h 
 {-# LINE 569 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -572,15 +572,15 @@ peg'rule'EntityRef =
           ; PegRt.lit "&" "'&'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 105 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 19 #-} Str (T.pack "&") 
+{-# LINE 104 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 18 #-} Str (T.pack "&") 
 {-# LINE 578 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'Other :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 107 "commonmark/v1/Inline.peg" #-}
+{-# LINE 106 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 586 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -591,7 +591,7 @@ peg'rule'Other =
           ; c <- PegRt.capture (PegRt.cls [('!', '!'), ('<', '<'), ('[', '['), (']', ']')] "[!<\\[\\]]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 108 "commonmark/v1/Inline.peg" #-}
+{-# LINE 107 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 23 #-} Str c 
 {-# LINE 597 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -599,7 +599,7 @@ peg'rule'Other =
       ])
 
 peg'rule'OtherNoBracket :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 110 "commonmark/v1/Inline.peg" #-}
+{-# LINE 109 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 19 #-}Inline
 {-# LINE 605 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -610,7 +610,7 @@ peg'rule'OtherNoBracket =
           ; c <- PegRt.capture (PegRt.cls [('!', '!'), ('<', '<')] "[!<]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 111 "commonmark/v1/Inline.peg" #-}
+{-# LINE 110 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 28 #-} Str c 
 {-# LINE 616 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -618,7 +618,7 @@ peg'rule'OtherNoBracket =
       ])
 
 peg'rule'CodeSpan :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 115 "commonmark/v1/Inline.peg" #-}
+{-# LINE 113 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 624 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -633,7 +633,7 @@ peg'rule'CodeSpan =
           ; PegRt.notP (PegRt.lit "`" "'`'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 116 "commonmark/v1/Inline.peg" #-}
+{-# LINE 114 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 41 #-} Code (normalizeCode c) 
 {-# LINE 639 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -646,8 +646,8 @@ peg'rule'CodeSpan =
           ; PegRt.notP (PegRt.lit "`" "'`'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 117 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 43 #-} Code (normalizeCode c) 
+{-# LINE 115 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 42 #-} Code (normalizeCode c) 
 {-# LINE 652 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -659,15 +659,15 @@ peg'rule'CodeSpan =
           ; PegRt.notP (PegRt.lit "`" "'`'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 118 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 45 #-} Code (normalizeCode c) 
+{-# LINE 116 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 44 #-} Code (normalizeCode c) 
 {-# LINE 665 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'Body1 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 120 "commonmark/v1/Inline.peg" #-}
+{-# LINE 118 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 673 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -684,7 +684,7 @@ peg'rule'Body1 =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 121 "commonmark/v1/Inline.peg" #-}
+{-# LINE 119 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 33 #-} () 
 {-# LINE 690 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -692,7 +692,7 @@ peg'rule'Body1 =
       ])
 
 peg'rule'Body2 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 123 "commonmark/v1/Inline.peg" #-}
+{-# LINE 121 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 698 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -712,7 +712,7 @@ peg'rule'Body2 =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 124 "commonmark/v1/Inline.peg" #-}
+{-# LINE 122 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 45 #-} () 
 {-# LINE 718 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -720,7 +720,7 @@ peg'rule'Body2 =
       ])
 
 peg'rule'Body3 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 126 "commonmark/v1/Inline.peg" #-}
+{-# LINE 124 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 726 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -743,7 +743,7 @@ peg'rule'Body3 =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 127 "commonmark/v1/Inline.peg" #-}
+{-# LINE 125 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 58 #-} () 
 {-# LINE 749 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -751,7 +751,7 @@ peg'rule'Body3 =
       ])
 
 peg'rule'Ticks :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 129 "commonmark/v1/Inline.peg" #-}
+{-# LINE 127 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 757 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -762,7 +762,7 @@ peg'rule'Ticks =
           ; r <- PegRt.capture (PegRt.skipMany1 (PegRt.lit "`" "'`'"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 130 "commonmark/v1/Inline.peg" #-}
+{-# LINE 128 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 19 #-} Str r 
 {-# LINE 768 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -770,7 +770,7 @@ peg'rule'Ticks =
       ])
 
 peg'rule'AutolinkI :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 134 "commonmark/v1/Inline.peg" #-}
+{-# LINE 131 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Inline
 {-# LINE 776 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -790,7 +790,7 @@ peg'rule'AutolinkI =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 135 "commonmark/v1/Inline.peg" #-}
+{-# LINE 132 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 62 #-} Autolink u u 
 {-# LINE 796 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -805,15 +805,15 @@ peg'rule'AutolinkI =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 136 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 55 #-} Autolink (T.pack "mailto:" <> e) e 
+{-# LINE 133 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 54 #-} Autolink (T.pack "mailto:" <> e) e 
 {-# LINE 811 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'Scheme :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 138 "commonmark/v1/Inline.peg" #-}
+{-# LINE 135 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}()
 {-# LINE 819 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -825,7 +825,7 @@ peg'rule'Scheme =
           ; PegRt.skipMany1 (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('+', '+'), ('.', '.'), ('-', '-')] "[A-Za-z0-9+.\\-]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 139 "commonmark/v1/Inline.peg" #-}
+{-# LINE 136 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 38 #-} () 
 {-# LINE 831 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -833,7 +833,7 @@ peg'rule'Scheme =
       ])
 
 peg'rule'EmailLocal :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 141 "commonmark/v1/Inline.peg" #-}
+{-# LINE 138 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}()
 {-# LINE 839 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -844,7 +844,7 @@ peg'rule'EmailLocal =
           ; PegRt.skipMany1 (PegRt.cls [('a', 'z'), ('A', 'Z'), ('0', '9'), ('.', '.'), ('!', '!'), ('#', '#'), ('$', '$'), ('%', '%'), ('&', '&'), ('\'', '\''), ('*', '*'), ('+', '+'), ('/', '/'), ('=', '='), ('?', '?'), ('^', '^'), ('_', '_'), ('`', '`'), ('{', '{'), ('|', '|'), ('}', '}'), ('~', '~'), ('-', '-')] "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~\\-]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 142 "commonmark/v1/Inline.peg" #-}
+{-# LINE 139 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 50 #-} () 
 {-# LINE 850 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -852,7 +852,7 @@ peg'rule'EmailLocal =
       ])
 
 peg'rule'EmailDomain :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 144 "commonmark/v1/Inline.peg" #-}
+{-# LINE 141 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 858 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -867,7 +867,7 @@ peg'rule'EmailDomain =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 145 "commonmark/v1/Inline.peg" #-}
+{-# LINE 142 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 48 #-} () 
 {-# LINE 873 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -875,7 +875,7 @@ peg'rule'EmailDomain =
       ])
 
 peg'rule'DomainLabel :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 147 "commonmark/v1/Inline.peg" #-}
+{-# LINE 144 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 881 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -890,7 +890,7 @@ peg'rule'DomainLabel =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 148 "commonmark/v1/Inline.peg" #-}
+{-# LINE 145 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 59 #-} () 
 {-# LINE 896 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -898,7 +898,7 @@ peg'rule'DomainLabel =
       ])
 
 peg'rule'RawHtmlI :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 150 "commonmark/v1/Inline.peg" #-}
+{-# LINE 147 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 904 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -921,7 +921,7 @@ peg'rule'RawHtmlI =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 151 "commonmark/v1/Inline.peg" #-}
+{-# LINE 148 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 81 #-} RawHtml t 
 {-# LINE 927 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -929,7 +929,7 @@ peg'rule'RawHtmlI =
       ])
 
 peg'rule'OpenTag :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 153 "commonmark/v1/Inline.peg" #-}
+{-# LINE 150 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 935 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -945,7 +945,7 @@ peg'rule'OpenTag =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 154 "commonmark/v1/Inline.peg" #-}
+{-# LINE 151 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 45 #-} () 
 {-# LINE 951 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -953,7 +953,7 @@ peg'rule'OpenTag =
       ])
 
 peg'rule'ClosingTag :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 156 "commonmark/v1/Inline.peg" #-}
+{-# LINE 153 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}()
 {-# LINE 959 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -967,7 +967,7 @@ peg'rule'ClosingTag =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 157 "commonmark/v1/Inline.peg" #-}
+{-# LINE 154 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 38 #-} () 
 {-# LINE 973 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -975,7 +975,7 @@ peg'rule'ClosingTag =
       ])
 
 peg'rule'TagName :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 159 "commonmark/v1/Inline.peg" #-}
+{-# LINE 156 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 981 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -987,7 +987,7 @@ peg'rule'TagName =
           ; PegRt.skipMany (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('-', '-')] "[A-Za-z0-9\\-]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 160 "commonmark/v1/Inline.peg" #-}
+{-# LINE 157 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 37 #-} () 
 {-# LINE 993 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -995,7 +995,7 @@ peg'rule'TagName =
       ])
 
 peg'rule'Attr :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 162 "commonmark/v1/Inline.peg" #-}
+{-# LINE 159 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}()
 {-# LINE 1001 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1009,7 +1009,7 @@ peg'rule'Attr =
           ; _ <- PegRt.skipOptional (peg'rule'AttrValue)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 163 "commonmark/v1/Inline.peg" #-}
+{-# LINE 160 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 54 #-} () 
 {-# LINE 1015 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1017,7 +1017,7 @@ peg'rule'Attr =
       ])
 
 peg'rule'AttrValue :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 165 "commonmark/v1/Inline.peg" #-}
+{-# LINE 162 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}()
 {-# LINE 1023 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1034,7 +1034,7 @@ peg'rule'AttrValue =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 166 "commonmark/v1/Inline.peg" #-}
+{-# LINE 163 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 49 #-} () 
 {-# LINE 1040 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1051,8 +1051,8 @@ peg'rule'AttrValue =
           ; PegRt.lit "'" "'\\''"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 167 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 50 #-} () 
+{-# LINE 164 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 49 #-} () 
 {-# LINE 1057 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -1068,15 +1068,15 @@ peg'rule'AttrValue =
           ; PegRt.lit "\"" "'\"'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 168 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 47 #-} () 
+{-# LINE 165 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 46 #-} () 
 {-# LINE 1074 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'TWs :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 170 "commonmark/v1/Inline.peg" #-}
+{-# LINE 167 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 1082 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1089,7 +1089,7 @@ peg'rule'TWs =
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 171 "commonmark/v1/Inline.peg" #-}
+{-# LINE 168 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 28 #-} () 
 {-# LINE 1095 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1098,15 +1098,15 @@ peg'rule'TWs =
           ; PegRt.skipMany1 (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 172 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 16 #-} () 
+{-# LINE 169 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 15 #-} () 
 {-# LINE 1104 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'HtmlComment :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 174 "commonmark/v1/Inline.peg" #-}
+{-# LINE 171 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 16 #-}()
 {-# LINE 1112 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1117,7 +1117,7 @@ peg'rule'HtmlComment =
           ; PegRt.lit "<!-->" "'<!-->'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 175 "commonmark/v1/Inline.peg" #-}
+{-# LINE 172 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 25 #-} () 
 {-# LINE 1123 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1126,8 +1126,8 @@ peg'rule'HtmlComment =
           ; PegRt.lit "<!--->" "'<!--->'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 176 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 26 #-} () 
+{-# LINE 173 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 25 #-} () 
 {-# LINE 1132 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -1140,15 +1140,15 @@ peg'rule'HtmlComment =
           ; PegRt.lit "-->" "'-->'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 177 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 42 #-} () 
+{-# LINE 174 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 41 #-} () 
 {-# LINE 1146 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'ProcInstr :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 179 "commonmark/v1/Inline.peg" #-}
+{-# LINE 176 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}()
 {-# LINE 1154 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1164,7 +1164,7 @@ peg'rule'ProcInstr =
           ; PegRt.lit "?>" "'?>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 180 "commonmark/v1/Inline.peg" #-}
+{-# LINE 177 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 36 #-} () 
 {-# LINE 1170 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1172,7 +1172,7 @@ peg'rule'ProcInstr =
       ])
 
 peg'rule'Decl :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 182 "commonmark/v1/Inline.peg" #-}
+{-# LINE 179 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}()
 {-# LINE 1178 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1189,7 +1189,7 @@ peg'rule'Decl =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 183 "commonmark/v1/Inline.peg" #-}
+{-# LINE 180 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 38 #-} () 
 {-# LINE 1195 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1197,7 +1197,7 @@ peg'rule'Decl =
       ])
 
 peg'rule'CData :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 185 "commonmark/v1/Inline.peg" #-}
+{-# LINE 182 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}()
 {-# LINE 1203 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1213,7 +1213,7 @@ peg'rule'CData =
           ; PegRt.lit "]]>" "']]>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 186 "commonmark/v1/Inline.peg" #-}
+{-# LINE 183 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 41 #-} () 
 {-# LINE 1219 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1221,7 +1221,7 @@ peg'rule'CData =
       ])
 
 peg'rule'LinkI :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 190 "commonmark/v1/Inline.peg" #-}
+{-# LINE 186 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Inline
 {-# LINE 1227 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1235,7 +1235,7 @@ peg'rule'LinkI =
           ; tl <- peg'rule'InlineTail
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 191 "commonmark/v1/Inline.peg" #-}
+{-# LINE 187 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 46 #-} Link (concat is) (fst tl) (snd tl) 
 {-# LINE 1241 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1243,7 +1243,7 @@ peg'rule'LinkI =
       ])
 
 peg'rule'ImageI :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 193 "commonmark/v1/Inline.peg" #-}
+{-# LINE 189 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 11 #-}Inline
 {-# LINE 1249 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1258,7 +1258,7 @@ peg'rule'ImageI =
           ; tl <- peg'rule'InlineTail
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 194 "commonmark/v1/Inline.peg" #-}
+{-# LINE 190 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 52 #-} Image (concat is) (fst tl) (snd tl) 
 {-# LINE 1264 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1266,7 +1266,7 @@ peg'rule'ImageI =
       ])
 
 peg'rule'LinkItem :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 196 "commonmark/v1/Inline.peg" #-}
+{-# LINE 192 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}[Inline]
 {-# LINE 1272 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1279,7 +1279,7 @@ peg'rule'LinkItem =
           ; i <- peg'rule'InlineNoLink
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 197 "commonmark/v1/Inline.peg" #-}
+{-# LINE 193 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 39 #-} [i] 
 {-# LINE 1285 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1291,15 +1291,15 @@ peg'rule'LinkItem =
           ; PegRt.lit "]" "']'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 198 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 42 #-} [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] 
+{-# LINE 194 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 41 #-} [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] 
 {-# LINE 1297 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'ImageItem :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 200 "commonmark/v1/Inline.peg" #-}
+{-# LINE 196 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}[Inline]
 {-# LINE 1305 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1310,7 +1310,7 @@ peg'rule'ImageItem =
           ; l <- peg'rule'LinkI
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 201 "commonmark/v1/Inline.peg" #-}
+{-# LINE 197 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 23 #-} [l] 
 {-# LINE 1316 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1321,8 +1321,8 @@ peg'rule'ImageItem =
           ; i <- peg'rule'InlineNoLink
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 202 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 40 #-} [i] 
+{-# LINE 198 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 39 #-} [i] 
 {-# LINE 1327 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -1332,15 +1332,15 @@ peg'rule'ImageItem =
           ; PegRt.lit "]" "']'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 203 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 37 #-} [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] 
+{-# LINE 199 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 36 #-} [Str (T.pack "[")] ++ concat is ++ [Str (T.pack "]")] 
 {-# LINE 1338 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'InlineTail :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 205 "commonmark/v1/Inline.peg" #-}
+{-# LINE 201 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 15 #-}(Text, Maybe Text)
 {-# LINE 1346 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1356,7 +1356,7 @@ peg'rule'InlineTail =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 206 "commonmark/v1/Inline.peg" #-}
+{-# LINE 202 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 53 #-} (maybe T.empty id d, t) 
 {-# LINE 1362 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1364,7 +1364,7 @@ peg'rule'InlineTail =
       ])
 
 peg'rule'LWs :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 208 "commonmark/v1/Inline.peg" #-}
+{-# LINE 204 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 8 #-}()
 {-# LINE 1370 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1379,7 +1379,7 @@ peg'rule'LWs =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 209 "commonmark/v1/Inline.peg" #-}
+{-# LINE 205 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 31 #-} () 
 {-# LINE 1385 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1387,7 +1387,7 @@ peg'rule'LWs =
       ])
 
 peg'rule'Dest :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 211 "commonmark/v1/Inline.peg" #-}
+{-# LINE 207 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 9 #-}Text
 {-# LINE 1393 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1406,7 +1406,7 @@ peg'rule'Dest =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 212 "commonmark/v1/Inline.peg" #-}
+{-# LINE 208 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 43 #-} d 
 {-# LINE 1412 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1416,15 +1416,15 @@ peg'rule'Dest =
           ; d <- PegRt.capture (peg'rule'DestRaw)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 213 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 26 #-} d 
+{-# LINE 209 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 25 #-} d 
 {-# LINE 1422 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'DestRaw :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 215 "commonmark/v1/Inline.peg" #-}
+{-# LINE 211 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 12 #-}()
 {-# LINE 1430 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1445,7 +1445,7 @@ peg'rule'DestRaw =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 216 "commonmark/v1/Inline.peg" #-}
+{-# LINE 212 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 83 #-} () 
 {-# LINE 1451 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1453,7 +1453,7 @@ peg'rule'DestRaw =
       ])
 
 peg'rule'TitlePart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 218 "commonmark/v1/Inline.peg" #-}
+{-# LINE 214 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 14 #-}Text
 {-# LINE 1459 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1475,7 +1475,7 @@ peg'rule'TitlePart =
           ; t <- peg'rule'Title
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 219 "commonmark/v1/Inline.peg" #-}
+{-# LINE 215 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 68 #-} t 
 {-# LINE 1481 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1483,7 +1483,7 @@ peg'rule'TitlePart =
       ])
 
 peg'rule'Title :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 221 "commonmark/v1/Inline.peg" #-}
+{-# LINE 217 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 10 #-}Text
 {-# LINE 1489 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1502,7 +1502,7 @@ peg'rule'Title =
           ; PegRt.lit "\"" "'\"'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 222 "commonmark/v1/Inline.peg" #-}
+{-# LINE 218 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 41 #-} t 
 {-# LINE 1508 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1519,8 +1519,8 @@ peg'rule'Title =
           ; PegRt.lit "'" "'\\''"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 223 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 44 #-} t 
+{-# LINE 219 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 43 #-} t 
 {-# LINE 1525 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
@@ -1536,15 +1536,15 @@ peg'rule'Title =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 224 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 42 #-} t 
+{-# LINE 220 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 41 #-} t 
 {-# LINE 1542 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }
       ])
 
 peg'rule'DelimRun :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 228 "commonmark/v1/Inline.peg" #-}
+{-# LINE 223 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 13 #-}Inline
 {-# LINE 1550 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1557,7 +1557,7 @@ peg'rule'DelimRun =
           ; e <- peg'rule'Off
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 229 "commonmark/v1/Inline.peg" #-}
+{-# LINE 224 "commonmark/v1/Inline.peg" #-}
  {-# COLUMN 34 #-} Delim '*' (T.length r) s e 
 {-# LINE 1563 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
@@ -1568,8 +1568,8 @@ peg'rule'DelimRun =
           ; e <- peg'rule'Off
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 230 "commonmark/v1/Inline.peg" #-}
- {-# COLUMN 34 #-} Delim '_' (T.length r) s e 
+{-# LINE 225 "commonmark/v1/Inline.peg" #-}
+ {-# COLUMN 33 #-} Delim '_' (T.length r) s e 
 {-# LINE 1574 "commonmark/Conformance/CommonMark/V1/Inline.hs" #-}
     )
           }

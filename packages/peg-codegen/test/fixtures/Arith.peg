@@ -8,21 +8,21 @@ import Data.Text (unpack)
 
 Expr :: Int
 Expr <- l:Expr '+' r:Term { l + r }
-      / l:Expr '-' r:Term { l - r }
-      / Term
+     / l:Expr '-' r:Term { l - r }
+     / Term
 
 Term :: Int
 Term <- l:Term '*' r:Pow { l * r }
-      / Pow
+     / Pow
 
 # 右結合のべき乗
 Pow :: Int
 Pow <- b:Factor '^' e:Pow { b ^ e }
-     / Factor
+    / Factor
 
 Factor :: Int
 Factor <- '(' e:Expr ')' { e }
-        / Num
+       / Num
 
 Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }

@@ -12,6 +12,7 @@ import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
+import Format (formatTests)
 import Labels (labelTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
@@ -35,6 +36,7 @@ main = do
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files
+      , formatTests files
       ]
 
 -- Every grammar in the repository. Directories outside this package are

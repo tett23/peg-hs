@@ -106,7 +106,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 21 "test/fixtures/NoMemo.peg" #-}
- {-# COLUMN 34 #-} Number (P.read (T.unpack n)) 
+ {-# COLUMN 33 #-} Number (P.read (T.unpack n)) 
 {-# LINE 111 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
@@ -126,7 +126,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 22 "test/fixtures/NoMemo.peg" #-}
- {-# COLUMN 49 #-} Quoted s 
+ {-# COLUMN 48 #-} Quoted s 
 {-# LINE 131 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
@@ -140,7 +140,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 23 "test/fixtures/NoMemo.peg" #-}
- {-# COLUMN 41 #-} Pair a b 
+ {-# COLUMN 40 #-} Pair a b 
 {-# LINE 145 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
@@ -155,7 +155,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 24 "test/fixtures/NoMemo.peg" #-}
- {-# COLUMN 36 #-} Word (T.cons 'あ' v) 
+ {-# COLUMN 35 #-} Word (T.cons 'あ' v) 
 {-# LINE 160 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
@@ -165,7 +165,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 25 "test/fixtures/NoMemo.peg" #-}
- {-# COLUMN 29 #-} Word (T.pack "smile") 
+ {-# COLUMN 28 #-} Word (T.pack "smile") 
 {-# LINE 170 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }

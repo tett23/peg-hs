@@ -65,7 +65,7 @@ peg'rule'E =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 9 "bench/Pathological.peg" #-}
- {-# COLUMN 15 #-} n + 1 
+ {-# COLUMN 14 #-} n + 1 
 {-# LINE 70 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
@@ -74,7 +74,7 @@ peg'rule'E =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 10 "bench/Pathological.peg" #-}
- {-# COLUMN 9 #-} 0 
+ {-# COLUMN 8 #-} 0 
 {-# LINE 79 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }
@@ -123,7 +123,7 @@ peg'rule'A =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 17 "bench/Pathological.peg" #-}
- {-# COLUMN 11 #-} () 
+ {-# COLUMN 10 #-} () 
 {-# LINE 128 "bench/Conformance/Bench/Pathological.hs" #-}
     )
           }

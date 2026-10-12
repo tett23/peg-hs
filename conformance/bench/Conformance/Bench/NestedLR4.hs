@@ -206,7 +206,7 @@ peg'rule'Atom =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 25 "bench/NestedLR4.peg" #-}
- {-# COLUMN 21 #-} () 
+ {-# COLUMN 20 #-} () 
 {-# LINE 211 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
           }

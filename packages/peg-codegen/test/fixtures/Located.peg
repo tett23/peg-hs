@@ -11,7 +11,7 @@ data Expr = Lit Span Int | Add Span Expr Expr
 
 Expr :: Expr
 Expr <- l:Expr '+' r:Lit { Add _span l r }
-      / Lit
+     / Lit
 
 Lit :: Expr
 Lit <- ds:$[0-9]+ { Lit _span (read (unpack ds)) }

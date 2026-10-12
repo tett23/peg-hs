@@ -117,7 +117,7 @@ peg'rule'L =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 14 "test/fixtures/Calc.peg" #-}
- {-# COLUMN 11 #-} "x" 
+ {-# COLUMN 10 #-} "x" 
 {-# LINE 122 "test/generated/Fixture/Calc.hs" #-}
     )
           }

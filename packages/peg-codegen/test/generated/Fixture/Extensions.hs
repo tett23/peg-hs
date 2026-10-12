@@ -108,7 +108,7 @@ peg'rule'Expr =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 14 "test/fixtures/Extensions.peg" #-}
- {-# COLUMN 28 #-} l - r 
+ {-# COLUMN 27 #-} l - r 
 {-# LINE 113 "test/generated/Fixture/Extensions.hs" #-}
     )
           }

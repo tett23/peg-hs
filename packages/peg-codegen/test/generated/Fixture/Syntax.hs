@@ -259,7 +259,7 @@ peg'rule'Expr =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 18 "test/fixtures/Syntax.peg" #-}
- {-# COLUMN 34 #-} l - r 
+ {-# COLUMN 33 #-} l - r 
 {-# LINE 264 "test/generated/Fixture/Syntax.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k8, peg'k9])
           }
@@ -324,7 +324,7 @@ peg'rule'Factor =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 27 "test/fixtures/Syntax.peg" #-}
- {-# COLUMN 18 #-} n 
+ {-# COLUMN 17 #-} n 
 {-# LINE 329 "test/generated/Fixture/Syntax.hs" #-}
     ), peg'k5)
           }

@@ -196,7 +196,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 41 "json/Json.peg" #-}
- {-# COLUMN 18 #-} Bool True 
+ {-# COLUMN 17 #-} Bool True 
 {-# LINE 201 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -205,7 +205,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 42 "json/Json.peg" #-}
- {-# COLUMN 19 #-} Bool False 
+ {-# COLUMN 18 #-} Bool False 
 {-# LINE 210 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -214,7 +214,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 43 "json/Json.peg" #-}
- {-# COLUMN 20 #-} Number n 
+ {-# COLUMN 19 #-} Number n 
 {-# LINE 219 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -223,7 +223,7 @@ peg'rule'Value =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 44 "json/Json.peg" #-}
- {-# COLUMN 20 #-} String s 
+ {-# COLUMN 19 #-} String s 
 {-# LINE 228 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -262,7 +262,7 @@ peg'rule'Object =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 50 "json/Json.peg" #-}
- {-# COLUMN 23 #-} Object [] 
+ {-# COLUMN 22 #-} Object [] 
 {-# LINE 267 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -360,7 +360,7 @@ peg'rule'Array =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 63 "json/Json.peg" #-}
- {-# COLUMN 22 #-} Array [] 
+ {-# COLUMN 21 #-} Array [] 
 {-# LINE 365 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -474,7 +474,7 @@ peg'rule'IntPart =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 79 "json/Json.peg" #-}
- {-# COLUMN 26 #-} () 
+ {-# COLUMN 25 #-} () 
 {-# LINE 479 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -565,7 +565,7 @@ peg'rule'Unit =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 93 "json/Json.peg" #-}
- {-# COLUMN 59 #-} ord (T.foldr const ' ' c) 
+ {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
 {-# LINE 570 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -593,7 +593,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 97 "json/Json.peg" #-}
- {-# COLUMN 17 #-} 0x5C 
+ {-# COLUMN 16 #-} 0x5C 
 {-# LINE 598 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -602,7 +602,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 98 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x2F 
+ {-# COLUMN 15 #-} 0x2F 
 {-# LINE 607 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -611,7 +611,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 99 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x08 
+ {-# COLUMN 15 #-} 0x08 
 {-# LINE 616 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -620,7 +620,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 100 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x0C 
+ {-# COLUMN 15 #-} 0x0C 
 {-# LINE 625 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -629,7 +629,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 101 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x0A 
+ {-# COLUMN 15 #-} 0x0A 
 {-# LINE 634 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -638,7 +638,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 102 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x0D 
+ {-# COLUMN 15 #-} 0x0D 
 {-# LINE 643 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -647,7 +647,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 103 "json/Json.peg" #-}
- {-# COLUMN 16 #-} 0x09 
+ {-# COLUMN 15 #-} 0x09 
 {-# LINE 652 "json/Conformance/Json/Parser.hs" #-}
     )
           }
@@ -662,7 +662,7 @@ peg'rule'Escape =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 104 "json/Json.peg" #-}
- {-# COLUMN 37 #-} hexValue h 
+ {-# COLUMN 36 #-} hexValue h 
 {-# LINE 667 "json/Conformance/Json/Parser.hs" #-}
     )
           }

@@ -1,0 +1,62 @@
+
+# ---------------------------------------------------------------------------------
+# ここから下は構文木の変種（grammar/PegSyntax.peg）にだけ加わる。
+# 再生成のスクリプトが、grammar/Peg.peg の %module を置き換え、TopItem の
+# 送出を加え、この文書を末尾に加えて変種を作る（ADR 0032、0035）。
+%syntax
+%token Comment
+%trivia Comment
+%token SpaceChar
+%trivia SpaceChar
+%token Ident
+%token Lit1
+%token Lit2
+%token ClassLit
+%token ActionCode
+%token ArgCode
+%token TypeText
+%token InlineSp
+%inline Ws
+%inline TopItem
+%inline TopOne
+%inline Here
+%safe topitem
+%recover top SkipToTop
+%recover topitem RecoverTop
+%recover ident RecoverText
+%recover verbatim SkipToTop
+%recover type RecoverText
+%recover decl SkipToTop
+%recover params SkipToTop
+%recover paramform SkipToTop
+%recover paramtype SkipToTop
+%recover argument SkipToTop
+%recover argcode SkipToTop
+%recover expression RecoverExpr
+%recover groupaction SkipToTop
+%recover paren SkipToTop
+%recover literal SkipToTop
+%recover escape SkipToTop
+%recover ubrace SkipToTop
+%recover uclose SkipToTop
+%recover uescape SkipToTop
+%recover emptyclass SkipToTop
+%recover class SkipToTop
+%recover range SkipToTop
+%recover action SkipToTop
+%recover hsstring SkipToTop
+%recover hschar SkipToTop
+
+# 回復の規則（ADR 0035）。どのラベルの送出からも、次の最上位の要素の手前まで
+# 読み飛ばす。行頭の空白、/、# でない文字を、最上位の要素の始まりとみなす
+SkipToTop :: ()
+SkipToTop <- (!('\n' ![ \t\r\n/#]) .)* { () }
+
+RecoverTop :: Top
+RecoverTop <- SkipToTop { TVerbatim (Loc 0 0) T.empty }
+
+RecoverText :: Text
+RecoverText <- SkipToTop { T.empty }
+
+RecoverExpr :: Expr
+RecoverExpr <- SkipToTop { EAny }

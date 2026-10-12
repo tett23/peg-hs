@@ -27,7 +27,9 @@ executable peg-hs
   main-is:          Main.hs
   hs-source-dirs:   app
   other-modules:
+    Command.Fmt
     Command.Gen
+    Files
     Diagnostics
     Options
     Paths_peg_cli
@@ -36,6 +38,7 @@ executable peg-hs
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
     , base         >=4.20 && <4.21
+    , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
     , peg-codegen  >=0.1  && <0.2
     , peg-grammar  >=0.1  && <0.2

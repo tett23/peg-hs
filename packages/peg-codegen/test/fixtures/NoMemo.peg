@@ -18,11 +18,11 @@ Items <- Spaces is:Item* !. { is }
 
 Item :: Item
 Item <- w:$([a-z] [a-z0-9_]*) Spaces { Word w }
-      / &[0-9] n:$[0-9]+ Spaces { Number (P.read (T.unpack n)) }
-      / '"' s:$(!'"' ('\\' . / .))* '"' Spaces { Quoted s }
-      / '<' a:Key ',' b:Key '>' Spaces { Pair a b }
-      / 'あ' v:$('い' / 'う') Spaces { Word (T.cons 'あ' v) }
-      / "\u{1F600}" Spaces { Word (T.pack "smile") }
+     / &[0-9] n:$[0-9]+ Spaces { Number (P.read (T.unpack n)) }
+     / '"' s:$(!'"' ('\\' . / .))* '"' Spaces { Quoted s }
+     / '<' a:Key ',' b:Key '>' Spaces { Pair a b }
+     / 'あ' v:$('い' / 'う') Spaces { Word (T.cons 'あ' v) }
+     / "\u{1F600}" Spaces { Word (T.pack "smile") }
 
 # 値を持つ括弧グループ
 Key :: Text
