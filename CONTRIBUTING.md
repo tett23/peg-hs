@@ -32,7 +32,7 @@ ADRs live in `docs/adr/`.
 ## トレードオフ (trade-offs)
 ```
 
-- State in a section 実装の段階 (implementation stage) where the ADR fits in the implementation order of ADR 0013
+- State in a section 実装の段階 (implementation stage) where the ADR fits in the implementation order of [ADR 0013](docs/adr/0013-roadmap-toolchain-memo.md)
 
 ### Review and adoption
 
@@ -46,7 +46,7 @@ ADRs live in `docs/adr/`.
 - A committed ADR cannot be changed, except for its status line. [adr-guard](https://github.com/tett23/adr-guard) checks this in the pre-commit hook and in CI
 - To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as 採択→(the changed part)は ADR NNNN
 - To discard an ADR, set its status to 破棄 (discarded) and write the reason in `docs/specifications.md`
-- When an implementation could not follow its ADR, or took a different form, write an ADR that records it (for example ADR 0015, ADR 0025, ADR 0029)
+- When an implementation could not follow its ADR, or took a different form, write an ADR that records it (for example [ADR 0015](docs/adr/0015-implementation-deviations.md), [ADR 0025](docs/adr/0025-lua-toml-implementation-deviations.md), [ADR 0029](docs/adr/0029-label-safety-implementation-deviations.md))
 
 ## Implementation
 
@@ -60,11 +60,11 @@ ADRs live in `docs/adr/`.
 
 - Generated modules (the codegen fixtures, the grammars of the conformance tests, the self-hosted parser, the label-free variants) are committed. The tests check that they match the generator's current output
 - After changing the generator or a grammar, regenerate them with `scripts/regen-fixtures.sh`
-- To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice (ADR 0027): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
+- To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
 
 ### Performance
 
-- For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine (ADR 0007)
+- For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine ([ADR 0007](docs/adr/0007-performance-discipline.md))
 - Measurements behind performance decisions go to `docs/benchmarks/` as snapshots
 
 ### Dependencies
@@ -82,7 +82,7 @@ ADRs live in `docs/adr/`.
 The commands for the toolchain, running tests and benchmarks, and regenerating code are in the development section of the README ([README.md](README.md)).
 Note the following:
 
-- Use the compiler and build tool versions that ghcup marks as recommended (ADR 0013). ghcup's default `cabal` may have moved to a newer version, so it helps to name the version in commands, as in `cabal-3.16.1.0`
+- Use the compiler and build tool versions that ghcup marks as recommended ([ADR 0013](docs/adr/0013-roadmap-toolchain-memo.md)). ghcup's default `cabal` may have moved to a newer version, so it helps to name the version in commands, as in `cabal-3.16.1.0`
 - After cloning, run `git config core.hooksPath .githooks` to enable the adr-guard hook
 
 ## Languages of the documents
@@ -103,7 +103,7 @@ Note the following:
 
 - Tags starting with `v` are releases. Tags of the form `v0.0.1-rc` are pre-releases
 - Write release notes in GitHub Releases. Group the changes under headings such as Added, Changed, Removed and Fixed, and link each change to its commit or pull request where possible
-- peg-hs is not yet published on Hackage (ADR 0009)
+- peg-hs is not yet published on Hackage ([ADR 0009](docs/adr/0009-hackage-publication.md))
 
 ## License
 

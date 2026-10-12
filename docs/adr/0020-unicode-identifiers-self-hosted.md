@@ -4,10 +4,10 @@
 
 ## 文脈
 
-ADR 0015 は、自己記述のパーサーの制限として、識別子の文字を ASCII に限っていることを記録した。
+[ADR 0015](0015-implementation-deviations.md) は、自己記述のパーサーの制限として、識別子の文字を ASCII に限っていることを記録した。
 手書きのパーサーは、識別子の先頭に Unicode の英字を、二文字目以降に Unicode の英数字を受け付ける。
 空白の読み飛ばしも、手書きのパーサーは Unicode の空白（`Data.Char.isSpace`）を対象にしている。
-自己記述のパーサーへの切り替え（ADR 0015）の前に、この差をなくすか、記法の側で ASCII に限るかを決める必要があった。
+自己記述のパーサーへの切り替え（[ADR 0015](0015-implementation-deviations.md)）の前に、この差をなくすか、記法の側で ASCII に限るかを決める必要があった。
 
 Unicode に広げる。
 記法を ASCII に限ると、すでに Unicode の識別子を書いている文法が通らなくなる。
@@ -15,14 +15,14 @@ Unicode に広げる。
 
 ## 実装すること
 
-- 自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）の識別子を、手書きのパーサーと同じ関数で判定する。先頭は `isIdentStart`（`isAlpha` か `_`）、二文字目以降は `isIdentChar`（`isAlphaNum`、`_`、`'`）とする。判定は意味述語（ADR 0012）で行い、関数は手書きのパーサーと共有する（`Peg.Grammar.Assemble`）
+- 自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）の識別子を、手書きのパーサーと同じ関数で判定する。先頭は `isIdentStart`（`isAlpha` か `_`）、二文字目以降は `isIdentChar`（`isAlphaNum`、`_`、`'`）とする。判定は意味述語（[ADR 0012](0012-context-sensitive-extensions.md)）で行い、関数は手書きのパーサーと共有する（`Peg.Grammar.Assemble`）
 - 空白の読み飛ばしを `isSpace` で判定する
 - Haskell の断片の走査で、文字リテラルかどうかを決める「直前が識別子の文字か」の判定も `isIdentChar` に揃える
 
 ## 実装しないこと
 
 - 識別子の Unicode 正規化（NFC など）はしない。手書きのパーサーもしない
-- 構文木の型付きの層（ADR 0019）で、大文字と小文字の区別のない文字で始まる規則名から型名を作る処理は扱わない。そうした規則名に `%syntax` を使うと、生成される型名（`規則名Syntax`）が Haskell の型名にならず、GHC のエラーになる。この制限は syntax.md に記す
+- 構文木の型付きの層（[ADR 0019](0019-lossless-syntax-tree.md)）で、大文字と小文字の区別のない文字で始まる規則名から型名を作る処理は扱わない。そうした規則名に `%syntax` を使うと、生成される型名（`規則名Syntax`）が Haskell の型名にならず、GHC のエラーになる。この制限は syntax.md に記す
 
 ## テスト設計
 
@@ -32,9 +32,9 @@ Unicode に広げる。
 
 ## 実装の段階
 
-ADR 0015 に記した自己記述のパーサーへの切り替えの前に行う。
+[ADR 0015](0015-implementation-deviations.md) に記した自己記述のパーサーへの切り替えの前に行う。
 本 ADR の実装で、切り替えの前提として残っていた差はなくなる。
-本 ADR を採択するとき、ADR 0015 のステータスの行を「採択→自己記述の文法の識別子の制限は ADR 0020」に変える。
+本 ADR を採択するとき、[ADR 0015](0015-implementation-deviations.md) のステータスの行を「採択→自己記述の文法の識別子の制限は ADR 0020」に変える。
 
 ## トレードオフ
 

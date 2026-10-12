@@ -1,7 +1,7 @@
-# CommonMark の適合率：ADR 0012 の拡張を使う文法（2026-10-11）
+# CommonMark の適合率：[ADR 0012](../../adr/0012-context-sensitive-extensions.md) の拡張を使う文法（2026-10-11）
 
-ADR 0011 の二回目のスナップショットである。
-ADR 0012 の拡張（意味述語、引数付き規則、解析環境、桁の参照）を使って書いた文法で、CommonMark 0.31.2 の 652 件の例を判定した。
+[ADR 0011](../../adr/0011-commonmark-expressiveness-probe.md) の二回目のスナップショットである。
+[ADR 0012](../../adr/0012-context-sensitive-extensions.md) の拡張（意味述語、引数付き規則、解析環境、桁の参照）を使って書いた文法で、CommonMark 0.31.2 の 652 件の例を判定した。
 結果は 652 件中 649 件の適合（99.5%）だった。
 初回のスナップショット（v1 の記法、500 件）から 149 件増えた。
 
@@ -11,7 +11,7 @@ ADR 0012 の拡張（意味述語、引数付き規則、解析環境、桁の�
 - 文法：`conformance/commonmark/Block.peg` と `conformance/commonmark/Inline.peg`
 - 判定：仕様の例の HTML との完全一致（`→` はタブに戻す）。適合した例の一覧は `conformance/commonmark/passing.txt` にあり、テスト（`cabal test peg-conformance:commonmark-conformance`）がこの一覧との双方向の一致を検査する
 
-構成は ADR 0011 の制約に従う。
+構成は [ADR 0011](../../adr/0011-commonmark-expressiveness-probe.md) の制約に従う。
 入力の照合はすべて生成パーサーが行い、手書きのコードは解析後の AST の変換（リスト項目のまとめ、参照定義の収集、強調の組み立て、HTML の出力）に限った。
 
 ## 拡張が埋めた穴
@@ -22,7 +22,7 @@ ADR 0012 の拡張（意味述語、引数付き規則、解析環境、桁の�
 
 ## 残った失敗
 
-残った 3 件はすべてタブの部分消費（ADR 0012 の「実装しないこと」に挙げた構文）である。
+残った 3 件はすべてタブの部分消費（[ADR 0012](../../adr/0012-context-sensitive-extensions.md) の「実装しないこと」に挙げた構文）である。
 コンテナの接頭辞がタブの途中までを消費し、残りの桁が内容の字下げとして数えられる。
 PEG は文字を単位として消費するため、この挙動は拡張を使っても書けない。
 

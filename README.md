@@ -54,7 +54,7 @@ cabal run peg-hs -- Grammar.peg -o Grammar.hs
 
 The generated module depends only on the `peg-runtime` package and exports `parse :: Text -> Either ParseError a` for the start rule.
 
-The generator warns about labels that may make the grammar reject valid input (ADR 0028). `--Werror` makes a warning fail the generation, and `%safe label` in the grammar silences the warning for a label checked by hand.
+The generator warns about labels that may make the grammar reject valid input ([ADR 0028](docs/adr/0028-label-safety-check.md)). `--Werror` makes a warning fail the generation, and `%safe label` in the grammar silences the warning for a label checked by hand.
 
 ## Development
 
@@ -89,17 +89,17 @@ After changing the generator or a grammar, regenerate them:
 scripts/regen-fixtures.sh
 ```
 
-The parser of the `.peg` notation is generated from the notation's own grammar, `packages/peg-grammar/grammar/Peg.peg` (ADR 0027).
+The parser of the `.peg` notation is generated from the notation's own grammar, `packages/peg-grammar/grammar/Peg.peg` ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)).
 To add a construct to the notation and use it in `Peg.peg` itself, regenerate twice: first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator.
 
 Performance regressions are caught with local benchmarks.
-For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine (ADR 0007).
+For changes touching peg-runtime or peg-codegen, compare benchmark results before and after on the same machine ([ADR 0007](docs/adr/0007-performance-discipline.md)).
 
 ```sh
 cabal bench peg-conformance
 ```
 
-Before turning memoisation off for a rule with `%nomemo`, check where memo entries accumulate and compare peak memory in separate processes (ADR 0017):
+Before turning memoisation off for a rule with `%nomemo`, check where memo entries accumulate and compare peak memory in separate processes ([ADR 0017](docs/adr/0017-nomemo-implementation.md)):
 
 ```sh
 cd conformance && $(cabal list-bin peg-conformance:bench:peg-bench) --memo-report

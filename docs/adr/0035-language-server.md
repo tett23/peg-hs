@@ -6,10 +6,10 @@
 
 `.peg` ファイルを書くとき、誤りは `peg-hs` で生成するまで分からない。
 規則の定義へ移る、規則の参照を探す、といった操作も、エディタの文字列検索に頼っている。
-ADR 0028（ラベルの安全性の検査）、ADR 0032（整形）、ADR 0033（lint）、ADR 0034（ハイライト）で、文法を調べて書き換える仕組みがそろう。
+[ADR 0028](0028-label-safety-check.md)（ラベルの安全性の検査）、[ADR 0032](0032-grammar-formatter.md)（整形）、[ADR 0033](0033-grammar-linter.md)（lint）、[ADR 0034](0034-syntax-highlighting.md)（ハイライト）で、文法を調べて書き換える仕組みがそろう。
 これらを、エディタから編集のたびに使えるようにする。
 
-ハイライトは三つの方式のすべてを用意する（ADR 0034）。
+ハイライトは三つの方式のすべてを用意する（[ADR 0034](0034-syntax-highlighting.md)）。
 そのうち semantic tokens は、言語サーバーが peg-hs 自身の構文木から返す。
 規則の定義と参照、雛形の引数、束縛のように、正規表現では区別できない字句を正確に区別できる。
 
@@ -27,7 +27,7 @@ JSON のパーサーは、peg-hs 自身で JSON の文法から生成する。
 
 - `peg-hs lsp` で起動し、標準入出力で JSON-RPC のメッセージを読み書きする
 - 言語サーバーの本体を新しいパッケージ `peg-lsp` に置き、peg-cli から呼ぶ。メッセージの処理（状態とメッセージから、応答と新しい状態と通知を返す関数）を純粋な関数として書き、入出力のループと分ける
-- 整形（ADR 0032）と lint（ADR 0033）は、CLI と言語サーバーの両方から使うライブラリの関数として実装する
+- 整形（[ADR 0032](0032-grammar-formatter.md)）と lint（[ADR 0033](0033-grammar-linter.md)）は、CLI と言語サーバーの両方から使うライブラリの関数として実装する
 
 ### 文書の扱い
 
@@ -40,14 +40,14 @@ JSON のパーサーは、peg-hs 自身で JSON の文法から生成する。
 言語サーバーは、誤りのある文書でも構文木を必要とする。
 規則の一覧、semantic tokens、定義への移動を、編集の途中でも働かせるためである。
 
-- ADR 0032 の構文木の変種に、回復の規則（ADR 0021）を加える。どのラベルの送出からも、次の最上位の要素（行頭のディレクティブ、規則の定義、型注釈、verbatim ブロック）の手前まで読み飛ばして回復する
-- 回復した構文木は、どの入力に対してもロスレスである（ADR 0021）。壊れた規則は ERROR の節になり、ほかの規則は普通の節として残る
+- [ADR 0032](0032-grammar-formatter.md) の構文木の変種に、回復の規則（[ADR 0021](0021-error-recovery.md)）を加える。どのラベルの送出からも、次の最上位の要素（行頭のディレクティブ、規則の定義、型注釈、verbatim ブロック）の手前まで読み飛ばして回復する
+- 回復した構文木は、どの入力に対してもロスレスである（[ADR 0021](0021-error-recovery.md)）。壊れた規則は ERROR の節になり、ほかの規則は普通の節として残る
 
 ### 機能
 
-- **診断**（`textDocument/publishDiagnostics`）：構文の誤り（回復した構文エラーのすべて）、静的検査の誤り、ラベルの安全性の警告（ADR 0028）、lint の警告（ADR 0033）。構文の誤りがある文書では、構文の誤りだけを返す。静的検査は文法の全体を要するためである。文言と位置は CLI の出力と同じにする
-- **整形**（`textDocument/formatting`）：ADR 0032 の整形。構文の誤りがある文書は整形しない
-- **semantic tokens**（`textDocument/semanticTokens/full`）：構文木の字句に種類を付けて返す。Haskell の断片には字句を返さず、TextMate や tree-sitter の文法のハイライト（ADR 0034）に任せる
+- **診断**（`textDocument/publishDiagnostics`）：構文の誤り（回復した構文エラーのすべて）、静的検査の誤り、ラベルの安全性の警告（[ADR 0028](0028-label-safety-check.md)）、lint の警告（[ADR 0033](0033-grammar-linter.md)）。構文の誤りがある文書では、構文の誤りだけを返す。静的検査は文法の全体を要するためである。文言と位置は CLI の出力と同じにする
+- **整形**（`textDocument/formatting`）：[ADR 0032](0032-grammar-formatter.md) の整形。構文の誤りがある文書は整形しない
+- **semantic tokens**（`textDocument/semanticTokens/full`）：構文木の字句に種類を付けて返す。Haskell の断片には字句を返さず、TextMate や tree-sitter の文法のハイライト（[ADR 0034](0034-syntax-highlighting.md)）に任せる
 - **定義への移動**（`textDocument/definition`）：規則の参照、雛形の呼び出し、`%start`、`%entry`、`%recover`、`%nomemo` などの規則名から、規則の定義へ移る
 - **参照の検索**（`textDocument/references`）：規則のすべての参照と、規則名を書いたディレクティブ
 - **ホバー**（`textDocument/hover`）：規則の参照の上で、規則の型注釈と引数を表示する
@@ -59,7 +59,7 @@ semantic tokens の種類は、LSP の標準の種類に対応させる。
 |---|---|---|
 | 規則の定義と型注釈の規則名 | `function` | `definition`、`declaration` |
 | 規則の参照 | `function` | |
-| 雛形（ADR 0031）の定義と呼び出し | `macro` | 定義には `definition` |
+| 雛形（[ADR 0031](0031-rule-templates.md)）の定義と呼び出し | `macro` | 定義には `definition` |
 | 雛形の引数の参照 | `parameter` | |
 | 束縛 | `variable` | `declaration` |
 | 予約束縛 | `variable` | `defaultLibrary` |
@@ -72,13 +72,13 @@ semantic tokens の種類は、LSP の標準の種類に対応させる。
 
 ### エディタ
 
-- VS Code の拡張機能（ADR 0034 の雛形）に、`peg-hs lsp` を起動する設定を加える
+- VS Code の拡張機能（[ADR 0034](0034-syntax-highlighting.md) の雛形）に、`peg-hs lsp` を起動する設定を加える
 - README に、Neovim（`vim.lsp.config`）と Helix（`languages.toml`）での設定の例を書く
 
 ## 実装しないこと
 
 - 増分の同期と増分の再解析
-- 名前の変更（`textDocument/rename`）、補完（`textDocument/completion`）、コードアクション。ADR 0033 の lint は自動修正を持たないので、修正のコードアクションも提供しない
+- 名前の変更（`textDocument/rename`）、補完（`textDocument/completion`）、コードアクション。[ADR 0033](0033-grammar-linter.md) の lint は自動修正を持たないので、修正のコードアクションも提供しない
 - semantic tokens の差分（`full/delta`）と範囲（`range`）
 - ワークスペース全体の診断と記号の検索
 - `lsp` や `aeson` のライブラリへの依存
@@ -97,7 +97,7 @@ semantic tokens の種類は、LSP の標準の種類に対応させる。
 
 ## 実装の段階
 
-ADR 0032、0033、0034 の後に行う。
+[ADR 0032](0032-grammar-formatter.md)、0033、0034 の後に行う。
 整形、lint、構文木の変種、VS Code の拡張機能の雛形を使うためである。
 
 ## トレードオフ

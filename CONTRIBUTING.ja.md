@@ -32,7 +32,7 @@ ADR は `docs/adr/` に置く。
 ## トレードオフ
 ```
 
-- 既存の ADR の実装の順序（ADR 0013）のどこに入るかを「実装の段階」の節に書く
+- 既存の ADR の実装の順序（[ADR 0013](docs/adr/0013-roadmap-toolchain-memo.md)）のどこに入るかを「実装の段階」の節に書く
 
 ### レビューと採択
 
@@ -46,7 +46,7 @@ ADR は `docs/adr/` に置く。
 - コミットした ADR は、ステータスの行を除いて変更できない。pre-commit のフックと CI で [adr-guard](https://github.com/tett23/adr-guard) が検査する
 - 決定を変えたいときは、変更する内容の新しい ADR を書く。元の ADR のステータスの行を「採択→（変更した部分）は ADR NNNN」のように書き換える
 - ADR を破棄するときは、ステータスを「破棄」にし、理由を `docs/specifications.md` に書く
-- 実装の過程で ADR のとおりにできなかった点や、ADR と違う形にした点は、それを記録する ADR を書く（例：ADR 0015、ADR 0025、ADR 0029）
+- 実装の過程で ADR のとおりにできなかった点や、ADR と違う形にした点は、それを記録する ADR を書く（例：[ADR 0015](docs/adr/0015-implementation-deviations.md)、[ADR 0025](docs/adr/0025-lua-toml-implementation-deviations.md)、[ADR 0029](docs/adr/0029-label-safety-implementation-deviations.md)）
 
 ## 実装
 
@@ -60,11 +60,11 @@ ADR は `docs/adr/` に置く。
 
 - 生成したモジュール（codegen の fixture、適合性テストの文法、自己記述のパーサー、ラベルを外した変種）はコミットする。テストが、コミットした生成物と生成器の現在の出力の一致を検査する
 - 生成器か文法を変えたら、`scripts/regen-fixtures.sh` で生成し直す
-- 記法に構文を加えて、その構文を自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）自身で使う場合は、二回に分けて生成し直す（ADR 0027）。まず構文を受理する規則を、その構文を使わずに加えて生成し直す。次に `Peg.peg` でその構文を使い、新しい生成器で生成し直す
+- 記法に構文を加えて、その構文を自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）自身で使う場合は、二回に分けて生成し直す（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。まず構文を受理する規則を、その構文を使わずに加えて生成し直す。次に `Peg.peg` でその構文を使い、新しい生成器で生成し直す
 
 ### 性能
 
-- peg-runtime か peg-codegen に触れる変更では、変更の前後のベンチマークを同じ機械で比べる（ADR 0007）
+- peg-runtime か peg-codegen に触れる変更では、変更の前後のベンチマークを同じ機械で比べる（[ADR 0007](docs/adr/0007-performance-discipline.md)）
 - 性能に関わる決定の計測は、`docs/benchmarks/` にスナップショットとして置く
 
 ### 依存
@@ -82,7 +82,7 @@ ADR は `docs/adr/` に置く。
 ツールチェーン、テストとベンチマークの実行、生成物の再生成のコマンドは、README の開発の節（[README.ja.md](README.ja.md)）にある。
 次の点に注意する。
 
-- コンパイラとビルドツールは、ghcup が recommended とする版を使う（ADR 0013）。ghcup の既定の `cabal` が新しい版に切り替わっていることがあるので、コマンドでは `cabal-3.16.1.0` のように版を明示するとよい
+- コンパイラとビルドツールは、ghcup が recommended とする版を使う（[ADR 0013](docs/adr/0013-roadmap-toolchain-memo.md)）。ghcup の既定の `cabal` が新しい版に切り替わっていることがあるので、コマンドでは `cabal-3.16.1.0` のように版を明示するとよい
 - clone した後に `git config core.hooksPath .githooks` を実行し、adr-guard のフックを有効にする
 
 ## 文書の言語
@@ -103,7 +103,7 @@ ADR は `docs/adr/` に置く。
 
 - `v` から始まるタグをリリースとする。`v0.0.1-rc` のような形のタグはプレリリースとして扱う
 - リリースノートは GitHub の Releases に書く。変更点を「追加」「変更」「削除」「修正」などの項目に分け、可能であれば各変更のコミットか PR を添える
-- Hackage への公開は、まだ行っていない（ADR 0009）
+- Hackage への公開は、まだ行っていない（[ADR 0009](docs/adr/0009-hackage-publication.md)）
 
 ## ライセンス
 

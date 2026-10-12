@@ -54,7 +54,7 @@ cabal run peg-hs -- Grammar.peg -o Grammar.hs
 
 生成されたモジュールは `peg-runtime` パッケージだけに依存し、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。
 
-生成器は、正しい入力を拒否するかもしれないラベルを警告する（ADR 0028）。
+生成器は、正しい入力を拒否するかもしれないラベルを警告する（[ADR 0028](docs/adr/0028-label-safety-check.md)）。
 `--Werror` を付けると警告で生成を止め、文法に `%safe label` を書くと、作者が確かめたラベルの警告を止められる。
 
 ## 開発
@@ -90,19 +90,19 @@ cabal test all
 scripts/regen-fixtures.sh
 ```
 
-`.peg` 記法のパーサーは、記法自身の文法 `packages/peg-grammar/grammar/Peg.peg` から生成している（ADR 0027）。
+`.peg` 記法のパーサーは、記法自身の文法 `packages/peg-grammar/grammar/Peg.peg` から生成している（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。
 記法に構文を加え、その構文を `Peg.peg` 自身で使う場合は、二回に分けて生成し直す。
 まず、その構文を受理する規則を、その構文を使わずに加えて生成し直す。
 次に、`Peg.peg` でその構文を使い、新しい生成器で生成し直す。
 
 性能の退行は手元のベンチマークで検出する。
-peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（ADR 0007）。
+peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（[ADR 0007](docs/adr/0007-performance-discipline.md)）。
 
 ```sh
 cabal bench peg-conformance
 ```
 
-`%nomemo` で規則のメモ化を外す前に、メモ表の項目がどの規則に集まっているかを調べ、外す前後の最大の常駐メモリを別々のプロセスで比べる（ADR 0017）。
+`%nomemo` で規則のメモ化を外す前に、メモ表の項目がどの規則に集まっているかを調べ、外す前後の最大の常駐メモリを別々のプロセスで比べる（[ADR 0017](docs/adr/0017-nomemo-implementation.md)）。
 
 ```sh
 cd conformance && $(cabal list-bin peg-conformance:bench:peg-bench) --memo-report
