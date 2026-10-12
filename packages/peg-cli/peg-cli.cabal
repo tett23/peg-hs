@@ -32,3 +32,18 @@ executable peg-hs
     , peg-grammar  >=0.1  && <0.2
     , text         >=2.0  && <2.2
   default-language: GHC2021
+
+test-suite peg-cli-test
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-tool-depends: peg-cli:peg-hs
+  build-depends:
+    , base         >=4.20 && <4.21
+    , directory    >=1.3  && <1.4
+    , filepath     >=1.4  && <1.6
+    , process      >=1.6  && <1.7
+    , tasty        >=1.4  && <1.6
+    , tasty-hunit  >=0.10 && <0.11
+  default-language: GHC2021
