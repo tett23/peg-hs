@@ -52,6 +52,8 @@ test-suite peg-codegen-test
   other-modules:
     Fixture.Arith
     Fixture.Calc
+    Fixture.Discard
+    Fixture.DiscardSyntax
     Fixture.Extensions
     Fixture.Indent
     Fixture.Link

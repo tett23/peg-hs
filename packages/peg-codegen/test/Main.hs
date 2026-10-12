@@ -12,6 +12,8 @@ import qualified Data.Text.IO as TIO
 import Data.Version (showVersion)
 import qualified Fixture.Arith as Arith
 import qualified Fixture.Calc as Calc
+import qualified Fixture.Discard as Discard
+import qualified Fixture.DiscardSyntax as DiscardSyntax
 import qualified Fixture.Extensions as Extensions
 import qualified Fixture.Indent as Indent
 import qualified Fixture.Link as Link
@@ -58,12 +60,18 @@ main =
       , recoveryTests
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
       , discardTests
+      , testGroup
+          "values that are not used (ADR 0026)"
+          [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
+          , testCase "%syntax, typed entry" $ DiscardSyntax.parse unusedInput @?= Right unusedExpected
+          , testCase "%syntax, lossless tree" $ fmap syntaxText (DiscardSyntax.parseSyntax unusedInput) @?= Right unusedInput
+          ]
       , generatorErrorTests
       , compileTests
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Unicode"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Unicode"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -114,6 +122,12 @@ discardTests =
       testProperty name $
         forAll (T.pack <$> listOf (elements alphabet)) $ \t ->
           run defaultConfig t === run defaultConfig {cfgDiscardAll = True} t
+
+unusedInput :: Text
+unusedInput = "$12;$ab;&x1;!.;*1a2;?z;?;^42;"
+
+unusedExpected :: [Text]
+unusedExpected = ["12", "ab", "x1", "none", "many", "optional", "optional", "42"]
 
 flipE :: Either a b -> Either b a
 flipE = either Right Left

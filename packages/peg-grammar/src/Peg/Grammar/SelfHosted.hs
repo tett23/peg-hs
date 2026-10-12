@@ -407,10 +407,10 @@ peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.many (PegRt.choice [do { peg'v0 <- peg'rule'SpaceChar
-          ; PegPrelude.pure peg'v0
-          }, do { peg'v1 <- peg'rule'Comment
-          ; PegPrelude.pure peg'v1
+          ; _ <- PegRt.skipMany (PegRt.choice [do { _ <- peg'rule'SpaceChar
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'Comment
+          ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -497,7 +497,7 @@ peg'rule'Ident =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; t <- PegRt.capture (PegRt.choice [do { _ <- peg'rule'IdentStart
-          ; _ <- PegRt.many (peg'rule'IdentChar)
+          ; _ <- PegRt.skipMany (peg'rule'IdentChar)
           ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
@@ -778,7 +778,7 @@ peg'rule'DeclStart =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ident
-          ; _ <- PegRt.optional (peg'rule'HsParen)
+          ; _ <- PegRt.skipOptional (peg'rule'HsParen)
           ; _ <- peg'rule'Ws
           ; PegRt.choice [do { PegRt.lit "::" "'::'"
           ; PegPrelude.pure ()
@@ -1205,7 +1205,7 @@ peg'rule'ClassLit =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "[" "'['"
-          ; _ <- PegRt.many1 (peg'rule'ClassItem)
+          ; _ <- PegRt.skipMany1 (peg'rule'ClassItem)
           ; PegRt.lit "]" "']'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1226,10 +1226,10 @@ peg'rule'ClassItem =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'ClassChar
-          ; _ <- PegRt.optional (PegRt.choice [do { PegRt.lit "-" "'-'"
+          ; _ <- PegRt.skipOptional (PegRt.choice [do { PegRt.lit "-" "'-'"
           ; PegRt.notP (PegRt.lit "]" "']'")
-          ; peg'v0 <- peg'rule'ClassChar
-          ; PegPrelude.pure peg'v0
+          ; _ <- peg'rule'ClassChar
+          ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1360,7 +1360,7 @@ peg'rule'ActionCode =
   PegRt.memo peg'memo'ActionCode "ActionCode"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.many (peg'rule'HsPart)
+          ; _ <- PegRt.skipMany (peg'rule'HsPart)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 209 "grammar/Peg.peg" #-}
@@ -1379,9 +1379,9 @@ peg'rule'ArgCode =
   PegRt.memo peg'memo'ArgCode "ArgCode"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.many (PegRt.choice [do { PegRt.notP (PegRt.lit "," "','")
-          ; peg'v0 <- peg'rule'HsPart
-          ; PegPrelude.pure peg'v0
+          ; _ <- PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.lit "," "','")
+          ; _ <- peg'rule'HsPart
+          ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1434,7 +1434,7 @@ peg'rule'HsParen =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "(" "'('"
-          ; _ <- PegRt.many (peg'rule'HsInner)
+          ; _ <- PegRt.skipMany (peg'rule'HsInner)
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1458,7 +1458,7 @@ peg'rule'HsNested =
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "[" "'['"
-          ; _ <- PegRt.many (peg'rule'HsInner)
+          ; _ <- PegRt.skipMany (peg'rule'HsInner)
           ; PegRt.lit "]" "']'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1469,7 +1469,7 @@ peg'rule'HsNested =
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "{" "'{'"
-          ; _ <- PegRt.many (peg'rule'HsInner)
+          ; _ <- PegRt.skipMany (peg'rule'HsInner)
           ; PegRt.lit "}" "'}'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1600,7 +1600,7 @@ peg'rule'HsIdent =
  {-# COLUMN 19 #-} isIdentChar (firstChar c) && firstChar c /= '\'' 
 {-# LINE 1602 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
-          ; _ <- PegRt.many (peg'rule'IdentChar)
+          ; _ <- PegRt.skipMany (peg'rule'IdentChar)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 247 "grammar/Peg.peg" #-}

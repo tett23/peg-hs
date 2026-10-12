@@ -779,13 +779,13 @@ peg'rule'AutolinkI =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "<" "'<'"
-          ; u <- PegRt.capture (PegRt.choice [do { peg'v0 <- peg'rule'Scheme
+          ; u <- PegRt.capture (PegRt.choice [do { _ <- peg'rule'Scheme
           ; PegRt.lit ":" "':'"
           ; PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.cls [('\NUL', ' '), ('<', '<'), ('>', '>')] "[\\u{0}-\\u{20}<>]")
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegPrelude.pure peg'v0
+          ; PegPrelude.pure ()
           }])
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
@@ -861,9 +861,9 @@ peg'rule'EmailDomain =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'DomainLabel
-          ; _ <- PegRt.many (PegRt.choice [do { PegRt.lit "." "'.'"
-          ; peg'v0 <- peg'rule'DomainLabel
-          ; PegPrelude.pure peg'v0
+          ; _ <- PegRt.skipMany (PegRt.choice [do { PegRt.lit "." "'.'"
+          ; _ <- peg'rule'DomainLabel
+          ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -906,18 +906,18 @@ peg'rule'RawHtmlI =
   PegRt.memo peg'memo'RawHtmlI "RawHtmlI"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; t <- PegRt.capture (PegRt.choice [do { peg'v0 <- peg'rule'OpenTag
-          ; PegPrelude.pure peg'v0
-          }, do { peg'v1 <- peg'rule'ClosingTag
-          ; PegPrelude.pure peg'v1
-          }, do { peg'v2 <- peg'rule'HtmlComment
-          ; PegPrelude.pure peg'v2
-          }, do { peg'v3 <- peg'rule'ProcInstr
-          ; PegPrelude.pure peg'v3
-          }, do { peg'v4 <- peg'rule'Decl
-          ; PegPrelude.pure peg'v4
-          }, do { peg'v5 <- peg'rule'CData
-          ; PegPrelude.pure peg'v5
+          ; t <- PegRt.capture (PegRt.choice [do { _ <- peg'rule'OpenTag
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'ClosingTag
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'HtmlComment
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'ProcInstr
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'Decl
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'CData
+          ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -939,8 +939,8 @@ peg'rule'OpenTag =
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "<" "'<'"
           ; _ <- peg'rule'TagName
-          ; _ <- PegRt.many (peg'rule'Attr)
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipMany (peg'rule'Attr)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.skipOptional (PegRt.lit "/" "'/'")
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
@@ -963,7 +963,7 @@ peg'rule'ClosingTag =
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "</" "'</'"
           ; _ <- peg'rule'TagName
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
@@ -1006,7 +1006,7 @@ peg'rule'Attr =
           ; _ <- peg'rule'TWs
           ; PegRt.cls [('A', 'Z'), ('a', 'z'), ('_', '_'), (':', ':')] "[A-Za-z_:]"
           ; PegRt.skipMany (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('_', '_'), ('.', '.'), (':', ':'), ('-', '-')] "[A-Za-z0-9_.:\\-]")
-          ; _ <- PegRt.optional (peg'rule'AttrValue)
+          ; _ <- PegRt.skipOptional (peg'rule'AttrValue)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 163 "commonmark/v1/Inline.peg" #-}
@@ -1025,9 +1025,9 @@ peg'rule'AttrValue =
   PegRt.memo peg'memo'AttrValue "AttrValue"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit "=" "'='"
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.skipMany1 (PegRt.choice [do { PegRt.notP (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('"', '"'), ('\'', '\''), ('=', '='), ('<', '<'), ('>', '>'), ('`', '`')] "[ \\t\\n\"'=<>`]")
           ; PegRt.anyChar
           ; PegPrelude.pure ()
@@ -1040,9 +1040,9 @@ peg'rule'AttrValue =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit "=" "'='"
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit "'" "'\\''"
           ; PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.lit "'" "'\\''")
           ; PegRt.anyChar
@@ -1057,9 +1057,9 @@ peg'rule'AttrValue =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit "=" "'='"
-          ; _ <- PegRt.optional (peg'rule'TWs)
+          ; _ <- PegRt.skipOptional (peg'rule'TWs)
           ; PegRt.lit "\"" "'\"'"
           ; PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.lit "\"" "'\"'")
           ; PegRt.anyChar
@@ -1436,7 +1436,7 @@ peg'rule'DestRaw =
           ; PegRt.cls [('!', '/'), (':', '@'), ('[', '`'), ('{', '~')] "[!-/:-@\\[-`{-~]"
           ; PegPrelude.pure ()
           }, do { PegRt.lit "(" "'('"
-          ; _ <- PegRt.optional (peg'rule'DestRaw)
+          ; _ <- PegRt.skipOptional (peg'rule'DestRaw)
           ; PegRt.lit ")" "')'"
           ; PegPrelude.pure ()
           }, do { PegRt.notP (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('(', '('), (')', ')'), ('\NUL', '\US')] "[ \\t\\n()\\u{0}-\\u{1F}]")

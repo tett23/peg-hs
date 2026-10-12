@@ -712,7 +712,7 @@ peg'rule'FencedCode =
           }]))
           ; _ <- peg'rule'EOL
           ; ls <- PegRt.many (peg'rule'BacktickLine)
-          ; _ <- PegRt.optional (peg'rule'BacktickClose)
+          ; _ <- PegRt.skipOptional (peg'rule'BacktickClose)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 96 "commonmark/v1/Block.peg" #-}
@@ -730,7 +730,7 @@ peg'rule'FencedCode =
           }]))
           ; _ <- peg'rule'EOL
           ; ls <- PegRt.many (peg'rule'TildeLine)
-          ; _ <- PegRt.optional (peg'rule'TildeClose)
+          ; _ <- PegRt.skipOptional (peg'rule'TildeClose)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 97 "commonmark/v1/Block.peg" #-}
@@ -972,9 +972,9 @@ peg'rule'HtmlBlock =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; PegRt.andP (PegRt.choice [do { peg'v0 <- peg'rule'Sp3
+          ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Sp3
           ; PegRt.lit "<!--" "'<!--'"
-          ; PegPrelude.pure peg'v0
+          ; PegPrelude.pure ()
           }])
           ; ls <- peg'rule'UntilComment
           ; _span <- PegRt.spanFrom peg'start
@@ -985,9 +985,9 @@ peg'rule'HtmlBlock =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; PegRt.andP (PegRt.choice [do { peg'v1 <- peg'rule'Sp3
+          ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Sp3
           ; PegRt.lit "<?" "'<?'"
-          ; PegPrelude.pure peg'v1
+          ; PegPrelude.pure ()
           }])
           ; ls <- peg'rule'UntilPI
           ; _span <- PegRt.spanFrom peg'start
@@ -998,9 +998,9 @@ peg'rule'HtmlBlock =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; PegRt.andP (PegRt.choice [do { peg'v2 <- peg'rule'Sp3
+          ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Sp3
           ; PegRt.lit "<![CDATA[" "'<![CDATA['"
-          ; PegPrelude.pure peg'v2
+          ; PegPrelude.pure ()
           }])
           ; ls <- peg'rule'UntilCData
           ; _span <- PegRt.spanFrom peg'start
@@ -1011,10 +1011,10 @@ peg'rule'HtmlBlock =
     )
           }
       , do { peg'start <- PegRt.getOffset
-          ; PegRt.andP (PegRt.choice [do { peg'v3 <- peg'rule'Sp3
+          ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Sp3
           ; PegRt.lit "<!" "'<!'"
           ; PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]"
-          ; PegPrelude.pure peg'v3
+          ; PegPrelude.pure ()
           }])
           ; ls <- peg'rule'UntilGt
           ; _span <- PegRt.spanFrom peg'start
@@ -1051,13 +1051,13 @@ peg'rule'HtmlBlock =
       , do { peg'start <- PegRt.getOffset
           ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Sp3
           ; PegRt.notP (PegRt.choice [do { PegRt.lit "<" "'<'"
-          ; peg'v4 <- peg'rule'Type1Name
-          ; PegPrelude.pure peg'v4
+          ; _ <- peg'rule'Type1Name
+          ; PegPrelude.pure ()
           }])
-          ; _ <- PegRt.choice [do { peg'v5 <- peg'rule'OpenTag
-          ; PegPrelude.pure peg'v5
-          }, do { peg'v6 <- peg'rule'CloseTag
-          ; PegPrelude.pure peg'v6
+          ; _ <- PegRt.choice [do { _ <- peg'rule'OpenTag
+          ; PegPrelude.pure ()
+          }, do { _ <- peg'rule'CloseTag
+          ; PegPrelude.pure ()
           }]
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; _ <- peg'rule'EOL
@@ -2023,12 +2023,12 @@ peg'rule'Until1 =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; peg'v0 <- peg'rule'End1
+          ; _ <- peg'rule'End1
           ; PegRt.skipMany (PegRt.choice [do { PegRt.notP (peg'rule'Newline)
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegPrelude.pure peg'v0
+          ; PegPrelude.pure ()
           }])
           ; _ <- peg'rule'EOL
           ; _span <- PegRt.spanFrom peg'start
@@ -2372,7 +2372,7 @@ peg'rule'OpenTag =
       [ do { peg'start <- PegRt.getOffset
           ; PegRt.lit "<" "'<'"
           ; _ <- peg'rule'TagName
-          ; _ <- PegRt.many (peg'rule'Attr)
+          ; _ <- PegRt.skipMany (peg'rule'Attr)
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; PegRt.skipOptional (PegRt.lit "/" "'/'")
           ; PegRt.lit ">" "'>'"
@@ -2439,7 +2439,7 @@ peg'rule'Attr =
           ; PegRt.skipMany1 (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; PegRt.cls [('A', 'Z'), ('a', 'z'), ('_', '_'), (':', ':')] "[A-Za-z_:]"
           ; PegRt.skipMany (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('_', '_'), ('.', '.'), (':', ':'), ('-', '-')] "[A-Za-z0-9_.:\\-]")
-          ; _ <- PegRt.optional (peg'rule'AttrValue)
+          ; _ <- PegRt.skipOptional (peg'rule'AttrValue)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 262 "commonmark/v1/Block.peg" #-}
@@ -2639,7 +2639,7 @@ peg'rule'RefDef =
           ; PegRt.lit "]" "']'"
           ; PegRt.lit ":" "':'"
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
-          ; _ <- PegRt.optional (peg'rule'Newline)
+          ; _ <- PegRt.skipOptional (peg'rule'Newline)
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; d <- peg'rule'Dest
           ; t <- peg'rule'DefTitle
@@ -2727,7 +2727,7 @@ peg'rule'DestRaw =
           ; PegRt.cls [('!', '/'), (':', '@'), ('[', '`'), ('{', '~')] "[!-/:-@\\[-`{-~]"
           ; PegPrelude.pure ()
           }, do { PegRt.lit "(" "'('"
-          ; _ <- PegRt.optional (peg'rule'DestRaw)
+          ; _ <- PegRt.skipOptional (peg'rule'DestRaw)
           ; PegRt.lit ")" "')'"
           ; PegPrelude.pure ()
           }, do { PegRt.notP (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('\r', '\r'), ('(', '('), (')', ')'), ('\NUL', '\US')] "[ \\t\\n\\r()\\u{0}-\\u{1F}]")

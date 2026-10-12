@@ -438,8 +438,8 @@ peg'rule'Number =
       [ do { peg'start <- PegRt.getOffset
           ; n <- PegRt.capture (PegRt.choice [do { PegRt.skipOptional (PegRt.lit "-" "'-'")
           ; _ <- peg'rule'IntPart
-          ; _ <- PegRt.optional (peg'rule'Frac)
-          ; _ <- PegRt.optional (peg'rule'Exp)
+          ; _ <- PegRt.skipOptional (peg'rule'Frac)
+          ; _ <- PegRt.skipOptional (peg'rule'Exp)
           ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start

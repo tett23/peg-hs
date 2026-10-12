@@ -62,7 +62,6 @@ module Conformance.Lua.Parser
   , syntaxKindHexRaw
   , syntaxKindDecRaw
   , syntaxKindLiteralString
-  , syntaxKindShortString
   , syntaxKindDqChar
   , syntaxKindSqChar
   , syntaxKindEscape
@@ -277,8 +276,6 @@ module Conformance.Lua.Parser
   , castHexRawSyntax
   , DecRawSyntax(..)
   , castDecRawSyntax
-  , ShortStringSyntax(..)
-  , castShortStringSyntax
   , DqCharSyntax(..)
   , castDqCharSyntax
   , SqCharSyntax(..)
@@ -306,13 +303,13 @@ import Conformance.Lua.Ast
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-{-# LINE 310 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 307 "lua/Conformance/Lua/Parser.hs" #-}
 
 -- | Parse the whole input with the rule @Chunk@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
 {-# LINE 50 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 316 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 313 "lua/Conformance/Lua/Parser.hs" #-}
     )
 parse peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'Chunk peg'input))
@@ -321,7 +318,7 @@ parse peg'input =
 parseExp :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
 {-# LINE 162 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 325 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 322 "lua/Conformance/Lua/Parser.hs" #-}
     )
 parseExp peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'Exp peg'input))
@@ -341,7 +338,7 @@ parseSyntaxExp peg'input =
 peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
 {-# LINE 50 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 345 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 342 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegRt.Stats)
 peg'parseWith peg'cfg peg'input =
   let (peg'r, peg's) = PegRt.runParser peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore) peg'rule'Chunk peg'input
@@ -573,37 +570,33 @@ syntaxKindDecRaw = PegRt.SyntaxKind 55
 syntaxKindLiteralString :: PegRt.SyntaxKind
 syntaxKindLiteralString = PegRt.SyntaxKind 56
 
--- | The syntax kind of @ShortString@.
-syntaxKindShortString :: PegRt.SyntaxKind
-syntaxKindShortString = PegRt.SyntaxKind 57
-
 -- | The syntax kind of @DqChar@.
 syntaxKindDqChar :: PegRt.SyntaxKind
-syntaxKindDqChar = PegRt.SyntaxKind 58
+syntaxKindDqChar = PegRt.SyntaxKind 57
 
 -- | The syntax kind of @SqChar@.
 syntaxKindSqChar :: PegRt.SyntaxKind
-syntaxKindSqChar = PegRt.SyntaxKind 59
+syntaxKindSqChar = PegRt.SyntaxKind 58
 
 -- | The syntax kind of @Escape@.
 syntaxKindEscape :: PegRt.SyntaxKind
-syntaxKindEscape = PegRt.SyntaxKind 60
+syntaxKindEscape = PegRt.SyntaxKind 59
 
 -- | The syntax kind of @LongBracket@.
 syntaxKindLongBracket :: PegRt.SyntaxKind
-syntaxKindLongBracket = PegRt.SyntaxKind 61
+syntaxKindLongBracket = PegRt.SyntaxKind 60
 
 -- | The syntax kind of @LongClose@.
 syntaxKindLongClose :: PegRt.SyntaxKind
-syntaxKindLongClose = PegRt.SyntaxKind 62
+syntaxKindLongClose = PegRt.SyntaxKind 61
 
 -- | The syntax kind of @Comment@.
 syntaxKindComment :: PegRt.SyntaxKind
-syntaxKindComment = PegRt.SyntaxKind 63
+syntaxKindComment = PegRt.SyntaxKind 62
 
 -- | The syntax kind of @Ws@.
 syntaxKindWs :: PegRt.SyntaxKind
-syntaxKindWs = PegRt.SyntaxKind 64
+syntaxKindWs = PegRt.SyntaxKind 63
 
 -- | The name of a syntax kind.
 nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text
@@ -665,14 +658,13 @@ nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of
   ; PegRt.SyntaxKind 54 -> "HexRaw"
   ; PegRt.SyntaxKind 55 -> "DecRaw"
   ; PegRt.SyntaxKind 56 -> "LiteralString"
-  ; PegRt.SyntaxKind 57 -> "ShortString"
-  ; PegRt.SyntaxKind 58 -> "DqChar"
-  ; PegRt.SyntaxKind 59 -> "SqChar"
-  ; PegRt.SyntaxKind 60 -> "Escape"
-  ; PegRt.SyntaxKind 61 -> "LongBracket"
-  ; PegRt.SyntaxKind 62 -> "LongClose"
-  ; PegRt.SyntaxKind 63 -> "Comment"
-  ; PegRt.SyntaxKind 64 -> "Ws"
+  ; PegRt.SyntaxKind 57 -> "DqChar"
+  ; PegRt.SyntaxKind 58 -> "SqChar"
+  ; PegRt.SyntaxKind 59 -> "Escape"
+  ; PegRt.SyntaxKind 60 -> "LongBracket"
+  ; PegRt.SyntaxKind 61 -> "LongClose"
+  ; PegRt.SyntaxKind 62 -> "Comment"
+  ; PegRt.SyntaxKind 63 -> "Ws"
   ; _ -> "UNKNOWN"
   })
 
@@ -1560,15 +1552,6 @@ castDecRawSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe DecRawSyntax
 castDecRawSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindDecRaw then PegPrelude.Just (DecRawSyntax peg'n) else PegPrelude.Nothing
 
--- | A node of the rule @ShortString@.
-newtype ShortStringSyntax = ShortStringSyntax PegRt.SyntaxNode
-  deriving (PegPrelude.Eq, PegPrelude.Show)
-
--- | The node, if it is a node of the rule @ShortString@.
-castShortStringSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe ShortStringSyntax
-castShortStringSyntax peg'n =
-  if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindShortString then PegPrelude.Just (ShortStringSyntax peg'n) else PegPrelude.Nothing
-
 -- | A node of the rule @DqChar@.
 newtype DqCharSyntax = DqCharSyntax PegRt.SyntaxNode
   deriving (PegPrelude.Eq, PegPrelude.Show)
@@ -1637,443 +1620,438 @@ data Peg'Store peg's = Peg'Store
   { peg'memo'Chunk :: PegRt.Table peg's ((
 {-# LINE 50 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 1641 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1624 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Block :: PegRt.Table peg's ((
 {-# LINE 53 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 1646 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1629 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'RetStat :: PegRt.Table peg's ((
 {-# LINE 56 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 1651 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1634 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Stat :: PegRt.Table peg's ((
 {-# LINE 61 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Stat
-{-# LINE 1656 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1639 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ElseIf :: PegRt.Table peg's ((
 {-# LINE 79 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}(Exp, Block)
-{-# LINE 1661 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1644 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Else :: PegRt.Table peg's ((
 {-# LINE 82 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 1666 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1649 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'GlobalStat :: PegRt.Table peg's ((
 {-# LINE 87 "lua/Lua.peg" #-}
  {-# COLUMN 15 #-}Stat
-{-# LINE 1671 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1654 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'GlobalBody :: PegRt.Table peg's ((
 {-# LINE 90 "lua/Lua.peg" #-}
  {-# COLUMN 15 #-}Stat
-{-# LINE 1676 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1659 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Attrib :: PegRt.Table peg's ((
 {-# LINE 95 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1681 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1664 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'AttNames :: PegRt.Table peg's ((
 {-# LINE 98 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}[(Text, Maybe Text)]
-{-# LINE 1686 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1669 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreAttName :: PegRt.Table peg's ((
 {-# LINE 101 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}(Text, Maybe Text)
-{-# LINE 1691 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1674 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'FuncName :: PegRt.Table peg's ((
 {-# LINE 104 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}FuncName
-{-# LINE 1696 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1679 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Init :: PegRt.Table peg's ((
 {-# LINE 107 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}[Exp]
-{-# LINE 1701 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1684 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'DotName :: PegRt.Table peg's ((
 {-# LINE 110 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1706 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1689 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ColonName :: PegRt.Table peg's ((
 {-# LINE 113 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 1711 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1694 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreVar :: PegRt.Table peg's ((
 {-# LINE 116 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Exp
-{-# LINE 1716 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1699 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreName :: PegRt.Table peg's ((
 {-# LINE 119 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}Text
-{-# LINE 1721 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1704 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreExp :: PegRt.Table peg's ((
 {-# LINE 122 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Exp
-{-# LINE 1726 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1709 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'VarList :: PegRt.Table peg's ((
 {-# LINE 125 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 1731 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1714 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'NameList :: PegRt.Table peg's ((
 {-# LINE 128 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}[Text]
-{-# LINE 1736 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1719 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ExpList :: PegRt.Table peg's ((
 {-# LINE 131 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 1741 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1724 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'PrefixExp :: PegRt.Table peg's ((
 {-# LINE 140 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Exp
-{-# LINE 1746 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1729 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Var :: PegRt.Table peg's ((
 {-# LINE 145 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1751 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1734 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Call :: PegRt.Table peg's ((
 {-# LINE 150 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 1756 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1739 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Args :: PegRt.Table peg's ((
 {-# LINE 154 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}[Exp]
-{-# LINE 1761 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1744 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Exp :: PegRt.Table peg's ((
 {-# LINE 162 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1766 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1749 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Or :: PegRt.Table peg's ((
 {-# LINE 165 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}Exp
-{-# LINE 1771 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1754 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'And :: PegRt.Table peg's ((
 {-# LINE 169 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1776 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1759 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Cmp :: PegRt.Table peg's ((
 {-# LINE 173 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1781 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1764 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'CmpOp :: PegRt.Table peg's ((
 {-# LINE 177 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Text
-{-# LINE 1786 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1769 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'BOr :: PegRt.Table peg's ((
 {-# LINE 180 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1791 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1774 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'BXor :: PegRt.Table peg's ((
 {-# LINE 184 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 1796 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1779 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'BAnd :: PegRt.Table peg's ((
 {-# LINE 188 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 1801 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1784 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Shift :: PegRt.Table peg's ((
 {-# LINE 192 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 1806 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1789 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Concat :: PegRt.Table peg's ((
 {-# LINE 196 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Exp
-{-# LINE 1811 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1794 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Add :: PegRt.Table peg's ((
 {-# LINE 200 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1816 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1799 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Mul :: PegRt.Table peg's ((
 {-# LINE 204 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1821 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1804 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Unary :: PegRt.Table peg's ((
 {-# LINE 209 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 1826 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1809 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'UnOp :: PegRt.Table peg's ((
 {-# LINE 213 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 1831 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1814 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Pow :: PegRt.Table peg's ((
 {-# LINE 217 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 1836 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1819 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Simple :: PegRt.Table peg's ((
 {-# LINE 221 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Exp
-{-# LINE 1841 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1824 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'FuncBody :: PegRt.Table peg's ((
 {-# LINE 232 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}FuncBody
-{-# LINE 1846 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1829 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ParList :: PegRt.Table peg's ((
 {-# LINE 235 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}([Text], Maybe (Maybe Text))
-{-# LINE 1851 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1834 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'VarArg :: PegRt.Table peg's ((
 {-# LINE 239 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Maybe Text
-{-# LINE 1856 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1839 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'CommaVarArg :: PegRt.Table peg's ((
 {-# LINE 243 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}Maybe Text
-{-# LINE 1861 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1844 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Table :: PegRt.Table peg's ((
 {-# LINE 246 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 1866 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1849 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'FieldList :: PegRt.Table peg's ((
 {-# LINE 249 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}[Field]
-{-# LINE 1871 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1854 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreField :: PegRt.Table peg's ((
 {-# LINE 252 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Field
-{-# LINE 1876 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1859 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'FieldSep :: PegRt.Table peg's ((
 {-# LINE 255 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 1881 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1864 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Field :: PegRt.Table peg's ((
 {-# LINE 258 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Field
-{-# LINE 1886 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1869 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Name :: PegRt.Table peg's ((
 {-# LINE 265 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 1891 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1874 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Numeral :: PegRt.Table peg's ((
 {-# LINE 270 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1896 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1879 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'HexRaw :: PegRt.Table peg's ((
 {-# LINE 273 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1901 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1884 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'DecRaw :: PegRt.Table peg's ((
 {-# LINE 276 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1906 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1889 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'LiteralString :: PegRt.Table peg's ((
 {-# LINE 279 "lua/Lua.peg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 1911 "lua/Conformance/Lua/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'ShortString :: PegRt.Table peg's ((
-{-# LINE 282 "lua/Lua.peg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 1916 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1894 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'DqChar :: PegRt.Table peg's ((
-{-# LINE 286 "lua/Lua.peg" #-}
+{-# LINE 282 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1921 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1899 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'SqChar :: PegRt.Table peg's ((
-{-# LINE 290 "lua/Lua.peg" #-}
+{-# LINE 286 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1926 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1904 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Escape :: PegRt.Table peg's ((
-{-# LINE 294 "lua/Lua.peg" #-}
+{-# LINE 290 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1931 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1909 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'LongBracket :: PegRt.Table peg's ((
-{-# LINE 304 "lua/Lua.peg" #-}
+{-# LINE 300 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}()
-{-# LINE 1936 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1914 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Comment :: PegRt.Table peg's ((
-{-# LINE 310 "lua/Lua.peg" #-}
+{-# LINE 306 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1941 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1919 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Ws :: PegRt.Table peg's ((
-{-# LINE 314 "lua/Lua.peg" #-}
+{-# LINE 310 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 1946 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1924 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Sp :: PegRt.Table peg's ((
-{-# LINE 317 "lua/Lua.peg" #-}
+{-# LINE 313 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 1951 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1929 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KAnd :: PegRt.Table peg's ((
-{-# LINE 322 "lua/Lua.peg" #-}
+{-# LINE 318 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 1956 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1934 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KBreak :: PegRt.Table peg's ((
-{-# LINE 325 "lua/Lua.peg" #-}
+{-# LINE 321 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1961 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1939 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KDo :: PegRt.Table peg's ((
-{-# LINE 328 "lua/Lua.peg" #-}
+{-# LINE 324 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 1966 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1944 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KElse :: PegRt.Table peg's ((
-{-# LINE 331 "lua/Lua.peg" #-}
+{-# LINE 327 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 1971 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1949 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KElseif :: PegRt.Table peg's ((
-{-# LINE 334 "lua/Lua.peg" #-}
+{-# LINE 330 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1976 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1954 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KEnd :: PegRt.Table peg's ((
-{-# LINE 337 "lua/Lua.peg" #-}
+{-# LINE 333 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 1981 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1959 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KFalse :: PegRt.Table peg's ((
-{-# LINE 340 "lua/Lua.peg" #-}
+{-# LINE 336 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1986 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1964 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KFor :: PegRt.Table peg's ((
-{-# LINE 343 "lua/Lua.peg" #-}
+{-# LINE 339 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 1991 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1969 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KFunction :: PegRt.Table peg's ((
-{-# LINE 346 "lua/Lua.peg" #-}
+{-# LINE 342 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 1996 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1974 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KGoto :: PegRt.Table peg's ((
-{-# LINE 349 "lua/Lua.peg" #-}
+{-# LINE 345 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 2001 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1979 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KIf :: PegRt.Table peg's ((
-{-# LINE 352 "lua/Lua.peg" #-}
+{-# LINE 348 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 2006 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1984 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KIn :: PegRt.Table peg's ((
-{-# LINE 355 "lua/Lua.peg" #-}
+{-# LINE 351 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 2011 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1989 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KLocal :: PegRt.Table peg's ((
-{-# LINE 358 "lua/Lua.peg" #-}
+{-# LINE 354 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 2016 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1994 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KNil :: PegRt.Table peg's ((
-{-# LINE 361 "lua/Lua.peg" #-}
+{-# LINE 357 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 2021 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 1999 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KNot :: PegRt.Table peg's ((
-{-# LINE 364 "lua/Lua.peg" #-}
+{-# LINE 360 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 2026 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2004 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KOr :: PegRt.Table peg's ((
-{-# LINE 367 "lua/Lua.peg" #-}
+{-# LINE 363 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 2031 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2009 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KRepeat :: PegRt.Table peg's ((
-{-# LINE 370 "lua/Lua.peg" #-}
+{-# LINE 366 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 2036 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2014 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KReturn :: PegRt.Table peg's ((
-{-# LINE 373 "lua/Lua.peg" #-}
+{-# LINE 369 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 2041 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2019 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KThen :: PegRt.Table peg's ((
-{-# LINE 376 "lua/Lua.peg" #-}
+{-# LINE 372 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 2046 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2024 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KTrue :: PegRt.Table peg's ((
-{-# LINE 379 "lua/Lua.peg" #-}
+{-# LINE 375 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 2051 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2029 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KUntil :: PegRt.Table peg's ((
-{-# LINE 382 "lua/Lua.peg" #-}
+{-# LINE 378 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 2056 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2034 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KWhile :: PegRt.Table peg's ((
-{-# LINE 385 "lua/Lua.peg" #-}
+{-# LINE 381 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 2061 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2039 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'KGlobal :: PegRt.Table peg's ((
-{-# LINE 389 "lua/Lua.peg" #-}
+{-# LINE 385 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 2066 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2044 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
-  Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
+  Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
 peg'rule'Chunk :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 50 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 2077 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2055 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Chunk =
   PegRt.memo peg'memo'Chunk "Chunk"
@@ -2086,7 +2064,7 @@ peg'rule'Chunk =
           ; PegPrelude.pure ((
 {-# LINE 51 "lua/Lua.peg" #-}
  {-# COLUMN 22 #-} b 
-{-# LINE 2090 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2068 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -2094,7 +2072,7 @@ peg'rule'Chunk =
 peg'rule'Block :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 53 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Block
-{-# LINE 2098 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2076 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Block =
   PegRt.memo peg'memo'Block "Block"
@@ -2108,7 +2086,7 @@ peg'rule'Block =
           ; PegPrelude.pure ((
 {-# LINE 54 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} Block ss r 
-{-# LINE 2112 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2090 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -2116,7 +2094,7 @@ peg'rule'Block =
 peg'rule'RetStat :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 56 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 2120 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2098 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'RetStat =
   PegRt.memo peg'memo'RetStat "RetStat"
@@ -2125,23 +2103,23 @@ peg'rule'RetStat =
           ; (_, peg'k0) <- peg'rule'KReturn
           ; (es, peg'k1) <- PegRt.label "es" ((PegRt.optionalS) (peg'rule'ExpList))
           ; PegRt.touch es
-          ; (_, peg'k5) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit ";" "';'")
-          ; (peg'v4, peg'k3) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v4, PegPrelude.concat [peg'k2, peg'k3])
+          ; (_, peg'k4) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit ";" "';'")
+          ; (_, peg'k3) <- peg'rule'Sp
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 57 "lua/Lua.peg" #-}
  {-# COLUMN 43 #-} fromMaybe [] es 
-{-# LINE 2137 "lua/Conformance/Lua/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k5])
+{-# LINE 2115 "lua/Conformance/Lua/Parser.hs" #-}
+    ), PegPrelude.concat [peg'k0, peg'k1, peg'k4])
           }
       ]))
 
 peg'rule'Stat :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 61 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Stat
-{-# LINE 2145 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2123 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Stat =
   PegRt.memo peg'memo'Stat "Stat"
@@ -2153,7 +2131,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 62 "lua/Lua.peg" #-}
  {-# COLUMN 17 #-} SEmpty 
-{-# LINE 2157 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2135 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2168,7 +2146,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 63 "lua/Lua.peg" #-}
  {-# COLUMN 36 #-} SLabel n 
-{-# LINE 2172 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2150 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2177,7 +2155,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 64 "lua/Lua.peg" #-}
  {-# COLUMN 17 #-} SBreak 
-{-# LINE 2181 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2159 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k8)
           }
       , do { peg'start <- PegRt.getOffset
@@ -2189,7 +2167,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 65 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} SGoto n 
-{-# LINE 2193 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2171 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k9, peg'k10, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2201,7 +2179,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 66 "lua/Lua.peg" #-}
  {-# COLUMN 27 #-} SDo b 
-{-# LINE 2205 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2183 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k13, peg'k14])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2216,7 +2194,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 67 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} SWhile c b 
-{-# LINE 2220 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2198 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k15, peg'k16, peg'k17, peg'k18, peg'k19])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2230,7 +2208,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 68 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} SRepeat b c 
-{-# LINE 2234 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2212 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k20, peg'k21, peg'k22, peg'k23])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2249,7 +2227,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 69 "lua/Lua.peg" #-}
  {-# COLUMN 59 #-} SIf ((c, b) : eis) e 
-{-# LINE 2253 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2231 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k24, peg'k25, peg'k26, peg'k27, peg'k28, peg'k29, peg'k30])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2276,7 +2254,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 70 "lua/Lua.peg" #-}
  {-# COLUMN 84 #-} SForNum n a z s b 
-{-# LINE 2280 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2258 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k31, peg'k32, peg'k33, peg'k34, peg'k35, peg'k36, peg'k37, peg'k38, peg'k39, peg'k40, peg'k41, peg'k42, peg'k43, peg'k44])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2294,7 +2272,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 71 "lua/Lua.peg" #-}
  {-# COLUMN 59 #-} SForIn ns es b 
-{-# LINE 2298 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2276 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k45, peg'k46, peg'k47, peg'k48, peg'k49, peg'k50, peg'k51])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2307,7 +2285,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 72 "lua/Lua.peg" #-}
  {-# COLUMN 42 #-} SFunction n f 
-{-# LINE 2311 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2289 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k52, peg'k53, peg'k54])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2322,7 +2300,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 73 "lua/Lua.peg" #-}
  {-# COLUMN 48 #-} SLocalFunction n f 
-{-# LINE 2326 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2304 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k55, peg'k56, peg'k57, peg'k58, peg'k59])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2337,7 +2315,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 74 "lua/Lua.peg" #-}
  {-# COLUMN 48 #-} SLocal a ns (fromMaybe [] es) 
-{-# LINE 2341 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2319 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k60, peg'k61, peg'k62, peg'k63])
           }
       , do { (peg'v65, peg'k64) <- peg'rule'GlobalStat
@@ -2355,7 +2333,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 76 "lua/Lua.peg" #-}
  {-# COLUMN 44 #-} SAssign vs es 
-{-# LINE 2359 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2337 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k66, peg'k67, peg'k68, peg'k69, peg'k70])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2365,7 +2343,7 @@ peg'rule'Stat =
           ; PegPrelude.pure ((
 {-# LINE 77 "lua/Lua.peg" #-}
  {-# COLUMN 17 #-} SCall c 
-{-# LINE 2369 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2347 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k71)
           }
       ]))
@@ -2373,7 +2351,7 @@ peg'rule'Stat =
 peg'rule'ElseIf :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 79 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}(Exp, Block)
-{-# LINE 2377 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2355 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'ElseIf =
   PegRt.memo peg'memo'ElseIf "ElseIf"
@@ -2389,7 +2367,7 @@ peg'rule'ElseIf =
           ; PegPrelude.pure ((
 {-# LINE 80 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} (c, b) 
-{-# LINE 2393 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2371 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -2397,7 +2375,7 @@ peg'rule'ElseIf =
 peg'rule'Else :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 82 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 2401 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2379 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Else =
   PegRt.memo peg'memo'Else "Else"
@@ -2410,7 +2388,7 @@ peg'rule'Else =
           ; PegPrelude.pure ((
 {-# LINE 83 "lua/Lua.peg" #-}
  {-# COLUMN 24 #-} b 
-{-# LINE 2414 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2392 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -2418,7 +2396,7 @@ peg'rule'Else =
 peg'rule'GlobalStat :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 87 "lua/Lua.peg" #-}
  {-# COLUMN 15 #-}Stat
-{-# LINE 2422 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2400 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'GlobalStat =
   PegRt.memo peg'memo'GlobalStat "GlobalStat"
@@ -2442,7 +2420,7 @@ peg'rule'GlobalStat =
           ; PegPrelude.pure ((
 {-# LINE 88 "lua/Lua.peg" #-}
  {-# COLUMN 79 #-} s 
-{-# LINE 2446 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2424 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k7, peg'k8])
           }
       ]))
@@ -2450,7 +2428,7 @@ peg'rule'GlobalStat =
 peg'rule'GlobalBody :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 90 "lua/Lua.peg" #-}
  {-# COLUMN 15 #-}Stat
-{-# LINE 2454 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2432 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'GlobalBody =
   PegRt.memo peg'memo'GlobalBody "GlobalBody"
@@ -2466,7 +2444,7 @@ peg'rule'GlobalBody =
           ; PegPrelude.pure ((
 {-# LINE 91 "lua/Lua.peg" #-}
  {-# COLUMN 47 #-} SGlobalFunction n f 
-{-# LINE 2470 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2448 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2478,7 +2456,7 @@ peg'rule'GlobalBody =
           ; PegPrelude.pure ((
 {-# LINE 92 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} SGlobalAll a 
-{-# LINE 2482 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2460 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2492,7 +2470,7 @@ peg'rule'GlobalBody =
           ; PegPrelude.pure ((
 {-# LINE 93 "lua/Lua.peg" #-}
  {-# COLUMN 47 #-} SGlobal a ns (fromMaybe [] es) 
-{-# LINE 2496 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2474 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k7, peg'k8, peg'k9])
           }
       ]))
@@ -2500,7 +2478,7 @@ peg'rule'GlobalBody =
 peg'rule'Attrib :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 95 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 2504 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2482 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Attrib =
   PegRt.memo peg'memo'Attrib "Attrib"
@@ -2519,7 +2497,7 @@ peg'rule'Attrib =
           ; PegPrelude.pure ((
 {-# LINE 96 "lua/Lua.peg" #-}
  {-# COLUMN 46 #-} n 
-{-# LINE 2523 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2501 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7])
           }
       ]))
@@ -2527,7 +2505,7 @@ peg'rule'Attrib =
 peg'rule'AttNames :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 98 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}[(Text, Maybe Text)]
-{-# LINE 2531 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2509 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'AttNames =
   PegRt.memo peg'memo'AttNames "AttNames"
@@ -2544,7 +2522,7 @@ peg'rule'AttNames =
           ; PegPrelude.pure ((
 {-# LINE 99 "lua/Lua.peg" #-}
  {-# COLUMN 50 #-} (n, a) : ns 
-{-# LINE 2548 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2526 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -2552,7 +2530,7 @@ peg'rule'AttNames =
 peg'rule'MoreAttName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 101 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}(Text, Maybe Text)
-{-# LINE 2556 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2534 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreAttName =
   PegRt.memo peg'memo'MoreAttName "MoreAttName"
@@ -2569,7 +2547,7 @@ peg'rule'MoreAttName =
           ; PegPrelude.pure ((
 {-# LINE 102 "lua/Lua.peg" #-}
  {-# COLUMN 44 #-} (n, a) 
-{-# LINE 2573 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2551 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
@@ -2577,7 +2555,7 @@ peg'rule'MoreAttName =
 peg'rule'FuncName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 104 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}FuncName
-{-# LINE 2581 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2559 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'FuncName =
   PegRt.memo peg'memo'FuncName "FuncName"
@@ -2594,7 +2572,7 @@ peg'rule'FuncName =
           ; PegPrelude.pure ((
 {-# LINE 105 "lua/Lua.peg" #-}
  {-# COLUMN 49 #-} FuncName (n : ns) m 
-{-# LINE 2598 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2576 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -2602,7 +2580,7 @@ peg'rule'FuncName =
 peg'rule'Init :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 107 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}[Exp]
-{-# LINE 2606 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2584 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Init =
   PegRt.memo peg'memo'Init "Init"
@@ -2617,7 +2595,7 @@ peg'rule'Init =
           ; PegPrelude.pure ((
 {-# LINE 108 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} es 
-{-# LINE 2621 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2599 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -2625,7 +2603,7 @@ peg'rule'Init =
 peg'rule'DotName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 110 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2629 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2607 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DotName =
   PegRt.memo peg'memo'DotName "DotName"
@@ -2641,7 +2619,7 @@ peg'rule'DotName =
           ; PegPrelude.pure ((
 {-# LINE 111 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} n 
-{-# LINE 2645 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2623 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
@@ -2649,7 +2627,7 @@ peg'rule'DotName =
 peg'rule'ColonName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 113 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 2653 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2631 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'ColonName =
   PegRt.memo peg'memo'ColonName "ColonName"
@@ -2665,7 +2643,7 @@ peg'rule'ColonName =
           ; PegPrelude.pure ((
 {-# LINE 114 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} n 
-{-# LINE 2669 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2647 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
@@ -2673,7 +2651,7 @@ peg'rule'ColonName =
 peg'rule'MoreVar :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 116 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Exp
-{-# LINE 2677 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2655 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreVar =
   PegRt.memo peg'memo'MoreVar "MoreVar"
@@ -2687,7 +2665,7 @@ peg'rule'MoreVar =
           ; PegPrelude.pure ((
 {-# LINE 117 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} v 
-{-# LINE 2691 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2669 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -2695,7 +2673,7 @@ peg'rule'MoreVar =
 peg'rule'MoreName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 119 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}Text
-{-# LINE 2699 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2677 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreName =
   PegRt.memo peg'memo'MoreName "MoreName"
@@ -2710,7 +2688,7 @@ peg'rule'MoreName =
           ; PegPrelude.pure ((
 {-# LINE 120 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} n 
-{-# LINE 2714 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2692 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -2718,7 +2696,7 @@ peg'rule'MoreName =
 peg'rule'MoreExp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 122 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Exp
-{-# LINE 2722 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2700 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreExp =
   PegRt.memo peg'memo'MoreExp "MoreExp"
@@ -2732,7 +2710,7 @@ peg'rule'MoreExp =
           ; PegPrelude.pure ((
 {-# LINE 123 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} e 
-{-# LINE 2736 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2714 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -2740,7 +2718,7 @@ peg'rule'MoreExp =
 peg'rule'VarList :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 125 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 2744 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2722 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'VarList =
   PegRt.memo peg'memo'VarList "VarList"
@@ -2754,7 +2732,7 @@ peg'rule'VarList =
           ; PegPrelude.pure ((
 {-# LINE 126 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} v : vs 
-{-# LINE 2758 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2736 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -2762,7 +2740,7 @@ peg'rule'VarList =
 peg'rule'NameList :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 128 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}[Text]
-{-# LINE 2766 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2744 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'NameList =
   PegRt.memo peg'memo'NameList "NameList"
@@ -2777,7 +2755,7 @@ peg'rule'NameList =
           ; PegPrelude.pure ((
 {-# LINE 129 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} n : ns 
-{-# LINE 2781 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2759 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -2785,7 +2763,7 @@ peg'rule'NameList =
 peg'rule'ExpList :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 131 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}[Exp]
-{-# LINE 2789 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2767 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'ExpList =
   PegRt.memo peg'memo'ExpList "ExpList"
@@ -2799,7 +2777,7 @@ peg'rule'ExpList =
           ; PegPrelude.pure ((
 {-# LINE 132 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} e : es 
-{-# LINE 2803 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2781 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -2807,7 +2785,7 @@ peg'rule'ExpList =
 peg'rule'PrefixExp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 140 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Exp
-{-# LINE 2811 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2789 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'PrefixExp =
   PegRt.memoLR peg'memo'PrefixExp "PrefixExp"
@@ -2829,7 +2807,7 @@ peg'rule'PrefixExp =
           ; PegPrelude.pure ((
 {-# LINE 143 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} EParen e 
-{-# LINE 2833 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2811 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6, peg'k7, peg'k8])
           }
       ]))
@@ -2837,7 +2815,7 @@ peg'rule'PrefixExp =
 peg'rule'Var :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 145 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 2841 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2819 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Var =
   PegRt.memoLR peg'memo'Var "Var"
@@ -2859,7 +2837,7 @@ peg'rule'Var =
           ; PegPrelude.pure ((
 {-# LINE 146 "lua/Lua.peg" #-}
  {-# COLUMN 53 #-} EIndex p k 
-{-# LINE 2863 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2841 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k4, peg'k5, peg'k6, peg'k7, peg'k8])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2875,7 +2853,7 @@ peg'rule'Var =
           ; PegPrelude.pure ((
 {-# LINE 147 "lua/Lua.peg" #-}
  {-# COLUMN 43 #-} EField p n 
-{-# LINE 2879 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2857 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k9, peg'k10, peg'k11, peg'k12, peg'k13, peg'k14])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2886,7 +2864,7 @@ peg'rule'Var =
           ; PegPrelude.pure ((
 {-# LINE 148 "lua/Lua.peg" #-}
  {-# COLUMN 19 #-} EName n 
-{-# LINE 2890 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2868 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k15, peg'k16])
           }
       ]))
@@ -2894,7 +2872,7 @@ peg'rule'Var =
 peg'rule'Call :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 150 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 2898 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2876 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Call =
   PegRt.memoLR peg'memo'Call "Call"
@@ -2908,7 +2886,7 @@ peg'rule'Call =
           ; PegPrelude.pure ((
 {-# LINE 151 "lua/Lua.peg" #-}
  {-# COLUMN 30 #-} ECall p as 
-{-# LINE 2912 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2890 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2926,7 +2904,7 @@ peg'rule'Call =
           ; PegPrelude.pure ((
 {-# LINE 152 "lua/Lua.peg" #-}
  {-# COLUMN 52 #-} EMethod p n as 
-{-# LINE 2930 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2908 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7, peg'k8])
           }
       ]))
@@ -2934,7 +2912,7 @@ peg'rule'Call =
 peg'rule'Args :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 154 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}[Exp]
-{-# LINE 2938 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2916 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Args =
   PegRt.memo peg'memo'Args "Args"
@@ -2950,7 +2928,7 @@ peg'rule'Args =
           ; PegPrelude.pure ((
 {-# LINE 155 "lua/Lua.peg" #-}
  {-# COLUMN 36 #-} fromMaybe [] es 
-{-# LINE 2954 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2932 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2960,7 +2938,7 @@ peg'rule'Args =
           ; PegPrelude.pure ((
 {-# LINE 156 "lua/Lua.peg" #-}
  {-# COLUMN 18 #-} [t] 
-{-# LINE 2964 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2942 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k5)
           }
       , do { peg'start <- PegRt.getOffset
@@ -2971,7 +2949,7 @@ peg'rule'Args =
           ; PegPrelude.pure ((
 {-# LINE 157 "lua/Lua.peg" #-}
  {-# COLUMN 29 #-} [EStr s] 
-{-# LINE 2975 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2953 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7])
           }
       ]))
@@ -2979,7 +2957,7 @@ peg'rule'Args =
 peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 162 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 2983 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2961 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Exp =
   PegRt.memo peg'memo'Exp "Exp"
@@ -2992,7 +2970,7 @@ peg'rule'Exp =
 peg'rule'Or :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 165 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}Exp
-{-# LINE 2996 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2974 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Or =
   PegRt.memoLR peg'memo'Or "Or"
@@ -3007,7 +2985,7 @@ peg'rule'Or =
           ; PegPrelude.pure ((
 {-# LINE 166 "lua/Lua.peg" #-}
  {-# COLUMN 23 #-} EBin "or" l r 
-{-# LINE 3011 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 2989 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { (peg'v4, peg'k3) <- peg'rule'And
@@ -3018,7 +2996,7 @@ peg'rule'Or =
 peg'rule'And :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 169 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3022 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3000 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'And =
   PegRt.memoLR peg'memo'And "And"
@@ -3033,7 +3011,7 @@ peg'rule'And =
           ; PegPrelude.pure ((
 {-# LINE 170 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} EBin "and" l r 
-{-# LINE 3037 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3015 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { (peg'v4, peg'k3) <- peg'rule'Cmp
@@ -3044,7 +3022,7 @@ peg'rule'And =
 peg'rule'Cmp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 173 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3048 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3026 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Cmp =
   PegRt.memoLR peg'memo'Cmp "Cmp"
@@ -3060,7 +3038,7 @@ peg'rule'Cmp =
           ; PegPrelude.pure ((
 {-# LINE 174 "lua/Lua.peg" #-}
  {-# COLUMN 29 #-} EBin o l r 
-{-# LINE 3064 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3042 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { (peg'v4, peg'k3) <- peg'rule'BOr
@@ -3071,7 +3049,7 @@ peg'rule'Cmp =
 peg'rule'CmpOp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 177 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Text
-{-# LINE 3075 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3053 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'CmpOp =
   PegRt.memo peg'memo'CmpOp "CmpOp"
@@ -3098,7 +3076,7 @@ peg'rule'CmpOp =
           ; PegPrelude.pure ((
 {-# LINE 178 "lua/Lua.peg" #-}
  {-# COLUMN 67 #-} o 
-{-# LINE 3102 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3080 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k9])
           }
       ]))
@@ -3106,7 +3084,7 @@ peg'rule'CmpOp =
 peg'rule'BOr :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 180 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3110 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3088 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'BOr =
   PegRt.memoLR peg'memo'BOr "BOr"
@@ -3122,7 +3100,7 @@ peg'rule'BOr =
           ; PegPrelude.pure ((
 {-# LINE 181 "lua/Lua.peg" #-}
  {-# COLUMN 29 #-} EBin "|" l r 
-{-# LINE 3126 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3104 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { (peg'v5, peg'k4) <- peg'rule'BXor
@@ -3133,7 +3111,7 @@ peg'rule'BOr =
 peg'rule'BXor :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 184 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 3137 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3115 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'BXor =
   PegRt.memoLR peg'memo'BXor "BXor"
@@ -3150,7 +3128,7 @@ peg'rule'BXor =
           ; PegPrelude.pure ((
 {-# LINE 185 "lua/Lua.peg" #-}
  {-# COLUMN 36 #-} EBin "~" l r 
-{-# LINE 3154 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3132 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { (peg'v6, peg'k5) <- peg'rule'BAnd
@@ -3161,7 +3139,7 @@ peg'rule'BXor =
 peg'rule'BAnd :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 188 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Exp
-{-# LINE 3165 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3143 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'BAnd =
   PegRt.memoLR peg'memo'BAnd "BAnd"
@@ -3177,7 +3155,7 @@ peg'rule'BAnd =
           ; PegPrelude.pure ((
 {-# LINE 189 "lua/Lua.peg" #-}
  {-# COLUMN 32 #-} EBin "&" l r 
-{-# LINE 3181 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3159 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { (peg'v5, peg'k4) <- peg'rule'Shift
@@ -3188,7 +3166,7 @@ peg'rule'BAnd =
 peg'rule'Shift :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 192 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 3192 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3170 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Shift =
   PegRt.memoLR peg'memo'Shift "Shift"
@@ -3209,7 +3187,7 @@ peg'rule'Shift =
           ; PegPrelude.pure ((
 {-# LINE 193 "lua/Lua.peg" #-}
  {-# COLUMN 48 #-} EBin o l r 
-{-# LINE 3213 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3191 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k5])
           }
       , do { (peg'v7, peg'k6) <- peg'rule'Concat
@@ -3220,7 +3198,7 @@ peg'rule'Shift =
 peg'rule'Concat :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 196 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Exp
-{-# LINE 3224 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3202 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Concat =
   PegRt.memo peg'memo'Concat "Concat"
@@ -3237,7 +3215,7 @@ peg'rule'Concat =
           ; PegPrelude.pure ((
 {-# LINE 197 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} EBin ".." l r 
-{-# LINE 3241 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3219 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { (peg'v6, peg'k5) <- peg'rule'Add
@@ -3248,7 +3226,7 @@ peg'rule'Concat =
 peg'rule'Add :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 200 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3252 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3230 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Add =
   PegRt.memoLR peg'memo'Add "Add"
@@ -3265,7 +3243,7 @@ peg'rule'Add =
           ; PegPrelude.pure ((
 {-# LINE 201 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} EBin o l r 
-{-# LINE 3269 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3247 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { (peg'v5, peg'k4) <- peg'rule'Mul
@@ -3276,7 +3254,7 @@ peg'rule'Add =
 peg'rule'Mul :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 204 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3280 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3258 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Mul =
   PegRt.memoLR peg'memo'Mul "Mul"
@@ -3301,7 +3279,7 @@ peg'rule'Mul =
           ; PegPrelude.pure ((
 {-# LINE 205 "lua/Lua.peg" #-}
  {-# COLUMN 54 #-} EBin o l r 
-{-# LINE 3305 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3283 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k5, peg'k6, peg'k7])
           }
       , do { (peg'v9, peg'k8) <- peg'rule'Unary
@@ -3312,7 +3290,7 @@ peg'rule'Mul =
 peg'rule'Unary :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 209 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 3316 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3294 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Unary =
   PegRt.memo peg'memo'Unary "Unary"
@@ -3326,7 +3304,7 @@ peg'rule'Unary =
           ; PegPrelude.pure ((
 {-# LINE 210 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} EUn o e 
-{-# LINE 3330 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3308 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { (peg'v3, peg'k2) <- peg'rule'Pow
@@ -3337,7 +3315,7 @@ peg'rule'Unary =
 peg'rule'UnOp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 213 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 3341 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3319 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'UnOp =
   PegRt.memo peg'memo'UnOp "UnOp"
@@ -3348,7 +3326,7 @@ peg'rule'UnOp =
           ; PegPrelude.pure ((
 {-# LINE 214 "lua/Lua.peg" #-}
  {-# COLUMN 15 #-} "not" 
-{-# LINE 3352 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3330 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -3366,7 +3344,7 @@ peg'rule'UnOp =
           ; PegPrelude.pure ((
 {-# LINE 215 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} o 
-{-# LINE 3370 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3348 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6])
           }
       ]))
@@ -3374,7 +3352,7 @@ peg'rule'UnOp =
 peg'rule'Pow :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 217 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}Exp
-{-# LINE 3378 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3356 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Pow =
   PegRt.memo peg'memo'Pow "Pow"
@@ -3390,7 +3368,7 @@ peg'rule'Pow =
           ; PegPrelude.pure ((
 {-# LINE 218 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} EBin "^" b e 
-{-# LINE 3394 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3372 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { (peg'v5, peg'k4) <- peg'rule'Simple
@@ -3401,7 +3379,7 @@ peg'rule'Pow =
 peg'rule'Simple :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 221 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Exp
-{-# LINE 3405 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3383 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Simple =
   PegRt.memo peg'memo'Simple "Simple"
@@ -3412,7 +3390,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 222 "lua/Lua.peg" #-}
  {-# COLUMN 17 #-} ENil 
-{-# LINE 3416 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3394 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -3421,7 +3399,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 223 "lua/Lua.peg" #-}
  {-# COLUMN 19 #-} EFalse 
-{-# LINE 3425 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3403 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
@@ -3430,7 +3408,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 224 "lua/Lua.peg" #-}
  {-# COLUMN 18 #-} ETrue 
-{-# LINE 3434 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3412 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
@@ -3441,7 +3419,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 225 "lua/Lua.peg" #-}
  {-# COLUMN 25 #-} ENum n 
-{-# LINE 3445 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3423 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3452,7 +3430,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 226 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} EStr s 
-{-# LINE 3456 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3434 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3462,7 +3440,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 227 "lua/Lua.peg" #-}
  {-# COLUMN 21 #-} EVararg 
-{-# LINE 3466 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3444 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k7, peg'k8])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3473,7 +3451,7 @@ peg'rule'Simple =
           ; PegPrelude.pure ((
 {-# LINE 228 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} EFunction f 
-{-# LINE 3477 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3455 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k9, peg'k10])
           }
       , do { (peg'v12, peg'k11) <- peg'rule'Table
@@ -3487,7 +3465,7 @@ peg'rule'Simple =
 peg'rule'FuncBody :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 232 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}FuncBody
-{-# LINE 3491 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3469 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'FuncBody =
   PegRt.memo peg'memo'FuncBody "FuncBody"
@@ -3506,7 +3484,7 @@ peg'rule'FuncBody =
           ; PegPrelude.pure ((
 {-# LINE 233 "lua/Lua.peg" #-}
  {-# COLUMN 52 #-} let (ns, v) = fromMaybe ([], Nothing) p in FuncBody ns v b 
-{-# LINE 3510 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3488 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -3514,7 +3492,7 @@ peg'rule'FuncBody =
 peg'rule'ParList :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 235 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}([Text], Maybe (Maybe Text))
-{-# LINE 3518 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3496 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'ParList =
   PegRt.memo peg'memo'ParList "ParList"
@@ -3528,7 +3506,7 @@ peg'rule'ParList =
           ; PegPrelude.pure ((
 {-# LINE 236 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} (ns, v) 
-{-# LINE 3532 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3510 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3538,7 +3516,7 @@ peg'rule'ParList =
           ; PegPrelude.pure ((
 {-# LINE 237 "lua/Lua.peg" #-}
  {-# COLUMN 22 #-} ([], Just v) 
-{-# LINE 3542 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3520 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k2)
           }
       ]))
@@ -3546,7 +3524,7 @@ peg'rule'ParList =
 peg'rule'VarArg :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 239 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}Maybe Text
-{-# LINE 3550 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3528 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'VarArg =
   PegRt.memo peg'memo'VarArg "VarArg"
@@ -3561,7 +3539,7 @@ peg'rule'VarArg =
           ; PegPrelude.pure ((
 {-# LINE 240 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} Just n 
-{-# LINE 3565 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3543 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3571,7 +3549,7 @@ peg'rule'VarArg =
           ; PegPrelude.pure ((
 {-# LINE 241 "lua/Lua.peg" #-}
  {-# COLUMN 21 #-} Nothing 
-{-# LINE 3575 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3553 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5])
           }
       ]))
@@ -3579,7 +3557,7 @@ peg'rule'VarArg =
 peg'rule'CommaVarArg :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 243 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}Maybe Text
-{-# LINE 3583 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3561 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'CommaVarArg =
   PegRt.memo peg'memo'CommaVarArg "CommaVarArg"
@@ -3593,7 +3571,7 @@ peg'rule'CommaVarArg =
           ; PegPrelude.pure ((
 {-# LINE 244 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} v 
-{-# LINE 3597 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3575 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -3601,7 +3579,7 @@ peg'rule'CommaVarArg =
 peg'rule'Table :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 246 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Exp
-{-# LINE 3605 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3583 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Table =
   PegRt.memo peg'memo'Table "Table"
@@ -3617,7 +3595,7 @@ peg'rule'Table =
           ; PegPrelude.pure ((
 {-# LINE 247 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} ETable (fromMaybe [] fs) 
-{-# LINE 3621 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3599 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
@@ -3625,7 +3603,7 @@ peg'rule'Table =
 peg'rule'FieldList :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 249 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}[Field]
-{-# LINE 3629 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3607 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'FieldList =
   PegRt.memo peg'memo'FieldList "FieldList"
@@ -3640,7 +3618,7 @@ peg'rule'FieldList =
           ; PegPrelude.pure ((
 {-# LINE 250 "lua/Lua.peg" #-}
  {-# COLUMN 47 #-} f : fs 
-{-# LINE 3644 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3622 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -3648,7 +3626,7 @@ peg'rule'FieldList =
 peg'rule'MoreField :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 252 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}Field
-{-# LINE 3652 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3630 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreField =
   PegRt.memo peg'memo'MoreField "MoreField"
@@ -3661,7 +3639,7 @@ peg'rule'MoreField =
           ; PegPrelude.pure ((
 {-# LINE 253 "lua/Lua.peg" #-}
  {-# COLUMN 32 #-} f 
-{-# LINE 3665 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3643 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -3669,7 +3647,7 @@ peg'rule'MoreField =
 peg'rule'FieldSep :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 255 "lua/Lua.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 3673 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3651 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'FieldSep =
   PegRt.memo peg'memo'FieldSep "FieldSep"
@@ -3681,7 +3659,7 @@ peg'rule'FieldSep =
           ; PegPrelude.pure ((
 {-# LINE 256 "lua/Lua.peg" #-}
  {-# COLUMN 22 #-} () 
-{-# LINE 3685 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3663 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -3689,7 +3667,7 @@ peg'rule'FieldSep =
 peg'rule'Field :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 258 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}Field
-{-# LINE 3693 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3671 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Field =
   PegRt.memo peg'memo'Field "Field"
@@ -3714,7 +3692,7 @@ peg'rule'Field =
           ; PegPrelude.pure ((
 {-# LINE 259 "lua/Lua.peg" #-}
  {-# COLUMN 61 #-} FKey k v 
-{-# LINE 3718 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3696 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7, peg'k8, peg'k9, peg'k10, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3730,7 +3708,7 @@ peg'rule'Field =
           ; PegPrelude.pure ((
 {-# LINE 260 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} FName n v 
-{-# LINE 3734 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3712 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k13, peg'k14, peg'k15, peg'k16, peg'k17])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3740,7 +3718,7 @@ peg'rule'Field =
           ; PegPrelude.pure ((
 {-# LINE 261 "lua/Lua.peg" #-}
  {-# COLUMN 17 #-} FPos e 
-{-# LINE 3744 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3722 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k18)
           }
       ]))
@@ -3748,7 +3726,7 @@ peg'rule'Field =
 peg'rule'Name :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 265 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 3752 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3730 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Name =
   PegRt.memo peg'memo'Name "Name"
@@ -3762,13 +3740,13 @@ peg'rule'Name =
           ; (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> PegPrelude.not (
 {-# LINE 266 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} isKeyword n 
-{-# LINE 3766 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3744 "lua/Conformance/Lua/Parser.hs" #-}
     )))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 266 "lua/Lua.peg" #-}
  {-# COLUMN 56 #-} n 
-{-# LINE 3772 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3750 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
@@ -3776,37 +3754,37 @@ peg'rule'Name =
 peg'rule'Numeral :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 270 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 3780 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3758 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Numeral =
   PegRt.memo peg'memo'Numeral "Numeral"
     (PegRt.token syntaxKindNumeral (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; (n, peg'k4) <- PegRt.label "n" ((PegRt.captureS) (PegRt.choice [do { (peg'v1, peg'k0) <- peg'rule'HexRaw
-          ; PegPrelude.pure (peg'v1, peg'k0)
-          }, do { (peg'v3, peg'k2) <- peg'rule'DecRaw
-          ; PegPrelude.pure (peg'v3, peg'k2)
+          ; (n, peg'k2) <- PegRt.label "n" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'HexRaw
+          ; PegPrelude.pure ((), peg'k0)
+          }, do { (_, peg'k1) <- peg'rule'DecRaw
+          ; PegPrelude.pure ((), peg'k1)
           }]))
           ; PegRt.touch n
-          ; (_, peg'k5) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('a', 'z'), ('A', 'Z'), ('_', '_')] "[a-zA-Z_]"))
-          ; (_, peg'k6) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('a', 'z'), ('A', 'Z'), ('_', '_')] "[a-zA-Z_]"))
+          ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 271 "lua/Lua.peg" #-}
  {-# COLUMN 46 #-} validNumeral n 
-{-# LINE 3796 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3774 "lua/Conformance/Lua/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 271 "lua/Lua.peg" #-}
  {-# COLUMN 65 #-} n 
-{-# LINE 3802 "lua/Conformance/Lua/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
+{-# LINE 3780 "lua/Conformance/Lua/Parser.hs" #-}
+    ), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
           }
       ]))
 
 peg'rule'HexRaw :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 273 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 3810 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3788 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'HexRaw =
   PegRt.memo peg'memo'HexRaw "HexRaw"
@@ -3824,7 +3802,7 @@ peg'rule'HexRaw =
           ; PegPrelude.pure ((
 {-# LINE 274 "lua/Lua.peg" #-}
  {-# COLUMN 51 #-} () 
-{-# LINE 3828 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3806 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k5])
           }
       ]))
@@ -3832,7 +3810,7 @@ peg'rule'HexRaw =
 peg'rule'DecRaw :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 276 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 3836 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3814 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DecRaw =
   PegRt.memo peg'memo'DecRaw "DecRaw"
@@ -3854,7 +3832,7 @@ peg'rule'DecRaw =
           ; PegPrelude.pure ((
 {-# LINE 277 "lua/Lua.peg" #-}
  {-# COLUMN 63 #-} () 
-{-# LINE 3858 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3836 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k7])
           }
       ]))
@@ -3862,63 +3840,37 @@ peg'rule'DecRaw =
 peg'rule'LiteralString :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 279 "lua/Lua.peg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 3866 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3844 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'LiteralString =
   PegRt.memo peg'memo'LiteralString "LiteralString"
     (PegRt.token syntaxKindLiteralString (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; (s, peg'k4) <- PegRt.label "s" ((PegRt.captureS) (PegRt.choice [do { (peg'v1, peg'k0) <- peg'rule'ShortString
-          ; PegPrelude.pure (peg'v1, peg'k0)
-          }, do { (peg'v3, peg'k2) <- peg'rule'LongBracket
-          ; PegPrelude.pure (peg'v3, peg'k2)
+          ; (s, peg'k7) <- PegRt.label "s" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\"" "'\"'")
+          ; (_, peg'k1) <- (PegRt.manyS) (peg'rule'DqChar)
+          ; (_, peg'k2) <- PegRt.plain (PegRt.lit "\"" "'\"'")
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
+          }, do { (_, peg'k3) <- PegRt.plain (PegRt.lit "'" "'\\''")
+          ; (_, peg'k4) <- (PegRt.manyS) (peg'rule'SqChar)
+          ; (_, peg'k5) <- PegRt.plain (PegRt.lit "'" "'\\''")
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
+          }, do { (_, peg'k6) <- peg'rule'LongBracket
+          ; PegPrelude.pure ((), peg'k6)
           }]))
           ; PegRt.touch s
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 280 "lua/Lua.peg" #-}
- {-# COLUMN 50 #-} s 
-{-# LINE 3882 "lua/Conformance/Lua/Parser.hs" #-}
-    ), peg'k4)
-          }
-      ]))
-
-peg'rule'ShortString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 282 "lua/Lua.peg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 3890 "lua/Conformance/Lua/Parser.hs" #-}
-    ), [PegRt.Child])
-peg'rule'ShortString =
-  PegRt.memo peg'memo'ShortString "ShortString"
-    (PegRt.node syntaxKindShortString (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\"" "'\"'")
-          ; (_, peg'k1) <- (PegRt.manyS) (peg'rule'DqChar)
-          ; (_, peg'k2) <- PegRt.plain (PegRt.lit "\"" "'\"'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 283 "lua/Lua.peg" #-}
- {-# COLUMN 33 #-} () 
-{-# LINE 3903 "lua/Conformance/Lua/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
-          }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k3) <- PegRt.plain (PegRt.lit "'" "'\\''")
-          ; (_, peg'k4) <- (PegRt.manyS) (peg'rule'SqChar)
-          ; (_, peg'k5) <- PegRt.plain (PegRt.lit "'" "'\\''")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 284 "lua/Lua.peg" #-}
- {-# COLUMN 35 #-} () 
-{-# LINE 3914 "lua/Conformance/Lua/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
+ {-# COLUMN 74 #-} s 
+{-# LINE 3866 "lua/Conformance/Lua/Parser.hs" #-}
+    ), peg'k7)
           }
       ]))
 
 peg'rule'DqChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 286 "lua/Lua.peg" #-}
+{-# LINE 282 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 3922 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3874 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DqChar =
   PegRt.memo peg'memo'DqChar "DqChar"
@@ -3928,9 +3880,9 @@ peg'rule'DqChar =
           ; (_, peg'k1) <- peg'rule'Escape
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 287 "lua/Lua.peg" #-}
+{-# LINE 283 "lua/Lua.peg" #-}
  {-# COLUMN 24 #-} () 
-{-# LINE 3934 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3886 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3938,17 +3890,17 @@ peg'rule'DqChar =
           ; (_, peg'k3) <- PegRt.plain (PegRt.anyChar)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 288 "lua/Lua.peg" #-}
+{-# LINE 284 "lua/Lua.peg" #-}
  {-# COLUMN 25 #-} () 
-{-# LINE 3944 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3896 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'SqChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 290 "lua/Lua.peg" #-}
+{-# LINE 286 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 3952 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3904 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'SqChar =
   PegRt.memo peg'memo'SqChar "SqChar"
@@ -3958,9 +3910,9 @@ peg'rule'SqChar =
           ; (_, peg'k1) <- peg'rule'Escape
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 291 "lua/Lua.peg" #-}
+{-# LINE 287 "lua/Lua.peg" #-}
  {-# COLUMN 24 #-} () 
-{-# LINE 3964 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3916 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3968,17 +3920,17 @@ peg'rule'SqChar =
           ; (_, peg'k3) <- PegRt.plain (PegRt.anyChar)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 292 "lua/Lua.peg" #-}
+{-# LINE 288 "lua/Lua.peg" #-}
  {-# COLUMN 25 #-} () 
-{-# LINE 3974 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3926 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 294 "lua/Lua.peg" #-}
+{-# LINE 290 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 3982 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3934 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -3987,9 +3939,9 @@ peg'rule'Escape =
           ; (_, peg'k0) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b'), ('f', 'f'), ('n', 'n'), ('r', 'r'), ('t', 't'), ('v', 'v'), ('\\', '\\'), ('"', '"'), ('\'', '\'')] "[abfnrtv\\\\\"']")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 295 "lua/Lua.peg" #-}
+{-# LINE 291 "lua/Lua.peg" #-}
  {-# COLUMN 26 #-} () 
-{-# LINE 3993 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3945 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -3997,9 +3949,9 @@ peg'rule'Escape =
           ; (_, peg'k2) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "\r" "'\\r'"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 296 "lua/Lua.peg" #-}
+{-# LINE 292 "lua/Lua.peg" #-}
  {-# COLUMN 23 #-} () 
-{-# LINE 4003 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3955 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4007,9 +3959,9 @@ peg'rule'Escape =
           ; (_, peg'k4) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "\n" "'\\n'"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 297 "lua/Lua.peg" #-}
+{-# LINE 293 "lua/Lua.peg" #-}
  {-# COLUMN 23 #-} () 
-{-# LINE 4013 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3965 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4018,9 +3970,9 @@ peg'rule'Escape =
           ; (_, peg'k7) <- PegRt.plain (PegRt.cls [('0', '9'), ('a', 'f'), ('A', 'F')] "[0-9a-fA-F]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 298 "lua/Lua.peg" #-}
+{-# LINE 294 "lua/Lua.peg" #-}
  {-# COLUMN 40 #-} () 
-{-# LINE 4024 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3976 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6, peg'k7])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4028,9 +3980,9 @@ peg'rule'Escape =
           ; (_, peg'k9) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('\r', '\r'), ('\v', '\v'), ('\f', '\f')] "[ \\t\\n\\r\\u{0B}\\u{0C}]"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 299 "lua/Lua.peg" #-}
+{-# LINE 295 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} () 
-{-# LINE 4034 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3986 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k9])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4039,15 +3991,15 @@ peg'rule'Escape =
           ; PegRt.touch h
           ; (_, peg'k12) <- PegRt.plain (PegRt.lit "}" "'}'")
           ; (_, peg'k13) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 300 "lua/Lua.peg" #-}
+{-# LINE 296 "lua/Lua.peg" #-}
  {-# COLUMN 38 #-} hexValue h < 2 ^ (31 :: Int) 
-{-# LINE 4045 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 3997 "lua/Conformance/Lua/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 300 "lua/Lua.peg" #-}
+{-# LINE 296 "lua/Lua.peg" #-}
  {-# COLUMN 71 #-} () 
-{-# LINE 4051 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4003 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k10, peg'k11, peg'k12, peg'k13])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4058,23 +4010,23 @@ peg'rule'Escape =
           }]))
           ; PegRt.touch d
           ; (_, peg'k18) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 301 "lua/Lua.peg" #-}
+{-# LINE 297 "lua/Lua.peg" #-}
  {-# COLUMN 38 #-} read (T.unpack d) <= (255 :: Int) 
-{-# LINE 4064 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4016 "lua/Conformance/Lua/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 301 "lua/Lua.peg" #-}
+{-# LINE 297 "lua/Lua.peg" #-}
  {-# COLUMN 76 #-} () 
-{-# LINE 4070 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4022 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k17, peg'k18])
           }
       ]))
 
 peg'rule'LongBracket :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 304 "lua/Lua.peg" #-}
+{-# LINE 300 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}()
-{-# LINE 4078 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4030 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'LongBracket =
   PegRt.memo peg'memo'LongBracket "LongBracket"
@@ -4085,35 +4037,35 @@ peg'rule'LongBracket =
           ; PegRt.touch e
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "[" "'['")
           ; (_, peg'k5) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.withCol (\_col -> peg'rule'LongClose (
-{-# LINE 305 "lua/Lua.peg" #-}
+{-# LINE 301 "lua/Lua.peg" #-}
  {-# COLUMN 44 #-}T.length e
-{-# LINE 4091 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4043 "lua/Conformance/Lua/Parser.hs" #-}
     )))
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
           ; (_, peg'k6) <- PegRt.withCol (\_col -> peg'rule'LongClose (
-{-# LINE 305 "lua/Lua.peg" #-}
+{-# LINE 301 "lua/Lua.peg" #-}
  {-# COLUMN 70 #-}T.length e
-{-# LINE 4099 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4051 "lua/Conformance/Lua/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 305 "lua/Lua.peg" #-}
+{-# LINE 301 "lua/Lua.peg" #-}
  {-# COLUMN 83 #-} () 
-{-# LINE 4105 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4057 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5, peg'k6])
           }
       ]))
 
 peg'rule'LongClose :: (
-{-# LINE 307 "lua/Lua.peg" #-}
+{-# LINE 303 "lua/Lua.peg" #-}
  {-# COLUMN 16 #-}Int
-{-# LINE 4113 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4065 "lua/Conformance/Lua/Parser.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 307 "lua/Lua.peg" #-}
+{-# LINE 303 "lua/Lua.peg" #-}
  {-# COLUMN 24 #-}()
-{-# LINE 4117 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4069 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'LongClose n =
   PegRt.nomemo "LongClose"
@@ -4123,24 +4075,24 @@ peg'rule'LongClose n =
           ; (e, peg'k1) <- PegRt.label "e" ((PegRt.captureS) ((PegRt.manyS) (PegRt.plain (PegRt.lit "=" "'='"))))
           ; PegRt.touch e
           ; (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 308 "lua/Lua.peg" #-}
+{-# LINE 304 "lua/Lua.peg" #-}
  {-# COLUMN 28 #-} T.length e == n 
-{-# LINE 4129 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4081 "lua/Conformance/Lua/Parser.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "]" "']'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 308 "lua/Lua.peg" #-}
+{-# LINE 304 "lua/Lua.peg" #-}
  {-# COLUMN 52 #-} () 
-{-# LINE 4136 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4088 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 310 "lua/Lua.peg" #-}
+{-# LINE 306 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4144 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4096 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Comment =
   PegRt.memo peg'memo'Comment "Comment"
@@ -4155,9 +4107,9 @@ peg'rule'Comment =
           ; (_, peg'k5) <- peg'rule'LongBracket
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 311 "lua/Lua.peg" #-}
+{-# LINE 307 "lua/Lua.peg" #-}
  {-# COLUMN 46 #-} () 
-{-# LINE 4161 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4113 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4173,17 +4125,17 @@ peg'rule'Comment =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 312 "lua/Lua.peg" #-}
+{-# LINE 308 "lua/Lua.peg" #-}
  {-# COLUMN 47 #-} () 
-{-# LINE 4179 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4131 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k10, peg'k13])
           }
       ]))
 
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 314 "lua/Lua.peg" #-}
+{-# LINE 310 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 4187 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4139 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
@@ -4192,40 +4144,40 @@ peg'rule'Ws =
           ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('\r', '\r'), ('\v', '\v'), ('\f', '\f')] "[ \\t\\n\\r\\u{0B}\\u{0C}]"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 315 "lua/Lua.peg" #-}
+{-# LINE 311 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 4198 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4150 "lua/Conformance/Lua/Parser.hs" #-}
     ), peg'k0)
           }
       ]))
 
 peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 317 "lua/Lua.peg" #-}
+{-# LINE 313 "lua/Lua.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 4206 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4158 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k4) <- (PegRt.manyS) (PegRt.choice [do { (peg'v1, peg'k0) <- peg'rule'Ws
-          ; PegPrelude.pure (peg'v1, peg'k0)
-          }, do { (peg'v3, peg'k2) <- peg'rule'Comment
-          ; PegPrelude.pure (peg'v3, peg'k2)
+          ; (_, peg'k2) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'Ws
+          ; PegPrelude.pure ((), peg'k0)
+          }, do { (_, peg'k1) <- peg'rule'Comment
+          ; PegPrelude.pure ((), peg'k1)
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 318 "lua/Lua.peg" #-}
+{-# LINE 314 "lua/Lua.peg" #-}
  {-# COLUMN 24 #-} () 
-{-# LINE 4221 "lua/Conformance/Lua/Parser.hs" #-}
-    ), peg'k4)
+{-# LINE 4173 "lua/Conformance/Lua/Parser.hs" #-}
+    ), peg'k2)
           }
       ])
 
 peg'rule'KAnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 322 "lua/Lua.peg" #-}
+{-# LINE 318 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4229 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4181 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KAnd =
   PegRt.memo peg'memo'KAnd "KAnd"
@@ -4236,17 +4188,17 @@ peg'rule'KAnd =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 323 "lua/Lua.peg" #-}
+{-# LINE 319 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} () 
-{-# LINE 4242 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4194 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KBreak :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 325 "lua/Lua.peg" #-}
+{-# LINE 321 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 4250 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4202 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KBreak =
   PegRt.memo peg'memo'KBreak "KBreak"
@@ -4257,17 +4209,17 @@ peg'rule'KBreak =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 326 "lua/Lua.peg" #-}
+{-# LINE 322 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} () 
-{-# LINE 4263 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4215 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KDo :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 328 "lua/Lua.peg" #-}
+{-# LINE 324 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 4271 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4223 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KDo =
   PegRt.memo peg'memo'KDo "KDo"
@@ -4278,17 +4230,17 @@ peg'rule'KDo =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 329 "lua/Lua.peg" #-}
+{-# LINE 325 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 4284 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4236 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KElse :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 331 "lua/Lua.peg" #-}
+{-# LINE 327 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 4292 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4244 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KElse =
   PegRt.memo peg'memo'KElse "KElse"
@@ -4299,17 +4251,17 @@ peg'rule'KElse =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 332 "lua/Lua.peg" #-}
+{-# LINE 328 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} () 
-{-# LINE 4305 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4257 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KElseif :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 334 "lua/Lua.peg" #-}
+{-# LINE 330 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4313 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4265 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KElseif =
   PegRt.memo peg'memo'KElseif "KElseif"
@@ -4320,17 +4272,17 @@ peg'rule'KElseif =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 335 "lua/Lua.peg" #-}
+{-# LINE 331 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} () 
-{-# LINE 4326 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4278 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KEnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 337 "lua/Lua.peg" #-}
+{-# LINE 333 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4334 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4286 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KEnd =
   PegRt.memo peg'memo'KEnd "KEnd"
@@ -4341,17 +4293,17 @@ peg'rule'KEnd =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 338 "lua/Lua.peg" #-}
+{-# LINE 334 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} () 
-{-# LINE 4347 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4299 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KFalse :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 340 "lua/Lua.peg" #-}
+{-# LINE 336 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 4355 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4307 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KFalse =
   PegRt.memo peg'memo'KFalse "KFalse"
@@ -4362,17 +4314,17 @@ peg'rule'KFalse =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 341 "lua/Lua.peg" #-}
+{-# LINE 337 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} () 
-{-# LINE 4368 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4320 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KFor :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 343 "lua/Lua.peg" #-}
+{-# LINE 339 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4376 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4328 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KFor =
   PegRt.memo peg'memo'KFor "KFor"
@@ -4383,17 +4335,17 @@ peg'rule'KFor =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 344 "lua/Lua.peg" #-}
+{-# LINE 340 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} () 
-{-# LINE 4389 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4341 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KFunction :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 346 "lua/Lua.peg" #-}
+{-# LINE 342 "lua/Lua.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 4397 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4349 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KFunction =
   PegRt.memo peg'memo'KFunction "KFunction"
@@ -4404,17 +4356,17 @@ peg'rule'KFunction =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 347 "lua/Lua.peg" #-}
+{-# LINE 343 "lua/Lua.peg" #-}
  {-# COLUMN 43 #-} () 
-{-# LINE 4410 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4362 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KGoto :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 349 "lua/Lua.peg" #-}
+{-# LINE 345 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 4418 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4370 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KGoto =
   PegRt.memo peg'memo'KGoto "KGoto"
@@ -4425,17 +4377,17 @@ peg'rule'KGoto =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 350 "lua/Lua.peg" #-}
+{-# LINE 346 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} () 
-{-# LINE 4431 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4383 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KIf :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 352 "lua/Lua.peg" #-}
+{-# LINE 348 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 4439 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4391 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KIf =
   PegRt.memo peg'memo'KIf "KIf"
@@ -4446,17 +4398,17 @@ peg'rule'KIf =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 353 "lua/Lua.peg" #-}
+{-# LINE 349 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 4452 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4404 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KIn :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 355 "lua/Lua.peg" #-}
+{-# LINE 351 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 4460 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4412 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KIn =
   PegRt.memo peg'memo'KIn "KIn"
@@ -4467,17 +4419,17 @@ peg'rule'KIn =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 356 "lua/Lua.peg" #-}
+{-# LINE 352 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 4473 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4425 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KLocal :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 358 "lua/Lua.peg" #-}
+{-# LINE 354 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 4481 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4433 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KLocal =
   PegRt.memo peg'memo'KLocal "KLocal"
@@ -4488,17 +4440,17 @@ peg'rule'KLocal =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 359 "lua/Lua.peg" #-}
+{-# LINE 355 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} () 
-{-# LINE 4494 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4446 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KNil :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 361 "lua/Lua.peg" #-}
+{-# LINE 357 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4502 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4454 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KNil =
   PegRt.memo peg'memo'KNil "KNil"
@@ -4509,17 +4461,17 @@ peg'rule'KNil =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 362 "lua/Lua.peg" #-}
+{-# LINE 358 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} () 
-{-# LINE 4515 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4467 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KNot :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 364 "lua/Lua.peg" #-}
+{-# LINE 360 "lua/Lua.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4523 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4475 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KNot =
   PegRt.memo peg'memo'KNot "KNot"
@@ -4530,17 +4482,17 @@ peg'rule'KNot =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 365 "lua/Lua.peg" #-}
+{-# LINE 361 "lua/Lua.peg" #-}
  {-# COLUMN 33 #-} () 
-{-# LINE 4536 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4488 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KOr :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 367 "lua/Lua.peg" #-}
+{-# LINE 363 "lua/Lua.peg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 4544 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4496 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KOr =
   PegRt.memo peg'memo'KOr "KOr"
@@ -4551,17 +4503,17 @@ peg'rule'KOr =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 368 "lua/Lua.peg" #-}
+{-# LINE 364 "lua/Lua.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 4557 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4509 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KRepeat :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 370 "lua/Lua.peg" #-}
+{-# LINE 366 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4565 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4517 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KRepeat =
   PegRt.memo peg'memo'KRepeat "KRepeat"
@@ -4572,17 +4524,17 @@ peg'rule'KRepeat =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 371 "lua/Lua.peg" #-}
+{-# LINE 367 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} () 
-{-# LINE 4578 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4530 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KReturn :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 373 "lua/Lua.peg" #-}
+{-# LINE 369 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4586 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4538 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KReturn =
   PegRt.memo peg'memo'KReturn "KReturn"
@@ -4593,17 +4545,17 @@ peg'rule'KReturn =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 374 "lua/Lua.peg" #-}
+{-# LINE 370 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} () 
-{-# LINE 4599 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4551 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KThen :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 376 "lua/Lua.peg" #-}
+{-# LINE 372 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 4607 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4559 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KThen =
   PegRt.memo peg'memo'KThen "KThen"
@@ -4614,17 +4566,17 @@ peg'rule'KThen =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 377 "lua/Lua.peg" #-}
+{-# LINE 373 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} () 
-{-# LINE 4620 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4572 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KTrue :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 379 "lua/Lua.peg" #-}
+{-# LINE 375 "lua/Lua.peg" #-}
  {-# COLUMN 10 #-}()
-{-# LINE 4628 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4580 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KTrue =
   PegRt.memo peg'memo'KTrue "KTrue"
@@ -4635,17 +4587,17 @@ peg'rule'KTrue =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 380 "lua/Lua.peg" #-}
+{-# LINE 376 "lua/Lua.peg" #-}
  {-# COLUMN 35 #-} () 
-{-# LINE 4641 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4593 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KUntil :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 382 "lua/Lua.peg" #-}
+{-# LINE 378 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 4649 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4601 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KUntil =
   PegRt.memo peg'memo'KUntil "KUntil"
@@ -4656,17 +4608,17 @@ peg'rule'KUntil =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 383 "lua/Lua.peg" #-}
+{-# LINE 379 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} () 
-{-# LINE 4662 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4614 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KWhile :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 385 "lua/Lua.peg" #-}
+{-# LINE 381 "lua/Lua.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 4670 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4622 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KWhile =
   PegRt.memo peg'memo'KWhile "KWhile"
@@ -4677,17 +4629,17 @@ peg'rule'KWhile =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 386 "lua/Lua.peg" #-}
+{-# LINE 382 "lua/Lua.peg" #-}
  {-# COLUMN 37 #-} () 
-{-# LINE 4683 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4635 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])
 
 peg'rule'KGlobal :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 389 "lua/Lua.peg" #-}
+{-# LINE 385 "lua/Lua.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4691 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4643 "lua/Conformance/Lua/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KGlobal =
   PegRt.memo peg'memo'KGlobal "KGlobal"
@@ -4698,9 +4650,9 @@ peg'rule'KGlobal =
           ; (_, peg'k2) <- peg'rule'Sp
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 390 "lua/Lua.peg" #-}
+{-# LINE 386 "lua/Lua.peg" #-}
  {-# COLUMN 39 #-} () 
-{-# LINE 4704 "lua/Conformance/Lua/Parser.hs" #-}
+{-# LINE 4656 "lua/Conformance/Lua/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ])

@@ -1940,39 +1940,39 @@ peg'rule'AutolinkI =
       [ do { _env <- PegRt.askStore peg'env
           ; peg'start <- PegRt.getOffset
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "<" "'<'")
-          ; (u, peg'k7) <- PegRt.label "u" ((PegRt.captureS) (PegRt.choice [do { (peg'v2, peg'k1) <- peg'rule'Scheme
-          ; (_, peg'k3) <- PegRt.plain (PegRt.lit ":" "':'")
-          ; (_, peg'k6) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('\NUL', ' '), ('<', '<'), ('>', '>')] "[\\u{0}-\\u{20}<>]"))
-          ; (_, peg'k5) <- PegRt.plain (PegRt.anyChar)
-          ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5])
+          ; (u, peg'k6) <- PegRt.label "u" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k1) <- peg'rule'Scheme
+          ; (_, peg'k2) <- PegRt.plain (PegRt.lit ":" "':'")
+          ; (_, peg'k5) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('\NUL', ' '), ('<', '<'), ('>', '>')] "[\\u{0}-\\u{20}<>]"))
+          ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
-          ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k1, peg'k3, peg'k6])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2, peg'k5])
           }]))
           ; PegRt.touch u
-          ; (_, peg'k8) <- PegRt.plain (PegRt.lit ">" "'>'")
+          ; (_, peg'k7) <- PegRt.plain (PegRt.lit ">" "'>'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 154 "commonmark/Inline.peg" #-}
  {-# COLUMN 62 #-} Autolink u u 
 {-# LINE 1958 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k7, peg'k8])
+    ), PegPrelude.concat [peg'k0, peg'k6, peg'k7])
           }
       , do { _env <- PegRt.askStore peg'env
           ; peg'start <- PegRt.getOffset
-          ; (_, peg'k9) <- PegRt.plain (PegRt.lit "<" "'<'")
-          ; (e, peg'k13) <- PegRt.label "e" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k10) <- peg'rule'EmailLocal
-          ; (_, peg'k11) <- PegRt.plain (PegRt.lit "@" "'@'")
-          ; (_, peg'k12) <- peg'rule'EmailDomain
-          ; PegPrelude.pure ((), PegPrelude.concat [peg'k10, peg'k11, peg'k12])
+          ; (_, peg'k8) <- PegRt.plain (PegRt.lit "<" "'<'")
+          ; (e, peg'k12) <- PegRt.label "e" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k9) <- peg'rule'EmailLocal
+          ; (_, peg'k10) <- PegRt.plain (PegRt.lit "@" "'@'")
+          ; (_, peg'k11) <- peg'rule'EmailDomain
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k9, peg'k10, peg'k11])
           }]))
           ; PegRt.touch e
-          ; (_, peg'k14) <- PegRt.plain (PegRt.lit ">" "'>'")
+          ; (_, peg'k13) <- PegRt.plain (PegRt.lit ">" "'>'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 155 "commonmark/Inline.peg" #-}
  {-# COLUMN 55 #-} Autolink ("mailto:" <> e) e 
 {-# LINE 1975 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), PegPrelude.concat [peg'k9, peg'k13, peg'k14])
+    ), PegPrelude.concat [peg'k8, peg'k12, peg'k13])
           }
       ]))
 
@@ -2036,16 +2036,16 @@ peg'rule'EmailDomain =
       [ do { _env <- PegRt.askStore peg'env
           ; peg'start <- PegRt.getOffset
           ; (_, peg'k0) <- peg'rule'DomainLabel
-          ; (_, peg'k4) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- PegRt.plain (PegRt.lit "." "'.'")
-          ; (peg'v3, peg'k2) <- peg'rule'DomainLabel
-          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k1, peg'k2])
+          ; (_, peg'k3) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- PegRt.plain (PegRt.lit "." "'.'")
+          ; (_, peg'k2) <- peg'rule'DomainLabel
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 164 "commonmark/Inline.peg" #-}
  {-# COLUMN 48 #-} () 
 {-# LINE 2048 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k4])
+    ), PegPrelude.concat [peg'k0, peg'k3])
           }
       ]))
 
@@ -2088,18 +2088,18 @@ peg'rule'RawHtmlI =
     (PegRt.node syntaxKindRawHtmlI (PegRt.choice
       [ do { _env <- PegRt.askStore peg'env
           ; peg'start <- PegRt.getOffset
-          ; (t, peg'k12) <- PegRt.label "t" ((PegRt.captureS) (PegRt.choice [do { (peg'v1, peg'k0) <- peg'rule'OpenTag
-          ; PegPrelude.pure (peg'v1, peg'k0)
-          }, do { (peg'v3, peg'k2) <- peg'rule'ClosingTag
-          ; PegPrelude.pure (peg'v3, peg'k2)
-          }, do { (peg'v5, peg'k4) <- peg'rule'HtmlComment
-          ; PegPrelude.pure (peg'v5, peg'k4)
-          }, do { (peg'v7, peg'k6) <- peg'rule'ProcInstr
-          ; PegPrelude.pure (peg'v7, peg'k6)
-          }, do { (peg'v9, peg'k8) <- peg'rule'Decl
-          ; PegPrelude.pure (peg'v9, peg'k8)
-          }, do { (peg'v11, peg'k10) <- peg'rule'CData
-          ; PegPrelude.pure (peg'v11, peg'k10)
+          ; (t, peg'k6) <- PegRt.label "t" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'OpenTag
+          ; PegPrelude.pure ((), peg'k0)
+          }, do { (_, peg'k1) <- peg'rule'ClosingTag
+          ; PegPrelude.pure ((), peg'k1)
+          }, do { (_, peg'k2) <- peg'rule'HtmlComment
+          ; PegPrelude.pure ((), peg'k2)
+          }, do { (_, peg'k3) <- peg'rule'ProcInstr
+          ; PegPrelude.pure ((), peg'k3)
+          }, do { (_, peg'k4) <- peg'rule'Decl
+          ; PegPrelude.pure ((), peg'k4)
+          }, do { (_, peg'k5) <- peg'rule'CData
+          ; PegPrelude.pure ((), peg'k5)
           }]))
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
@@ -2107,7 +2107,7 @@ peg'rule'RawHtmlI =
 {-# LINE 170 "commonmark/Inline.peg" #-}
  {-# COLUMN 81 #-} RawHtml t 
 {-# LINE 2110 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), peg'k12)
+    ), peg'k6)
           }
       ]))
 
@@ -2493,12 +2493,12 @@ peg'rule'LinkI =
           ; (_, peg'k21) <- PegRt.plain (PegRt.lit "]" "']'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k21])
           }])
-          ; (_, peg'k27) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "[" "'['")
-          ; (peg'v25, peg'k24) <- peg'rule'LabelBody
-          ; (_, peg'k26) <- PegRt.plain (PegRt.lit "]" "']'")
-          ; PegPrelude.pure (peg'v25, PegPrelude.concat [peg'k23, peg'k24, peg'k26])
+          ; (_, peg'k26) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "[" "'['")
+          ; (_, peg'k24) <- peg'rule'LabelBody
+          ; (_, peg'k25) <- PegRt.plain (PegRt.lit "]" "']'")
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k24, peg'k25])
           }])
-          ; (_, peg'k28) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k27) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 213 "commonmark/Inline.peg" #-}
  {-# COLUMN 64 #-} hasRef _env (snd lt) 
 {-# LINE 2505 "commonmark/Conformance/CommonMark/Inline.hs" #-}
@@ -2508,7 +2508,7 @@ peg'rule'LinkI =
 {-# LINE 213 "commonmark/Inline.peg" #-}
  {-# COLUMN 89 #-} refLink Link _env (fst lt) (snd lt) 
 {-# LINE 2511 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), PegPrelude.concat [peg'k17, peg'k18, peg'k19, peg'k22, peg'k27, peg'k28])
+    ), PegPrelude.concat [peg'k17, peg'k18, peg'k19, peg'k22, peg'k26, peg'k27])
           }
       ]))
 
@@ -2591,12 +2591,12 @@ peg'rule'ImageI =
           ; (_, peg'k25) <- PegRt.plain (PegRt.lit "]" "']'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k24, peg'k25])
           }])
-          ; (_, peg'k31) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k27) <- PegRt.plain (PegRt.lit "[" "'['")
-          ; (peg'v29, peg'k28) <- peg'rule'LabelBody
-          ; (_, peg'k30) <- PegRt.plain (PegRt.lit "]" "']'")
-          ; PegPrelude.pure (peg'v29, PegPrelude.concat [peg'k27, peg'k28, peg'k30])
+          ; (_, peg'k30) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k27) <- PegRt.plain (PegRt.lit "[" "'['")
+          ; (_, peg'k28) <- peg'rule'LabelBody
+          ; (_, peg'k29) <- PegRt.plain (PegRt.lit "]" "']'")
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k27, peg'k28, peg'k29])
           }])
-          ; (_, peg'k32) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k31) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 219 "commonmark/Inline.peg" #-}
  {-# COLUMN 70 #-} hasRef _env (snd lt) 
 {-# LINE 2603 "commonmark/Conformance/CommonMark/Inline.hs" #-}
@@ -2606,7 +2606,7 @@ peg'rule'ImageI =
 {-# LINE 219 "commonmark/Inline.peg" #-}
  {-# COLUMN 95 #-} refLink Image _env (fst lt) (snd lt) 
 {-# LINE 2609 "commonmark/Conformance/CommonMark/Inline.hs" #-}
-    ), PegPrelude.concat [peg'k20, peg'k21, peg'k22, peg'k23, peg'k26, peg'k31, peg'k32])
+    ), PegPrelude.concat [peg'k20, peg'k21, peg'k22, peg'k23, peg'k26, peg'k30, peg'k31])
           }
       ]))
 

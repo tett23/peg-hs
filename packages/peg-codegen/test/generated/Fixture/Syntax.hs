@@ -359,17 +359,17 @@ peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k4) <- (PegRt.manyS) (PegRt.choice [do { (peg'v1, peg'k0) <- peg'rule'Ws
-          ; PegPrelude.pure (peg'v1, peg'k0)
-          }, do { (peg'v3, peg'k2) <- peg'rule'Comment
-          ; PegPrelude.pure (peg'v3, peg'k2)
+          ; (_, peg'k2) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'Ws
+          ; PegPrelude.pure ((), peg'k0)
+          }, do { (_, peg'k1) <- peg'rule'Comment
+          ; PegPrelude.pure ((), peg'k1)
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 33 "test/fixtures/Syntax.peg" #-}
  {-# COLUMN 24 #-} () 
 {-# LINE 372 "test/generated/Fixture/Syntax.hs" #-}
-    ), peg'k4)
+    ), peg'k2)
           }
       ])
 

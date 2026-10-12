@@ -1,0 +1,25 @@
+# ADR 0026（%syntax）：値が使われない位置のグループは、選択肢の値の型が異なってもよい
+%module Fixture.DiscardSyntax
+%syntax
+
+%{
+import Data.Text (Text, pack, unpack)
+}%
+
+Items :: [Text]
+Items <- is:Item* { is }
+
+# Num と Name の値の型は異なる。どの位置でもグループの値は使われない
+Item :: Text
+Item <- '$' t:$(Num / Name) ';' { t }
+      / '&' &(Num / Name) t:$[a-z0-9]+ ';' { t }
+      / '!' !(Num / Name) '.' ';' { pack "none" }
+      / '*' (Num / Name)* ';' { pack "many" }
+      / '?' (Num / Name)? ';' { pack "optional" }
+      / '^' t:$((Num / Name) ^word) ';' { t }
+
+Num :: Int
+Num <- ds:$[0-9]+ { read (unpack ds) }
+
+Name :: Text
+Name <- n:$[a-z]+ { n }

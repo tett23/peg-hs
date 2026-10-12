@@ -277,11 +277,7 @@ DecRaw :: ()
 DecRaw <- &([0-9] / '.' [0-9]) ([eE] [+\-]? / [0-9a-fA-F.])* { () }
 
 LiteralString :: Text
-LiteralString <- s:$(ShortString / LongBracket) { s }
-
-ShortString :: ()
-ShortString <- '"' DqChar* '"' { () }
-             / '\'' SqChar* '\'' { () }
+LiteralString <- s:$('"' DqChar* '"' / '\'' SqChar* '\'' / LongBracket) { s }
 
 DqChar :: ()
 DqChar <- '\\' Escape { () }

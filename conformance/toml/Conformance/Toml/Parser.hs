@@ -1496,44 +1496,44 @@ peg'rule'Expression =
           ; PegRt.touch l
           ; (_, peg'k2) <- (PegRt.optionalS) (peg'rule'Ws)
           ; (_, peg'k3) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k6) <- PegRt.choice [do { (peg'v5, peg'k4) <- PegRt.labeledS "eol" (PegPrelude.Just peg'rule'SkipLine) (peg'rule'EndOfLine)
-          ; PegPrelude.pure (peg'v5, peg'k4)
+          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; PegPrelude.pure ((), peg'k4)
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 56 "toml/Toml.peg" #-}
  {-# COLUMN 59 #-} l 
 {-# LINE 1507 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k6])
+    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k7) <- (PegRt.optionalS) (peg'rule'Ws)
-          ; (l, peg'k8) <- PegRt.label "l" (peg'rule'Table)
+          ; (_, peg'k6) <- (PegRt.optionalS) (peg'rule'Ws)
+          ; (l, peg'k7) <- PegRt.label "l" (peg'rule'Table)
           ; PegRt.touch l
-          ; (_, peg'k9) <- (PegRt.optionalS) (peg'rule'Ws)
-          ; (_, peg'k10) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k13) <- PegRt.choice [do { (peg'v12, peg'k11) <- PegRt.labeledS "eol" (PegPrelude.Just peg'rule'SkipLine) (peg'rule'EndOfLine)
-          ; PegPrelude.pure (peg'v12, peg'k11)
+          ; (_, peg'k8) <- (PegRt.optionalS) (peg'rule'Ws)
+          ; (_, peg'k9) <- (PegRt.optionalS) (peg'rule'Comment)
+          ; (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; PegPrelude.pure ((), peg'k10)
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 57 "toml/Toml.peg" #-}
  {-# COLUMN 58 #-} l 
 {-# LINE 1523 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k7, peg'k8, peg'k9, peg'k10, peg'k13])
+    ), PegPrelude.concat [peg'k6, peg'k7, peg'k8, peg'k9, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k14) <- (PegRt.optionalS) (peg'rule'Ws)
-          ; (_, peg'k15) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k18) <- PegRt.choice [do { (peg'v17, peg'k16) <- PegRt.labeledS "eol" (PegPrelude.Just peg'rule'SkipLine) (peg'rule'EndOfLine)
-          ; PegPrelude.pure (peg'v17, peg'k16)
+          ; (_, peg'k12) <- (PegRt.optionalS) (peg'rule'Ws)
+          ; (_, peg'k13) <- (PegRt.optionalS) (peg'rule'Comment)
+          ; (_, peg'k15) <- PegRt.choice [do { (_, peg'k14) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; PegPrelude.pure ((), peg'k14)
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 58 "toml/Toml.peg" #-}
  {-# COLUMN 46 #-} LBlank 
 {-# LINE 1536 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k14, peg'k15, peg'k18])
+    ), PegPrelude.concat [peg'k12, peg'k13, peg'k15])
           }
       ]))
 
@@ -1576,11 +1576,11 @@ peg'rule'KeyVal =
       [ do { peg'start <- PegRt.getOffset
           ; (k, peg'k0) <- PegRt.label "k" (peg'rule'Key)
           ; PegRt.touch k
-          ; (_, peg'k3) <- PegRt.choice [do { (peg'v2, peg'k1) <- PegRt.labeledS "eq" (PegPrelude.Just peg'rule'MissingEq) (peg'rule'KeyValSep)
-          ; PegPrelude.pure (peg'v2, peg'k1)
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "eq" (PegPrelude.Just (PegRt.voidS peg'rule'MissingEq)) (peg'rule'KeyValSep)
+          ; PegPrelude.pure ((), peg'k1)
           }]
-          ; (v, peg'k6) <- PegRt.label "v" (PegRt.choice [do { (peg'v5, peg'k4) <- PegRt.labeledS "value" (PegPrelude.Just peg'rule'SkipValue) (peg'rule'Val)
-          ; PegPrelude.pure (peg'v5, peg'k4)
+          ; (v, peg'k5) <- PegRt.label "v" (PegRt.choice [do { (peg'v4, peg'k3) <- PegRt.labeledS "value" (PegPrelude.Just peg'rule'SkipValue) (peg'rule'Val)
+          ; PegPrelude.pure (peg'v4, peg'k3)
           }])
           ; PegRt.touch v
           ; _span <- PegRt.spanFrom peg'start
@@ -1588,7 +1588,7 @@ peg'rule'KeyVal =
 {-# LINE 66 "toml/Toml.peg" #-}
  {-# COLUMN 49 #-} LKeyVal _span k v 
 {-# LINE 1591 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k3, peg'k6])
+    ), PegPrelude.concat [peg'k0, peg'k2, peg'k5])
           }
       ]))
 
@@ -2829,16 +2829,16 @@ peg'rule'Elements =
           ; (_, peg'k1) <- peg'rule'Wcn
           ; (vs, peg'k2) <- PegRt.label "vs" ((PegRt.manyS) (peg'rule'MoreElement))
           ; PegRt.touch vs
-          ; (_, peg'k6) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.lit "," "','")
-          ; (peg'v5, peg'k4) <- peg'rule'Wcn
-          ; PegPrelude.pure (peg'v5, PegPrelude.concat [peg'k3, peg'k4])
+          ; (_, peg'k5) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.lit "," "','")
+          ; (_, peg'k4) <- peg'rule'Wcn
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 228 "toml/Toml.peg" #-}
  {-# COLUMN 51 #-} v : vs 
 {-# LINE 2841 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k6])
+    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5])
           }
       ]))
 
@@ -2903,16 +2903,16 @@ peg'rule'InlineKeyVals =
           ; (_, peg'k1) <- peg'rule'Wcn
           ; (kvs, peg'k2) <- PegRt.label "kvs" ((PegRt.manyS) (peg'rule'MoreInlineKeyVal))
           ; PegRt.touch kvs
-          ; (_, peg'k6) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.lit "," "','")
-          ; (peg'v5, peg'k4) <- peg'rule'Wcn
-          ; PegPrelude.pure (peg'v5, PegPrelude.concat [peg'k3, peg'k4])
+          ; (_, peg'k5) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.lit "," "','")
+          ; (_, peg'k4) <- peg'rule'Wcn
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 237 "toml/Toml.peg" #-}
  {-# COLUMN 72 #-} kv : kvs 
 {-# LINE 2915 "toml/Conformance/Toml/Parser.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k6])
+    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5])
           }
       ]))
 

@@ -434,7 +434,7 @@ passThrough env honorBind items = go items
 
 itemStmt :: Env -> Bool -> Item -> Gen Text
 itemStmt env honorBind i = do
-  e <- exprCode env (itemExpr i)
+  e <- exprCodeU env (valueUsed honorBind i) (itemExpr i)
   pure $
     if hasValue (itemExpr i)
       then case itemBind i of
@@ -442,8 +442,19 @@ itemStmt env honorBind i = do
         _ -> "_ <- " <> e
       else e
 
+-- Whether the value of an item in a sequence is used: only a bound item's
+-- is, when bindings are honoured (ADR 0026).
+valueUsed :: Bool -> Item -> Bool
+valueUsed honorBind i = honorBind && hasValue (itemExpr i) && isJust (itemBind i)
+
 exprCode :: Env -> Expr -> Gen Text
-exprCode env expr = case expr of
+exprCode env = exprCodeU env True
+
+-- Code for an expression whose value is used, or discarded. A discarded
+-- group is generated as a group without a value, so that its alternatives
+-- need not have values of the same type (ADR 0026).
+exprCodeU :: Env -> Bool -> Expr -> Gen Text
+exprCodeU env used expr = case expr of
   ELit t orig -> pure ("PegRt.lit " <> hsString t <> " " <> hsString orig)
   EClass ranges orig ->
     pure
@@ -457,27 +468,28 @@ exprCode env expr = case expr of
   ERef _ n args ->
     pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragment opts x <> ")" | x <- args] <> ")")
   EGroup alts
-    | hasValue expr -> do
+    | used && hasValue expr -> do
         bodies <- mapM (\is -> passThrough env False is >>= \(stmts, v) -> pure (doBlock (stmts ++ ["PegPrelude.pure " <> v]))) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
     | otherwise -> do
         bodies <- mapM (\is -> mapM (itemStmt env False) is >>= \stmts -> pure (doBlock (stmts ++ ["PegPrelude.pure ()"]))) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
-  EStar x -> wrap (if hasValue x then "PegRt.many" else "PegRt.skipMany") x
-  EPlus x -> wrap (if hasValue x then "PegRt.many1" else "PegRt.skipMany1") x
-  EOpt x -> wrap (if hasValue x then "PegRt.optional" else "PegRt.skipOptional") x
-  EAnd x -> wrap "PegRt.andP" x
-  ENot x -> wrap "PegRt.notP" x
-  ECapture x -> wrap "PegRt.capture" x
+  EStar x -> wrap (if valued x then "PegRt.many" else "PegRt.skipMany") used x
+  EPlus x -> wrap (if valued x then "PegRt.many1" else "PegRt.skipMany1") used x
+  EOpt x -> wrap (if valued x then "PegRt.optional" else "PegRt.skipOptional") used x
+  EAnd x -> wrap "PegRt.andP" False x
+  ENot x -> wrap "PegRt.notP" False x
+  ECapture x -> wrap "PegRt.capture" False x
   ELabel _ x name -> do
-    e <- exprCode env x
-    pure ("PegRt.labeled " <> hsString name <> " " <> recoveryCode env False (hasValue x) name <> " (" <> e <> ")")
+    e <- exprCodeU env used x
+    pure ("PegRt.labeled " <> hsString name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
   where
     opts = envOpts env
-    wrap f x = do
-      e <- exprCode env x
+    valued x = used && hasValue x
+    wrap f inner x = do
+      e <- exprCodeU env inner x
       pure (f <> " (" <> e <> ")")
 
 -- Syntax trees (ADR 0019) ------------------------------------------------------
@@ -662,41 +674,45 @@ passThroughS env honorBind items = go items
 
 itemStmtS :: Env -> Bool -> Item -> Gen (Text, Text)
 itemStmtS env honorBind i = do
-  e <- exprCodeS env (itemExpr i)
+  e <- exprCodeSU env (valueUsed honorBind i) (itemExpr i)
   k <- freshK
   pure $ case itemBind i of
     Just n | honorBind && hasValue (itemExpr i) -> ("(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n, k)
     _ -> ("(_, " <> k <> ") <- " <> e, k)
 
 exprCodeS :: Env -> Expr -> Gen Text
-exprCodeS env expr = case expr of
+exprCodeS env = exprCodeSU env True
+
+-- 'exprCodeU' for grammars with @%syntax@.
+exprCodeSU :: Env -> Bool -> Expr -> Gen Text
+exprCodeSU env used expr = case expr of
   ELit {} -> plainOf
   EClass {} -> plainOf
   EAny -> plainOf
   EPred {} -> plainOf
   ERef {} -> exprCode env expr
   EGroup alts
-    | hasValue expr -> do
+    | used && hasValue expr -> do
         bodies <- mapM (\is -> passThroughS env False is >>= \(stmts, v, ks) -> pure (doReturn stmts v ks)) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
     | otherwise -> do
         bodies <- mapM (\is -> mapM (itemStmtS env False) is >>= \rs -> pure (doReturn (map fst rs) "()" (map snd rs))) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
-  EStar x -> wrap "PegRt.manyS" x
-  EPlus x -> wrap "PegRt.many1S" x
-  EOpt x -> wrap "PegRt.optionalS" x
-  EAnd x -> wrap "PegRt.plain PegPrelude.. PegRt.andP" x
-  ENot x -> wrap "PegRt.plain PegPrelude.. PegRt.notP" x
-  ECapture x -> wrap "PegRt.captureS" x
+  EStar x -> wrap "PegRt.manyS" used x
+  EPlus x -> wrap "PegRt.many1S" used x
+  EOpt x -> wrap "PegRt.optionalS" used x
+  EAnd x -> wrap "PegRt.plain PegPrelude.. PegRt.andP" False x
+  ENot x -> wrap "PegRt.plain PegPrelude.. PegRt.notP" False x
+  ECapture x -> wrap "PegRt.captureS" False x
   ELabel _ x name -> do
-    e <- exprCodeS env x
-    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (hasValue x) name <> " (" <> e <> ")")
+    e <- exprCodeSU env used x
+    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (used && hasValue x) name <> " (" <> e <> ")")
   where
     plainOf = do
       e <- exprCode env expr
       pure ("PegRt.plain (" <> e <> ")")
-    wrap f x = do
-      e <- exprCodeS env x
+    wrap f inner x = do
+      e <- exprCodeSU env inner x
       pure ("(" <> f <> ") (" <> e <> ")")
 
 -- The recovery parser for a label, if the grammar gives one (ADR 0021). A
