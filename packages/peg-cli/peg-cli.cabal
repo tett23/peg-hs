@@ -30,6 +30,7 @@ executable peg-hs
     Command.Fmt
     Command.Gen
     Command.Lint
+    Command.Lsp
     Files
     Diagnostics
     Options
@@ -43,6 +44,7 @@ executable peg-hs
     , filepath     >=1.4  && <1.6
     , peg-codegen  >=0.1  && <0.2
     , peg-grammar  >=0.1  && <0.2
+    , peg-lsp      >=0.1  && <0.2
     , text         >=2.0  && <2.2
   default-language: GHC2021
   default-extensions: LambdaCase

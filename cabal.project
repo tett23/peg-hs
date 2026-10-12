@@ -6,6 +6,7 @@ packages:
   packages/peg-grammar
   packages/peg-codegen
   packages/peg-cli
+  packages/peg-lsp
   conformance
 
 tests: True

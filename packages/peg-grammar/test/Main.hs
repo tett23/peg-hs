@@ -16,6 +16,7 @@ import Format (formatTests)
 import Labels (labelTests)
 import Lint (lintTests)
 import Ranges (rangeTests)
+import Recovery (recoveryTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -42,6 +43,7 @@ main = do
       , labelTests files
       , formatTests files
       , lintTests files
+      , recoveryTests files
       , testGroup "editor grammars" [rangeTests files | editors]
       ]
 

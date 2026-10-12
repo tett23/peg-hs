@@ -4,6 +4,7 @@ module Main (main) where
 import Command.Fmt (fmtCommand)
 import Command.Gen (genCommand)
 import Command.Lint (lintCommand)
+import Command.Lsp (lspCommand)
 import Data.List (find, isSuffixOf)
 import Data.Version (showVersion)
 import Options
@@ -13,7 +14,7 @@ import System.Exit (ExitCode (..), exitWith)
 import System.IO (hPutStr, stderr)
 
 commands :: [Command]
-commands = [genCommand, fmtCommand, lintCommand]
+commands = [genCommand, fmtCommand, lintCommand, lspCommand]
 
 overview :: String
 overview =

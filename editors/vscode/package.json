@@ -10,7 +10,7 @@
     "url": "https://github.com/tett23/peg-hs"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
     "Programming Languages"
@@ -43,6 +43,23 @@
           "meta.embedded.type.peg": "haskell"
         }
       }
-    ]
+    ],
+    "configuration": {
+      "title": "peg-hs",
+      "properties": {
+        "peg-hs.path": {
+          "type": "string",
+          "default": "peg-hs",
+          "description": "The peg-hs executable, which runs the language server with `peg-hs lsp`."
+        }
+      }
+    }
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:peg"
+  ],
+  "dependencies": {
+    "vscode-languageclient": "10.1.1"
   }
 }
