@@ -247,7 +247,9 @@ leftRecursionTests =
         , testCase "nested left recursion: evaluations are linear in the nesting depth" $ do
             let evals d = sum (M.elems (statsEvaluations (snd (runParser defaultConfig {cfgCount = True} newSX ruleX1 (nested d)))))
             fst (runParser defaultConfig newSX ruleX1 (nested 3)) @?= Right ()
-            assertBool ("depth 8: " <> show (evals 8) <> ", depth 16: " <> show (evals 16)) (fromIntegral (evals 16) <= (2.5 :: Double) * fromIntegral (evals 8))
+            -- Small depths, so that an exponential regression fails here
+            -- instead of running for hours.
+            assertBool ("depth 3: " <> show (evals 3) <> ", depth 6: " <> show (evals 6)) (fromIntegral (evals 6) <= (2.5 :: Double) * fromIntegral (evals 3))
         ]
     ]
   where

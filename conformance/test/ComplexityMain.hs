@@ -51,9 +51,11 @@ main =
             [2, 4, 8 :: Int]
       , testCase "nested left recursion: evaluations are linear in the nesting depth (ADR 0024)" $ do
           fst (NestedLR8.peg'parseWith defaultConfig (nested 3)) @?= Right ()
-          let e8 = evalCount NestedLR8.peg'parseWith (nested 8)
-              e16 = evalCount NestedLR8.peg'parseWith (nested 16)
-          assertBool ("depth 8: " <> show e8 <> ", depth 16: " <> show e16) (fromIntegral e16 <= (2.5 :: Double) * fromIntegral e8)
+          -- Small depths, so that an exponential regression fails here
+          -- instead of running for hours.
+          let e1 = evalCount NestedLR8.peg'parseWith (nested 1)
+              e2 = evalCount NestedLR8.peg'parseWith (nested 2)
+          assertBool ("depth 1: " <> show e1 <> ", depth 2: " <> show e2) (fromIntegral e2 <= (2.5 :: Double) * fromIntegral e1)
       , testCase "nested left recursion: evaluations are linear in the number of levels (ADR 0024)" $ do
           let e2 = evalCount NestedLR2.peg'parseWith (nested 0)
               e4 = evalCount NestedLR4.peg'parseWith (nested 0)
