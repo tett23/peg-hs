@@ -113,7 +113,9 @@ discardTests :: TestTree
 discardTests =
   testGroup
     "discarding only seed dependents (ADR 0024)"
-    [ same "Arith" "0123456789+-*^() " (\c -> show . fst . Arith.peg'parseWith c)
+    [ -- The value of Arith can overflow Int and fail to evaluate ("Negative
+      -- exponent"), so only acceptance and the error are compared.
+      same "Arith" "0123456789+-*^() " (\c -> either show (const "ok") . fst . Arith.peg'parseWith c)
     , same "Calc" "x(n).+-0123456789" (\c -> show . fst . Calc.peg'parseWith c)
     , same "Located" "0123456789+ " (\c -> show . fst . Located.peg'parseWith c)
     , same "Sum" "0123456789+" (\c -> show . fst . Sum.peg'parseWith c)
