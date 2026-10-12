@@ -23,6 +23,31 @@ See [docs/specifications.md](docs/specifications.md) for the specification, [doc
 
 ## Usage
 
+### Building the CLI
+
+The command line tool `peg-hs` is built from the repository with the toolchain described in [Development](#development) (GHC 9.10.3 and cabal-install 3.16.1.0).
+
+```sh
+git clone https://github.com/tett23/peg-hs.git
+cd peg-hs
+cabal build exe:peg-hs
+```
+
+`cabal list-bin exe:peg-hs` prints the path of the built executable.
+To install it into a directory on your `PATH`, for example `~/.local/bin`:
+
+```sh
+cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy --overwrite-policy=always
+```
+
+### Generating a parser
+
+```sh
+peg-hs Grammar.peg -o Grammar.hs
+```
+
+Without installing, run it through cabal instead:
+
 ```sh
 cabal run peg-hs -- Grammar.peg -o Grammar.hs
 ```

@@ -23,6 +23,31 @@ PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生
 
 ## 使い方
 
+### CLI のビルド
+
+コマンドラインのツール `peg-hs` は、[開発](#開発)の節のツールチェーン（GHC 9.10.3 と cabal-install 3.16.1.0）で、リポジトリからビルドする。
+
+```sh
+git clone https://github.com/tett23/peg-hs.git
+cd peg-hs
+cabal build exe:peg-hs
+```
+
+ビルドした実行ファイルのパスは `cabal list-bin exe:peg-hs` で表示できる。
+`PATH` の通ったディレクトリ（たとえば `~/.local/bin`）にインストールするには、次のようにする。
+
+```sh
+cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy --overwrite-policy=always
+```
+
+### パーサーの生成
+
+```sh
+peg-hs Grammar.peg -o Grammar.hs
+```
+
+インストールせずに使う場合は、cabal を通して実行する。
+
 ```sh
 cabal run peg-hs -- Grammar.peg -o Grammar.hs
 ```
