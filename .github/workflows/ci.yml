@@ -13,10 +13,10 @@ permissions:
   contents: read
 
 # A new push to a pull request stops the run of the previous one. Every
-# commit of main keeps its run (ADR 0039).
+# commit of main has a group of its own and keeps its run (ADR 0039).
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 env:
   # The versions follow cabal.project, which follows ghcup's recommended
