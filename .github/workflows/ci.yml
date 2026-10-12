@@ -47,19 +47,43 @@ jobs:
         run: cabal build all
       - name: Test
         run: cabal test all --test-show-details=direct
+      # The grammars of the repository are formatted (ADR 0032).
+      - name: Check formatting of grammars
+        run: $(cabal list-bin exe:peg-hs) fmt --check
+      # The grammars of the repository have no warnings of the linter (ADR 0033).
+      - name: Lint grammars
+        run: $(cabal list-bin exe:peg-hs) lint
       - name: Check packages
         run: |
           for p in packages/*; do
             (cd "$p" && cabal check)
           done
       - name: Haddock
-        run: cabal haddock peg-runtime peg-grammar peg-codegen
+        run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp
       # Each published package must build from its source tarball alone
       # (ADR 0009).
       - name: Build from source tarballs
         run: |
-          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-cli --output-directory "$RUNNER_TEMP/sdist"
+          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-lsp packages/peg-cli --output-directory "$RUNNER_TEMP/sdist"
           cd "$RUNNER_TEMP/sdist"
           for t in *.tar.gz; do tar xzf "$t"; done
           printf 'packages: */*.cabal\nwith-compiler: ghc-9.10.3\n' > cabal.project
           cabal build all
+
+  # The editor grammars (ADR 0034).
+  editors:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: npm ci
+      - run: npm test
+      # The generated parser is committed and up to date.
+      - run: git diff --exit-code -- tree-sitter-peg/src

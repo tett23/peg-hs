@@ -60,6 +60,8 @@ ADR は `docs/adr/` に置く。
 
 - 生成したモジュール（codegen の fixture、適合性テストの文法、自己記述のパーサー、ラベルを外した変種）はコミットする。テストが、コミットした生成物と生成器の現在の出力の一致を検査する
 - 生成器か文法を変えたら、`scripts/regen-fixtures.sh` で生成し直す
+- 文法は `peg-hs fmt` で整形してからコミットする。CI が `peg-hs fmt --check` を実行する（[ADR 0032](docs/adr/0032-grammar-formatter.md)）
+- 文法に `peg-hs lint` の警告を残さない。CI が `peg-hs lint` を実行する（[ADR 0033](docs/adr/0033-grammar-linter.md)）
 - 記法に構文を加えて、その構文を自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）自身で使う場合は、二回に分けて生成し直す（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。まず構文を受理する規則を、その構文を使わずに加えて生成し直す。次に `Peg.peg` でその構文を使い、新しい生成器で生成し直す
 
 ### 性能

@@ -1,0 +1,11 @@
+usage: peg-hs <command> [options] [arguments]
+
+commands:
+  gen     generate a Haskell module from a grammar
+  fmt     format grammars
+  lint    lint grammars
+  lsp     run the language server on standard input and output
+  parse   parse an input with a grammar and show its AST and CST
+  help    show the commands, or the help of a command
+
+Run peg-hs help <command> for the options of a command.

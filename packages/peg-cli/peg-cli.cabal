@@ -57,14 +57,23 @@ executable peg-hs
 test-suite peg-cli-test
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
-  hs-source-dirs:   test
+  hs-source-dirs:   test app
+  other-modules:
+    Embedded
+    Pretty
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-tool-depends: peg-cli:peg-hs
   build-depends:
     , base         >=4.20 && <4.21
     , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
+    , bytestring
+    , peg-grammar
+    , peg-lsp
+    , text
     , process      >=1.6  && <1.7
     , tasty        >=1.4  && <1.6
+    , tasty-golden >=2.3  && <2.4
     , tasty-hunit  >=0.10 && <0.11
+    , tasty-quickcheck >=0.10 && <0.12
   default-language: GHC2021

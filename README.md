@@ -43,18 +43,109 @@ cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy -
 ### Generating a parser
 
 ```sh
-peg-hs Grammar.peg -o Grammar.hs
+peg-hs gen Grammar.peg -o Grammar.hs
 ```
 
 Without installing, run it through cabal instead:
 
 ```sh
-cabal run peg-hs -- Grammar.peg -o Grammar.hs
+cabal run peg-hs -- gen Grammar.peg -o Grammar.hs
 ```
 
 The generated module depends only on the `peg-runtime` package and exports `parse :: Text -> Either ParseError a` for the start rule.
 
 The generator warns about labels that may make the grammar reject valid input ([ADR 0028](docs/adr/0028-label-safety-check.md)). `--Werror` makes a warning fail the generation, and `%safe label` in the grammar silences the warning for a label checked by hand.
+
+### Trying a grammar on an input
+
+```sh
+peg-hs parse Grammar.peg input.txt [--format ast|cst|all] [--entry RULE] [--ghc-arg ARG]...
+```
+
+`parse` shows the value of the start rule (the AST, by default) or the lossless syntax tree (the CST) of an input ([ADR 0036](docs/adr/0036-parse-command.md)).
+It compiles the generated parser with the `ghc` on `PATH` (GHC 9.10) and caches the executable under `$XDG_CACHE_HOME/peg-hs/parse`, so only the first run with a grammar waits for GHC.
+The AST needs a `Show` instance of the start rule's type.
+When the grammar's Haskell code imports your modules, pass their directory with `--ghc-arg -isrc`, or run through `cabal exec -- peg-hs parse ...` to use the packages of a cabal project.
+
+### Formatting grammars
+
+```sh
+peg-hs fmt [FILE...]
+peg-hs fmt --check [FILE...]
+```
+
+`fmt` rewrites grammars in place in one fixed style, with no options ([ADR 0032](docs/adr/0032-grammar-formatter.md)).
+Without files, it formats every `.peg` file under the current directory, skipping directories whose name starts with `.` and `dist-newstyle`.
+`--check` writes nothing, lists the files that are not formatted, and fails if there are any.
+
+### Linting grammars
+
+```sh
+peg-hs lint [FILE...]
+```
+
+`lint` warns about what is certainly a mistake in a grammar that passes the checks: alternatives that are never tried or never succeed, labels without effect inside lookaheads, and unused bindings ([ADR 0033](docs/adr/0033-grammar-linter.md)).
+The rules are fixed and a warning cannot be silenced; each one goes away by changing the grammar, and any warning makes the command fail.
+Without files, it lints the same files as `fmt`.
+
+### Editors
+
+`editors/` has the grammars for syntax highlighting ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
+Haskell fragments (verbatim blocks, types, actions, predicates and arguments) are highlighted by the editor's Haskell grammar.
+
+- **VS Code**: `editors/vscode` is an extension with the TextMate grammar (`editors/textmate/peg.tmLanguage.json`) that also starts the language server. Install its dependencies, link it into the extensions directory and restart VS Code. The setting `peg-hs.path` names the `peg-hs` executable:
+
+  ```sh
+  (cd editors/vscode && npm ci)
+  ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
+  ```
+
+- **Neovim** (nvim-treesitter): register the tree-sitter grammar in `editors/tree-sitter-peg`, and copy its queries to `queries/peg/` in the runtime path:
+
+  ```lua
+  vim.filetype.add({ extension = { peg = 'peg' } })
+  require('nvim-treesitter.parsers').get_parser_configs().peg = {
+    install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c' } },
+    filetype = 'peg',
+  }
+  ```
+
+- **Helix**: add the language and the grammar to `languages.toml`, run `hx --grammar build`, and copy the queries to `runtime/queries/peg/`:
+
+  ```toml
+  [[language]]
+  name = "peg"
+  scope = "source.peg"
+  file-types = ["peg"]
+  comment-token = "#"
+
+  [[grammar]]
+  name = "peg"
+  source = { path = "/path/to/peg-hs/editors/tree-sitter-peg" }
+  ```
+
+### Language server
+
+`peg-hs lsp` is a language server on standard input and output ([ADR 0035](docs/adr/0035-language-server.md)).
+It reports the errors and warnings of `gen` and `lint` as you type, formats with `fmt`, and provides semantic tokens, go to definition, references, hover and document symbols.
+Besides the VS Code extension above, configure it in Neovim:
+
+```lua
+vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'peg' }, root_markers = { '.git' } })
+vim.lsp.enable('peg_hs')
+```
+
+and in Helix's `languages.toml`:
+
+```toml
+[language-server.peg-hs]
+command = "peg-hs"
+args = ["lsp"]
+
+[[language]]
+name = "peg"
+language-servers = ["peg-hs"]
+```
 
 ## Development
 
@@ -109,6 +200,12 @@ The CommonMark test takes options for inspecting results: `--show N` prints one 
 
 ```sh
 cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
+```
+
+The editor grammars are tested with Node and the tree-sitter CLI. After changing the notation, update the grammars in `editors/`; the tests compare their ranges with those of the notation's own grammar, which `cabal test peg-grammar` writes to `editors/test/ranges.txt` with `--accept`:
+
+```sh
+cd editors && npm ci && npm test
 ```
 
 The golden data of the Lua test is made with the reference implementation, Lua 5.5.1, which is needed only to regenerate it:

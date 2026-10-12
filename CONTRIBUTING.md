@@ -60,6 +60,8 @@ ADRs live in `docs/adr/`.
 
 - Generated modules (the codegen fixtures, the grammars of the conformance tests, the self-hosted parser, the label-free variants) are committed. The tests check that they match the generator's current output
 - After changing the generator or a grammar, regenerate them with `scripts/regen-fixtures.sh`
+- Grammars are committed formatted with `peg-hs fmt`; CI runs `peg-hs fmt --check` ([ADR 0032](docs/adr/0032-grammar-formatter.md))
+- Grammars have no warnings of `peg-hs lint`, which CI runs ([ADR 0033](docs/adr/0033-grammar-linter.md))
 - To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
 
 ### Performance
