@@ -1,0 +1,10 @@
+usage: peg-hs gen GRAMMAR.peg [options]
+
+Generate a Haskell module from a grammar.
+The output defaults to the grammar's path with the extension .hs.
+
+options:
+  -o, --output FILE         write the module to FILE
+  --debug-entry             also export peg'parseWith (for testing the generator)
+  --Werror                  fail if there are warnings
+  --strip-labels MODULE     generate the grammar without its labels as MODULE (for testing that the labels are safe)

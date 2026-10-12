@@ -14,6 +14,8 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
+extra-source-files:
+  test/golden/*.txt
 tested-with:        GHC == 9.10.3
 
 source-repository head
@@ -24,6 +26,13 @@ source-repository head
 executable peg-hs
   main-is:          Main.hs
   hs-source-dirs:   app
+  other-modules:
+    Command.Gen
+    Diagnostics
+    Options
+    Paths_peg_cli
+  autogen-modules:
+    Paths_peg_cli
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
     , base         >=4.20 && <4.21
@@ -32,6 +41,7 @@ executable peg-hs
     , peg-grammar  >=0.1  && <0.2
     , text         >=2.0  && <2.2
   default-language: GHC2021
+  default-extensions: LambdaCase
 
 test-suite peg-cli-test
   type:             exitcode-stdio-1.0
