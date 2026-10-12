@@ -14,6 +14,7 @@ import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
 import Labels (labelTests)
+import Lint (lintTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -37,6 +38,7 @@ main = do
       , errorReportTests
       , labelTests files
       , formatTests files
+      , lintTests files
       ]
 
 -- Every grammar in the repository. Directories outside this package are

@@ -1,0 +1,28 @@
+an alternative after an option
+  G.peg:3:20: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds
+an alternative after a repetition and an empty sequence
+  G.peg:3:25: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds
+an alternative after an empty one
+  G.peg:3:28: warning: the alternative is never tried: the alternative at 3:19 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds
+a literal after its prefix
+  G.peg:3:19: warning: the alternative never succeeds: the alternative at 3:6 matches its prefix '=' first [unreachable-alternative]; move it before the alternative that matches the prefix
+the same literal again
+  G.peg:3:19: warning: the alternative never succeeds: the alternative at 3:6 matches its prefix '=' first [unreachable-alternative]; move it before the alternative that matches the prefix
+a duplicate alternative
+  G.peg:3:34: warning: the alternative never succeeds: it is the same as the alternative at 3:6 [duplicate-alternative]; remove it
+a duplicate up to the bindings
+  G.peg:3:22: warning: the alternative never succeeds: it is the same as the alternative at 3:6 [duplicate-alternative]; remove it
+a label in a lookahead
+  G.peg:3:17: warning: the label l has no effect: its throw inside the lookahead is a failure of the lookahead [ineffective-label]; remove ^l
+a label in the last alternative in a lookahead
+  G.peg:3:18: warning: the label l has no effect: its throw inside the lookahead is a failure of the lookahead [ineffective-label]; remove ^l
+a label in a nested lookahead
+  G.peg:3:14: warning: the label l has no effect: its throw inside the lookahead is a failure of the lookahead [ineffective-label]; remove ^l
+a binding not in the action
+  G.peg:3:6: warning: the binding x is not used [unused-binding]; remove x:
+a binding that is only a part of another identifier
+  G.peg:3:6: warning: the binding x is not used [unused-binding]; remove x:
+a binding without an action
+  G.peg:3:10: warning: the binding x is not used [unused-binding]; remove x:
+a binding in a group
+  G.peg:3:7: warning: the binding x is not used [unused-binding]; remove x:

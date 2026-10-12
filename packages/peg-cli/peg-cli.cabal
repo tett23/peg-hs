@@ -29,6 +29,7 @@ executable peg-hs
   other-modules:
     Command.Fmt
     Command.Gen
+    Command.Lint
     Files
     Diagnostics
     Options

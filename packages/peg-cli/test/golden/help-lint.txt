@@ -1,0 +1,6 @@
+usage: peg-hs lint [FILE...]
+
+Check grammars against the fixed rules of peg-hs, and fail if there is a warning.
+The rules cannot be chosen or silenced; every warning goes away by changing the grammar.
+Without files, lint every .peg file under the current directory,
+except in directories whose name starts with . and dist-newstyle.
