@@ -1,0 +1,35 @@
+no rule at top	2:1: expected a rule, a directive or %{ ... }%
+directive without name	2:1: expected an identifier
+unterminated verbatim	5:1: unterminated %{ block
+missing type	2:6: expected a type
+parameters on a definition	3:13: parameters belong to the type annotation, not the definition
+neither :: nor <-	2:3: expected :: or <-
+parameter without a type	2:4: expected a parameter of the form name :: Type
+parameter with an empty type	2:8: expected a parameter type
+empty argument	3:8: expected an argument
+empty argument after a comma	3:11: expected an argument
+no expression after /	3:12: expected a rule, a directive or %{ ... }%
+action in a group	3:12: actions are not allowed inside a group
+unclosed group	4:1: expected ')'
+unterminated literal	3:14: unterminated literal
+unterminated literal at the end	3:8: unterminated literal
+empty range	3:9: the range is empty
+empty class	3:6: empty character class
+unterminated class	3:16: unterminated character class
+unterminated class at the end	3:8: unterminated character class
+\u escape out of range	3:16: invalid \u escape
+\u escape without a brace	3:9: expected '{'
+\u escape not closed	3:12: expected '}'
+unknown escape	3:8: unknown escape \q
+unknown escape in a class	3:8: unknown escape \q
+escape at the end	3:8: unexpected end of file
+unterminated action	4:1: unterminated Haskell code
+unbalanced bracket in an action	3:13: unbalanced bracket in Haskell code
+unterminated string in an action	4:1: unterminated string literal
+unterminated character in an action	4:1: unterminated character literal
+unterminated predicate	4:1: unterminated Haskell code
+unterminated argument	4:1: unterminated Haskell code
+label without a name	3:10: expected a rule, a directive or %{ ... }%
+binding without an expression	3:9: expected an expression
+capture without an expression	3:8: expected an expression
+lookahead without an expression	3:8: expected an expression

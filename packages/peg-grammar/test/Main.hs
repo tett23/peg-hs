@@ -1,17 +1,21 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
 
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeExtension, (</>))
 import Test.Tasty
+import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
 
 main :: IO ()
@@ -23,7 +27,8 @@ main = do
       [ notationTests
       , checkTests
       , analysisTests
-      , selfHostingTests files
+      , repositoryGrammarTests files
+      , errorReportTests
       ]
 
 -- Every grammar in the repository. Directories outside this package are
@@ -38,6 +43,8 @@ grammarFiles = concat <$> mapM pegsIn dirs
       , "../../conformance/bench"
       , "../../conformance/commonmark"
       , "../../conformance/commonmark/v1"
+      , "../../conformance/lua"
+      , "../../conformance/toml"
       ]
     pegsIn d = do
       exists <- doesDirectoryExist d
@@ -45,25 +52,22 @@ grammarFiles = concat <$> mapM pegsIn dirs
         then map (d </>) . filter ((== ".peg") . takeExtension) <$> listDirectory d
         else pure []
 
--- The self-hosted parser must return exactly the grammar the hand-written
--- parser returns, locations included (the migration test of the
--- specification's self-hosting principle).
-selfHostingTests :: [FilePath] -> TestTree
-selfHostingTests files =
+-- Every grammar of the repository and a set of snippets are accepted, and
+-- the invalid snippets rejected. These were the inputs of the migration
+-- test from the hand-written parser (ADR 0015, ADR 0027).
+repositoryGrammarTests :: [FilePath] -> TestTree
+repositoryGrammarTests files =
   testGroup
-    "self-hosting"
+    "repository grammars and snippets"
     ( [ testCase f $ do
           src <- TIO.readFile f
-          let expected = parseGrammar src
-          assertBool ("the hand-written parser rejects " <> f) (either (const False) (const True) expected)
-          parseGrammarSelfHosted src @?= expected
+          assertBool ("rejected: " <> show (parseGrammar src)) (not (isLeft (parseGrammar src)))
       | f <- files
       ]
-        ++ [ testCase ("snippet " <> show i) (parseGrammarSelfHosted src @?= parseGrammar src)
+        ++ [ testCase ("snippet " <> show i) (assertBool (show (parseGrammar src)) (not (isLeft (parseGrammar src))))
            | (i, src) <- zip [1 :: Int ..] validSnippets
            ]
-        ++ [ testCase ("rejected snippet " <> show i) $
-               assertBool "both parsers should reject" (isLeft (parseGrammarSelfHosted src) && isLeft (parseGrammar src))
+        ++ [ testCase ("rejected snippet " <> show i) (assertBool "should reject" (isLeft (parseGrammar src)))
            | (i, src) <- zip [1 :: Int ..] invalidSnippets
            ]
     )
@@ -89,6 +93,81 @@ selfHostingTests files =
       , "A :: ()\nA <- 'a' { () }\n"
       , "%module M\nA :: ()\nA <- { ( }\n"
       ]
+
+-- ADR 0027: inputs that made the hand-written parser report each of its
+-- messages, with a name for each.
+errorSnippets :: [(Text, Text)]
+errorSnippets =
+  [ ("no rule at top", m <> "@ A :: Int\n")
+  , ("directive without name", m <> "% x\nA :: Int\nA <- 'a' { 1 }\n")
+  , ("unterminated verbatim", m <> "%{ import X\nA :: Int\nA <- 'a' { 1 }\n")
+  , ("missing type", m <> "A :: \nA <- 'a' { 1 }\n")
+  , ("parameters on a definition", m <> "A(x :: Int) :: Int\nA(x :: Int) <- 'a' { 1 }\n")
+  , ("neither :: nor <-", m <> "A = 'a'\n")
+  , ("parameter without a type", m <> "A(x) :: Int\nA <- 'a' { 1 }\n")
+  , ("parameter with an empty type", m <> "A(x :: ) :: Int\nA <- 'a' { 1 }\n")
+  , ("empty argument", m <> "A :: Int\nA <- B() { 1 }\n")
+  , ("empty argument after a comma", m <> "A :: Int\nA <- B(1, ) { 1 }\n")
+  , ("no expression after /", m <> "A :: Int\nA <- 'a' / ) { 1 }\n")
+  , ("action in a group", m <> "A :: Int\nA <- ( 'a' { 1 } ) { 1 }\n")
+  , ("unclosed group", m <> "A :: Int\nA <- ( 'a'\n")
+  , ("unterminated literal", m <> "A :: Int\nA <- 'a { 1 }\n")
+  , ("unterminated literal at the end", m <> "A :: Int\nA <- \"a")
+  , ("empty range", m <> "A :: Int\nA <- [b-a] { 1 }\n")
+  , ("empty class", m <> "A :: Int\nA <- [] { 1 }\n")
+  , ("unterminated class", m <> "A :: Int\nA <- [a-z { 1 }\n")
+  , ("unterminated class at the end", m <> "A :: Int\nA <- [a")
+  , ("\\u escape out of range", m <> "A :: Int\nA <- '\\u{110000}' { 1 }\n")
+  , ("\\u escape without a brace", m <> "A :: Int\nA <- '\\u41' { 1 }\n")
+  , ("\\u escape not closed", m <> "A :: Int\nA <- '\\u{41' { 1 }\n")
+  , ("unknown escape", m <> "A :: Int\nA <- '\\q' { 1 }\n")
+  , ("unknown escape in a class", m <> "A :: Int\nA <- [\\q] { 1 }\n")
+  , ("escape at the end", m <> "A :: Int\nA <- '\\")
+  , ("unterminated action", m <> "A :: Int\nA <- 'a' { 1 \n")
+  , ("unbalanced bracket in an action", m <> "A :: Int\nA <- 'a' { f) }\n")
+  , ("unterminated string in an action", m <> "A :: Int\nA <- 'a' { \"x }\n")
+  , ("unterminated character in an action", m <> "A :: Int\nA <- 'a' { '\\x }\n")
+  , ("unterminated predicate", m <> "A :: Int\nA <- &{ True 'a' { 1 }\n")
+  , ("unterminated argument", m <> "A :: Int\nA <- B(1 { 1 }\n")
+  , ("label without a name", m <> "A :: Int\nA <- 'a' ^ { 1 }\n")
+  , ("binding without an expression", m <> "A :: Int\nA <- x: { 1 }\n")
+  , ("capture without an expression", m <> "A :: Int\nA <- $ { 1 }\n")
+  , ("lookahead without an expression", m <> "A :: Int\nA <- & / 'a' { 1 }\n")
+  ]
+  where
+    m = "%module M\n"
+
+-- The first diagnostic, as line:column: message.
+report :: Either [Diagnostic] Grammar -> Text
+report = \case
+  Left (Diagnostic (Loc l c) msg : _) -> T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> msg
+  Left [] -> "no diagnostic"
+  Right _ -> "accepted"
+
+-- The golden file holds the reports of the hand-written parser, which the
+-- self-hosted parser reproduces (ADR 0027), except on these snippets:
+--
+-- - parameters on a definition: the hand-written parser never reported its
+--   message there. Its repetition ended at a failure at the start of a
+--   declaration, and the top level reported a generic message. The
+--   self-hosted parser reports the specific message at '<-'.
+-- - directive without name, empty class: the same message at the position
+--   before. A predicate or a negative lookahead adds nothing to the
+--   farthest position (ADR 0005), which labels cannot move (ADR 0021).
+-- - parameter without a type, parameter with an empty type, empty range,
+--   \u escape out of range: the same message at the end of the construct
+--   instead of its start, since it is checked after it is read.
+-- - unknown escape, unknown escape in a class: the same message one column
+--   later, after the backslash, where the label is thrown.
+
+errorReportTests :: TestTree
+errorReportTests =
+  testGroup
+    "error reports (ADR 0027)"
+    [ goldenVsString "the reports of the parser" "test/golden/error-reports.txt" $
+        pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
+          [n <> "\t" <> report (parseGrammar src) | (n, src) <- errorSnippets]
+    ]
 
 parseOk :: Text -> IO Grammar
 parseOk src = case parseGrammar src of
@@ -178,7 +257,8 @@ notationTests =
         length (altItems (firstAlt g)) @?= 2
     , testCase "unknown directive" $ errorsOf "%module M\n%bogus\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 1)]
     , testCase "missing %module" $ errorsOf "A :: ()\nA <- 'a' { () }\n" @?= [(1, 1)]
-    , testCase "unknown escape" $ errorsOf "%module M\nA :: ()\nA <- '\\q' { () }\n" @?= [(3, 7)]
+    , -- After the backslash, where the label is thrown (ADR 0027)
+      testCase "unknown escape" $ errorsOf "%module M\nA :: ()\nA <- '\\q' { () }\n" @?= [(3, 8)]
     , testCase "unterminated literal" $ errorsOf "%module M\nA :: ()\nA <- 'abc\n" @?= [(3, 10)]
     , testCase "action inside a group" $ errorsOf "%module M\nA :: ()\nA <- ('a' { () })\n" @?= [(3, 11)]
     ]

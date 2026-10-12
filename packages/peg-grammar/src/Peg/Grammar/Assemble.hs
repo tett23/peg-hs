@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Turning the top-level items of a grammar file into a 'Grammar'. Shared
--- by the hand-written parser and the self-hosted one.
+-- | Turning the top-level items of a grammar file into a 'Grammar'.
 module Peg.Grammar.Assemble
   ( Top (..)
   , assemble

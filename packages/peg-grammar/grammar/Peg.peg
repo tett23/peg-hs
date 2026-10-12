@@ -1,14 +1,13 @@
 # peg-hs の記法（ADR 0004、0005、0012、0014）を peg-hs 自身で書いた文法。
-# 生成したパーサーは、手書きのパーサー（Peg.Grammar.Parser）と同じ最上位の
-# 要素の列を返し、同じ組み立て（Peg.Grammar.Assemble）を通る。両者が位置まで
-# 含めて同一の文法を返すことを移行テストとする（仕様書の「自己記述への移行」）。
+# 生成したパーサーは最上位の要素の列を返し、組み立て（Peg.Grammar.Assemble）を通る。
+# 誤りの文言は、ラベル（ADR 0021）から Peg.Grammar.Parser の対応表で作る（ADR 0027）。
+# ラベルは、そこで失敗したらどの選択肢でも成功しえない位置にだけ付ける。
 #
-# 識別子と空白の文字は、手書きのパーサーと同じ関数で判定する（ADR 0020）。
+# 識別子と空白の文字は Peg.Grammar.Assemble の関数で判定する（ADR 0020）。
 %module Peg.Grammar.SelfHosted
 
 %{
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)
-import Data.Either (isRight, rights)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
@@ -52,7 +51,20 @@ classRanges = go . tokens . inside
     go [] = []
 
 validHex :: Text -> Bool
-validHex h = not (T.null h) && T.length h <= 6 && T.foldl' (\n d -> n * 16 + digitToInt d) 0 h <= 0x10FFFF
+validHex h = not (T.null h) && T.foldl' (\n d -> n * 16 + toInteger (digitToInt d)) 0 h <= (0x10FFFF :: Integer)
+
+-- Every range of a class item is non-empty.
+nonEmptyRanges :: Text -> Bool
+nonEmptyRanges item = all (uncurry (<=)) (classRanges (T.concat [T.pack "[", item, T.pack "]"]))
+
+paramFormMessage :: Text
+paramFormMessage = T.pack "expected a parameter of the form name :: Type"
+
+paramError :: Loc -> Text -> Maybe Text
+paramError l c = either Just (const Nothing) (toParam (Located l c))
+
+param :: Loc -> Text -> Param
+param l c = either (const (Param T.empty (Located l c))) id (toParam (Located l c))
 
 applyOp :: Expr -> Char -> Expr
 applyOp e c = case c of
@@ -62,7 +74,7 @@ applyOp e c = case c of
 }%
 
 File :: [Top]
-File <- Ws ts:TopItem* { ts }
+File <- Ws ts:TopItem* (!.) ^top { ts }
 
 TopItem :: Top
 TopItem <- t:TopOne Ws { t }
@@ -101,17 +113,29 @@ IdentChar <- c:$. &{ isIdentChar (firstChar c) } { () }
 # 最上位の要素 ---------------------------------------------------------------------
 
 Verbatim :: Top
-Verbatim <- '%{' l:Here b:$(!'}%' .)* '}%' { uncurry TVerbatim (verbatimBody l b) }
+Verbatim <- '%{' l:Here b:$(!'}%' .)* ('}%' ^verbatim) { uncurry TVerbatim (verbatimBody l b) }
 
 Directive :: Top
-Directive <- l:Here '%' n:Ident InlineSp al:Here raw:$(!'\n' .)* { TDirective l n al (directiveArg n raw) }
+Directive <- l:Here '%' n:(Ident ^ident) InlineSp al:Here raw:$(!'\n' .)* { TDirective l n al (directiveArg n raw) }
 
 Declaration :: Top
-Declaration <- l:Here n:Ident ps:ParamList? Ws '::' InlineSp tl:Here ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { TAnnot l n (maybe [] id ps) (Located tl (T.stripEnd ty)) }
+# 三つめの選択肢は必ずラベルを送出する。最上位の識別子は宣言の始まりでしかありえない
+Declaration <- l:Here n:Ident ps:ParamList? Ws '::' InlineSp tl:Here ty:(TypeText ^type) { TAnnot l n (maybe [] id ps) (Located tl ty) }
              / l:Here n:Ident Ws '<-' as:Alts { TDef l n as }
+             / Ident ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { error "unreachable: a label is thrown" }
+
+TypeText :: Text
+TypeText <- ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { T.stripEnd ty }
 
 ParamList :: [Param]
-ParamList <- '(' cs:ArgChunks &{ all (isRight . toParam) cs } { rights (map toParam cs) }
+ParamList <- '(' ps:ParamChunks { ps }
+
+ParamChunks :: [Param]
+ParamChunks <- p:ParamChunk ',' rest:ParamChunks { p : rest }
+             / p:ParamChunk ')' { [p] }
+
+ParamChunk :: Param
+ParamChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&{ paramError l c /= Just paramFormMessage }) ^paramform (&{ paramError l c == Nothing }) ^paramtype (&[,)]) ^argcode { param l c }
 
 # 選択肢と式 -----------------------------------------------------------------------
 
@@ -125,7 +149,8 @@ Alt :: Alt
 Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
 
 Item :: Item
-Item <- Ws !DeclStart l:Here b:Binding? e:PrefixE { Item l b e }
+Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }
+      / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
 
 DeclStart :: ()
 DeclStart <- Ident HsParen? Ws ('::' / '<-') { () }
@@ -135,10 +160,10 @@ Binding <- n:Ident ':' !':' { n }
 
 PrefixE :: Expr
 PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
-         / Ws '&' Ws e:PrefixE { EAnd e }
+         / Ws '&' Ws e:(PrefixE ^expression) { EAnd e }
          / Ws '!' Ws '{' c:PredCode { EPred False c }
-         / Ws '!' Ws e:PrefixE { ENot e }
-         / Ws '$' e:PrefixE { ECapture e }
+         / Ws '!' Ws e:(PrefixE ^expression) { ENot e }
+         / Ws '$' e:(PrefixE ^expression) { ECapture e }
          / Labeled
 
 Labeled :: Expr
@@ -158,7 +183,7 @@ Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
          / Ws o:$Lit2 { ELit (decodeLiteral o) o }
          / Ws o:$ClassLit { EClass (classRanges o) o }
          / Ws '.' { EAny }
-         / Ws '(' g:GroupAlts Ws ')' { EGroup g }
+         / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
          / Ws l:Here n:Ident args:CallArgs? { ERef l n (maybe [] id args) }
 
 CallArgs :: [Located Text]
@@ -173,20 +198,23 @@ MoreGroup <- Ws '/' s:Item* { s }
 # リテラルと文字クラス -------------------------------------------------------------------
 
 Lit1 :: ()
-Lit1 <- '\'' (Escape / !['\\\n] .)* '\'' { () }
+Lit1 <- '\'' (Escape / !['\\\n] .)* ('\'' ^literal) { () }
 
 Lit2 :: ()
-Lit2 <- '"' (Escape / !["\\\n] .)* '"' { () }
+Lit2 <- '"' (Escape / !["\\\n] .)* ('"' ^literal) { () }
 
 Escape :: ()
-Escape <- '\\' [ntr\\'"\]\[\-] { () }
-        / '\\u{' h:$[0-9a-fA-F]* '}' &{ validHex h } { () }
+Escape <- '\\' (EscapeBody ^escape) { () }
+
+EscapeBody :: ()
+EscapeBody <- [ntr\\'"\]\[\-] { () }
+            / 'u' ('{' ^ubrace) h:$[0-9a-fA-F]* ('}' ^uclose) (&{ validHex h }) ^uescape { () }
 
 ClassLit :: ()
-ClassLit <- '[' ClassItem+ ']' { () }
+ClassLit <- '[' (!']') ^emptyclass ClassItem* (']' ^class) { () }
 
 ClassItem :: ()
-ClassItem <- ClassChar ('-' !']' ClassChar)? { () }
+ClassItem <- s:$(ClassChar ('-' !']' ClassChar)?) (&{ nonEmptyRanges s }) ^range { () }
 
 ClassChar :: ()
 ClassChar <- Escape
@@ -195,14 +223,17 @@ ClassChar <- Escape
 # Haskell の断片 -------------------------------------------------------------------
 
 Action :: Located Text
-Action <- '{' l:Here c:$ActionCode '}' { Located l c }
+Action <- '{' l:Here c:$ActionCode ('}' ^action) { Located l c }
 
 PredCode :: Located Text
-PredCode <- l:Here c:$ActionCode '}' { Located l c }
+PredCode <- l:Here c:$ActionCode ('}' ^action) { Located l c }
 
 ArgChunks :: [Located Text]
-ArgChunks <- Ws l:Here c:$ArgCode &{ not (T.null (T.strip c)) } ',' rest:ArgChunks { Located l c : rest }
-           / Ws l:Here c:$ArgCode &{ not (T.null (T.strip c)) } ')' { [Located l c] }
+ArgChunks <- c:ArgChunk ',' rest:ArgChunks { c : rest }
+           / c:ArgChunk ')' { [c] }
+
+ArgChunk :: Located Text
+ArgChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&[,)]) ^argcode { Located l c }
 
 # 深さ 0 の '}' の手前まで
 ActionCode :: ()
@@ -235,11 +266,11 @@ HsInner <- HsNested
          / ![()\[\]{}] . { () }
 
 HsString :: ()
-HsString <- '"' ('\\' . / !'"' .)* '"' { () }
+HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring) { () }
 
 # 識別子の文字の直後にない引用符は文字リテラルの始まり
 HsChar :: ()
-HsChar <- '\'' '\\' . (!'\'' .)* '\'' { () }
+HsChar <- '\'' '\\' . (!'\'' .)* ('\'' ^hschar) { () }
         / '\'' . '\'' { () }
         / '\'' { () }
 
