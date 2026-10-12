@@ -27,9 +27,11 @@ firstChar = T.foldr const ' '
 tokens :: Text -> [(Char, Bool)]
 tokens = go . T.unpack
   where
+    -- Recovery (ADR 0035) can reach here with an invalid escape.
     go ('\\' : 'u' : '{' : rest) =
       let (h, rest') = span isHexDigit rest
-       in (chr (foldl (\n d -> n * 16 + digitToInt d) 0 h), False) : go (drop 1 rest')
+          n = foldl (\m d -> m * 16 + toInteger (digitToInt d)) 0 h
+       in (if n <= 0x10FFFF then chr (fromInteger n) else '\xFFFD', False) : go (drop 1 rest')
     go ('\\' : c : rest) = (escape c, False) : go rest
     go (c : rest) = (c, c == '-') : go rest
     go [] = []
@@ -73,13 +75,13 @@ applyOp e c = case c of
   '*' -> EStar e
   '+' -> EPlus e
   _ -> EOpt e
-{-# LINE 77 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 79 "src/Peg/Grammar/SelfHosted.hs" #-}
 
 -- | Parse the whole input with the rule @File@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 102 "grammar/Peg.peg" #-}
+{-# LINE 104 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Top]
-{-# LINE 83 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 85 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 parse peg'input =
   Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'File peg'input)
@@ -87,9 +89,9 @@ parse peg'input =
 -- | Parse the whole input with the rule @File@, recovering from labelled failures.
 -- The value is 'PegPrelude.Nothing' only if the rule could not be recovered.
 parseRecover :: PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 102 "grammar/Peg.peg" #-}
+{-# LINE 104 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Top]
-{-# LINE 93 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 95 "src/Peg/Grammar/SelfHosted.hs" #-}
     ), [PegRt.SyntaxError])
 parseRecover peg'input =
   let (peg'v, peg'e, _) = PegRt.runParserRecover peg'config (peg'newStore) peg'rule'File peg'input
@@ -100,280 +102,300 @@ peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
   { peg'memo'File :: PegRt.Table peg's (
-{-# LINE 102 "grammar/Peg.peg" #-}
+{-# LINE 104 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Top]
-{-# LINE 106 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 108 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'TopItem :: PegRt.Table peg's (
-{-# LINE 105 "grammar/Peg.peg" #-}
+{-# LINE 107 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Top
-{-# LINE 111 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 113 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'TopOne :: PegRt.Table peg's (
-{-# LINE 108 "grammar/Peg.peg" #-}
+{-# LINE 110 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Top
-{-# LINE 116 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 118 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Here :: PegRt.Table peg's (
-{-# LINE 113 "grammar/Peg.peg" #-}
+{-# LINE 115 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}Loc
-{-# LINE 121 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 123 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Ws :: PegRt.Table peg's (
-{-# LINE 118 "grammar/Peg.peg" #-}
+{-# LINE 119 "grammar/Peg.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 126 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 128 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'SpaceChar :: PegRt.Table peg's (
-{-# LINE 121 "grammar/Peg.peg" #-}
+{-# LINE 122 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 131 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 133 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Comment :: PegRt.Table peg's (
-{-# LINE 124 "grammar/Peg.peg" #-}
+{-# LINE 125 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 136 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 138 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'InlineSp :: PegRt.Table peg's (
-{-# LINE 127 "grammar/Peg.peg" #-}
+{-# LINE 128 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 141 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 143 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Ident :: PegRt.Table peg's (
-{-# LINE 130 "grammar/Peg.peg" #-}
+{-# LINE 131 "grammar/Peg.peg" #-}
  {-# COLUMN 10 #-}Text
-{-# LINE 146 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 148 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'IdentStart :: PegRt.Table peg's (
-{-# LINE 133 "grammar/Peg.peg" #-}
+{-# LINE 134 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 151 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 153 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'IdentChar :: PegRt.Table peg's (
-{-# LINE 136 "grammar/Peg.peg" #-}
+{-# LINE 137 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 156 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 158 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Verbatim :: PegRt.Table peg's (
 {-# LINE 141 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Top
-{-# LINE 161 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 163 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Directive :: PegRt.Table peg's (
 {-# LINE 144 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}Top
-{-# LINE 166 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 168 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Declaration :: PegRt.Table peg's (
 {-# LINE 147 "grammar/Peg.peg" #-}
  {-# COLUMN 16 #-}Top
-{-# LINE 171 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 173 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+  , peg'memo'TemplateParams :: PegRt.Table peg's (
+{-# LINE 155 "grammar/Peg.peg" #-}
+ {-# COLUMN 19 #-}[TemplateParam]
+{-# LINE 178 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+  , peg'memo'TemplateParam :: PegRt.Table peg's (
+{-# LINE 158 "grammar/Peg.peg" #-}
+ {-# COLUMN 18 #-}TemplateParam
+{-# LINE 183 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'TypeText :: PegRt.Table peg's (
-{-# LINE 153 "grammar/Peg.peg" #-}
+{-# LINE 161 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Text
-{-# LINE 176 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 188 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ParamList :: PegRt.Table peg's (
-{-# LINE 156 "grammar/Peg.peg" #-}
+{-# LINE 164 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Param]
-{-# LINE 181 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 193 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ParamChunks :: PegRt.Table peg's (
-{-# LINE 159 "grammar/Peg.peg" #-}
+{-# LINE 167 "grammar/Peg.peg" #-}
  {-# COLUMN 16 #-}[Param]
-{-# LINE 186 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 198 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ParamChunk :: PegRt.Table peg's (
-{-# LINE 163 "grammar/Peg.peg" #-}
+{-# LINE 171 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}Param
-{-# LINE 191 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 203 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Alts :: PegRt.Table peg's (
-{-# LINE 168 "grammar/Peg.peg" #-}
+{-# LINE 175 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Alt]
-{-# LINE 196 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 208 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'MoreAlt :: PegRt.Table peg's (
-{-# LINE 171 "grammar/Peg.peg" #-}
+{-# LINE 178 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Alt
-{-# LINE 201 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 213 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Alt :: PegRt.Table peg's (
-{-# LINE 174 "grammar/Peg.peg" #-}
+{-# LINE 181 "grammar/Peg.peg" #-}
  {-# COLUMN 8 #-}Alt
-{-# LINE 206 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 218 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Item :: PegRt.Table peg's (
-{-# LINE 177 "grammar/Peg.peg" #-}
+{-# LINE 184 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}Item
-{-# LINE 211 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 223 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'DeclStart :: PegRt.Table peg's (
-{-# LINE 181 "grammar/Peg.peg" #-}
+{-# LINE 188 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 216 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 228 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Binding :: PegRt.Table peg's (
-{-# LINE 184 "grammar/Peg.peg" #-}
+{-# LINE 191 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 221 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 233 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'PrefixE :: PegRt.Table peg's (
-{-# LINE 187 "grammar/Peg.peg" #-}
+{-# LINE 194 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 226 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 238 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Labeled :: PegRt.Table peg's (
-{-# LINE 195 "grammar/Peg.peg" #-}
+{-# LINE 202 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 231 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 243 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'LabelPart :: PegRt.Table peg's (
-{-# LINE 198 "grammar/Peg.peg" #-}
+{-# LINE 205 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}(Loc, Text)
-{-# LINE 236 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 248 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'SuffixE :: PegRt.Table peg's (
-{-# LINE 201 "grammar/Peg.peg" #-}
+{-# LINE 208 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 241 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 253 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'PostOp :: PegRt.Table peg's (
-{-# LINE 204 "grammar/Peg.peg" #-}
+{-# LINE 211 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Char
-{-# LINE 246 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 258 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Primary :: PegRt.Table peg's (
-{-# LINE 207 "grammar/Peg.peg" #-}
+{-# LINE 214 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 251 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 263 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+  , peg'memo'TemplateArgs :: PegRt.Table peg's (
+{-# LINE 225 "grammar/Peg.peg" #-}
+ {-# COLUMN 17 #-}[Expr]
+{-# LINE 268 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+  , peg'memo'TemplateArg :: PegRt.Table peg's (
+{-# LINE 228 "grammar/Peg.peg" #-}
+ {-# COLUMN 16 #-}Expr
+{-# LINE 273 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'CallArgs :: PegRt.Table peg's (
-{-# LINE 216 "grammar/Peg.peg" #-}
+{-# LINE 231 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}[Located Text]
-{-# LINE 256 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 278 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'GroupAlts :: PegRt.Table peg's (
-{-# LINE 219 "grammar/Peg.peg" #-}
+{-# LINE 234 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[[Item]]
-{-# LINE 261 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 283 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'MoreGroup :: PegRt.Table peg's (
-{-# LINE 222 "grammar/Peg.peg" #-}
+{-# LINE 237 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Item]
-{-# LINE 266 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 288 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Lit1 :: PegRt.Table peg's (
-{-# LINE 227 "grammar/Peg.peg" #-}
+{-# LINE 241 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 271 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 293 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Lit2 :: PegRt.Table peg's (
-{-# LINE 230 "grammar/Peg.peg" #-}
+{-# LINE 244 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 276 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 298 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Escape :: PegRt.Table peg's (
-{-# LINE 233 "grammar/Peg.peg" #-}
+{-# LINE 247 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 281 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 303 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'EscapeBody :: PegRt.Table peg's (
-{-# LINE 236 "grammar/Peg.peg" #-}
+{-# LINE 250 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 286 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 308 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ClassLit :: PegRt.Table peg's (
-{-# LINE 240 "grammar/Peg.peg" #-}
+{-# LINE 254 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 291 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 313 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ClassItem :: PegRt.Table peg's (
-{-# LINE 243 "grammar/Peg.peg" #-}
+{-# LINE 257 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 296 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 318 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ClassChar :: PegRt.Table peg's (
-{-# LINE 246 "grammar/Peg.peg" #-}
+{-# LINE 260 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 301 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 323 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'Action :: PegRt.Table peg's (
-{-# LINE 252 "grammar/Peg.peg" #-}
+{-# LINE 265 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Located Text
-{-# LINE 306 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 328 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'PredCode :: PegRt.Table peg's (
-{-# LINE 255 "grammar/Peg.peg" #-}
+{-# LINE 268 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Located Text
-{-# LINE 311 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 333 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ArgChunks :: PegRt.Table peg's (
-{-# LINE 258 "grammar/Peg.peg" #-}
+{-# LINE 271 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Located Text]
-{-# LINE 316 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 338 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ArgChunk :: PegRt.Table peg's (
-{-# LINE 262 "grammar/Peg.peg" #-}
+{-# LINE 275 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Located Text
-{-# LINE 321 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 343 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ActionCode :: PegRt.Table peg's (
-{-# LINE 266 "grammar/Peg.peg" #-}
+{-# LINE 279 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 326 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 348 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'ArgCode :: PegRt.Table peg's (
-{-# LINE 270 "grammar/Peg.peg" #-}
+{-# LINE 283 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 331 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 353 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsPart :: PegRt.Table peg's (
-{-# LINE 273 "grammar/Peg.peg" #-}
+{-# LINE 286 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 336 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 358 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsParen :: PegRt.Table peg's (
-{-# LINE 280 "grammar/Peg.peg" #-}
+{-# LINE 293 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 341 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 363 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsNested :: PegRt.Table peg's (
-{-# LINE 283 "grammar/Peg.peg" #-}
+{-# LINE 296 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 346 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 368 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsInner :: PegRt.Table peg's (
-{-# LINE 288 "grammar/Peg.peg" #-}
+{-# LINE 301 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 351 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 373 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsString :: PegRt.Table peg's (
-{-# LINE 295 "grammar/Peg.peg" #-}
+{-# LINE 308 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 356 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 378 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsChar :: PegRt.Table peg's (
-{-# LINE 301 "grammar/Peg.peg" #-}
+{-# LINE 314 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 361 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 383 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   , peg'memo'HsIdent :: PegRt.Table peg's (
-{-# LINE 306 "grammar/Peg.peg" #-}
+{-# LINE 319 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 366 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 388 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
-  Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
+  Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
 peg'rule'File :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 102 "grammar/Peg.peg" #-}
+{-# LINE 104 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Top]
-{-# LINE 377 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 399 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'File =
   PegRt.memo peg'memo'File "File"
@@ -386,17 +408,17 @@ peg'rule'File =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 103 "grammar/Peg.peg" #-}
+{-# LINE 105 "grammar/Peg.peg" #-}
  {-# COLUMN 35 #-} ts 
-{-# LINE 392 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 414 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'TopItem :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 105 "grammar/Peg.peg" #-}
+{-# LINE 107 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Top
-{-# LINE 400 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 422 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'TopItem =
   PegRt.memo peg'memo'TopItem "TopItem"
@@ -406,17 +428,17 @@ peg'rule'TopItem =
           ; _ <- peg'rule'Ws
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 106 "grammar/Peg.peg" #-}
+{-# LINE 108 "grammar/Peg.peg" #-}
  {-# COLUMN 25 #-} t 
-{-# LINE 412 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 434 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'TopOne :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 108 "grammar/Peg.peg" #-}
+{-# LINE 110 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Top
-{-# LINE 420 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 442 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'TopOne =
   PegRt.memo peg'memo'TopOne "TopOne"
@@ -433,9 +455,9 @@ peg'rule'TopOne =
       ])
 
 peg'rule'Here :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 113 "grammar/Peg.peg" #-}
+{-# LINE 115 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}Loc
-{-# LINE 439 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 461 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Here =
   PegRt.memo peg'memo'Here "Here"
@@ -443,17 +465,17 @@ peg'rule'Here =
       [ do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 114 "grammar/Peg.peg" #-}
+{-# LINE 116 "grammar/Peg.peg" #-}
  {-# COLUMN 10 #-} here _span 
-{-# LINE 449 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 471 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 118 "grammar/Peg.peg" #-}
+{-# LINE 119 "grammar/Peg.peg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 457 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 479 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
@@ -466,17 +488,17 @@ peg'rule'Ws =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 119 "grammar/Peg.peg" #-}
+{-# LINE 120 "grammar/Peg.peg" #-}
  {-# COLUMN 31 #-} () 
-{-# LINE 472 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 494 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'SpaceChar :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 121 "grammar/Peg.peg" #-}
+{-# LINE 122 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 480 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 502 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'SpaceChar =
   PegRt.memo peg'memo'SpaceChar "SpaceChar"
@@ -484,23 +506,23 @@ peg'rule'SpaceChar =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 122 "grammar/Peg.peg" #-}
+{-# LINE 123 "grammar/Peg.peg" #-}
  {-# COLUMN 21 #-} isSpace (firstChar c) 
-{-# LINE 490 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 512 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 122 "grammar/Peg.peg" #-}
+{-# LINE 123 "grammar/Peg.peg" #-}
  {-# COLUMN 47 #-} () 
-{-# LINE 496 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 518 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 124 "grammar/Peg.peg" #-}
+{-# LINE 125 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 504 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 526 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Comment =
   PegRt.memo peg'memo'Comment "Comment"
@@ -513,17 +535,17 @@ peg'rule'Comment =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 125 "grammar/Peg.peg" #-}
+{-# LINE 126 "grammar/Peg.peg" #-}
  {-# COLUMN 28 #-} () 
-{-# LINE 519 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 541 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'InlineSp :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 127 "grammar/Peg.peg" #-}
+{-# LINE 128 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 527 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 549 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'InlineSp =
   PegRt.memo peg'memo'InlineSp "InlineSp"
@@ -532,17 +554,17 @@ peg'rule'InlineSp =
           ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 128 "grammar/Peg.peg" #-}
+{-# LINE 129 "grammar/Peg.peg" #-}
  {-# COLUMN 21 #-} () 
-{-# LINE 538 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 560 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Ident :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 130 "grammar/Peg.peg" #-}
+{-# LINE 131 "grammar/Peg.peg" #-}
  {-# COLUMN 10 #-}Text
-{-# LINE 546 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 568 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Ident =
   PegRt.memo peg'memo'Ident "Ident"
@@ -554,17 +576,17 @@ peg'rule'Ident =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 131 "grammar/Peg.peg" #-}
+{-# LINE 132 "grammar/Peg.peg" #-}
  {-# COLUMN 38 #-} t 
-{-# LINE 560 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 582 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'IdentStart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 133 "grammar/Peg.peg" #-}
+{-# LINE 134 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 568 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 590 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'IdentStart =
   PegRt.memo peg'memo'IdentStart "IdentStart"
@@ -572,23 +594,23 @@ peg'rule'IdentStart =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 134 "grammar/Peg.peg" #-}
+{-# LINE 135 "grammar/Peg.peg" #-}
  {-# COLUMN 22 #-} isIdentStart (firstChar c) 
-{-# LINE 578 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 600 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 134 "grammar/Peg.peg" #-}
+{-# LINE 135 "grammar/Peg.peg" #-}
  {-# COLUMN 53 #-} () 
-{-# LINE 584 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 606 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'IdentChar :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 136 "grammar/Peg.peg" #-}
+{-# LINE 137 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 592 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 614 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'IdentChar =
   PegRt.memo peg'memo'IdentChar "IdentChar"
@@ -596,15 +618,15 @@ peg'rule'IdentChar =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 137 "grammar/Peg.peg" #-}
+{-# LINE 138 "grammar/Peg.peg" #-}
  {-# COLUMN 21 #-} isIdentChar (firstChar c) 
-{-# LINE 602 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 624 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 137 "grammar/Peg.peg" #-}
+{-# LINE 138 "grammar/Peg.peg" #-}
  {-# COLUMN 51 #-} () 
-{-# LINE 608 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 630 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
@@ -612,7 +634,7 @@ peg'rule'IdentChar =
 peg'rule'Verbatim :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 141 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Top
-{-# LINE 616 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 638 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Verbatim =
   PegRt.memo peg'memo'Verbatim "Verbatim"
@@ -631,7 +653,7 @@ peg'rule'Verbatim =
           ; PegPrelude.pure (
 {-# LINE 142 "grammar/Peg.peg" #-}
  {-# COLUMN 57 #-} uncurry TVerbatim (verbatimBody l b) 
-{-# LINE 635 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 657 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
@@ -639,7 +661,7 @@ peg'rule'Verbatim =
 peg'rule'Directive :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 144 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}Top
-{-# LINE 643 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 665 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Directive =
   PegRt.memo peg'memo'Directive "Directive"
@@ -660,7 +682,7 @@ peg'rule'Directive =
           ; PegPrelude.pure (
 {-# LINE 145 "grammar/Peg.peg" #-}
  {-# COLUMN 76 #-} TDirective l n al (directiveArg n raw) 
-{-# LINE 664 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 686 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
@@ -668,7 +690,7 @@ peg'rule'Directive =
 peg'rule'Declaration :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 147 "grammar/Peg.peg" #-}
  {-# COLUMN 16 #-}Top
-{-# LINE 672 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 694 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Declaration =
   PegRt.memo peg'memo'Declaration "Declaration"
@@ -676,6 +698,7 @@ peg'rule'Declaration =
       [ do { peg'start <- PegRt.getOffset
           ; l <- peg'rule'Here
           ; n <- peg'rule'Ident
+          ; tps <- PegRt.optional (peg'rule'TemplateParams)
           ; ps <- PegRt.optional (peg'rule'ParamList)
           ; _ <- peg'rule'Ws
           ; PegRt.lit "::" "'::'"
@@ -686,26 +709,28 @@ peg'rule'Declaration =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 149 "grammar/Peg.peg" #-}
- {-# COLUMN 91 #-} TAnnot l n (maybe [] id ps) (Located tl ty) 
-{-# LINE 692 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 150 "grammar/Peg.peg" #-}
+ {-# COLUMN 111 #-} TAnnot l n (maybe [] id ps) (maybe [] id tps) (Located tl ty) 
+{-# LINE 715 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; l <- peg'rule'Here
           ; n <- peg'rule'Ident
+          ; tps <- PegRt.optional (peg'rule'TemplateParams)
           ; _ <- peg'rule'Ws
           ; PegRt.lit "<-" "'<-'"
           ; as <- peg'rule'Alts
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 150 "grammar/Peg.peg" #-}
- {-# COLUMN 48 #-} TDef l n as 
-{-# LINE 705 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 151 "grammar/Peg.peg" #-}
+ {-# COLUMN 67 #-} TDef l n (maybe [] (map templateParamName) tps) as 
+{-# LINE 729 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ident
+          ; _ <- PegRt.skipOptional (peg'rule'TemplateParams)
           ; _ <- PegRt.skipOptional (peg'rule'ParamList)
           ; _ <- peg'rule'Ws
           ; PegRt.labeled "params" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "<-" "'<-'")
@@ -720,17 +745,71 @@ peg'rule'Declaration =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 151 "grammar/Peg.peg" #-}
- {-# COLUMN 75 #-} error "unreachable: a label is thrown" 
-{-# LINE 726 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 152 "grammar/Peg.peg" #-}
+ {-# COLUMN 90 #-} TVerbatim (Loc 0 0) T.empty 
+{-# LINE 751 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+          }
+      ])
+
+peg'rule'TemplateParams :: PegRt.P (Peg'Store peg's) peg's (
+{-# LINE 155 "grammar/Peg.peg" #-}
+ {-# COLUMN 19 #-}[TemplateParam]
+{-# LINE 759 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+peg'rule'TemplateParams =
+  PegRt.memo peg'memo'TemplateParams "TemplateParams"
+    (PegRt.choice
+      [ do { peg'start <- PegRt.getOffset
+          ; PegRt.lit "<" "'<'"
+          ; _ <- peg'rule'Ws
+          ; p <- peg'rule'TemplateParam
+          ; ps <- PegRt.many (PegRt.choice [do { _ <- peg'rule'Ws
+          ; PegRt.lit "," "','"
+          ; _ <- peg'rule'Ws
+          ; peg'v0 <- peg'rule'TemplateParam
+          ; PegPrelude.pure peg'v0
+          }])
+          ; _ <- peg'rule'Ws
+          ; PegRt.lit ">" "'>'"
+          ; _span <- PegRt.spanFrom peg'start
+          ; PegPrelude.pure (
+{-# LINE 156 "grammar/Peg.peg" #-}
+ {-# COLUMN 80 #-} p : ps 
+{-# LINE 780 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+          }
+      ])
+
+peg'rule'TemplateParam :: PegRt.P (Peg'Store peg's) peg's (
+{-# LINE 158 "grammar/Peg.peg" #-}
+ {-# COLUMN 18 #-}TemplateParam
+{-# LINE 788 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+peg'rule'TemplateParam =
+  PegRt.memo peg'memo'TemplateParam "TemplateParam"
+    (PegRt.choice
+      [ do { peg'start <- PegRt.getOffset
+          ; n <- peg'rule'Ident
+          ; ty <- PegRt.optional (PegRt.choice [do { _ <- peg'rule'Ws
+          ; PegRt.lit "::" "'::'"
+          ; _ <- peg'rule'Ws
+          ; peg'v0 <- peg'rule'Ident
+          ; PegPrelude.pure peg'v0
+          }])
+          ; _span <- PegRt.spanFrom peg'start
+          ; PegPrelude.pure (
+{-# LINE 159 "grammar/Peg.peg" #-}
+ {-# COLUMN 50 #-} TemplateParam n ty 
+{-# LINE 805 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'TypeText :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 153 "grammar/Peg.peg" #-}
+{-# LINE 161 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Text
-{-# LINE 734 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 813 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'TypeText =
   PegRt.memo peg'memo'TypeText "TypeText"
@@ -741,23 +820,23 @@ peg'rule'TypeText =
           ; PegPrelude.pure ()
           }]))
           ; PegRt.predicate (\_col -> 
-{-# LINE 154 "grammar/Peg.peg" #-}
+{-# LINE 162 "grammar/Peg.peg" #-}
  {-# COLUMN 30 #-} not (T.null (T.stripEnd ty)) 
-{-# LINE 747 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 826 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 154 "grammar/Peg.peg" #-}
+{-# LINE 162 "grammar/Peg.peg" #-}
  {-# COLUMN 63 #-} T.stripEnd ty 
-{-# LINE 753 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 832 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ParamList :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 156 "grammar/Peg.peg" #-}
+{-# LINE 164 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Param]
-{-# LINE 761 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 840 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ParamList =
   PegRt.memo peg'memo'ParamList "ParamList"
@@ -767,17 +846,17 @@ peg'rule'ParamList =
           ; ps <- peg'rule'ParamChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 157 "grammar/Peg.peg" #-}
+{-# LINE 165 "grammar/Peg.peg" #-}
  {-# COLUMN 34 #-} ps 
-{-# LINE 773 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 852 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ParamChunks :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 159 "grammar/Peg.peg" #-}
+{-# LINE 167 "grammar/Peg.peg" #-}
  {-# COLUMN 16 #-}[Param]
-{-# LINE 781 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 860 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ParamChunks =
   PegRt.memo peg'memo'ParamChunks "ParamChunks"
@@ -788,9 +867,9 @@ peg'rule'ParamChunks =
           ; rest <- peg'rule'ParamChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 160 "grammar/Peg.peg" #-}
+{-# LINE 168 "grammar/Peg.peg" #-}
  {-# COLUMN 51 #-} p : rest 
-{-# LINE 794 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 873 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -798,17 +877,17 @@ peg'rule'ParamChunks =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 161 "grammar/Peg.peg" #-}
- {-# COLUMN 34 #-} [p] 
-{-# LINE 804 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 169 "grammar/Peg.peg" #-}
+ {-# COLUMN 33 #-} [p] 
+{-# LINE 883 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ParamChunk :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 163 "grammar/Peg.peg" #-}
+{-# LINE 171 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}Param
-{-# LINE 812 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 891 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ParamChunk =
   PegRt.memo peg'memo'ParamChunk "ParamChunk"
@@ -818,23 +897,23 @@ peg'rule'ParamChunk =
           ; l <- peg'rule'Here
           ; c <- PegRt.capture (peg'rule'ArgCode)
           ; PegRt.labeled "argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 164 "grammar/Peg.peg" #-}
+{-# LINE 172 "grammar/Peg.peg" #-}
  {-# COLUMN 39 #-} not (T.null (T.strip c)) 
-{-# LINE 824 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 903 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
           ; PegRt.labeled "paramform" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 164 "grammar/Peg.peg" #-}
+{-# LINE 172 "grammar/Peg.peg" #-}
  {-# COLUMN 81 #-} paramError l c /= Just paramFormMessage 
-{-# LINE 831 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 910 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
           ; PegRt.labeled "paramtype" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 164 "grammar/Peg.peg" #-}
+{-# LINE 172 "grammar/Peg.peg" #-}
  {-# COLUMN 139 #-} paramError l c == Nothing 
-{-# LINE 838 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 917 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
@@ -843,17 +922,17 @@ peg'rule'ParamChunk =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 164 "grammar/Peg.peg" #-}
+{-# LINE 172 "grammar/Peg.peg" #-}
  {-# COLUMN 198 #-} param l c 
-{-# LINE 849 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 928 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Alts :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 168 "grammar/Peg.peg" #-}
+{-# LINE 175 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}[Alt]
-{-# LINE 857 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 936 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Alts =
   PegRt.memo peg'memo'Alts "Alts"
@@ -863,17 +942,17 @@ peg'rule'Alts =
           ; as <- PegRt.many (peg'rule'MoreAlt)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 169 "grammar/Peg.peg" #-}
+{-# LINE 176 "grammar/Peg.peg" #-}
  {-# COLUMN 28 #-} a : as 
-{-# LINE 869 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 948 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'MoreAlt :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 171 "grammar/Peg.peg" #-}
+{-# LINE 178 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Alt
-{-# LINE 877 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 956 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'MoreAlt =
   PegRt.memo peg'memo'MoreAlt "MoreAlt"
@@ -884,17 +963,17 @@ peg'rule'MoreAlt =
           ; a <- peg'rule'Alt
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 172 "grammar/Peg.peg" #-}
+{-# LINE 179 "grammar/Peg.peg" #-}
  {-# COLUMN 26 #-} a 
-{-# LINE 890 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 969 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Alt :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 174 "grammar/Peg.peg" #-}
+{-# LINE 181 "grammar/Peg.peg" #-}
  {-# COLUMN 8 #-}Alt
-{-# LINE 898 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 977 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Alt =
   PegRt.memo peg'memo'Alt "Alt"
@@ -907,17 +986,17 @@ peg'rule'Alt =
           ; act <- PegRt.optional (peg'rule'Action)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 175 "grammar/Peg.peg" #-}
+{-# LINE 182 "grammar/Peg.peg" #-}
  {-# COLUMN 43 #-} Alt l is act 
-{-# LINE 913 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 992 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 177 "grammar/Peg.peg" #-}
+{-# LINE 184 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}Item
-{-# LINE 921 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1000 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -932,9 +1011,9 @@ peg'rule'Item =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 178 "grammar/Peg.peg" #-}
+{-# LINE 185 "grammar/Peg.peg" #-}
  {-# COLUMN 65 #-} Item l (Just b) e 
-{-# LINE 938 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1017 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -944,23 +1023,24 @@ peg'rule'Item =
           ; e <- peg'rule'PrefixE
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 179 "grammar/Peg.peg" #-}
- {-# COLUMN 41 #-} Item l Nothing e 
-{-# LINE 950 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 186 "grammar/Peg.peg" #-}
+ {-# COLUMN 40 #-} Item l Nothing e 
+{-# LINE 1029 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'DeclStart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 181 "grammar/Peg.peg" #-}
+{-# LINE 188 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 958 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1037 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'DeclStart =
   PegRt.memo peg'memo'DeclStart "DeclStart"
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ident
+          ; _ <- PegRt.skipOptional (peg'rule'TemplateParams)
           ; _ <- PegRt.skipOptional (peg'rule'HsParen)
           ; _ <- peg'rule'Ws
           ; PegRt.choice [do { PegRt.lit "::" "'::'"
@@ -970,17 +1050,17 @@ peg'rule'DeclStart =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 182 "grammar/Peg.peg" #-}
- {-# COLUMN 47 #-} () 
-{-# LINE 976 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 189 "grammar/Peg.peg" #-}
+ {-# COLUMN 63 #-} () 
+{-# LINE 1056 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Binding :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 184 "grammar/Peg.peg" #-}
+{-# LINE 191 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 984 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1064 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Binding =
   PegRt.memo peg'memo'Binding "Binding"
@@ -991,17 +1071,17 @@ peg'rule'Binding =
           ; PegRt.notP (PegRt.lit ":" "':'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 185 "grammar/Peg.peg" #-}
+{-# LINE 192 "grammar/Peg.peg" #-}
  {-# COLUMN 30 #-} n 
-{-# LINE 997 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1077 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'PrefixE :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 187 "grammar/Peg.peg" #-}
+{-# LINE 194 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 1005 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1085 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'PrefixE =
   PegRt.memo peg'memo'PrefixE "PrefixE"
@@ -1014,9 +1094,9 @@ peg'rule'PrefixE =
           ; c <- peg'rule'PredCode
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 188 "grammar/Peg.peg" #-}
+{-# LINE 195 "grammar/Peg.peg" #-}
  {-# COLUMN 38 #-} EPred True c 
-{-# LINE 1020 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1100 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1028,9 +1108,9 @@ peg'rule'PrefixE =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 189 "grammar/Peg.peg" #-}
- {-# COLUMN 47 #-} EAnd e 
-{-# LINE 1034 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 196 "grammar/Peg.peg" #-}
+ {-# COLUMN 46 #-} EAnd e 
+{-# LINE 1114 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1041,9 +1121,9 @@ peg'rule'PrefixE =
           ; c <- peg'rule'PredCode
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 190 "grammar/Peg.peg" #-}
- {-# COLUMN 38 #-} EPred False c 
-{-# LINE 1047 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 197 "grammar/Peg.peg" #-}
+ {-# COLUMN 37 #-} EPred False c 
+{-# LINE 1127 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1055,9 +1135,9 @@ peg'rule'PrefixE =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 191 "grammar/Peg.peg" #-}
- {-# COLUMN 47 #-} ENot e 
-{-# LINE 1061 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 198 "grammar/Peg.peg" #-}
+ {-# COLUMN 46 #-} ENot e 
+{-# LINE 1141 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1068,9 +1148,9 @@ peg'rule'PrefixE =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 192 "grammar/Peg.peg" #-}
- {-# COLUMN 44 #-} ECapture e 
-{-# LINE 1074 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 199 "grammar/Peg.peg" #-}
+ {-# COLUMN 43 #-} ECapture e 
+{-# LINE 1154 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'v3 <- peg'rule'Labeled
@@ -1079,9 +1159,9 @@ peg'rule'PrefixE =
       ])
 
 peg'rule'Labeled :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 195 "grammar/Peg.peg" #-}
+{-# LINE 202 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 1085 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1165 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Labeled =
   PegRt.memo peg'memo'Labeled "Labeled"
@@ -1091,17 +1171,17 @@ peg'rule'Labeled =
           ; lab <- PegRt.optional (peg'rule'LabelPart)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 196 "grammar/Peg.peg" #-}
+{-# LINE 203 "grammar/Peg.peg" #-}
  {-# COLUMN 38 #-} maybe e (\(l, n) -> ELabel l e n) lab 
-{-# LINE 1097 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1177 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'LabelPart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 198 "grammar/Peg.peg" #-}
+{-# LINE 205 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}(Loc, Text)
-{-# LINE 1105 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1185 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'LabelPart =
   PegRt.memo peg'memo'LabelPart "LabelPart"
@@ -1113,17 +1193,17 @@ peg'rule'LabelPart =
           ; n <- peg'rule'Ident
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 199 "grammar/Peg.peg" #-}
+{-# LINE 206 "grammar/Peg.peg" #-}
  {-# COLUMN 37 #-} (l, n) 
-{-# LINE 1119 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1199 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'SuffixE :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 201 "grammar/Peg.peg" #-}
+{-# LINE 208 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 1127 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1207 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'SuffixE =
   PegRt.memo peg'memo'SuffixE "SuffixE"
@@ -1133,17 +1213,17 @@ peg'rule'SuffixE =
           ; ops <- PegRt.many (peg'rule'PostOp)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 202 "grammar/Peg.peg" #-}
+{-# LINE 209 "grammar/Peg.peg" #-}
  {-# COLUMN 35 #-} foldl applyOp p ops 
-{-# LINE 1139 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1219 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'PostOp :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 204 "grammar/Peg.peg" #-}
+{-# LINE 211 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Char
-{-# LINE 1147 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1227 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'PostOp =
   PegRt.memo peg'memo'PostOp "PostOp"
@@ -1153,17 +1233,17 @@ peg'rule'PostOp =
           ; c <- PegRt.capture (PegRt.cls [('*', '*'), ('+', '+'), ('?', '?')] "[*+?]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 205 "grammar/Peg.peg" #-}
+{-# LINE 212 "grammar/Peg.peg" #-}
  {-# COLUMN 24 #-} firstChar c 
-{-# LINE 1159 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1239 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Primary :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 207 "grammar/Peg.peg" #-}
+{-# LINE 214 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}Expr
-{-# LINE 1167 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1247 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Primary =
   PegRt.memo peg'memo'Primary "Primary"
@@ -1173,9 +1253,9 @@ peg'rule'Primary =
           ; o <- PegRt.capture (peg'rule'Lit1)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 208 "grammar/Peg.peg" #-}
+{-# LINE 215 "grammar/Peg.peg" #-}
  {-# COLUMN 24 #-} ELit (decodeLiteral o) o 
-{-# LINE 1179 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1259 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1183,9 +1263,9 @@ peg'rule'Primary =
           ; o <- PegRt.capture (peg'rule'Lit2)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 209 "grammar/Peg.peg" #-}
- {-# COLUMN 24 #-} ELit (decodeLiteral o) o 
-{-# LINE 1189 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 216 "grammar/Peg.peg" #-}
+ {-# COLUMN 23 #-} ELit (decodeLiteral o) o 
+{-# LINE 1269 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1193,9 +1273,9 @@ peg'rule'Primary =
           ; o <- PegRt.capture (peg'rule'ClassLit)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 210 "grammar/Peg.peg" #-}
- {-# COLUMN 28 #-} EClass (classRanges o) o 
-{-# LINE 1199 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 217 "grammar/Peg.peg" #-}
+ {-# COLUMN 27 #-} EClass (classRanges o) o 
+{-# LINE 1279 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1203,9 +1283,9 @@ peg'rule'Primary =
           ; PegRt.lit "." "'.'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 211 "grammar/Peg.peg" #-}
- {-# COLUMN 20 #-} EAny 
-{-# LINE 1209 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 218 "grammar/Peg.peg" #-}
+ {-# COLUMN 19 #-} EAny 
+{-# LINE 1289 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1221,9 +1301,9 @@ peg'rule'Primary =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 212 "grammar/Peg.peg" #-}
- {-# COLUMN 68 #-} EGroup g 
-{-# LINE 1227 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 219 "grammar/Peg.peg" #-}
+ {-# COLUMN 67 #-} EGroup g 
+{-# LINE 1307 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1233,9 +1313,21 @@ peg'rule'Primary =
           ; args <- peg'rule'CallArgs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 213 "grammar/Peg.peg" #-}
- {-# COLUMN 45 #-} ERef l n args 
-{-# LINE 1239 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 220 "grammar/Peg.peg" #-}
+ {-# COLUMN 44 #-} ERef l n args 
+{-# LINE 1319 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+          }
+      , do { peg'start <- PegRt.getOffset
+          ; _ <- peg'rule'Ws
+          ; l <- peg'rule'Here
+          ; n <- peg'rule'Ident
+          ; as <- peg'rule'TemplateArgs
+          ; _span <- PegRt.spanFrom peg'start
+          ; PegPrelude.pure (
+{-# LINE 221 "grammar/Peg.peg" #-}
+ {-# COLUMN 46 #-} ETemplate l n as 
+{-# LINE 1331 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1245,17 +1337,64 @@ peg'rule'Primary =
           ; PegRt.notP (PegRt.lit "(" "'('")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 214 "grammar/Peg.peg" #-}
- {-# COLUMN 36 #-} ERef l n [] 
-{-# LINE 1251 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 222 "grammar/Peg.peg" #-}
+ {-# COLUMN 35 #-} ERef l n [] 
+{-# LINE 1343 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+          }
+      ])
+
+peg'rule'TemplateArgs :: PegRt.P (Peg'Store peg's) peg's (
+{-# LINE 225 "grammar/Peg.peg" #-}
+ {-# COLUMN 17 #-}[Expr]
+{-# LINE 1351 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+peg'rule'TemplateArgs =
+  PegRt.memo peg'memo'TemplateArgs "TemplateArgs"
+    (PegRt.choice
+      [ do { peg'start <- PegRt.getOffset
+          ; PegRt.lit "<" "'<'"
+          ; PegRt.notP (PegRt.lit "-" "'-'")
+          ; a <- peg'rule'TemplateArg
+          ; as <- PegRt.many (PegRt.choice [do { _ <- peg'rule'Ws
+          ; PegRt.lit "," "','"
+          ; peg'v0 <- peg'rule'TemplateArg
+          ; PegPrelude.pure peg'v0
+          }])
+          ; _ <- peg'rule'Ws
+          ; PegRt.lit ">" "'>'"
+          ; _span <- PegRt.spanFrom peg'start
+          ; PegPrelude.pure (
+{-# LINE 226 "grammar/Peg.peg" #-}
+ {-# COLUMN 73 #-} a : as 
+{-# LINE 1371 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+          }
+      ])
+
+peg'rule'TemplateArg :: PegRt.P (Peg'Store peg's) peg's (
+{-# LINE 228 "grammar/Peg.peg" #-}
+ {-# COLUMN 16 #-}Expr
+{-# LINE 1379 "src/Peg/Grammar/SelfHosted.hs" #-}
+    )
+peg'rule'TemplateArg =
+  PegRt.memo peg'memo'TemplateArg "TemplateArg"
+    (PegRt.choice
+      [ do { peg'start <- PegRt.getOffset
+          ; g <- peg'rule'GroupAlts
+          ; _span <- PegRt.spanFrom peg'start
+          ; PegPrelude.pure (
+{-# LINE 229 "grammar/Peg.peg" #-}
+ {-# COLUMN 29 #-} case g of { [[Item _ Nothing e]] -> e; _ -> EGroup g } 
+{-# LINE 1390 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'CallArgs :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 216 "grammar/Peg.peg" #-}
+{-# LINE 231 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}[Located Text]
-{-# LINE 1259 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1398 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'CallArgs =
   PegRt.memo peg'memo'CallArgs "CallArgs"
@@ -1265,17 +1404,17 @@ peg'rule'CallArgs =
           ; cs <- peg'rule'ArgChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 217 "grammar/Peg.peg" #-}
+{-# LINE 232 "grammar/Peg.peg" #-}
  {-# COLUMN 31 #-} cs 
-{-# LINE 1271 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1410 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'GroupAlts :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 219 "grammar/Peg.peg" #-}
+{-# LINE 234 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[[Item]]
-{-# LINE 1279 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1418 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'GroupAlts =
   PegRt.memo peg'memo'GroupAlts "GroupAlts"
@@ -1285,17 +1424,17 @@ peg'rule'GroupAlts =
           ; ss <- PegRt.many (peg'rule'MoreGroup)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 220 "grammar/Peg.peg" #-}
+{-# LINE 235 "grammar/Peg.peg" #-}
  {-# COLUMN 37 #-} s : ss 
-{-# LINE 1291 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1430 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'MoreGroup :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 222 "grammar/Peg.peg" #-}
+{-# LINE 237 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Item]
-{-# LINE 1299 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1438 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'MoreGroup =
   PegRt.memo peg'memo'MoreGroup "MoreGroup"
@@ -1306,17 +1445,17 @@ peg'rule'MoreGroup =
           ; s <- PegRt.many (peg'rule'Item)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 223 "grammar/Peg.peg" #-}
+{-# LINE 238 "grammar/Peg.peg" #-}
  {-# COLUMN 30 #-} s 
-{-# LINE 1312 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1451 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Lit1 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 227 "grammar/Peg.peg" #-}
+{-# LINE 241 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 1320 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1459 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Lit1 =
   PegRt.memo peg'memo'Lit1 "Lit1"
@@ -1334,17 +1473,17 @@ peg'rule'Lit1 =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 228 "grammar/Peg.peg" #-}
+{-# LINE 242 "grammar/Peg.peg" #-}
  {-# COLUMN 54 #-} () 
-{-# LINE 1340 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1479 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Lit2 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 230 "grammar/Peg.peg" #-}
+{-# LINE 244 "grammar/Peg.peg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 1348 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1487 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Lit2 =
   PegRt.memo peg'memo'Lit2 "Lit2"
@@ -1362,17 +1501,17 @@ peg'rule'Lit2 =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 231 "grammar/Peg.peg" #-}
+{-# LINE 245 "grammar/Peg.peg" #-}
  {-# COLUMN 52 #-} () 
-{-# LINE 1368 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1507 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 233 "grammar/Peg.peg" #-}
+{-# LINE 247 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1376 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1515 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -1384,17 +1523,17 @@ peg'rule'Escape =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 234 "grammar/Peg.peg" #-}
+{-# LINE 248 "grammar/Peg.peg" #-}
  {-# COLUMN 38 #-} () 
-{-# LINE 1390 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1529 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'EscapeBody :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 236 "grammar/Peg.peg" #-}
+{-# LINE 250 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 1398 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1537 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'EscapeBody =
   PegRt.memo peg'memo'EscapeBody "EscapeBody"
@@ -1403,9 +1542,9 @@ peg'rule'EscapeBody =
           ; PegRt.cls [('n', 'n'), ('t', 't'), ('r', 'r'), ('\\', '\\'), ('\'', '\''), ('"', '"'), (']', ']'), ('[', '['), ('-', '-')] "[ntr\\\\'\"\\]\\[\\-]"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 237 "grammar/Peg.peg" #-}
+{-# LINE 251 "grammar/Peg.peg" #-}
  {-# COLUMN 32 #-} () 
-{-# LINE 1409 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1548 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1418,25 +1557,25 @@ peg'rule'EscapeBody =
           ; PegPrelude.pure ()
           }]
           ; PegRt.labeled "uescape" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 238 "grammar/Peg.peg" #-}
- {-# COLUMN 66 #-} validHex h 
-{-# LINE 1424 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 252 "grammar/Peg.peg" #-}
+ {-# COLUMN 65 #-} validHex h 
+{-# LINE 1563 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 238 "grammar/Peg.peg" #-}
- {-# COLUMN 91 #-} () 
-{-# LINE 1432 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 252 "grammar/Peg.peg" #-}
+ {-# COLUMN 90 #-} () 
+{-# LINE 1571 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ClassLit :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 240 "grammar/Peg.peg" #-}
+{-# LINE 254 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 1440 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1579 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ClassLit =
   PegRt.memo peg'memo'ClassLit "ClassLit"
@@ -1452,17 +1591,17 @@ peg'rule'ClassLit =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 241 "grammar/Peg.peg" #-}
+{-# LINE 255 "grammar/Peg.peg" #-}
  {-# COLUMN 61 #-} () 
-{-# LINE 1458 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1597 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ClassItem :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 243 "grammar/Peg.peg" #-}
+{-# LINE 257 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 1466 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1605 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ClassItem =
   PegRt.memo peg'memo'ClassItem "ClassItem"
@@ -1477,25 +1616,25 @@ peg'rule'ClassItem =
           ; PegPrelude.pure ()
           }])
           ; PegRt.labeled "range" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 244 "grammar/Peg.peg" #-}
+{-# LINE 258 "grammar/Peg.peg" #-}
  {-# COLUMN 54 #-} nonEmptyRanges s 
-{-# LINE 1483 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1622 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 244 "grammar/Peg.peg" #-}
+{-# LINE 258 "grammar/Peg.peg" #-}
  {-# COLUMN 83 #-} () 
-{-# LINE 1491 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1630 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ClassChar :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 246 "grammar/Peg.peg" #-}
+{-# LINE 260 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 1499 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1638 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ClassChar =
   PegRt.memo peg'memo'ClassChar "ClassChar"
@@ -1508,17 +1647,17 @@ peg'rule'ClassChar =
           ; PegRt.anyChar
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 248 "grammar/Peg.peg" #-}
- {-# COLUMN 27 #-} () 
-{-# LINE 1514 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 262 "grammar/Peg.peg" #-}
+ {-# COLUMN 26 #-} () 
+{-# LINE 1653 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'Action :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 252 "grammar/Peg.peg" #-}
+{-# LINE 265 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}Located Text
-{-# LINE 1522 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1661 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'Action =
   PegRt.memo peg'memo'Action "Action"
@@ -1532,17 +1671,17 @@ peg'rule'Action =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 253 "grammar/Peg.peg" #-}
+{-# LINE 266 "grammar/Peg.peg" #-}
  {-# COLUMN 51 #-} Located l c 
-{-# LINE 1538 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1677 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'PredCode :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 255 "grammar/Peg.peg" #-}
+{-# LINE 268 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Located Text
-{-# LINE 1546 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1685 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'PredCode =
   PegRt.memo peg'memo'PredCode "PredCode"
@@ -1555,17 +1694,17 @@ peg'rule'PredCode =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 256 "grammar/Peg.peg" #-}
+{-# LINE 269 "grammar/Peg.peg" #-}
  {-# COLUMN 49 #-} Located l c 
-{-# LINE 1561 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1700 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ArgChunks :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 258 "grammar/Peg.peg" #-}
+{-# LINE 271 "grammar/Peg.peg" #-}
  {-# COLUMN 14 #-}[Located Text]
-{-# LINE 1569 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1708 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ArgChunks =
   PegRt.memo peg'memo'ArgChunks "ArgChunks"
@@ -1576,9 +1715,9 @@ peg'rule'ArgChunks =
           ; rest <- peg'rule'ArgChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 259 "grammar/Peg.peg" #-}
+{-# LINE 272 "grammar/Peg.peg" #-}
  {-# COLUMN 45 #-} c : rest 
-{-# LINE 1582 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1721 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1586,17 +1725,17 @@ peg'rule'ArgChunks =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 260 "grammar/Peg.peg" #-}
- {-# COLUMN 30 #-} [c] 
-{-# LINE 1592 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 273 "grammar/Peg.peg" #-}
+ {-# COLUMN 29 #-} [c] 
+{-# LINE 1731 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ArgChunk :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 262 "grammar/Peg.peg" #-}
+{-# LINE 275 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}Located Text
-{-# LINE 1600 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1739 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ArgChunk =
   PegRt.memo peg'memo'ArgChunk "ArgChunk"
@@ -1606,9 +1745,9 @@ peg'rule'ArgChunk =
           ; l <- peg'rule'Here
           ; c <- PegRt.capture (peg'rule'ArgCode)
           ; PegRt.labeled "argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 263 "grammar/Peg.peg" #-}
+{-# LINE 276 "grammar/Peg.peg" #-}
  {-# COLUMN 37 #-} not (T.null (T.strip c)) 
-{-# LINE 1612 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1751 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
@@ -1617,17 +1756,17 @@ peg'rule'ArgChunk =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 263 "grammar/Peg.peg" #-}
+{-# LINE 276 "grammar/Peg.peg" #-}
  {-# COLUMN 94 #-} Located l c 
-{-# LINE 1623 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1762 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ActionCode :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 266 "grammar/Peg.peg" #-}
+{-# LINE 279 "grammar/Peg.peg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 1631 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1770 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ActionCode =
   PegRt.memo peg'memo'ActionCode "ActionCode"
@@ -1636,17 +1775,17 @@ peg'rule'ActionCode =
           ; _ <- PegRt.skipMany (peg'rule'HsPart)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 267 "grammar/Peg.peg" #-}
+{-# LINE 280 "grammar/Peg.peg" #-}
  {-# COLUMN 24 #-} () 
-{-# LINE 1642 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1781 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'ArgCode :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 270 "grammar/Peg.peg" #-}
+{-# LINE 283 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1650 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1789 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'ArgCode =
   PegRt.memo peg'memo'ArgCode "ArgCode"
@@ -1658,17 +1797,17 @@ peg'rule'ArgCode =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 271 "grammar/Peg.peg" #-}
+{-# LINE 284 "grammar/Peg.peg" #-}
  {-# COLUMN 28 #-} () 
-{-# LINE 1664 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1803 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsPart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 273 "grammar/Peg.peg" #-}
+{-# LINE 286 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1672 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1811 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsPart =
   PegRt.memo peg'memo'HsPart "HsPart"
@@ -1690,17 +1829,17 @@ peg'rule'HsPart =
           ; PegRt.anyChar
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 278 "grammar/Peg.peg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 1696 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 291 "grammar/Peg.peg" #-}
+ {-# COLUMN 27 #-} () 
+{-# LINE 1835 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsParen :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 280 "grammar/Peg.peg" #-}
+{-# LINE 293 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1704 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1843 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsParen =
   PegRt.memo peg'memo'HsParen "HsParen"
@@ -1711,17 +1850,17 @@ peg'rule'HsParen =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 281 "grammar/Peg.peg" #-}
+{-# LINE 294 "grammar/Peg.peg" #-}
  {-# COLUMN 30 #-} () 
-{-# LINE 1717 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1856 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsNested :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 283 "grammar/Peg.peg" #-}
+{-# LINE 296 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 1725 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1864 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsNested =
   PegRt.memo peg'memo'HsNested "HsNested"
@@ -1735,9 +1874,9 @@ peg'rule'HsNested =
           ; PegRt.lit "]" "']'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 285 "grammar/Peg.peg" #-}
- {-# COLUMN 31 #-} () 
-{-# LINE 1741 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 298 "grammar/Peg.peg" #-}
+ {-# COLUMN 30 #-} () 
+{-# LINE 1880 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1746,17 +1885,17 @@ peg'rule'HsNested =
           ; PegRt.lit "}" "'}'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 286 "grammar/Peg.peg" #-}
- {-# COLUMN 31 #-} () 
-{-# LINE 1752 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 299 "grammar/Peg.peg" #-}
+ {-# COLUMN 30 #-} () 
+{-# LINE 1891 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsInner :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 288 "grammar/Peg.peg" #-}
+{-# LINE 301 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1760 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1899 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsInner =
   PegRt.memo peg'memo'HsInner "HsInner"
@@ -1778,17 +1917,17 @@ peg'rule'HsInner =
           ; PegRt.anyChar
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 293 "grammar/Peg.peg" #-}
- {-# COLUMN 29 #-} () 
-{-# LINE 1784 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 306 "grammar/Peg.peg" #-}
+ {-# COLUMN 28 #-} () 
+{-# LINE 1923 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsString :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 295 "grammar/Peg.peg" #-}
+{-# LINE 308 "grammar/Peg.peg" #-}
  {-# COLUMN 13 #-}()
-{-# LINE 1792 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1931 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsString =
   PegRt.memo peg'memo'HsString "HsString"
@@ -1807,17 +1946,17 @@ peg'rule'HsString =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 296 "grammar/Peg.peg" #-}
+{-# LINE 309 "grammar/Peg.peg" #-}
  {-# COLUMN 53 #-} () 
-{-# LINE 1813 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1952 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsChar :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 301 "grammar/Peg.peg" #-}
+{-# LINE 314 "grammar/Peg.peg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1821 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1960 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsChar =
   PegRt.memo peg'memo'HsChar "HsChar"
@@ -1835,9 +1974,9 @@ peg'rule'HsChar =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 302 "grammar/Peg.peg" #-}
+{-# LINE 315 "grammar/Peg.peg" #-}
  {-# COLUMN 50 #-} () 
-{-# LINE 1841 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 1980 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1846,9 +1985,9 @@ peg'rule'HsChar =
           ; PegRt.lit "'" "'\\''"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 303 "grammar/Peg.peg" #-}
- {-# COLUMN 24 #-} () 
-{-# LINE 1852 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 316 "grammar/Peg.peg" #-}
+ {-# COLUMN 23 #-} () 
+{-# LINE 1991 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -1856,17 +1995,17 @@ peg'rule'HsChar =
           ; PegRt.notP (PegRt.lit "\\" "'\\\\'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 304 "grammar/Peg.peg" #-}
- {-# COLUMN 23 #-} () 
-{-# LINE 1862 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 317 "grammar/Peg.peg" #-}
+ {-# COLUMN 22 #-} () 
+{-# LINE 2001 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])
 
 peg'rule'HsIdent :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 306 "grammar/Peg.peg" #-}
+{-# LINE 319 "grammar/Peg.peg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 1870 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 2009 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
 peg'rule'HsIdent =
   PegRt.memo peg'memo'HsIdent "HsIdent"
@@ -1874,16 +2013,16 @@ peg'rule'HsIdent =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 307 "grammar/Peg.peg" #-}
+{-# LINE 320 "grammar/Peg.peg" #-}
  {-# COLUMN 19 #-} isIdentChar (firstChar c) && firstChar c /= '\'' 
-{-# LINE 1880 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 2019 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           ; _ <- PegRt.skipMany (peg'rule'IdentChar)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 307 "grammar/Peg.peg" #-}
+{-# LINE 320 "grammar/Peg.peg" #-}
  {-# COLUMN 83 #-} () 
-{-# LINE 1887 "src/Peg/Grammar/SelfHosted.hs" #-}
+{-# LINE 2026 "src/Peg/Grammar/SelfHosted.hs" #-}
     )
           }
       ])

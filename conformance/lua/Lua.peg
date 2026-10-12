@@ -13,29 +13,6 @@
 %trivia Ws
 %trivia Comment
 %inline Sp
-%inline KAnd
-%inline KBreak
-%inline KDo
-%inline KElse
-%inline KElseif
-%inline KEnd
-%inline KFalse
-%inline KFor
-%inline KFunction
-%inline KGoto
-%inline KIf
-%inline KIn
-%inline KLocal
-%inline KNil
-%inline KNot
-%inline KOr
-%inline KRepeat
-%inline KReturn
-%inline KThen
-%inline KTrue
-%inline KUntil
-%inline KWhile
-%inline KGlobal
 %nomemo LongClose
 
 %{
@@ -46,7 +23,6 @@ import qualified Data.Text as T
 }%
 
 # チャンクとブロック ------------------------------------------------------------
-
 Chunk :: Block
 Chunk <- Sp b:Block { b }
 
@@ -54,43 +30,42 @@ Block :: Block
 Block <- ss:Stat* r:RetStat? { Block ss r }
 
 RetStat :: [Exp]
-RetStat <- KReturn es:ExpList? (';' Sp)? { fromMaybe [] es }
+RetStat <- K<'return'> es:ExpList? (';' Sp)? { fromMaybe [] es }
 
 # 文 ------------------------------------------------------------------------------
-
 Stat :: Stat
 Stat <- ';' Sp { SEmpty }
-      / '::' Sp n:Name Sp '::' Sp { SLabel n }
-      / KBreak { SBreak }
-      / KGoto n:Name Sp { SGoto n }
-      / KDo b:Block KEnd { SDo b }
-      / KWhile c:Exp KDo b:Block KEnd { SWhile c b }
-      / KRepeat b:Block KUntil c:Exp { SRepeat b c }
-      / KIf c:Exp KThen b:Block eis:ElseIf* e:Else? KEnd { SIf ((c, b) : eis) e }
-      / KFor n:Name Sp '=' !'=' Sp a:Exp ',' Sp z:Exp s:MoreExp? KDo b:Block KEnd { SForNum n a z s b }
-      / KFor ns:NameList KIn es:ExpList KDo b:Block KEnd { SForIn ns es b }
-      / KFunction n:FuncName f:FuncBody { SFunction n f }
-      / KLocal KFunction n:Name Sp f:FuncBody { SLocalFunction n f }
-      / KLocal a:Attrib? ns:AttNames es:Init? { SLocal a ns (fromMaybe [] es) }
-      / GlobalStat
-      / vs:VarList '=' !'=' Sp es:ExpList { SAssign vs es }
-      / c:Call { SCall c }
+     / '::' Sp n:Name Sp '::' Sp { SLabel n }
+     / K<'break'> { SBreak }
+     / K<'goto'> n:Name Sp { SGoto n }
+     / K<'do'> b:Block K<'end'> { SDo b }
+     / K<'while'> c:Exp K<'do'> b:Block K<'end'> { SWhile c b }
+     / K<'repeat'> b:Block K<'until'> c:Exp { SRepeat b c }
+     / K<'if'> c:Exp K<'then'> b:Block eis:ElseIf* e:Else? K<'end'> { SIf ((c, b) : eis) e }
+     / K<'for'> n:Name Sp '=' !'=' Sp a:Exp ',' Sp z:Exp s:(',' Sp Exp)? K<'do'> b:Block K<'end'> { SForNum n a z s b }
+     / K<'for'> ns:NameList K<'in'> es:ExpList K<'do'> b:Block K<'end'> { SForIn ns es b }
+     / K<'function'> n:FuncName f:FuncBody { SFunction n f }
+     / K<'local'> K<'function'> n:Name Sp f:FuncBody { SLocalFunction n f }
+     / K<'local'> a:Attrib? ns:AttNames es:('=' !'=' Sp ExpList)? { SLocal a ns (fromMaybe [] es) }
+     / GlobalStat
+     / vs:VarList '=' !'=' Sp es:ExpList { SAssign vs es }
+     / c:Call { SCall c }
 
 ElseIf :: (Exp, Block)
-ElseIf <- KElseif c:Exp KThen b:Block { (c, b) }
+ElseIf <- K<'elseif'> c:Exp K<'then'> b:Block { (c, b) }
 
 Else :: Block
-Else <- KElse b:Block { b }
+Else <- K<'else'> b:Block { b }
 
 # 参照実装は LUA_COMPAT_GLOBAL でビルドされており、global は予約語ではない。
 # 文の先頭の global は、次の字句が '<'、名前、'*'、function のいずれかのときだけ宣言になる。
 GlobalStat :: Stat
-GlobalStat <- KGlobal &('<' !'<' !'=' / Name / '*' / KFunction) s:GlobalBody { s }
+GlobalStat <- K<'global'> &('<' !'<' !'=' / Name / '*' / K<'function'>) s:GlobalBody { s }
 
 GlobalBody :: Stat
-GlobalBody <- KFunction n:Name Sp f:FuncBody { SGlobalFunction n f }
-            / a:Attrib? '*' Sp { SGlobalAll a }
-            / a:Attrib? ns:AttNames es:Init? { SGlobal a ns (fromMaybe [] es) }
+GlobalBody <- K<'function'> n:Name Sp f:FuncBody { SGlobalFunction n f }
+           / a:Attrib? '*' Sp { SGlobalAll a }
+           / a:Attrib? ns:AttNames es:('=' !'=' Sp ExpList)? { SGlobal a ns (fromMaybe [] es) }
 
 Attrib :: Text
 Attrib <- '<' !'<' !'=' Sp n:Name Sp '>' Sp { n }
@@ -102,146 +77,126 @@ MoreAttName :: (Text, Maybe Text)
 MoreAttName <- ',' Sp n:Name Sp a:Attrib? { (n, a) }
 
 FuncName :: FuncName
-FuncName <- n:Name Sp ns:DotName* m:ColonName? { FuncName (n : ns) m }
+FuncName <- n:Name Sp ns:('.' !'.' Sp Name Sp)* m:(':' !':' Sp Name Sp)? { FuncName (n : ns) m }
 
-Init :: [Exp]
-Init <- '=' !'=' Sp es:ExpList { es }
-
-DotName :: Text
-DotName <- '.' !'.' Sp n:Name Sp { n }
-
-ColonName :: Text
-ColonName <- ':' !':' Sp n:Name Sp { n }
-
-MoreVar :: Exp
-MoreVar <- ',' Sp v:Var { v }
-
-MoreName :: Text
-MoreName <- ',' Sp n:Name Sp { n }
-
-MoreExp :: Exp
-MoreExp <- ',' Sp e:Exp { e }
+# 区切りのある一つ以上の列
+List<p :: a, sep> :: [a]
+List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 
 VarList :: [Exp]
-VarList <- v:Var vs:MoreVar* { v : vs }
+VarList <- List<Var, ','>
 
 NameList :: [Text]
-NameList <- n:Name Sp ns:MoreName* { n : ns }
+NameList <- n:Name Sp ns:(',' Sp Name Sp)* { n : ns }
 
 ExpList :: [Exp]
-ExpList <- e:Exp es:MoreExp* { e : es }
+ExpList <- List<Exp, ','>
 
 # 前置式 --------------------------------------------------------------------------
 # prefixexp、var、functioncall の三つの規則は、互いを経由した間接の左再帰である。
 # マニュアルは prefixexp ::= var | functioncall | '(' exp ')' の順に書くが、
 # 順序付き選択では var が先にあると、成長の途中で名前だけの var が成功して
 # 呼び出しの選択肢が試されない。そのため functioncall を先に置く。
-
 PrefixExp :: Exp
 PrefixExp <- Call
-           / Var
-           / '(' Sp e:Exp ')' Sp { EParen e }
+          / Var
+          / '(' Sp e:Exp ')' Sp { EParen e }
 
 Var :: Exp
 Var <- p:PrefixExp '[' !('='* '[') Sp k:Exp ']' Sp { EIndex p k }
-     / p:PrefixExp '.' !'.' Sp n:Name Sp { EField p n }
-     / n:Name Sp { EName n }
+    / p:PrefixExp '.' !'.' Sp n:Name Sp { EField p n }
+    / n:Name Sp { EName n }
 
 Call :: Exp
 Call <- p:PrefixExp as:Args { ECall p as }
-      / p:PrefixExp ':' !':' Sp n:Name Sp as:Args { EMethod p n as }
+     / p:PrefixExp ':' !':' Sp n:Name Sp as:Args { EMethod p n as }
 
 Args :: [Exp]
 Args <- '(' Sp es:ExpList? ')' Sp { fromMaybe [] es }
-      / t:Table { [t] }
-      / s:LiteralString Sp { [EStr s] }
+     / t:Table { [t] }
+     / s:LiteralString Sp { [EStr s] }
 
 # 式 --------------------------------------------------------------------------------
 # 優先順位の低い順。左結合の段は左再帰、右結合の段（..、^）は右再帰で書く。
-
 Exp :: Exp
 Exp <- Or
 
 Or :: Exp
-Or <- l:Or KOr r:And { EBin "or" l r }
-    / And
+Or <- l:Or K<'or'> r:And { EBin "or" l r }
+   / And
 
 And :: Exp
-And <- l:And KAnd r:Cmp { EBin "and" l r }
-     / Cmp
+And <- l:And K<'and'> r:Cmp { EBin "and" l r }
+    / Cmp
 
 Cmp :: Exp
 Cmp <- l:Cmp o:CmpOp r:BOr { EBin o l r }
-     / BOr
+    / BOr
 
 CmpOp :: Text
 CmpOp <- o:$('<=' / '>=' / '==' / '~=' / '<' !'<' / '>' !'>') Sp { o }
 
 BOr :: Exp
 BOr <- l:BOr '|' Sp r:BXor { EBin "|" l r }
-     / BXor
+    / BXor
 
 BXor :: Exp
 BXor <- l:BXor '~' !'=' Sp r:BAnd { EBin "~" l r }
-      / BAnd
+     / BAnd
 
 BAnd :: Exp
 BAnd <- l:BAnd '&' Sp r:Shift { EBin "&" l r }
-      / Shift
+     / Shift
 
 Shift :: Exp
 Shift <- l:Shift o:$('<<' / '>>') Sp r:Concat { EBin o l r }
-       / Concat
+      / Concat
 
 Concat :: Exp
 Concat <- l:Add '..' !'.' Sp r:Concat { EBin ".." l r }
-        / Add
+       / Add
 
 Add :: Exp
 Add <- l:Add o:$[+\-] Sp r:Mul { EBin o l r }
-     / Mul
+    / Mul
 
 Mul :: Exp
 Mul <- l:Mul o:$('*' / '//' / '/' / '%') Sp r:Unary { EBin o l r }
-     / Unary
+    / Unary
 
 # 単項演算子は ^ より弱い。-a^b は -(a^b) であり、^ の右の項には単項演算子が付く
 Unary :: Exp
 Unary <- o:UnOp e:Unary { EUn o e }
-       / Pow
+      / Pow
 
 UnOp :: Text
-UnOp <- KNot { "not" }
-      / o:$('-' / '#' / '~' !'=') Sp { o }
+UnOp <- K<'not'> { "not" }
+     / o:$('-' / '#' / '~' !'=') Sp { o }
 
 Pow :: Exp
 Pow <- b:Simple '^' Sp e:Unary { EBin "^" b e }
-     / Simple
+    / Simple
 
 Simple :: Exp
-Simple <- KNil { ENil }
-        / KFalse { EFalse }
-        / KTrue { ETrue }
-        / n:Numeral Sp { ENum n }
-        / s:LiteralString Sp { EStr s }
-        / '...' Sp { EVararg }
-        / KFunction f:FuncBody { EFunction f }
-        / Table
-        / PrefixExp
+Simple <- K<'nil'> { ENil }
+       / K<'false'> { EFalse }
+       / K<'true'> { ETrue }
+       / n:Numeral Sp { ENum n }
+       / s:LiteralString Sp { EStr s }
+       / '...' Sp { EVararg }
+       / K<'function'> f:FuncBody { EFunction f }
+       / Table
+       / PrefixExp
 
 FuncBody :: FuncBody
-FuncBody <- '(' Sp p:ParList? ')' Sp b:Block KEnd { let (ns, v) = fromMaybe ([], Nothing) p in FuncBody ns v b }
+FuncBody <- '(' Sp p:ParList? ')' Sp b:Block K<'end'> { let (ns, v) = fromMaybe ([], Nothing) p in FuncBody ns v b }
 
 ParList :: ([Text], Maybe (Maybe Text))
-ParList <- ns:NameList v:CommaVarArg? { (ns, v) }
-         / v:VarArg { ([], Just v) }
+ParList <- ns:NameList v:(',' Sp VarArg)? { (ns, v) }
+        / v:VarArg { ([], Just v) }
 
 VarArg :: Maybe Text
-VarArg <- '...' Sp n:Name Sp { Just n }
-        / '...' Sp { Nothing }
-
-CommaVarArg :: Maybe Text
-CommaVarArg <- ',' Sp v:VarArg { v }
+VarArg <- '...' Sp n:(Name Sp)? { n }
 
 Table :: Exp
 Table <- '{' Sp fs:FieldList? '}' Sp { ETable (fromMaybe [] fs) }
@@ -257,11 +212,10 @@ FieldSep <- [,;] Sp { () }
 
 Field :: Field
 Field <- '[' !('='* '[') Sp k:Exp ']' Sp '=' !'=' Sp v:Exp { FKey k v }
-       / n:Name Sp '=' !'=' Sp v:Exp { FName n v }
-       / e:Exp { FPos e }
+      / n:Name Sp '=' !'=' Sp v:Exp { FName n v }
+      / e:Exp { FPos e }
 
 # 字句 ------------------------------------------------------------------------------
-
 Name :: Text
 Name <- n:$([a-zA-Z_] [a-zA-Z0-9_]*) !{ isKeyword n } { n }
 
@@ -281,20 +235,20 @@ LiteralString <- s:$('"' DqChar* '"' / '\'' SqChar* '\'' / LongBracket) { s }
 
 DqChar :: ()
 DqChar <- '\\' Escape { () }
-        / ![\n\r\\"] . { () }
+       / ![\n\r\\"] . { () }
 
 SqChar :: ()
 SqChar <- '\\' Escape { () }
-        / ![\n\r\\'] . { () }
+       / ![\n\r\\'] . { () }
 
 Escape :: ()
 Escape <- [abfnrtv\\"'] { () }
-        / '\n' '\r'? { () }
-        / '\r' '\n'? { () }
-        / 'x' [0-9a-fA-F] [0-9a-fA-F] { () }
-        / 'z' [ \t\n\r\u{0B}\u{0C}]* { () }
-        / 'u{' h:$[0-9a-fA-F]+ '}' &{ hexValue h < 2 ^ (31 :: Int) } { () }
-        / d:$([0-9] [0-9]? [0-9]?) &{ read (T.unpack d) <= (255 :: Int) } { () }
+       / '\n' '\r'? { () }
+       / '\r' '\n'? { () }
+       / 'x' [0-9a-fA-F] [0-9a-fA-F] { () }
+       / 'z' [ \t\n\r\u{0B}\u{0C}]* { () }
+       / 'u{' h:$[0-9a-fA-F]+ '}' &{ hexValue h < 2 ^ (31 :: Int) } { () }
+       / d:$([0-9] [0-9]? [0-9]?) &{ read (T.unpack d) <= (255 :: Int) } { () }
 
 # 長括弧。閉じの = の数は開きと一致しなければならない
 LongBracket :: ()
@@ -305,7 +259,7 @@ LongClose <- ']' e:$'='* &{ T.length e == n } ']' { () }
 
 Comment :: ()
 Comment <- '--' &('[' '='* '[') LongBracket { () }
-         / '--' !('[' '='* '[') (![\n\r] .)* { () }
+        / '--' !('[' '='* '[') (![\n\r] .)* { () }
 
 Ws :: ()
 Ws <- [ \t\n\r\u{0B}\u{0C}]+ { () }
@@ -314,73 +268,6 @@ Sp :: ()
 Sp <- (Ws / Comment)* { () }
 
 # 予約語 ----------------------------------------------------------------------------
-
-KAnd :: ()
-KAnd <- 'and' ![a-zA-Z0-9_] Sp { () }
-
-KBreak :: ()
-KBreak <- 'break' ![a-zA-Z0-9_] Sp { () }
-
-KDo :: ()
-KDo <- 'do' ![a-zA-Z0-9_] Sp { () }
-
-KElse :: ()
-KElse <- 'else' ![a-zA-Z0-9_] Sp { () }
-
-KElseif :: ()
-KElseif <- 'elseif' ![a-zA-Z0-9_] Sp { () }
-
-KEnd :: ()
-KEnd <- 'end' ![a-zA-Z0-9_] Sp { () }
-
-KFalse :: ()
-KFalse <- 'false' ![a-zA-Z0-9_] Sp { () }
-
-KFor :: ()
-KFor <- 'for' ![a-zA-Z0-9_] Sp { () }
-
-KFunction :: ()
-KFunction <- 'function' ![a-zA-Z0-9_] Sp { () }
-
-KGoto :: ()
-KGoto <- 'goto' ![a-zA-Z0-9_] Sp { () }
-
-KIf :: ()
-KIf <- 'if' ![a-zA-Z0-9_] Sp { () }
-
-KIn :: ()
-KIn <- 'in' ![a-zA-Z0-9_] Sp { () }
-
-KLocal :: ()
-KLocal <- 'local' ![a-zA-Z0-9_] Sp { () }
-
-KNil :: ()
-KNil <- 'nil' ![a-zA-Z0-9_] Sp { () }
-
-KNot :: ()
-KNot <- 'not' ![a-zA-Z0-9_] Sp { () }
-
-KOr :: ()
-KOr <- 'or' ![a-zA-Z0-9_] Sp { () }
-
-KRepeat :: ()
-KRepeat <- 'repeat' ![a-zA-Z0-9_] Sp { () }
-
-KReturn :: ()
-KReturn <- 'return' ![a-zA-Z0-9_] Sp { () }
-
-KThen :: ()
-KThen <- 'then' ![a-zA-Z0-9_] Sp { () }
-
-KTrue :: ()
-KTrue <- 'true' ![a-zA-Z0-9_] Sp { () }
-
-KUntil :: ()
-KUntil <- 'until' ![a-zA-Z0-9_] Sp { () }
-
-KWhile :: ()
-KWhile <- 'while' ![a-zA-Z0-9_] Sp { () }
-
-# global は予約語ではないので、名前としても読める
-KGlobal :: ()
-KGlobal <- 'global' ![a-zA-Z0-9_] Sp { () }
+# 予約語の後に識別子の文字が続かない。global は予約語ではないが、宣言の始まりを同じ形で読む
+K<w> :: ()
+K<w> <- w ![a-zA-Z0-9_] Sp { () }

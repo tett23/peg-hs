@@ -18,12 +18,14 @@ import Data.Char (toLower, toUpper)
 import Data.List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
+import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser (parseGrammar)
+import Peg.Grammar.Templates (expandTemplates, templateNotes)
 
 -- | Options for generation.
 data Options = Options
@@ -50,8 +52,9 @@ generateFromSource opts src = parseGrammar src >>= generate opts
 
 -- | Check a grammar and generate its module.
 generate :: Options -> Grammar -> Either [Diagnostic] Text
-generate opts g = do
-  analysis <- check g
+generate opts g0 = do
+  g <- either (Left . templateNotes g0) Right (expandTemplates g0)
+  analysis <- either (Left . templateNotes g0) Right (check g)
   Right (finalize opts (render opts g analysis))
 
 -- Labels written anywhere in the grammar (ADR 0021).
@@ -67,6 +70,7 @@ grammarLabels g = [name | r <- grammarRules g, a <- ruleAlts r, name <- concatMa
       EAnd x -> labels x
       ENot x -> labels x
       ECapture x -> labels x
+      EDiscard x -> labels x
       _ -> []
 
 -- Fragments of user code ----------------------------------------------------
@@ -414,13 +418,23 @@ altCode env a = do
       (stmts, result) <- passThrough env True items
       pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
 
+-- The item whose value a sequence without an action returns (ADR 0030).
+passedItem :: Env -> [Item] -> Maybe Item
+passedItem env items = case countedItems (units env) items of
+  [i] -> Just i
+  _ -> Nothing
+
+units :: Env -> Set Text
+units = analysisUnit . envAnalysis
+
 -- Statements for a sequence whose single value is returned unchanged.
 passThrough :: Env -> Bool -> [Item] -> Gen ([Text], Text)
 passThrough env honorBind items = go items
   where
+    chosen = passedItem env items
     go [] = pure ([], "()")
     go (i : is)
-      | hasValue (itemExpr i) = do
+      | Just i == chosen = do
           e <- exprCode env (itemExpr i)
           v <- case itemBind i of
             Just n | honorBind -> pure n
@@ -434,9 +448,9 @@ passThrough env honorBind items = go items
 
 itemStmt :: Env -> Bool -> Item -> Gen Text
 itemStmt env honorBind i = do
-  e <- exprCodeU env (valueUsed honorBind i) (itemExpr i)
+  e <- exprCodeU env (valueUsed env honorBind i) (itemExpr i)
   pure $
-    if hasValue (itemExpr i)
+    if hasValue (units env) (itemExpr i)
       then case itemBind i of
         Just n | honorBind -> n <> " <- " <> e
         _ -> "_ <- " <> e
@@ -444,8 +458,8 @@ itemStmt env honorBind i = do
 
 -- Whether the value of an item in a sequence is used: only a bound item's
 -- is, when bindings are honoured (ADR 0026).
-valueUsed :: Bool -> Item -> Bool
-valueUsed honorBind i = honorBind && hasValue (itemExpr i) && isJust (itemBind i)
+valueUsed :: Env -> Bool -> Item -> Bool
+valueUsed env honorBind i = honorBind && hasValue (units env) (itemExpr i) && isJust (itemBind i)
 
 exprCode :: Env -> Expr -> Gen Text
 exprCode env = exprCodeU env True
@@ -468,7 +482,7 @@ exprCodeU env used expr = case expr of
   ERef _ n args ->
     pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragment opts x <> ")" | x <- args] <> ")")
   EGroup alts
-    | used && hasValue expr -> do
+    | used && hasValue (units env) expr -> do
         bodies <- mapM (\is -> passThrough env False is >>= \(stmts, v) -> pure (doBlock (stmts ++ ["PegPrelude.pure " <> v]))) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
     | otherwise -> do
@@ -485,9 +499,11 @@ exprCodeU env used expr = case expr of
     pure ("PegRt.labeled " <> hsString name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
+  EDiscard x -> wrap "PegRt.voidP" False x
+  ETemplate {} -> error "a template call must be expanded before generating code"
   where
     opts = envOpts env
-    valued x = used && hasValue x
+    valued x = used && hasValue (units env) x
     wrap f inner x = do
       e <- exprCodeU env inner x
       pure (f <> " (" <> e <> ")")
@@ -657,9 +673,10 @@ altCodeS env a = do
 passThroughS :: Env -> Bool -> [Item] -> Gen ([Text], Text, [Text])
 passThroughS env honorBind items = go items
   where
+    chosen = passedItem env items
     go [] = pure ([], "()", [])
     go (i : is)
-      | hasValue (itemExpr i) = do
+      | Just i == chosen = do
           e <- exprCodeS env (itemExpr i)
           k <- freshK
           (v, stmt) <- case itemBind i of
@@ -674,10 +691,10 @@ passThroughS env honorBind items = go items
 
 itemStmtS :: Env -> Bool -> Item -> Gen (Text, Text)
 itemStmtS env honorBind i = do
-  e <- exprCodeSU env (valueUsed honorBind i) (itemExpr i)
+  e <- exprCodeSU env (valueUsed env honorBind i) (itemExpr i)
   k <- freshK
   pure $ case itemBind i of
-    Just n | honorBind && hasValue (itemExpr i) -> ("(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n, k)
+    Just n | honorBind && hasValue (units env) (itemExpr i) -> ("(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n, k)
     _ -> ("(_, " <> k <> ") <- " <> e, k)
 
 exprCodeS :: Env -> Expr -> Gen Text
@@ -692,7 +709,7 @@ exprCodeSU env used expr = case expr of
   EPred {} -> plainOf
   ERef {} -> exprCode env expr
   EGroup alts
-    | used && hasValue expr -> do
+    | used && hasValue (units env) expr -> do
         bodies <- mapM (\is -> passThroughS env False is >>= \(stmts, v, ks) -> pure (doReturn stmts v ks)) alts
         pure ("PegRt.choice [" <> T.intercalate ", " bodies <> "]")
     | otherwise -> do
@@ -706,7 +723,9 @@ exprCodeSU env used expr = case expr of
   ECapture x -> wrap "PegRt.captureS" False x
   ELabel _ x name -> do
     e <- exprCodeSU env used x
-    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (used && hasValue x) name <> " (" <> e <> ")")
+    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (used && hasValue (units env) x) name <> " (" <> e <> ")")
+  EDiscard x -> wrap "PegRt.voidS" False x
+  ETemplate {} -> error "a template call must be expanded before generating code"
   where
     plainOf = do
       e <- exprCode env expr

@@ -1,0 +1,42 @@
+# ADR 0031（%syntax）：規則の雛形
+%module Fixture.TemplatesSyntax
+%syntax
+%export Expr(..)
+
+%{
+import qualified Data.Text as T
+
+data Expr = Num Int | Add Expr Expr | Vars [T.Text]
+  deriving (Eq, Show)
+}%
+
+Start :: ([[Int]], Expr, Expr)
+Start <- K<'lists'> ls:List<List<N, ','>, ';'> K<'expr'> e:E K<'vars'> v:Vars { (ls, e, v) }
+
+# 予約語：リテラルの後に識別子の文字が続かず、空白を読む
+K<w> :: ()
+K<w> <- w ![a-z] Sp { () }
+
+# 区切りのある一つ以上の列
+List<p :: a, sep> :: [a]
+List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
+
+# 雛形の呼び出しを含む左再帰
+E :: Expr
+E <- l:E Op<'+'> r:T { Add l r }
+  / T
+
+T :: Expr
+T <- n:N { Num n }
+
+Op<o> :: ()
+Op<o> <- o Sp { () }
+
+Vars :: Expr
+Vars <- vs:List<$[a-z]+, ','> { Vars vs }
+
+N :: Int
+N <- d:$[0-9]+ Sp { read (T.unpack d) }
+
+Sp :: ()
+Sp <- ' '* { () }

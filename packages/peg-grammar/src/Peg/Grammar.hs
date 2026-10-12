@@ -12,6 +12,7 @@ module Peg.Grammar
   , Grammar (..)
   , Rule (..)
   , Param (..)
+  , TemplateParam (..)
   , Alt (..)
   , Item (..)
   , Expr (..)
@@ -81,6 +82,8 @@ data Rule = Rule
   , ruleLoc :: Loc
   -- ^ Where the definition starts.
   , ruleParams :: [Param]
+  , ruleTemplateParams :: [TemplateParam]
+  -- ^ The parameters of a rule template (ADR 0031). Empty for other rules.
   , ruleType :: Located Text
   -- ^ The result type, as written.
   , ruleAlts :: [Alt]
@@ -91,6 +94,14 @@ data Rule = Rule
 data Param = Param
   { paramName :: Text
   , paramType :: Located Text
+  }
+  deriving (Eq, Show)
+
+-- | A parameter of a rule template (ADR 0031): its name, and the type
+-- variable of its value when the value is used.
+data TemplateParam = TemplateParam
+  { templateParamName :: Text
+  , templateParamType :: Maybe Text
   }
   deriving (Eq, Show)
 
@@ -133,6 +144,12 @@ data Expr
     ELabel Loc Expr Text
   | -- | @&{ e }@ ('True') or @!{ e }@ ('False').
     EPred Bool (Located Text)
+  | -- | @Name<e, ...>@: a call of a rule template (ADR 0031).
+    ETemplate Loc Text [Expr]
+  | -- | An expression whose value is discarded. It does not appear in the
+    -- notation: template expansion puts the arguments of untyped template
+    -- parameters in it (ADR 0031).
+    EDiscard Expr
   deriving (Eq, Show)
 
 -- | An error found in a grammar.

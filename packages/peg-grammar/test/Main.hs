@@ -4,12 +4,14 @@
 module Main (main) where
 
 import qualified Data.ByteString.Lazy as BL
+import Data.List (sort)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser
+import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Labels (labelTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
@@ -27,6 +29,8 @@ main = do
       "peg-grammar"
       [ notationTests
       , checkTests
+      , unitValueTests
+      , templateTests
       , analysisTests
       , repositoryGrammarTests files
       , errorReportTests
@@ -266,6 +270,88 @@ notationTests =
     ]
   where
     exprs' = map itemExpr . altItems . firstAlt
+
+-- ADR 0030: unit values of unbound items are not counted.
+unitValueTests :: TestTree
+unitValueTests =
+  testGroup
+    "unit values (ADR 0030)"
+    [ testCase "a group with a unit rule has the value of the other item" $
+        errorsOf (g "A :: [Int]\nA <- n:N ns:(',' Sp N)* { n : ns }") @?= []
+    , testCase "a repeated unit rule is not counted" $
+        errorsOf (g "A :: [Int]\nA <- n:N ns:(',' Sp* N)* { n : ns }") @?= []
+    , testCase "an optional unit rule is not counted" $
+        errorsOf (g "A :: Int\nA <- Sp? N") @?= []
+    , testCase "an alternative without an action passes the value through" $
+        errorsOf (g "A :: Int\nA <- Sp N Sp") @?= []
+    , testCase "a single unit value is still passed through" $
+        errorsOf (g "A :: ()\nA <- Sp") @?= []
+    , testCase "two unit values without other values are two values" $
+        messagesOf (g "A :: ()\nA <- Sp Sp") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "a bound unit value is counted" $
+        messagesOf (g "A :: Int\nA <- u:Sp N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "two values other than unit are an error" $
+        messagesOf (g "A :: Int\nA <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "a type synonym of () is not unit" $
+        messagesOf (g "A :: Int\nA <- W N\nW :: Unit\nW <- ' ' { () }") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "spaces in the type () are allowed" $
+        errorsOf (g "A :: Int\nA <- V N\nV :: ( )\nV <- ' ' { () }") @?= []
+    ]
+  where
+    g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+ { () }\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+
+-- ADR 0031: rule templates.
+templateTests :: TestTree
+templateTests =
+  testGroup
+    "rule templates (ADR 0031)"
+    [ testCase "parse a template and its calls" $ do
+        g <- parseOk (t "S :: [Int]\nS <- List<N, ','>")
+        [ruleTemplateParams r | r <- grammarRules g, ruleName r == "List"] @?= [[TemplateParam "p" (Just "a"), TemplateParam "sep" Nothing]]
+        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "S", a <- ruleAlts r] @?= [[ETemplate (Loc 10 6) "List" [ERef (Loc 10 11) "N" [], ELit "," "','"]]]
+    , testCase "the same arguments make one instance, others another" $ do
+        g <- expanded (t "S :: ([Int], [Int], [Int])\nS <- a:List<N, ','> b:List<N, ','> c:List<N, ';'> { (a, b, c) }")
+        sort [ruleName r | r <- grammarRules g] @?= ["List'0", "List'1", "N", "S", "Sp"]
+    , testCase "the type variable is replaced by the argument's type" $ do
+        g <- expanded (t "S :: [Int]\nS <- List<N, ','>")
+        [unLoc (ruleType r) | r <- grammarRules g, ruleName r == "List'0"] @?= ["[(Int)]"]
+    , testCase "a capture argument has type Text" $ do
+        g <- expanded (t "S :: [Text]\nS <- List<$[a-z]+, ','>")
+        [unLoc (ruleType r) | r <- grammarRules g, ruleName r == "List'0"] @?= ["[(PegRt.Text)]"]
+    , testCase "an untyped argument's value is discarded" $ do
+        g <- expanded (t "S :: [Int]\nS <- List<N, N>")
+        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "List'0", a <- ruleAlts r]
+          @?= [[ERef (Loc 10 11) "N" [], EStar (EGroup [[Item (Loc 4 25) Nothing (EDiscard (ERef (Loc 10 14) "N" [])), Item (Loc 4 29) Nothing (ERef (Loc 4 29) "Sp" []), Item (Loc 4 32) Nothing (ERef (Loc 10 11) "N" [])]])]]
+        checkErrors (t "S :: [Int]\nS <- List<N, N>") @?= []
+    , testCase "templates calling templates" $
+        checkErrors (t "S :: [[Int]]\nS <- List<List<N, ','>, ';'>") @?= []
+    , testCase "an untyped expression for a typed parameter" $
+        checkErrors (t "S :: [Int]\nS <- List<'x', ','>") @?= ["the argument for p must be a rule, a capture or a template call, since its value is used"]
+    , testCase "the number of arguments" $
+        checkErrors (t "S :: [Int]\nS <- List<N>") @?= ["the template List expects 2 argument(s), but got 1"]
+    , testCase "a template without arguments" $
+        checkErrors (t "S :: [Int]\nS <- List") @?= ["the template List needs arguments: List<...>"]
+    , testCase "a call of a rule that is not a template" $
+        checkErrors (t "S :: Int\nS <- N<','>") @?= ["rule N is not a template"]
+    , testCase "a template named in %entry" $
+        checkErrors (t "%entry List\nS :: [Int]\nS <- List<N, ','>") @?= ["the template List cannot be named in %entry"]
+    , testCase "the parameters of the definition and the annotation differ" $
+        checkErrors "%module M\nS :: ()\nS <- T<'a'>\nT<x> :: ()\nT<y> <- x { () }\n" @?= ["the template parameters of the definition of T do not match its type annotation"]
+    , testCase "an expansion that does not end" $
+        fmap (T.isInfixOf "does not end") (checkErrors "%module M\nS :: ()\nS <- T<'a'>\nT<x> :: ()\nT<x> <- x T<(x x)> { () } / x { () }\n") @?= [True]
+    , testCase "an error in a template is reported once, with the call that expanded it" $
+        checkErrors (t "S :: ([Int], [Int])\nS <- a:List<N, ','> b:List<N, ';'> { (a, b) }\nBad<x> :: ()\nBad<x> <- x Missing { () }\nU :: ()\nU <- Bad<'a'> Bad<'b'> { () }\n%entry U")
+          @?= ["undefined rule Missing (in the template Bad, expanded at 14:6)"]
+    ]
+  where
+    t body =
+      "%module M\n%start S\nList<p :: a, sep> :: [a]\nList<p, sep> <- x:p xs:(sep Sp p)* { x : xs }\nN :: Int\nN <- [0-9] { 0 }\nSp :: ()\nSp <- ' '* { () }\n" <> body <> "\n"
+    expanded src = case parseGrammar src >>= expandTemplates of
+      Right g -> pure g
+      Left ds -> assertFailure (show ds) >> error "unreachable"
+    checkErrors src = case parseGrammar src of
+      Left ds -> map diagMessage ds
+      Right g0 -> either (map diagMessage . templateNotes g0) (const []) (expandTemplates g0 >>= check)
 
 checkTests :: TestTree
 checkTests =

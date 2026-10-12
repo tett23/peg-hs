@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Static checks and analyses of a grammar.
@@ -5,8 +6,11 @@ module Peg.Grammar.Check
   ( Analysis (..)
   , check
   , hasValue
+  , countedItems
+  , unitRules
   ) where
 
+import Data.Char (isSpace)
 import Data.Graph (SCC (..), stronglyConnComp)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
@@ -25,23 +29,50 @@ data Analysis = Analysis
   -- ^ Rules that take part in left recursion.
   , analysisNullable :: Set Text
   -- ^ Rules that can succeed without consuming input.
+  , analysisUnit :: Set Text
+  -- ^ Rules whose type is @()@ (ADR 0030).
   }
   deriving (Eq, Show)
 
--- | Whether an expression produces a value that can be bound (ADR 0004).
-hasValue :: Expr -> Bool
-hasValue = \e -> case e of
+-- | Whether an expression produces a value that can be bound (ADR 0004),
+-- given the rules whose type is @()@ (ADR 0030).
+hasValue :: Set Text -> Expr -> Bool
+hasValue units = \e -> case e of
   ERef {} -> True
   ECapture _ -> True
-  EStar x -> hasValue x
-  EPlus x -> hasValue x
-  EOpt x -> hasValue x
-  ELabel _ x _ -> hasValue x
-  EGroup alts -> not (null alts) && all ((== 1) . valueCount) alts
+  EStar x -> hasValue units x
+  EPlus x -> hasValue units x
+  EOpt x -> hasValue units x
+  ELabel _ x _ -> hasValue units x
+  ETemplate {} -> True
+  EGroup alts -> not (null alts) && all ((== 1) . length . countedItems units) alts
   _ -> False
 
-valueCount :: [Item] -> Int
-valueCount = length . filter (hasValue . itemExpr)
+-- | The items of a sequence whose values count, for a group's value and an
+-- alternative without an action (ADR 0030): the items with a value, except
+-- unbound items whose value is unit. When no item has a value other than
+-- unit, the unit values count too.
+countedItems :: Set Text -> [Item] -> [Item]
+countedItems units items = if null significant then valued else significant
+  where
+    valued = [i | i <- items, hasValue units (itemExpr i)]
+    significant = [i | i <- valued, isJustBind i || not (isUnit units (itemExpr i))]
+    isJustBind i = maybe False (const True) (itemBind i)
+
+-- Whether the value of an expression is made of @()@ only.
+isUnit :: Set Text -> Expr -> Bool
+isUnit units = \case
+  ERef _ n _ -> S.member n units
+  EStar x -> isUnit units x
+  EPlus x -> isUnit units x
+  EOpt x -> isUnit units x
+  ELabel _ x _ -> isUnit units x
+  EGroup alts -> not (null alts) && all (\is -> all (isUnit units . itemExpr) (countedItems units is)) alts && hasValue units (EGroup alts)
+  _ -> False
+
+-- | The rules whose type annotation is @()@, ignoring spaces (ADR 0030).
+unitRules :: [Rule] -> Set Text
+unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) (unLoc (ruleType r)) == "()"]
 
 -- | Check a grammar.
 check :: Grammar -> Either [Diagnostic] Analysis
@@ -52,7 +83,7 @@ check g = case grammarRules g of
 checkRules :: Grammar -> Rule -> Either [Diagnostic] Analysis
 checkRules g firstRule =
   case sortOn diagLoc errors of
-    [] -> Right (Analysis start lr nullable)
+    [] -> Right (Analysis start lr nullable units)
     es -> Left es
   where
     rules = grammarRules g
@@ -60,13 +91,14 @@ checkRules g firstRule =
     start = maybe (ruleName firstRule) unLoc (grammarStart g)
     nullable = nullableRules rules
     lr = leftRecursiveRules nullable rules
+    units = unitRules rules
     errors =
       undefinedErrors
         ++ arityErrors
         ++ entryErrors
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
-        ++ concatMap altErrors rules
+        ++ concatMap (altErrors units) rules
         ++ paramLrErrors
         ++ concatMap hygieneErrors (grammarVerbatim g)
         ++ languageErrors
@@ -200,6 +232,8 @@ checkRules g firstRule =
 exprLabels :: Expr -> [Text]
 exprLabels = \e -> case e of
   ELabel _ x n -> n : exprLabels x
+  EDiscard x -> exprLabels x
+  ETemplate _ _ args -> concatMap exprLabels args
   EGroup alts -> concatMap (concatMap (exprLabels . itemExpr)) alts
   EStar x -> exprLabels x
   EPlus x -> exprLabels x
@@ -227,6 +261,8 @@ exprRefs = \e -> case e of
   ENot x -> exprRefs x
   ECapture x -> exprRefs x
   ELabel _ x _ -> exprRefs x
+  EDiscard x -> exprRefs x
+  ETemplate _ _ args -> concatMap exprRefs args
   _ -> []
 
 -- Nullability -------------------------------------------------------------------
@@ -256,6 +292,8 @@ exprNullable known = \e -> case e of
   EPred _ _ -> True
   ECapture x -> exprNullable known x
   ELabel _ x _ -> exprNullable known x
+  EDiscard x -> exprNullable known x
+  ETemplate {} -> True
 
 repetitionErrors :: Set Text -> Rule -> [Diagnostic]
 repetitionErrors known r = concatMap (seqErrs . altItems) (ruleAlts r)
@@ -269,6 +307,7 @@ repetitionErrors known r = concatMap (seqErrs . altItems) (ruleAlts r)
       ENot x -> exprErrs l x
       ECapture x -> exprErrs l x
       ELabel _ x _ -> exprErrs l x
+      EDiscard x -> exprErrs l x
       EGroup alts -> concatMap seqErrs alts
       _ -> []
     rep l x
@@ -295,6 +334,7 @@ leftCalls known = go
       ENot x -> exprLeftCalls x
       ECapture x -> exprLeftCalls x
       ELabel _ x _ -> exprLeftCalls x
+      EDiscard x -> exprLeftCalls x
       _ -> []
 
 leftRecursiveRules :: Set Text -> [Rule] -> Set Text
@@ -307,8 +347,8 @@ leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
 
 -- Alternatives -------------------------------------------------------------------
 
-altErrors :: Rule -> [Diagnostic]
-altErrors r = concatMap alt (ruleAlts r)
+altErrors :: Set Text -> Rule -> [Diagnostic]
+altErrors units r = concatMap alt (ruleAlts r)
   where
     alt a =
       bindingErrors (altItems a)
@@ -324,7 +364,7 @@ altErrors r = concatMap alt (ruleAlts r)
           | "_" `T.isPrefixOf` n
           ]
             ++ [ "cannot bind " <> n <> ": the expression has no value (capture the text with $)"
-               | not (hasValue (itemExpr i))
+               | not (hasValue units (itemExpr i))
                ]
       ]
     duplicateErrors items =
@@ -333,7 +373,7 @@ altErrors r = concatMap alt (ruleAlts r)
       ]
     omissionErrors a = case altAction a of
       Just _ -> []
-      Nothing -> case valueCount (altItems a) of
+      Nothing -> case length (countedItems units (altItems a)) of
         1 -> []
         0 -> [Diagnostic (altLoc a) "an alternative without an action must have exactly one element with a value, but it has none"]
         k -> [Diagnostic (altLoc a) ("an alternative without an action must have exactly one element with a value, but it has " <> showT k)]
@@ -347,6 +387,7 @@ altErrors r = concatMap alt (ruleAlts r)
       ENot x -> exprGroupErrors x
       ECapture x -> exprGroupErrors x
       ELabel _ x _ -> exprGroupErrors x
+      EDiscard x -> exprGroupErrors x
       _ -> []
 
 -- Hygiene ----------------------------------------------------------------------

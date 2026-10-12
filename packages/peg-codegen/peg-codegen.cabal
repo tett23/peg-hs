@@ -65,6 +65,10 @@ test-suite peg-codegen-test
     Fixture.Sum
     Fixture.Syntax
     Fixture.Unicode
+    Fixture.Templates
+    Fixture.TemplatesSyntax
+    Fixture.Units
+    Fixture.UnitsSyntax
   build-depends:
     , base
     , bytestring

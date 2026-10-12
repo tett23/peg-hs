@@ -5,6 +5,8 @@
 -- from its own notation, @grammar/Peg.peg@ (ADR 0027).
 module Peg.Grammar.Parser
   ( parseGrammar
+  , parseTops
+  , labelMessage
   ) where
 
 import Data.Text (Text)
@@ -18,8 +20,13 @@ import Peg.Runtime (ParseError (..), Pos (..), renderParseError)
 -- position; its message comes from the label the grammar threw, or lists
 -- the expected terminals when no label was thrown.
 parseGrammar :: Text -> Either [Diagnostic] Grammar
-parseGrammar src = case SelfHosted.parse src of
-  Right tops -> assemble tops
+parseGrammar src = parseTops src >>= assemble
+
+-- | Parse a grammar file into its top-level items, without checking them.
+-- Syntax errors are reported as by 'parseGrammar'.
+parseTops :: Text -> Either [Diagnostic] [Top]
+parseTops src = case SelfHosted.parse src of
+  Right tops -> Right tops
   Left e ->
     let p = parseErrorPos e
         expected = T.drop 2 (T.dropWhile (/= ':') (T.drop 1 (T.dropWhile (/= ':') (renderParseError e))))
@@ -30,7 +37,7 @@ parseGrammar src = case SelfHosted.parse src of
       line : _ -> fmap fst (T.uncons (T.drop (posColumn p - 1) line))
       [] -> Nothing
 
--- The message of a label of grammar/Peg.peg, given the character at the
+-- | The message of a label of grammar/Peg.peg, given the character at the
 -- position of the error, if any.
 labelMessage :: Maybe Char -> Text -> Text
 labelMessage c = \case

@@ -51,9 +51,11 @@ firstChar = T.foldr const ' '
 tokens :: Text -> [(Char, Bool)]
 tokens = go . T.unpack
   where
+    -- Recovery (ADR 0035) can reach here with an invalid escape.
     go ('\\' : 'u' : '{' : rest) =
       let (h, rest') = span isHexDigit rest
-       in (chr (foldl (\n d -> n * 16 + digitToInt d) 0 h), False) : go (drop 1 rest')
+          n = foldl (\m d -> m * 16 + toInteger (digitToInt d)) 0 h
+       in (if n <= 0x10FFFF then chr (fromInteger n) else '\xFFFD', False) : go (drop 1 rest')
     go ('\\' : c : rest) = (escape c, False) : go rest
     go (c : rest) = (c, c == '-') : go rest
     go [] = []
@@ -107,14 +109,13 @@ TopItem <- t:TopOne Ws { t }
 
 TopOne :: Top
 TopOne <- Verbatim
-        / Directive
-        / Declaration
+       / Directive
+       / Declaration
 
 Here :: Loc
 Here <- { here _span }
 
 # 空白とコメント -------------------------------------------------------------------
-
 Ws :: ()
 Ws <- (SpaceChar / Comment)* { () }
 
@@ -137,7 +138,6 @@ IdentChar :: ()
 IdentChar <- c:$. &{ isIdentChar (firstChar c) } { () }
 
 # 最上位の要素 ---------------------------------------------------------------------
-
 Verbatim :: Top
 Verbatim <- '%{' l:Here b:$(!'}%' .)* ('}%' ^verbatim) { uncurry TVerbatim (verbatimBody l b) }
 
@@ -145,10 +145,18 @@ Directive :: Top
 Directive <- l:Here '%' n:(Ident ^ident) InlineSp al:Here raw:$(!'\n' .)* { TDirective l n al (directiveArg n raw) }
 
 Declaration :: Top
-# 三つめの選択肢は必ずラベルを送出する。最上位の識別子は宣言の始まりでしかありえない
-Declaration <- l:Here n:Ident ps:ParamList? Ws '::' InlineSp tl:Here ty:(TypeText ^type) { TAnnot l n (maybe [] id ps) (Located tl ty) }
-             / l:Here n:Ident Ws '<-' as:Alts { TDef l n as }
-             / Ident ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { error "unreachable: a label is thrown" }
+# 三つめの選択肢は必ずラベルを送出する。最上位の識別子は宣言の始まりでしかありえない。
+# 値は、回復（ADR 0035）したときにだけ使われる
+Declaration <- l:Here n:Ident tps:TemplateParams? ps:ParamList? Ws '::' InlineSp tl:Here ty:(TypeText ^type) { TAnnot l n (maybe [] id ps) (maybe [] id tps) (Located tl ty) }
+            / l:Here n:Ident tps:TemplateParams? Ws '<-' as:Alts { TDef l n (maybe [] (map templateParamName) tps) as }
+            / Ident TemplateParams? ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { TVerbatim (Loc 0 0) T.empty }
+
+# 雛形の引数（ADR 0031）。型注釈では値を使う引数に型変数を付ける
+TemplateParams :: [TemplateParam]
+TemplateParams <- '<' Ws p:TemplateParam ps:(Ws ',' Ws TemplateParam)* Ws '>' { p : ps }
+
+TemplateParam :: TemplateParam
+TemplateParam <- n:Ident ty:(Ws '::' Ws Ident)? { TemplateParam n ty }
 
 TypeText :: Text
 TypeText <- ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { T.stripEnd ty }
@@ -158,13 +166,12 @@ ParamList <- '(' ps:ParamChunks { ps }
 
 ParamChunks :: [Param]
 ParamChunks <- p:ParamChunk ',' rest:ParamChunks { p : rest }
-             / p:ParamChunk ')' { [p] }
+            / p:ParamChunk ')' { [p] }
 
 ParamChunk :: Param
 ParamChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&{ paramError l c /= Just paramFormMessage }) ^paramform (&{ paramError l c == Nothing }) ^paramtype (&[,)]) ^argcode { param l c }
 
 # 選択肢と式 -----------------------------------------------------------------------
-
 Alts :: [Alt]
 Alts <- a:Alt as:MoreAlt* { a : as }
 
@@ -176,21 +183,21 @@ Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
 
 Item :: Item
 Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }
-      / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
+     / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
 
 DeclStart :: ()
-DeclStart <- Ident HsParen? Ws ('::' / '<-') { () }
+DeclStart <- Ident TemplateParams? HsParen? Ws ('::' / '<-') { () }
 
 Binding :: Text
 Binding <- n:Ident ':' !':' { n }
 
 PrefixE :: Expr
 PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
-         / Ws '&' Ws e:(PrefixE ^expression) { EAnd e }
-         / Ws '!' Ws '{' c:PredCode { EPred False c }
-         / Ws '!' Ws e:(PrefixE ^expression) { ENot e }
-         / Ws '$' e:(PrefixE ^expression) { ECapture e }
-         / Labeled
+        / Ws '&' Ws e:(PrefixE ^expression) { EAnd e }
+        / Ws '!' Ws '{' c:PredCode { EPred False c }
+        / Ws '!' Ws e:(PrefixE ^expression) { ENot e }
+        / Ws '$' e:(PrefixE ^expression) { ECapture e }
+        / Labeled
 
 Labeled :: Expr
 Labeled <- e:SuffixE lab:LabelPart? { maybe e (\(l, n) -> ELabel l e n) lab }
@@ -206,12 +213,20 @@ PostOp <- Ws c:$[*+?] { firstChar c }
 
 Primary :: Expr
 Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
-         / Ws o:$Lit2 { ELit (decodeLiteral o) o }
-         / Ws o:$ClassLit { EClass (classRanges o) o }
-         / Ws '.' { EAny }
-         / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
-         / Ws l:Here n:Ident args:CallArgs { ERef l n args }
-         / Ws l:Here n:Ident !'(' { ERef l n [] }
+        / Ws o:$Lit2 { ELit (decodeLiteral o) o }
+        / Ws o:$ClassLit { EClass (classRanges o) o }
+        / Ws '.' { EAny }
+        / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
+        / Ws l:Here n:Ident args:CallArgs { ERef l n args }
+        / Ws l:Here n:Ident as:TemplateArgs { ETemplate l n as }
+        / Ws l:Here n:Ident !'(' { ERef l n [] }
+
+# 雛形の呼び出しの引数。引数は選択と逐次を含む式であり、, か > で終わる
+TemplateArgs :: [Expr]
+TemplateArgs <- '<' !'-' a:TemplateArg as:(Ws ',' TemplateArg)* Ws '>' { a : as }
+
+TemplateArg :: Expr
+TemplateArg <- g:GroupAlts { case g of { [[Item _ Nothing e]] -> e; _ -> EGroup g } }
 
 CallArgs :: [Located Text]
 CallArgs <- '(' cs:ArgChunks { cs }
@@ -223,7 +238,6 @@ MoreGroup :: [Item]
 MoreGroup <- Ws '/' s:Item* { s }
 
 # リテラルと文字クラス -------------------------------------------------------------------
-
 Lit1 :: ()
 Lit1 <- '\'' (Escape / !['\\\n] .)* ('\'' ^literal) { () }
 
@@ -235,7 +249,7 @@ Escape <- '\\' (EscapeBody ^escape) { () }
 
 EscapeBody :: ()
 EscapeBody <- [ntr\\'"\]\[\-] { () }
-            / 'u' ('{' ^ubrace) h:$[0-9a-fA-F]* ('}' ^uclose) (&{ validHex h }) ^uescape { () }
+           / 'u' ('{' ^ubrace) h:$[0-9a-fA-F]* ('}' ^uclose) (&{ validHex h }) ^uescape { () }
 
 ClassLit :: ()
 ClassLit <- '[' (!']') ^emptyclass ClassItem* (']' ^class) { () }
@@ -245,10 +259,9 @@ ClassItem <- s:$(ClassChar ('-' !']' ClassChar)?) (&{ nonEmptyRanges s }) ^range
 
 ClassChar :: ()
 ClassChar <- Escape
-           / ![\]\\\n] . { () }
+          / ![\]\\\n] . { () }
 
 # Haskell の断片 -------------------------------------------------------------------
-
 Action :: Located Text
 Action <- '{' l:Here c:$ActionCode ('}' ^action) { Located l c }
 
@@ -257,7 +270,7 @@ PredCode <- l:Here c:$ActionCode ('}' ^action) { Located l c }
 
 ArgChunks :: [Located Text]
 ArgChunks <- c:ArgChunk ',' rest:ArgChunks { c : rest }
-           / c:ArgChunk ')' { [c] }
+          / c:ArgChunk ')' { [c] }
 
 ArgChunk :: Located Text
 ArgChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&[,)]) ^argcode { Located l c }
@@ -272,25 +285,25 @@ ArgCode <- (!',' HsPart)* { () }
 
 HsPart :: ()
 HsPart <- HsNested
-        / HsString
-        / HsChar
-        / HsIdent
-        / ![()\[\]{}"'] . { () }
+       / HsString
+       / HsChar
+       / HsIdent
+       / ![()\[\]{}"'] . { () }
 
 HsParen :: ()
 HsParen <- '(' HsInner* ')' { () }
 
 HsNested :: ()
 HsNested <- HsParen
-          / '[' HsInner* ']' { () }
-          / '{' HsInner* '}' { () }
+         / '[' HsInner* ']' { () }
+         / '{' HsInner* '}' { () }
 
 HsInner :: ()
 HsInner <- HsNested
-         / HsString
-         / HsChar
-         / HsIdent
-         / ![()\[\]{}"'] . { () }
+        / HsString
+        / HsChar
+        / HsIdent
+        / ![()\[\]{}"'] . { () }
 
 HsString :: ()
 HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring) { () }
@@ -300,8 +313,8 @@ HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring) { () }
 # ラベルがなくても拒否される（ラベルは誤りの文言のため、ADR 0028）
 HsChar :: ()
 HsChar <- '\'' '\\' . (!'\'' .)* ('\'' ^hschar) { () }
-        / '\'' . '\'' { () }
-        / '\'' !'\\' { () }
+       / '\'' . '\'' { () }
+       / '\'' !'\\' { () }
 
 HsIdent :: ()
 HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }

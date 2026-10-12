@@ -1,0 +1,33 @@
+# ADR 0030：束縛しない () の値は、グループとアクションの省略で数えない
+%module Fixture.Units
+%export Result(..)
+
+%{
+import qualified Data.Text as T
+data Result = Result [Int] Int (Maybe Int) ()
+  deriving (Eq, Show)
+}%
+
+Start :: Result
+Start <- l:List ';' p:Pass ';' o:Opt ';' s:Spaces { Result l p o s }
+
+# Sp を挟むグループの値は N の値
+List :: [Int]
+List <- n:N ns:(',' Sp? N)* { n : ns }
+
+# アクションを省略した選択肢は N の値を返す
+Pass :: Int
+Pass <- Sp? N Sp?
+
+Opt :: Maybe Int
+Opt <- (Sp* N)?
+
+# () の値しかない選択肢は、これまでどおり () を返す
+Spaces :: ()
+Spaces <- Sp
+
+Sp :: ()
+Sp <- ' '+ { () }
+
+N :: Int
+N <- d:$[0-9] { fromEnum (T.head d) - 48 }

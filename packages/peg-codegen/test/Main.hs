@@ -24,7 +24,11 @@ import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverNoLabels as RecoverNoLabels
 import qualified Fixture.Sum as Sum
 import qualified Fixture.Syntax as Syntax
+import qualified Fixture.Templates as Templates
+import qualified Fixture.TemplatesSyntax as TemplatesSyntax
 import qualified Fixture.Unicode as Unicode
+import qualified Fixture.Units as Units
+import qualified Fixture.UnitsSyntax as UnitsSyntax
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Labels (stripLabelsAs)
@@ -66,6 +70,28 @@ main =
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
       , discardTests
       , testGroup
+          "rule templates (ADR 0031)"
+          [ testCase "values" $ Templates.parse templateInput @?= Right templateExpected
+          , testCase "%syntax, typed entry" $ fmap show (TemplatesSyntax.parse templateInput) @?= Right (show templateExpected)
+          , testCase "each instance has its own memo table" $ do
+              let st = snd (Templates.peg'parseWith defaultConfig {cfgCount = True} templateInput)
+                  instances = [r | r <- M.keys (statsEntriesByRule st), "'" `T.isInfixOf` r]
+              assertBool (show instances) (length instances >= 5)
+          , testCase "a template call makes no node, and the tree is lossless" $ do
+              case TemplatesSyntax.parseSyntax templateInput of
+                Left e -> assertFailure (show e)
+                Right tree -> do
+                  syntaxText tree @?= templateInput
+                  let kinds = map TemplatesSyntax.nameOfSyntaxKind (descendantKinds tree)
+                  assertBool (show kinds) (not (any ("'" `T.isInfixOf`) kinds))
+          ]
+      , testGroup
+          "unit values are not counted (ADR 0030)"
+          [ testCase "typed" $ Units.parse "1, 2,3;4; 5;  " @?= Right (Units.Result [1, 2, 3] 4 (Just 5) ())
+          , testCase "%syntax, typed entry" $ fmap show (UnitsSyntax.parse "1, 2,3;4; 5;  ") @?= Right (show (UnitsSyntax.Result [1, 2, 3] 4 (Just 5) ()))
+          , testCase "%syntax, lossless tree" $ fmap syntaxText (UnitsSyntax.parseSyntax "1;2;; ") @?= Right "1;2;; "
+          ]
+      , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
           , testCase "%syntax, typed entry" $ DiscardSyntax.parse unusedInput @?= Right unusedExpected
@@ -76,7 +102,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Unicode"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "Units", "UnitsSyntax"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -144,6 +170,21 @@ variantTests =
   testGroup
     "committed self-hosted parser and label-free variants are up to date"
     [ check "self-hosted parser" "../peg-grammar" "grammar/Peg.peg" "src/Peg/Grammar/SelfHosted.hs" Nothing
+    , check "self-hosted parser with a syntax tree" "../peg-grammar" "grammar/PegSyntax.peg" "src/Peg/Grammar/SelfHostedSyntax.hs" Nothing
+    , testCase "the syntax tree variant of the notation's grammar is derived from it" $ do
+        exists <- doesFileExist "../peg-grammar/grammar/Peg.peg"
+        when exists $ do
+          src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
+          extra <- TIO.readFile "../peg-grammar/grammar/SyntaxVariant.txt"
+          variant <- TIO.readFile "../peg-grammar/grammar/PegSyntax.peg"
+          assertBool "regenerate with scripts/regen-fixtures.sh: grammar/PegSyntax.peg" (syntaxVariant src extra == variant)
+    , check "JSON parser of the language server" "../peg-lsp" "grammar/Json.peg" "src/Peg/Lsp/JsonParser.hs" Nothing
+    , testCase "the JSON grammar of the language server is derived from the conformance one" $ do
+        exists <- doesFileExist "../../conformance/json/Json.peg"
+        when exists $ do
+          src <- TIO.readFile "../../conformance/json/Json.peg"
+          derived <- TIO.readFile "../peg-lsp/grammar/Json.peg"
+          assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.peg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n" src == derived)
     , check "self-hosted parser without labels" "../peg-grammar" "grammar/Peg.peg" "test/generated/SelfHostedNoLabels.hs" (Just "SelfHostedNoLabels")
     , check "Recover without labels" "." "test/fixtures/Recover.peg" "test/generated/Fixture/RecoverNoLabels.hs" (Just "Fixture.RecoverNoLabels")
     , testProperty "the Recover fixture accepts the same inputs without its labels" $
@@ -163,6 +204,25 @@ variantTests =
         case code of
           Left ds -> assertFailure (show ds)
           Right c -> assertBool ("regenerate with scripts/regen-fixtures.sh: " <> out) (BL.fromStrict (TE.encodeUtf8 c) == committed)
+
+-- The notation's grammar with a lossless syntax tree and recovery, as
+-- derived by scripts/regen-fixtures.sh (ADR 0032, ADR 0035).
+syntaxVariant :: Text -> Text -> Text
+syntaxVariant src extra = T.unlines (map line (T.lines src)) <> extra
+  where
+    line l
+      | l == "%module Peg.Grammar.SelfHosted" = "%module Peg.Grammar.SelfHostedSyntax"
+      | l == "TopItem <- t:TopOne Ws { t }" = "TopItem <- &. t:(TopOne ^topitem) Ws { t }"
+      | otherwise = l
+
+templateInput :: Text
+templateInput = "lists 1, 2; 3 expr 1 + 2 + 3 vars a, b"
+
+templateExpected :: ([[Int]], Templates.Expr, Templates.Expr)
+templateExpected = ([[1, 2], [3]], Templates.Add (Templates.Add (Templates.Num 1) (Templates.Num 2)) (Templates.Num 3), Templates.Vars ["a", "b"])
+
+descendantKinds :: SyntaxNode -> [SyntaxKind]
+descendantKinds n = syntaxKind n : concatMap descendantKinds (syntaxChildren n)
 
 flipE :: Either a b -> Either b a
 flipE = either Right Left

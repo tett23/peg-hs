@@ -31,10 +31,10 @@ data Top
     TDirective Loc Text Loc Text
   | -- | Location of the body and the body.
     TVerbatim Loc Text
-  | -- | Location, rule name, parameters, type.
-    TAnnot Loc Text [Param] (Located Text)
-  | -- | Location, rule name, alternatives.
-    TDef Loc Text [Alt]
+  | -- | Location, rule name, parameters, template parameters (ADR 0031), type.
+    TAnnot Loc Text [Param] [TemplateParam] (Located Text)
+  | -- | Location, rule name, names of the template parameters, alternatives.
+    TDef Loc Text [Text] [Alt]
   deriving (Eq, Show)
 
 -- | Whether a character can start an identifier (ADR 0020).
@@ -131,13 +131,14 @@ assemble items =
     tabstop = case single "tabstop" of
       Just (Located l a) | T.all isDigit a, not (T.null a) -> Just (Located l (read (T.unpack a)))
       _ -> Nothing
-    annots = M.fromListWith (flip (++)) [(n, [(l, ps, ty)]) | TAnnot l n ps ty <- items]
-    defs = [(l, n, alts) | TDef l n alts <- items]
+    annots = M.fromListWith (flip (++)) [(n, [(l, ps, tps, ty)]) | TAnnot l n ps tps ty <- items]
+    defs = [(l, n, alts) | TDef l n _ alts <- items]
+    defTemplateNames = M.fromList [(n, (l, tns)) | TDef l n tns _ <- items]
     defCounts = M.fromListWith (+) [(n, 1 :: Int) | (_, n, _) <- defs]
     rules =
-      [ Rule n l ps ty alts
+      [ Rule n l ps tps ty alts
       | (l, n, alts) <- defs
-      , Just ((_, ps, ty) : _) <- [M.lookup n annots]
+      , Just ((_, ps, tps, ty) : _) <- [M.lookup n annots]
       ]
     errors =
       [Diagnostic l ("unknown directive %" <> n) | (l, n, _) <- directives, n `notElem` known]
@@ -179,11 +180,11 @@ assemble items =
            , not (M.member n annots)
            ]
         ++ [ Diagnostic l ("rule " <> n <> " has a type annotation but no definition")
-           | (n, (l, _, _) : _) <- M.toList annots
+           | (n, (l, _, _, _) : _) <- M.toList annots
            , not (M.member n defCounts)
            ]
         ++ [ Diagnostic l ("duplicate type annotation for " <> n)
-           | (n, _ : (l, _, _) : _) <- M.toList annots
+           | (n, _ : (l, _, _, _) : _) <- M.toList annots
            ]
         ++ [ Diagnostic l ("duplicate definition of " <> n)
            | (n, c) <- M.toList defCounts
@@ -191,6 +192,12 @@ assemble items =
            , (l, _, _) : _ <- [drop 1 [d | d@(_, n', _) <- defs, n' == n]]
            ]
         ++ [Diagnostic (Loc 1 1) "the grammar has no rules" | null defs, isJust moduleName]
+        -- ADR 0031
+        ++ [ Diagnostic dl ("the template parameters of the definition of " <> n <> " do not match its type annotation")
+           | (n, (dl, tns)) <- M.toList defTemplateNames
+           , Just ((_, _, tps, _) : _) <- [M.lookup n annots]
+           , tns /= map templateParamName tps
+           ]
 
 -- The lexical form of a GHC language extension name.
 isExtensionName :: Text -> Bool

@@ -152,6 +152,8 @@ exprAbs p = \case
   ENot x -> Abs none (passNotEmpty p x) (passNotSure p x)
   ECapture x -> exprAbs p x
   ELabel _ x _ -> exprAbs p x
+  EDiscard x -> exprAbs p x
+  ETemplate {} -> Abs everything everything none
   EPred _ _ -> Abs none everything none
 
 fixpoint :: [Rule] -> (Env -> Pass) -> Env
@@ -242,6 +244,7 @@ sites r =
           ENot x -> exprSites (FNot l : fs) l x
           ECapture x -> exprSites (FCapture : fs) l x
           ELabel _ x _ -> exprSites (FLabel : fs) l x
+          EDiscard x -> exprSites (FCapture : fs) l x
           _ -> []
     isSite = \case
       ELabel {} -> True
@@ -470,6 +473,7 @@ commonPrefix xs ys = length (takeWhile id (zipWith (\a b -> plain (itemExpr a) =
       ENot x -> ENot (plain x)
       ECapture x -> ECapture (plain x)
       ELabel _ x n -> ELabel noLoc (plain x) n
+      EDiscard x -> EDiscard (plain x)
       EPred b (Located _ c) -> EPred b (Located noLoc c)
       e -> e
     noLoc = Loc 0 0
@@ -520,6 +524,7 @@ nullableExpr known = \case
   EPlus x -> nullableExpr known x
   ECapture x -> nullableExpr known x
   ELabel _ x _ -> nullableExpr known x
+  EDiscard x -> nullableExpr known x
   _ -> True
 
 leftCalls :: Set Text -> [Item] -> [Text]
@@ -537,6 +542,7 @@ leftCalls known = go
       ENot x -> calls x
       ECapture x -> calls x
       ELabel _ x _ -> calls x
+      EDiscard x -> calls x
       _ -> []
 
 -- Removing labels -----------------------------------------------------------------
@@ -562,6 +568,7 @@ stripLabels g =
     item i = i {itemExpr = expr (itemExpr i)}
     expr = \case
       ELabel _ x _ -> expr x
+      EDiscard x -> EDiscard (expr x)
       EGroup alts -> EGroup (map (map item) alts)
       EStar x -> EStar (expr x)
       EPlus x -> EPlus (expr x)

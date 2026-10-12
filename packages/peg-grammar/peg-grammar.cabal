@@ -36,6 +36,7 @@ library
     Peg.Grammar.Check
     Peg.Grammar.Labels
     Peg.Grammar.Parser
+    Peg.Grammar.Templates
   other-modules:
     Peg.Grammar.SelfHosted
   build-depends:

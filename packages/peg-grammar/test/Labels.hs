@@ -16,6 +16,7 @@ import Peg.Grammar.Check
 import Peg.Grammar.Labels
 import Peg.Grammar.Assemble (assemble)
 import Peg.Grammar.Parser
+import Peg.Grammar.Templates (expandTemplates)
 import qualified SelfHostedNoLabels
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
@@ -36,8 +37,8 @@ labelTests files =
         fmap (const ()) (parseGrammar (grammar ["S :: ()", "S <- 'a' { () }", "%safe nolabel"]) >>= check)
           @?= Left [Diagnostic (Loc 4 1) "the label nolabel does not appear in the grammar"]
     , testCase "the grammars of the repository have no warnings" $ do
-        ws <- mapM (\f -> (,) f . either (const []) labelWarnings . (>>= \g -> g <$ check g) <$> grammarOf f) files
-        [(f, w) | (f, w) <- ws, not (null w)] @?= []
+        ws <- mapM (\f -> (,) f . fmap labelWarnings . (>>= \g -> g <$ check g) . (>>= expandTemplates) <$> grammarOf f) files
+        [(f, w) | (f, w) <- ws, w /= Right []] @?= []
     , goldenVsString "the warnings" "test/golden/label-warnings.txt" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
           concat
@@ -115,7 +116,7 @@ indirect = grammar ["S :: ()", "S <- A { () }", "A :: ()", "A <- B 'x' ('y' ^l) 
 
 warningsOf :: Text -> Either [Diagnostic] [Diagnostic]
 warningsOf src = do
-  g <- parseGrammar src
+  g <- parseGrammar src >>= expandTemplates
   _ <- check g
   pure (labelWarnings g)
 
@@ -138,6 +139,7 @@ hasLabels g = any (any (any (exprHasLabel . itemExpr) . altItems) . ruleAlts) (g
       EAnd x -> exprHasLabel x
       ENot x -> exprHasLabel x
       ECapture x -> exprHasLabel x
+      EDiscard x -> exprHasLabel x
       _ -> False
 
 -- An interpreter ---------------------------------------------------------------
@@ -198,6 +200,8 @@ run withLabels g input = case grammarRules g of
           Fail | withLabels -> Just Throw
           r -> Just r
       EPred _ _ -> Just (Ok i)
+      EDiscard x -> expr x i fuel
+      ETemplate {} -> Nothing
     star x i fuel =
       expr x i fuel >>= \case
         Ok j | j > i -> star x j fuel
