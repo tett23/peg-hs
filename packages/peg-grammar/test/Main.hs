@@ -47,6 +47,11 @@ main = do
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files
+      , testCase "a grammar with neither templates nor template calls is the same after expansion (ADR 0052)" $ do
+          srcs <- mapM TIO.readFile files
+          let plain = [g | Right g <- map parseGrammar srcs, not (any (not . null . ruleTemplateParams) (grammarRules g))]
+          assertBool "grammars without templates" (not (null plain))
+          [g | g <- plain, expandTemplates g /= Right g, not (hasTemplateCall g)] @?= []
       , formatTests files
       , lintTests files
       , shardTests
@@ -358,6 +363,10 @@ templateTests =
         checkErrors (t "S :: [Int]\nS <- List") @?= ["the template List needs arguments: List<...>"]
     , testCase "a call of a rule that is not a template" $
         checkErrors (t "S :: Int\nS <- N<','>") @?= ["rule N is not a template"]
+    , testCase "a template call in a grammar without templates (ADR 0052)" $
+        expansionErrors "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n" @?= [(3, 6, "rule B is not a template")]
+    , testCase "a template call of a missing rule in a grammar without templates (ADR 0052)" $
+        expansionErrors "%module M\nA :: ()\nA <- 'a' X<'x'> { () }\n" @?= [(3, 10, "rule X is not a template")]
     , testCase "a template named in %entry" $
         checkErrors (t "%entry List\nS :: [Int]\nS <- List<N, ','>") @?= ["the template List cannot be named in %entry"]
     , testCase "the parameters of the definition and the annotation differ" $
@@ -496,3 +505,27 @@ completeGrammars = go . zip [1 ..] . T.lines
         let (body, rest') = break (isFence . snd) rest
          in [(n, T.unlines (map snd body)) | (n, l) : _ <- [body], "%module" `T.isPrefixOf` l] ++ go (drop 1 rest')
     isFence = T.isPrefixOf "```"
+
+-- The errors of expanding the templates of a grammar, as (line, column,
+-- message).
+expansionErrors :: Text -> [(Int, Int, Text)]
+expansionErrors src = case parseGrammar src >>= expandTemplates of
+  Left ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- ds]
+  Right _ -> []
+
+-- Whether a grammar calls a template anywhere.
+hasTemplateCall :: Grammar -> Bool
+hasTemplateCall g = any (any (any (expr . itemExpr) . altItems) . ruleAlts) (grammarRules g)
+  where
+    expr = \case
+      ETemplate {} -> True
+      EGroup alts -> any (any (expr . itemExpr)) alts
+      EStar x -> expr x
+      EPlus x -> expr x
+      EOpt x -> expr x
+      EAnd x -> expr x
+      ENot x -> expr x
+      ECapture x -> expr x
+      ELabel _ x _ -> expr x
+      EDiscard x -> expr x
+      _ -> False

@@ -555,7 +555,7 @@ exprCodeU env used expr = case expr of
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
   EDiscard x -> wrap "PegRt.voidP" False x
-  ETemplate {} -> error "a template call must be expanded before generating code"
+  ETemplate {} -> error "a template call must be expanded before generating code: call Peg.Grammar.Templates.expandTemplates first"
   where
     opts = envOpts env
     valued x = used && hasValue (units env) x
@@ -780,7 +780,7 @@ exprCodeSU env used expr = case expr of
     e <- exprCodeSU env used x
     pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (used && hasValue (units env) x) name <> " (" <> e <> ")")
   EDiscard x -> wrap "PegRt.voidS" False x
-  ETemplate {} -> error "a template call must be expanded before generating code"
+  ETemplate {} -> error "a template call must be expanded before generating code: call Peg.Grammar.Templates.expandTemplates first"
   where
     plainOf = do
       e <- exprCode env expr

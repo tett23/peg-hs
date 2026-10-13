@@ -10,7 +10,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
-import Peg.Grammar (Loc (..))
+import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Highlight
 import Peg.Lsp.Json
 import Peg.Lsp.Rpc
@@ -58,6 +58,9 @@ main =
                 Right out ->
                   let ids xs = sort (mapMaybe (\m -> member "id" m >>= asInt) xs)
                    in ids out === ids [m | m <- msgs, member "method" m /= Nothing]
+      , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
+          [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
+            @?= [(3, 6, "rule B is not a template")]
       , skippedWithout "../peg-grammar/grammar/Peg.hpeg" "the notation's grammar has no errors in the server" $ do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           [d | (Error, d, _) <- diagnose src] @?= []
