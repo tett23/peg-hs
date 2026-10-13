@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -619,8 +619,46 @@ List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 `%syntax` の文法では、雛形の呼び出しはノードを作らず、子を呼び出し元に並べる。
 展開した規則の中の誤りは、雛形の定義の位置で報告される。
 
-雛形は、引数付き規則の引数（`Name(x :: Int)`）を取れない。
-`%start`、`%entry`、`%recover`、`%nomemo`、`%token`、`%trivia`、`%inline` に雛形を書くこともできない。
+`%start`、`%entry`、`%recover`、`%nomemo`、`%token`、`%trivia`、`%inline` に雛形を書くことはできない。
+
+### 呼び出し元の引数を使う雛形の引数
+
+雛形の引数の中では、呼び出し元の規則の引数（[引数付き規則](#引数付き規則)）を使える（[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)）。
+字下げの深さを引数で渡す文法でも、「空行を挟んで同じものが続く」形を一度だけ書ける。
+
+```hpeg
+%module Example.Items
+
+Doc :: ()
+Doc <- Items(0) { () }
+
+Items(ind :: Int) :: ()
+Items <- Lines<Item(ind)> { () }
+
+# 改行を挟んで p が続く
+Lines<p> :: ()
+Lines<p> <- p ('\n' p)* { () }
+
+# ちょうど ind 個の空白の後の項目
+Item(ind :: Int) :: ()
+Item <- ' '* &{ _col == ind } '-' { () }
+```
+
+展開した規則は、引数が使った呼び出し元の引数を、同じ名前と型で受け取る。
+上の `Lines<Item(ind)>` は `Lines'0(ind)` の呼び出しになり、`Lines'0` は `ind :: Int` を引数に持つ引数付き規則になる。
+
+- 取り込むのは、引数の中の Haskell の断片（規則の呼び出しの引数と意味述語）に現れる名前である。修飾名（`M.ind`）、文字列と文字のリテラルの中、予約束縛（`_env`、`_col`、`_span`）は数えない
+- 引数を二つ以上取り込むときは、名前の順に並べる。型は呼び出し元の型注釈に書いたものである
+- 同じ引数で別の規則から呼ぶと、取り込んだ引数の型が同じなら同じ展開した規則を使い、違えば別の規則にする
+- 雛形の本体が雛形を呼ぶときも、引数は内側の雛形に渡っていく
+- 取り込んだ引数を持つ展開した規則は引数付き規則なので、左再帰に加われない。誤りは雛形の定義の位置で報告される
+
+雛形の引数は、呼び出し元の選択肢の束縛（`x:N` の `x`）を使えない。
+束縛の型は束縛した式から推論しないと分からず、展開した規則の引数の型を書けないからである。
+
+取り込む名前が雛形の本体の束縛やコードの名前と同じだと、取り込めない。
+雛形の引数は本体に埋め込まれるので、本体の束縛 `x` の後ろに置かれた引数の `x` は、呼び出し元の引数ではなく本体の束縛を指してしまう。
+この場合は、呼び出し元の引数の名前を変える。
 
 よくある誤り：
 
@@ -634,6 +672,8 @@ List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 | `%entry K` のように雛形を指定した | `error: the template K cannot be named in %entry` |
 | 雛形でない規則を山括弧で呼んだ（`B<'x'>`） | `error: rule B is not a template` |
 | 雛形が雛形を際限なく呼ぶ（`T<p> <- T<(p p)>`） | `error: the expansion of the template T does not end: templates call templates more than 64 levels deep` |
+| 雛形の引数が呼び出し元の束縛を使った（`x:N Lines<Item(x)>`） | `error: the argument of the template Lines uses the binding x, which a template cannot take` |
+| 本体で `x` を使う雛形の引数が、呼び出し元の引数 `x` を使った | `error: the template T uses the name x in its body, so its argument cannot take the parameter x of the rule B; rename the parameter` |
 
 ## 左再帰
 

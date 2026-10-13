@@ -38,6 +38,13 @@ The first release. peg-grammar reads `.hpeg` grammars and checks them.
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
 
+Since v0.1.0-rc1:
+
+- The arguments of a template may use the parameters of the rule that
+  calls it, as `Lines<Item(ind)>` in `B(ind :: Int)`. The instance takes
+  those parameters, and an argument that uses a binding of the caller is
+  an error ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:
