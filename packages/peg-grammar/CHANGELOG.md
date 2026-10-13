@@ -74,3 +74,7 @@ Since v0.1.0-rc1:
 - With `%syntax`, two rules with the same type name, such as `expr` and
   `Expr`, are an error; `syntaxTypeName` gives the name
   ([ADR 0053](https://github.com/tett23/peg-hs/blob/main/docs/adr/0053-type-names-of-rules-without-case.md)).
+- The label safety check compares alternatives with the other labels
+  removed, so a label does not change the judgement of another; a template
+  argument passed on to a template call is passed as it is, so a template
+  that calls itself expands ([ADR 0056](https://github.com/tett23/peg-hs/blob/main/docs/adr/0056-label-insertion-and-template-deviations.md)).

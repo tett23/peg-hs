@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -1113,6 +1113,7 @@ Grammar.hpeg:3:11: warning: the label l may reject valid input: where it fails, 
 ほかに、繰り返しが続きうる（`the repetition at 行:桁 can continue`）、ラベルの後で解析が続きうる（`the parse can continue at 行:桁`）、入口の規則の後で入力が終わりうる（`the input can end after the rule A, which is an entry`）などがある。
 
 各ラベルは、ほかのラベルをすべて外した文法の上で判定する（[ADR 0029](adr/0029-label-safety-implementation-deviations.md)）。
+選択肢の共通の部分を比べるときも、ほかのラベルを除いて比べるので、ほかのラベルの有無で判定は変わらない（[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)）。
 入れ子のラベルでは、外側のラベルは内側の失敗をそのまま外へ伝えるものとして扱う。
 そのため、警告が一つもない文法は、ラベルをすべて外した文法と同じ入力を受理する。
 ほかのラベルが送出して止めるおかげで安全なラベルにも警告することがあるが、その代わりに保証が分かりやすくなる。
@@ -1174,7 +1175,7 @@ List <- '[' v:Num ^List_Num vs:(',' Num ^List_Num_2)* ']' ^List_rbracket !. { v 
 
 挿入されない位置もある。
 `%recover` を持つラベルを付けた式の内側と、そこから呼ぶ規則には挿入しない。回復の規則を持たないラベルの送出は外側の回復を素通りするので、回復していた誤りが文法全体の誤りに変わってしまうからである。
-`peg-hs lint` が「後の選択肢は試されない」と警告する、常に成功する選択肢とそこから呼ぶ規則にも挿入しない。そこにラベルがあると lint の判定が変わるためである。
+`peg-hs lint` が「後の選択肢は試されない」と警告する、常に成功する選択肢とそこから呼ぶ規則にも挿入しない。そこにラベルがあると lint の判定が変わり、決して試されない選択肢への警告が消えてしまうためである（[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)）。
 意味述語で文字を判定する規則の近くと間接の左再帰の中は、安全でも検査が示せないので、やはり挿入されない。
 
 挿入したラベルは回復しない。
