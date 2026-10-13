@@ -51,6 +51,7 @@ main = do
       , lintTests files
       , shardTests
       , recoveryTests files
+      , documentExampleTests
       , testGroup "editor grammars" [if editors then rangeTests files else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
       , testCaseInfo "the grammars of the repository" (pure (unlines' [ "skipped: " <> d <> " is not in a source archive" | d <- missing ]))
       ]
@@ -463,3 +464,35 @@ analysisTests =
         g <- parseOk "%module M\nA :: ()\nA <- !A 'a' { () }\n"
         fmap analysisLeftRecursive (either (Left . show) Right (check g)) @?= Right (S.fromList ["A"])
     ]
+
+-- Every complete grammar in the documents (a code block that starts with
+-- %module) parses and passes the checks (ADR 0046). Fragments are not
+-- checked.
+documentExampleTests :: TestTree
+documentExampleTests =
+  testGroup
+    "the complete grammars of the documents (ADR 0046)"
+    [ testCaseInfo doc $ do
+        exists <- doesDirectoryExist "../../docs"
+        if not exists
+          then pure ("skipped: ../../" <> doc <> " is not in a source archive")
+          else do
+            text <- TIO.readFile ("../../" <> doc)
+            let examples = completeGrammars text
+                bad = [(n, ds) | (n, src) <- examples, Left ds <- [parseGrammar src >>= \g -> either (Left . templateNotes g) Right (expandTemplates g >>= \g' -> g' <$ check g')]]
+            assertBool "no complete grammar" (not (null examples))
+            take 1 bad @?= []
+            pure (show (length examples) <> " grammars")
+    | doc <- ["docs/syntax.md", "README.md", "README.ja.md"]
+    ]
+
+-- The code blocks that start with %module, with the line of their start.
+completeGrammars :: Text -> [(Int, Text)]
+completeGrammars = go . zip [1 ..] . T.lines
+  where
+    go ls = case dropWhile (not . isFence . snd) ls of
+      [] -> []
+      (_, _) : rest ->
+        let (body, rest') = break (isFence . snd) rest
+         in [(n, T.unlines (map snd body)) | (n, l) : _ <- [body], "%module" `T.isPrefixOf` l] ++ go (drop 1 rest')
+    isFence = T.isPrefixOf "```"
