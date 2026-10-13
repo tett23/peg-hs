@@ -33,6 +33,12 @@ subcommands ([ADR 0037](https://github.com/tett23/peg-hs/blob/main/docs/adr/0037
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
 
+Since v0.1.0-rc1:
+
+- `peg-hs label`: insert labels where the label check shows them to be
+  safe, so that they do not change the language
+  ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:

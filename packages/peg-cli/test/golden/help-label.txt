@@ -1,0 +1,31 @@
+usage: peg-hs label [options] GRAMMAR.hpeg
+
+Find the positions where a label would be safe, and list the labels as FILE:LINE:COLUMN: ^NAME
+at the start of their expressions. A position is an item of a sequence after an item that
+always consumes input, and is kept only if the label check of peg-hs gen shows that the
+label cannot reject valid input. The labels therefore do not change the language. Nothing is
+inserted inside a label that has a recovery rule (%recover) or in the rules it calls, and no
+%recover or %safe is written. The file is read and written as UTF-8.
+
+A label is named RULE_TARGET after its rule and its expression: the rule of a reference, the
+text of a literal of identifier characters, lit for other literals, class, any and group, and
+for a literal of one symbol:
+  ( lparen     ) rparen     [ lbracket   ] rbracket   { lbrace     } rbrace
+  < lt         > gt         , comma      ; semi       : colon      . dot
+  = eq         + plus       - minus      * star       / slash      \ backslash
+  | bar        & amp        ! bang       ? question   # hash       % percent
+  ^ caret      ~ tilde      @ at         $ dollar     ` backquote  " dquote
+  ' quote
+
+A name already used gets _2, _3 and so on.
+
+options:
+  --write                   insert the labels in the file, and list them
+  --rule RULE               insert only in RULE; can be given more than once
+  -h, --help                show this help
+
+examples:
+  peg-hs label Expr.hpeg
+      list the labels that can be inserted in Expr.hpeg
+  peg-hs label --write --rule Stmt Lua.hpeg
+      insert the labels in the rule Stmt of Lua.hpeg
