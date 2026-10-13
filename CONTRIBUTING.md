@@ -101,16 +101,16 @@ At the end, the script runs `scripts/embed-runtime.py`, which rewrites the sourc
 Run the script also after changing the sources of peg-runtime.
 If `Embedded.hs` is out of date, the tests of peg-cli fail.
 
-The parser of the notation is generated from the notation's own grammar, `packages/peg-grammar/grammar/Peg.peg` ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)).
-To add a construct to the notation and use it in `Peg.peg` itself, regenerate twice.
-The current generator cannot read the construct, so changing both at once leaves `Peg.peg` impossible to generate.
+The parser of the notation is generated from the notation's own grammar, `packages/peg-grammar/grammar/Peg.hpeg` ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)).
+To add a construct to the notation and use it in `Peg.hpeg` itself, regenerate twice.
+The current generator cannot read the construct, so changing both at once leaves `Peg.hpeg` impossible to generate.
 
-1. Add the rules that accept the construct to `Peg.peg` without using it, and regenerate with `scripts/regen-fixtures.sh`
-2. Use the construct in `Peg.peg`, and run `scripts/regen-fixtures.sh` again with the new generator
+1. Add the rules that accept the construct to `Peg.hpeg` without using it, and regenerate with `scripts/regen-fixtures.sh`
+2. Use the construct in `Peg.hpeg`, and run `scripts/regen-fixtures.sh` again with the new generator
 
 Grammars of the repository are committed formatted with `peg-hs fmt` ([ADR 0032](docs/adr/0032-grammar-formatter.md)).
 They have no warnings of `peg-hs lint` either ([ADR 0033](docs/adr/0033-grammar-linter.md)).
-Without arguments, both take every `.peg` file under the current directory.
+Without arguments, both take every `.hpeg` file under the current directory.
 CI runs these two at the root of the repository:
 
 ```sh
@@ -307,7 +307,7 @@ cabal test peg-grammar --test-options=--accept
 The scopes of each token of the TextMate grammar are compared with `editors/test/textmate.golden.txt`.
 When a change of scopes is intended, rewrite it with `UPDATE=1 npm test`.
 
-After changing the tree-sitter grammar, also commit `editors/tree-sitter-peg/src`, which `npm test` regenerates.
+After changing the tree-sitter grammar, also commit `editors/tree-sitter-hpeg/src`, which `npm test` regenerates.
 The `editors` job of CI checks that regenerating it leaves no difference from the committed files.
 
 ## Release procedure

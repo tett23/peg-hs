@@ -5,11 +5,11 @@ Added, Changed, Removed and Fixed, with the ADRs that decided it.
 
 ## 0.1.0.0
 
-The first release. peg-grammar reads `.peg` grammars and checks them.
+The first release. peg-grammar reads `.hpeg` grammars and checks them.
 
 ### Added
 
-- The parser of the `.peg` notation, written in the notation itself
+- The parser of the `.hpeg` notation, written in the notation itself
   ([ADR 0004](https://github.com/tett23/peg-hs/blob/main/docs/adr/0004-peg-notation.md),
   [ADR 0020](https://github.com/tett23/peg-hs/blob/main/docs/adr/0020-unicode-identifiers-self-hosted.md),
   [ADR 0027](https://github.com/tett23/peg-hs/blob/main/docs/adr/0027-switch-to-self-hosted-parser.md)).
@@ -37,3 +37,10 @@ The first release. peg-grammar reads `.peg` grammars and checks them.
   [ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/0035-language-server.md)).
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+
+### Changed
+
+Since v0.1.0-rc1:
+
+- The notation is called the `.hpeg` notation, after the extension of its
+  files ([ADR 0050](https://github.com/tett23/peg-hs/blob/main/docs/adr/0050-hpeg-extension.md)).

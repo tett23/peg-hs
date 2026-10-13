@@ -5,7 +5,7 @@ Added, Changed, Removed and Fixed, with the ADRs that decided it.
 
 ## 0.1.0.0
 
-The first release. peg-lsp is the language server of `.peg` grammars, run
+The first release. peg-lsp is the language server of `.hpeg` grammars, run
 by `peg-hs lsp` ([ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/0035-language-server.md)).
 
 ### Added

@@ -64,12 +64,12 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 
 ### 生成するコード
 
-生成器は文法定義ファイル（`.peg`）を読み、単一の Haskell モジュールを出力する。
+生成器は文法定義ファイル（`.hpeg`）を読み、単一の Haskell モジュールを出力する。
 
 - 各規則はユーザーが指定した結果型を持ち、パーサーは中間表現を経由せず、利用者の定義した構文木の型（AST）の値を直接返す（[ADR 0003](adr/0003-typed-semantic-actions.md)）
 - 生成コードは peg-runtime の上で動く薄いコードとし、メモ化と左再帰の機構は peg-runtime が担う
 - 生成モジュールは、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。入口は入力の全体の消費を要求する。`%entry` で、ほかの規則にも入口を作れる。エクスポートの範囲、生成器の内部の名前と利用者の名前が衝突しない仕組み、位置の数え方は [ADR 0014](adr/0014-generated-module-api.md) に定める
-- アクションに書いた Haskell の式が型の誤りを起こすと、GHC はそれを `.peg` ファイルの行と桁で報告する（[ADR 0014](adr/0014-generated-module-api.md)）
+- アクションに書いた Haskell の式が型の誤りを起こすと、GHC はそれを `.hpeg` ファイルの行と桁で報告する（[ADR 0014](adr/0014-generated-module-api.md)）
 - `%language` で、生成モジュールの言語拡張を有効にできる。生成コードの意味を変える `RebindableSyntax` は拒否する（[ADR 0016](adr/0016-language-extensions.md)）
 - `%nomemo` で、規則ごとにメモ化を外せる。左再帰に関与する規則には指定できない（[ADR 0006](adr/0006-memoization-control.md)、[ADR 0017](adr/0017-nomemo-implementation.md)）
 
@@ -80,7 +80,7 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 
 生成器は、同じ文法と同じ引数からバイト単位で同じ出力を生成する。
 ただし、生成モジュールは `peg-hs gen` に渡された文法と出力のパスを、渡されたとおりに記録する。
-GHC の誤りの位置を `.peg` の行で示すためである。
+GHC の誤りの位置を `.hpeg` の行で示すためである。
 そのため、絶対パスを渡すと機械ごとに出力が変わる。
 生成モジュールをコンパイルするパッケージのディレクトリからの相対パスで渡せば、機械によらず同じ出力になり、エディタも誤りの位置を開ける（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 
@@ -138,7 +138,8 @@ lint や formatter のように、空白とコメントを扱う用途のため�
 - **言語サーバー** `peg-hs lsp`：LSP（Language Server Protocol）の言語サーバーを標準入出力で起動する。診断、整形、semantic tokens、定義への移動、参照の検索、ホバー、文書の記号を提供する。編集の途中の誤りを含む文書でも、回復した構文木をもとに働く（[ADR 0035](adr/0035-language-server.md)）
 - **ヘルプ** `peg-hs help`：コマンドの一覧を、`peg-hs help COMMAND` でそのコマンドの説明を表示する
 
-`fmt` と `lint` は、ファイルを指定しなければ、現在のディレクトリから再帰的にたどったすべての `.peg` ファイルを対象にする。
+`fmt` と `lint` は、ファイルを指定しなければ、現在のディレクトリから再帰的にたどったすべての `.hpeg` ファイルを対象にする。
+文法ファイルの拡張子は `.hpeg` である。以前の拡張子 `.peg` はほかの PEG の道具と重なるので探索では探さないが、ファイルを直接渡せば拡張子によらず扱う。エディタの言語の名前も `hpeg` とする（[ADR 0050](adr/0050-hpeg-extension.md)）。
 名前が `.` で始まるディレクトリと `dist-newstyle` はたどらない（[ADR 0032](adr/0032-grammar-formatter.md)）。
 
 すべてのコマンドは、次の約束に従う（[ADR 0037](adr/0037-cli-subcommands.md)、[ADR 0045](adr/0045-fixes-before-v0-1-0.md)、[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
@@ -255,7 +256,7 @@ Hackage に一度公開した版は取り消せないためである。
 言語サーバーも、メッセージの処理を純粋な関数とし、入出力と分ける（[ADR 0035](adr/0035-language-server.md)）。
 
 **自己記述**。
-`.peg` 記法のパーサーは、記法を peg-hs 自身で書いた文法から生成したものである（[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)）。
+`.hpeg` 記法のパーサーは、記法を peg-hs 自身で書いた文法から生成したものである（[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)）。
 記法の誤りの文言は、その文法のラベル（[ADR 0021](adr/0021-error-recovery.md)）から作る。
 
 **依存の最小化**。
@@ -268,7 +269,7 @@ Hackage に一度公開した版は取り消せないためである。
 packages/
   peg-runtime   -- 生成コードが依存する実行時ライブラリ
                 --   入力、位置、失敗（ラベル付き）、メモ化、左再帰、回復、ロスレスな構文木
-  peg-grammar   -- .peg 記法のパーサー（自己記述）、文法 AST、静的検査、整形と lint
+  peg-grammar   -- .hpeg 記法のパーサー（自己記述）、文法 AST、静的検査、整形と lint
   peg-codegen   -- 文法 AST から Haskell ソースへの純関数変換
   peg-lsp       -- 言語サーバー
   peg-cli       -- コマンド peg-hs（gen、fmt、lint、parse、lsp、help）
@@ -277,7 +278,7 @@ packages/
 ```
 editors/
   textmate         -- TextMate の文法
-  tree-sitter-peg  -- tree-sitter の文法
+  tree-sitter-hpeg  -- tree-sitter の文法
   vscode           -- VS Code の拡張機能
 ```
 
@@ -324,7 +325,6 @@ ADR の連番は決定の順であり、実装の順ではない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
-- 文法ファイルの拡張子を `.peg` から `.hpeg` に変えること（v1 までの課題）。`.peg` はほかの PEG の道具（PEG.js、Peggy、pest など）の文法ファイルと重なり、エディタや GitHub の言語判定が取り違える。変えると、`fmt` と `lint` のファイルの探し方、エディタの文法と拡張機能、文書、リポジトリの文法の名前が変わる
 - 雛形と引数付き規則の組み合わせ。いまは、雛形の引数に呼び出し元の値の引数を使うことも、雛形に値の引数を持たせることもできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）は、記法、展開、静的検査、整形、lint、ハイライト、言語サーバーのすべてに影響が及ぶため、却下して残課題とした。Golem の文法のように字下げの深さを引数で渡す文法で、同じ形を雛形にまとめられない
 - 雛形を一つも定義していない文法での雛形の呼び出し。`A <- B<'x'> { () }` のように普通の規則を `<...>` で呼ぶと、`peg-hs gen` は「rule B is not a template」の誤りにならず、内部の誤り（`a template call must be expanded before generating code`）で止まり、`peg-hs lint` は何も報告しない。雛形の展開（[ADR 0031](adr/0031-rule-templates.md)）が、雛形のない文法では呼び出しを調べずに文法を返すためである。雛形を一つでも定義した文法では、正しい誤りになる
 - 大文字と小文字の区別のない文字で始まる規則名と `%syntax`。規則名と束縛には Unicode の文字を使える（[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)）が、`%syntax` の文法は規則名から型名（`数式Syntax` など）を作る（[ADR 0019](adr/0019-lossless-syntax-tree.md)）。Haskell の型名は大文字で始まらなければならず、漢字や仮名は大文字として扱われないので、生成モジュールのコンパイルが GHC の誤り（`Expecting a type constructor but found a variable`）になる。`peg-hs parse` は構文木を表示するために常に `%syntax` を有効にして生成する（[ADR 0036](adr/0036-parse-command.md)）ので、`%syntax` を書いていない文法でも、このような規則名があれば `parse` が失敗する。生成器が型名に接頭辞を付ける、生成の前に誤りとして報告する、`parse` で AST だけを表示するときは `%syntax` を有効にしない、などの直し方がありうる

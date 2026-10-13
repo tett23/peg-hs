@@ -101,16 +101,16 @@ scripts/regen-fixtures.sh
 peg-runtime のソースを変えたときも、このスクリプトを動かす。
 `Embedded.hs` が古いと、peg-cli のテストが失敗する。
 
-記法の構文解析器は、記法自身の文法（`packages/peg-grammar/grammar/Peg.peg`）から生成している（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。
-記法に構文を加え、その構文を `Peg.peg` 自身で使う場合は、二回に分けて生成し直す。
-いまの生成器はその構文を読めないので、一度に変えると `Peg.peg` を生成できないためである。
+記法の構文解析器は、記法自身の文法（`packages/peg-grammar/grammar/Peg.hpeg`）から生成している（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。
+記法に構文を加え、その構文を `Peg.hpeg` 自身で使う場合は、二回に分けて生成し直す。
+いまの生成器はその構文を読めないので、一度に変えると `Peg.hpeg` を生成できないためである。
 
-1. 構文を受理する規則を、その構文を使わずに `Peg.peg` に加え、`scripts/regen-fixtures.sh` で生成し直す
-2. `Peg.peg` でその構文を使い、新しい生成器でもう一度 `scripts/regen-fixtures.sh` を動かす
+1. 構文を受理する規則を、その構文を使わずに `Peg.hpeg` に加え、`scripts/regen-fixtures.sh` で生成し直す
+2. `Peg.hpeg` でその構文を使い、新しい生成器でもう一度 `scripts/regen-fixtures.sh` を動かす
 
 リポジトリの文法は `peg-hs fmt` で整形してからコミットする（[ADR 0032](docs/adr/0032-grammar-formatter.md)）。
 `peg-hs lint` の警告も残さない（[ADR 0033](docs/adr/0033-grammar-linter.md)）。
-引数を付けないと、どちらも現在のディレクトリの下のすべての `.peg` を対象にする。
+引数を付けないと、どちらも現在のディレクトリの下のすべての `.hpeg` を対象にする。
 CI は、リポジトリの直下で次の二つを動かす。
 
 ```sh
@@ -307,7 +307,7 @@ cabal test peg-grammar --test-options=--accept
 TextMate の文法のトークンごとのスコープは、`editors/test/textmate.golden.txt` と比べる。
 意図してスコープを変えたときは、`UPDATE=1 npm test` で書き直す。
 
-tree-sitter の文法を変えたら、`npm test` が生成し直した `editors/tree-sitter-peg/src` もコミットする。
+tree-sitter の文法を変えたら、`npm test` が生成し直した `editors/tree-sitter-hpeg/src` もコミットする。
 CI の `editors` のジョブは、生成し直した結果とコミットしたものに差がないことを確かめる。
 
 ## リリースの手順
