@@ -1,0 +1,18 @@
+# Changelog of peg-lsp
+
+The format follows the release notes of peg-hs: each version lists what was
+Added, Changed, Removed and Fixed, with the ADRs that decided it.
+
+## 0.1.0.0
+
+The first release. peg-lsp is the language server of `.peg` grammars, run
+by `peg-hs lsp` ([ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/0035-language-server.md)).
+
+### Added
+
+- Diagnostics of syntax errors, static checks and the linter, while the
+  grammar is being edited.
+- Formatting ([ADR 0032](https://github.com/tett23/peg-hs/blob/main/docs/adr/0032-grammar-formatter.md)), go to
+  definition, hover, document symbols and semantic tokens.
+- The JSON and JSON-RPC that the server needs, without dependencies on
+  other LSP libraries.
