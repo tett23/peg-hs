@@ -2,7 +2,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Tests of the label safety check (ADR 0028).
-module Labels (labelTests) where
+module Labels
+  ( labelTests
+  , unsafeSnippets
+  , safeSnippets
+  , preciseSnippets
+  , indirect
+  , grammar
+  , genGrammar
+  , run
+  , inputs
+  , warnedLabels
+  ) where
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map.Strict as M

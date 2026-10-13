@@ -88,7 +88,7 @@ cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) 
 ## 生成物の再生成
 
 生成したモジュールは、リポジトリにコミットする。
-対象は、codegen の fixture、適合性テストの文法から生成したパーサー、記法の自己記述のパーサー、ラベルを外した変種である。
+対象は、codegen の fixture、適合性テストの文法から生成したパーサー、記法の自己記述のパーサー、ラベルを外した変種、`peg-hs label` でラベルを挿入した JSON の文法（[ADR 0054](docs/adr/0054-automatic-label-insertion.md)）である。
 テストが、コミットした生成物と生成器の現在の出力が一致することを検査する。
 生成器か文法を変えたら、次で生成し直す。
 

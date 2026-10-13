@@ -1,6 +1,7 @@
 -- | JSON conformance (ADR 0010), run against nst/JSONTestSuite.
 module Main (main) where
 
+import qualified Conformance.Bench.JsonLabeled as JsonLabeled
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonRecover as JsonRecover
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
@@ -17,7 +18,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
-import Peg.Runtime (SyntaxError (..), renderParseError)
+import Peg.Grammar.LabelInsertion (Insertion (..), insertLabels)
+import Peg.Runtime (ParseError (..), SyntaxError (..), renderParseError)
 import System.Directory (listDirectory)
 import System.FilePath ((</>))
 import Test.Tasty
@@ -85,6 +87,25 @@ main = do
               let (v, errs) = JsonRecover.parseRecover (T.pack "[1, @, 3]")
               fmap show v @?= Just (show (JsonRecover.Array [JsonRecover.Number (T.pack "1"), JsonRecover.Null, JsonRecover.Number (T.pack "3")]))
               map syntaxErrorLabel errs @?= [Just (T.pack "value")]
+          ]
+      , testGroup
+          "labels inserted by peg-hs label (ADR 0054)"
+          [ testCase "the grammar is json/Json.hpeg with the labels of peg-hs label, and its parser is up to date" labeledDerived
+          , testCase "the labels do not change the accepted language" $ do
+              rs <- mapM (\f -> (,) f <$> labeledAgree f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testCase "the labels do not change the accepted language on mutated valid cases" $ do
+              srcs <- mapM (\f -> TE.decodeUtf8' <$> B.readFile (dataDir </> f)) (named "y_")
+              let mutants t = concat [[T.take i t <> T.drop (i + 1) t, T.take (i + 1) t <> T.drop i t] | i <- [0 .. T.length t - 1]]
+                  bad = [m | Right t <- srcs, m <- mutants t, isRight (Json.parse m) /= isRight (JsonLabeled.parse m)]
+              assertBool ("differ: " <> show (take 3 bad)) (null bad)
+          , testCaseInfo "the rejected cases whose error names an inserted label" $ do
+              src <- TIO.readFile "json/Json.hpeg"
+              let inserted = either (const []) (map insertionName . fst) (insertLabels [] src)
+              rs <- mapM (\f -> TE.decodeUtf8' <$> B.readFile (dataDir </> f)) files
+              let rejected = [e | Right t <- rs, Left e <- [JsonLabeled.parse t]]
+                  named' = [l | e <- rejected, Just l <- [parseErrorLabel e], l `elem` inserted]
+              pure (show (length named') <> " of " <> show (length rejected) <> " rejected inputs, with " <> show (length inserted) <> " labels")
           ]
       , testGroup
           "%nomemo variant (ADR 0017)"
@@ -231,6 +252,27 @@ labelledDerived = do
       normalise = map unlabel . T.lines . body
   normalise (T.replace (T.pack "Conformance.Bench.JsonRecover") (T.pack "Conformance.Json.Parser") withoutRecovery)
     @?= normalise (T.stripEnd base <> T.pack "\n")
+
+-- The grammar with the labels of peg-hs label is written by
+-- scripts/regen-fixtures.sh (ADR 0054).
+labeledDerived :: Assertion
+labeledDerived = do
+  base <- TIO.readFile "json/Json.hpeg"
+  committed <- TIO.readFile "bench/JsonLabeled.hpeg"
+  let renamed = T.replace (T.pack "%module Conformance.Json.Parser") (T.pack "%module Conformance.Bench.JsonLabeled") base
+  fmap snd (insertLabels [] renamed) @?= Right committed
+  assertBool "labels are inserted" (committed /= renamed)
+  code <- B.readFile "bench/Conformance/Bench/JsonLabeled.hs"
+  case generateFromSource (Options "bench/JsonLabeled.hpeg" "bench/Conformance/Bench/JsonLabeled.hs" False) committed of
+    Left ds -> assertFailure (show ds)
+    Right out -> assertBool "regenerate bench/Conformance/Bench/JsonLabeled.hs" (TE.encodeUtf8 out == code)
+
+labeledAgree :: FilePath -> IO Bool
+labeledAgree name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> isRight (Json.parse t) == isRight (JsonLabeled.parse t)
 
 labelsAgree :: FilePath -> IO Bool
 labelsAgree name = do

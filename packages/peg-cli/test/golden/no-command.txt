@@ -4,6 +4,7 @@ commands:
   gen     generate a Haskell module from a grammar
   fmt     format grammars
   lint    lint grammars
+  label   insert the labels that are shown to be safe
   lsp     run the language server on standard input and output
   parse   parse an input with a grammar and show its AST and CST
   help    show the commands, or the help of a command

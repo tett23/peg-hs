@@ -88,7 +88,7 @@ cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) 
 ## Regenerating generated files
 
 Generated modules are committed to the repository.
-They are the codegen fixtures, the parsers generated from the grammars of the conformance tests, the self-hosted parser of the notation, and the variants without labels.
+They are the codegen fixtures, the parsers generated from the grammars of the conformance tests, the self-hosted parser of the notation, the variants without labels, and the JSON grammar with the labels that `peg-hs label` inserts ([ADR 0054](docs/adr/0054-automatic-label-insertion.md)).
 The tests check that the committed files match the generator's current output.
 After changing the generator or a grammar, regenerate them:
 

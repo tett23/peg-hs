@@ -43,6 +43,7 @@ library
     Peg.Grammar.Check
     Peg.Grammar.Format
     Peg.Grammar.Highlight
+    Peg.Grammar.LabelInsertion
     Peg.Grammar.Labels
     Peg.Grammar.Lint
     Peg.Grammar.Outline
@@ -69,6 +70,7 @@ test-suite peg-grammar-test
   hs-source-dirs:   test test/generated
   other-modules:
     Format
+    LabelInsertion
     Labels
     Lint
     Ranges

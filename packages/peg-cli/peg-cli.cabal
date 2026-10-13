@@ -34,6 +34,7 @@ executable peg-hs
   other-modules:
     Command.Fmt
     Command.Gen
+    Command.Label
     Command.Lint
     Command.Lsp
     Command.Parse

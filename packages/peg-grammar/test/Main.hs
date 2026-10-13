@@ -15,6 +15,7 @@ import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
 import Labels (labelTests)
+import LabelInsertion (labelInsertionTests)
 import Lint (lintTests)
 import Shard (Shard, shardTests, sharded)
 import Data.Proxy (Proxy (..))
@@ -49,6 +50,7 @@ main = do
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files
+      , labelInsertionTests files
       , testGroup
           "type names of the syntax tree (ADR 0053)"
           [ testCase "a type name from a rule name" $

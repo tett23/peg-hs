@@ -3,6 +3,7 @@ module Main (main) where
 
 import Command.Fmt (fmtCommand)
 import Command.Gen (genCommand)
+import Command.Label (labelCommand)
 import Command.Lint (lintCommand)
 import Command.Lsp (lspCommand)
 import Command.Parse (parseCommand)
@@ -17,7 +18,7 @@ import System.Exit (ExitCode (..), exitWith)
 import System.IO (hPutStr, hPutStrLn, stderr)
 
 commands :: [Command]
-commands = [genCommand, fmtCommand, lintCommand, lspCommand, parseCommand]
+commands = [genCommand, fmtCommand, lintCommand, labelCommand, lspCommand, parseCommand]
 
 overview :: String
 overview =

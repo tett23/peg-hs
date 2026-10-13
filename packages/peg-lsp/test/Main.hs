@@ -4,7 +4,7 @@ module Main (main) where
 import Control.Exception (SomeException, evaluate, try)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
-import Data.List (sort)
+import Data.List (sort, sortOn)
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -12,6 +12,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Highlight
+import Peg.Grammar.LabelInsertion (insertLabels)
 import Peg.Lsp.Json
 import Peg.Lsp.Rpc
 import Peg.Lsp.Server
@@ -70,10 +71,83 @@ main =
           drop 2 results @?= [object [("uri", String uri), ("range", rangeOf (6, 0) (6, 1))]]
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose src]
             @?= [(4, 6, "the template T takes no value arguments")]
+      , testGroup
+          "code actions (ADR 0054)"
+          [ testCase "the server offers code actions" $
+              (lastResult (session [initialize True]) >>= path ["capabilities", "codeActionProvider"]) @?= Just (Bool True)
+          , testCase "a label at a candidate, the same as peg-hs label --write" $ do
+              let actions = codeActionsAt actionGrammar "','"
+              map fst actions @?= ["Add the label ^S_comma", "Add the 3 labels that are safe"]
+              [applyAction actionGrammar a | (_, a) <- actions]
+                @?= [Right (T.replace "',' [a-z]" "',' ^S_comma [a-z]" actionGrammar), either (Left . show) (Right . snd) (insertLabels [] actionGrammar)]
+          , testCase "no label where there is no candidate" $
+              filter (T.isPrefixOf "Add the label" . fst) (codeActionsAt actionGrammar "'('") @?= []
+          , testCase "%recover for a reference, a literal and a class" $ do
+              let recoverAt needle = [(t, applyAction actionGrammar a) | (t, a) <- codeActionsAt actionGrammar needle, "Add %recover" `T.isPrefixOf` t]
+                  ruleOf out name = [l | Right o <- [out], l <- T.lines o, (name <> " ") `T.isPrefixOf` l]
+              [(t, ruleOf out "Recover_num") | (t, out) <- recoverAt "Num ^num"]
+                @?= [("Add %recover num and the rule Recover_num", ["Recover_num :: Int", "Recover_num <- (!',' .)* { _ }"])]
+              [(t, ruleOf out "Recover_lx") | (t, out) <- recoverAt "'x' ^lx"]
+                @?= [("Add %recover lx and the rule Recover_lx", ["Recover_lx :: ()", "Recover_lx <- (![\\n] .)* { _ }"])]
+              [(t, ruleOf out "Recover_cl") | (t, out) <- recoverAt "[a-z] ^cl"]
+                @?= [("Add %recover cl and the rule Recover_cl", ["Recover_cl :: ()", "Recover_cl <- (!')' .)* { _ }"])]
+              [out | (_, out) <- recoverAt "Num ^num", Right o <- [out], (Error, _, _) <- diagnose o] @?= []
+              [take 2 (drop 1 (T.lines o)) | (_, Right o) <- recoverAt "Num ^num"] @?= [["%recover blk Skip", "%recover num Recover_num"]]
+          , testCase "no %recover for a group, a label with %recover, and a covered label" $
+              [t | needle <- ["('y'", "B ^blk", "'c' ^inner"], (t, _) <- codeActionsAt actionGrammar needle, "Add %recover" `T.isPrefixOf` t] @?= []
+          ]
       , skippedWithout "../peg-grammar/grammar/Peg.hpeg" "the notation's grammar has no errors in the server" $ do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           [d | (Error, d, _) <- diagnose src] @?= []
       ]
+
+-- A grammar for the code actions: labels on a reference, a literal, a class
+-- and a group, a label with %recover and a label it covers.
+actionGrammar :: Text
+actionGrammar =
+  T.unlines
+    [ "%module M"
+    , "%recover blk Skip"
+    , ""
+    , "S :: Int"
+    , "S <- '(' n:Num ^num ',' [a-z] ^cl ('y' 'z') ^grp ')' B ^blk 'x' ^lx { n }"
+    , ""
+    , "Num :: Int"
+    , "Num <- [0-9]+ { 1 }"
+    , ""
+    , "B :: ()"
+    , "B <- 'b' 'c' ^inner { () }"
+    , ""
+    , "Skip :: ()"
+    , "Skip <- { () }"
+    ]
+
+-- The code actions at the first occurrence of a text, with their titles.
+codeActionsAt :: Text -> Text -> [(Text, Value)]
+codeActionsAt src needle =
+  let (before, _) = T.breakOn needle src
+      line = T.count "\n" before
+      ch = T.length (snd (T.breakOnEnd "\n" before))
+      params = object [("textDocument", object [("uri", String uri)]), ("range", rangeOf (line, ch) (line, ch)), ("context", object [("diagnostics", Array [])])]
+      out = session [initialize True, open src, request 2 "textDocument/codeAction" params]
+   in [(t, a) | Just (Array as) <- [lastResult out], a <- as, Just t <- [member "title" a >>= asText]]
+
+-- The text after the edits of a code action, in a document of ASCII.
+applyAction :: Text -> Value -> Either String Text
+applyAction src a = case path ["edit", "changes", uri] a >>= asArray of
+  Nothing -> Left "no edits"
+  Just es -> do
+    edits <- mapM edit es
+    pure (foldr insert src (sortOn fst (zip (map fst edits) [0 :: Int ..]) `withTexts` edits))
+  where
+    ls = T.splitOn "\n" src
+    edit e = maybe (Left "a bad edit") Right $ do
+      l <- path ["range", "start", "line"] e >>= asInt
+      c <- path ["range", "start", "character"] e >>= asInt
+      t <- member "newText" e >>= asText
+      pure (sum (map ((+ 1) . T.length) (take l ls)) + c, t)
+    withTexts order es = [(o, snd (es !! k)) | (o, k) <- order]
+    insert (o, t) acc = T.take o acc <> t <> T.drop o acc
 
 -- Run messages through the server from its initial state, until it exits.
 session :: [Value] -> [Value]

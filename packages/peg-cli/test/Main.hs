@@ -9,6 +9,7 @@ import Data.List (nub, sort)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Peg.Grammar (Diagnostic (..), Loc (..))
+import Peg.Grammar.LabelInsertion (RecoverProposal (..), applyEdits, recoverProposals)
 import Peg.Lsp.Server (Severity (..), diagnose)
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeExtension)
@@ -204,6 +205,11 @@ mutants src =
   where
     step = max 1 (T.length src `div` 3)
 
+-- The example of ADR 0054, and the grammar with its labels inserted.
+labelGrammar, labelledGrammar :: String
+labelGrammar = "%module M\n\nList :: [Int]\nList <- '[' v:Num vs:(',' Num)* ']' !. { v : vs }\n\nNum :: Int\nNum <- [0-9]+ { 1 }\n"
+labelledGrammar = replace "'[' v:Num vs:(',' Num)* ']' !." "'[' v:Num ^List_Num vs:(',' Num ^List_Num_2)* ']' ^List_rbracket !." labelGrammar
+
 -- A grammar with one warning of the linter.
 linted :: String
 linted = "%module M\nS :: ()\nS <- 'a'? { () } / 'b' { () }\n"
@@ -340,7 +346,7 @@ main = do
               out <- BL.unpack <$> stdoutOf ["help"]
               assertBool out ("--version" `isInfixOf` out && "--help" `isInfixOf` out)
           , testCase "the help of every command has its options and examples" $
-              forM_ ["gen", "fmt", "lint", "lsp", "parse"] $ \c -> do
+              forM_ ["gen", "fmt", "lint", "label", "lsp", "parse"] $ \c -> do
                 out <- BL.unpack <$> stdoutOf ["help", c]
                 assertBool out (all (`elem` lines out) ["options:", "examples:"])
                 assertBool out ("-h, --help" `isInfixOf` out)
@@ -466,6 +472,63 @@ main = do
               (code, _, err) <- pegHsIn dir ["lint"]
               code @?= ExitFailure 1
               map (takeWhile (/= ':')) (lines err) @?= ["A.hpeg", "sub/deeper/B.hpeg"]
+          ]
+      , testGroup
+          "label (ADR 0054)"
+          [ goldenVsString "peg-hs help label" "test/golden/help-label.txt" (stdoutOf ["help", "label"])
+          , testCase "without --write, the labels are listed and the file is kept" $ do
+              dir <- treeWith "label-list" [("G.hpeg", labelGrammar)]
+              (code, out, err) <- pegHsIn dir ["label", "G.hpeg"]
+              (code, out, err) @?= (ExitSuccess, "G.hpeg:4:15: ^List_Num\nG.hpeg:4:27: ^List_Num_2\nG.hpeg:4:33: ^List_rbracket\n", "")
+              readFile (dir </> "G.hpeg") >>= (@?= labelGrammar)
+          , testCase "--write writes the labels in the file, and lists them" $ do
+              dir <- treeWith "label-write" [("G.hpeg", labelGrammar)]
+              (code, out, _) <- pegHsIn dir ["label", "--write", "G.hpeg"]
+              (code, length (lines out)) @?= (ExitSuccess, 3)
+              readFile (dir </> "G.hpeg") >>= (@?= labelledGrammar)
+              (code', out', _) <- pegHsIn dir ["label", "G.hpeg"]
+              (code', out') @?= (ExitSuccess, "")
+          , testCase "--rule selects the rules" $ do
+              dir <- treeWith "label-rule" [("G.hpeg", labelGrammar)]
+              (code, out, _) <- pegHsIn dir ["label", "--rule", "Num", "G.hpeg"]
+              (code, out) @?= (ExitSuccess, "")
+              (code', out', _) <- pegHsIn dir ["label", "--rule", "Num", "--rule=List", "G.hpeg"]
+              (code', length (lines out')) @?= (ExitSuccess, 3)
+          , testCase "a rule that is not in the grammar is an error" $ do
+              dir <- treeWith "label-undefined" [("G.hpeg", labelGrammar)]
+              (code, out, err) <- pegHsIn dir ["label", "--write", "--rule", "Nope", "G.hpeg"]
+              (code, out) @?= (ExitFailure 1, "")
+              assertBool err ("undefined rule Nope" `isInfixOf` err)
+              readFile (dir </> "G.hpeg") >>= (@?= labelGrammar)
+          , testCase "a grammar with an error is reported and not written" $ do
+              let broken = replace "Num <-" "Num <- Missing" labelGrammar
+              dir <- treeWith "label-broken" [("G.hpeg", broken)]
+              (code, out, err) <- pegHsIn dir ["label", "--write", "G.hpeg"]
+              (code, out) @?= (ExitFailure 1, "")
+              assertBool err ("G.hpeg:7:8: error: undefined rule Missing" `isInfixOf` err)
+              readFile (dir </> "G.hpeg") >>= (@?= broken)
+          , testCase "usage errors" $ do
+              codes <- mapM (fmap (\(c, _, _) -> c) . pegHs) [["label"], ["label", "--frobnicate", "G.hpeg"], ["label", "A.hpeg", "B.hpeg"], ["label", "--rule"]]
+              codes @?= replicate 4 (ExitFailure 2)
+          , testCase "a directory is an error" $ do
+              dir <- treeWith "label-dir" [("sub/G.hpeg", labelGrammar)]
+              (code, _, err) <- pegHsIn dir ["label", "sub"]
+              code @?= ExitFailure 1
+              assertBool err ("sub" `isInfixOf` err)
+          , testCase "the recovery rule of the language server compiles but for its typed hole" $ do
+              let src = T.pack "%module G\n\nS :: Int\nS <- '(' n:Num ^num ')' { n }\n\nNum :: Int\nNum <- [0-9]+ { 1 }\n"
+              case recoverProposals src of
+                Right [p] -> do
+                  let out = applyEdits (proposalEdits p) src
+                  T.lines out !! 7 @?= T.pack "Recover_num <- (!')' .)* { _ }"
+                  dir <- treeWith "label-hole" [("G.hpeg", T.unpack out), ("in.txt", "(1)")]
+                  (code, _, err) <- parseIn dir ["parse", "G.hpeg", "in.txt"]
+                  code @?= ExitFailure 1
+                  let headers = [l | l <- lines err, " error:" `isInfixOf` l]
+                  assertBool err (not (null headers))
+                  [takeWhile (/= ':') (drop (length "G.hpeg:") l) | l <- headers] @?= map (const "8") headers
+                  length (filter ("Found hole: _ :: Int" `isInfixOf`) (lines err)) @?= length headers
+                r -> assertFailure (show r)
           ]
       , testGroup
           "lsp (ADR 0035)"

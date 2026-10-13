@@ -34,6 +34,8 @@
 -- test that the labelled grammar accepts the same inputs (ADR 0029).
 module Peg.Grammar.Labels
   ( labelWarnings
+  , labelSafeAt
+  , matchesEmpty
   , stripLabels
   , stripLabelsAs
   ) where
@@ -355,33 +357,112 @@ modify' f = State $ \s -> let s' = f s in s' `seq` ((), s')
 labelWarnings :: Grammar -> [Diagnostic]
 labelWarnings g =
   [ Diagnostic l msg
-  | Site rule fs l (ELabel _ x name) <- concatMap sites rules
+  | Site rule fs l (ELabel _ x name) <- concatMap sites (grammarRules g)
   , name `notElem` safe
-  , Just msg <- [verdictMessage name (evalState (failed ctx rule fs ([], 0) (everything `minus` sureOf x)) S.empty)]
+  , Just msg <- [verdictMessage name (verdictOf ctx rule fs x)]
   ]
   where
-    rules = grammarRules g
     safe = map unLoc (grammarSafe g)
+    ctx = context g
+
+-- | Whether a label put on an item of a rule would be safe: the check of
+-- 'labelWarnings', for a label that is not in the grammar (ADR 0054). The
+-- grammar must have its templates expanded and must have passed
+-- 'Peg.Grammar.Check.check'.
+--
+-- The item is given by the name of its rule and a path of
+-- @(alternative, item)@ indices from 0: the first pair picks an item of the
+-- rule's body, and each following pair an item of the group that the
+-- previous item contains through repetitions, options, captures and labels.
+-- The label goes on the item's expression, inside the captures @$@ that
+-- wrap it, as in @$(e ^l)@. A path that does not lead to an item is not
+-- safe.
+--
+-- Apply it to the grammar once and to many items: the analysis of the
+-- grammar is shared.
+--
+-- @
+-- let safe = labelSafeAt g
+-- in filter (uncurry safe) [("List", [(0, 2)]), ("List", [(0, 3), (0, 1)])]
+-- @
+labelSafeAt :: Grammar -> Text -> [(Int, Int)] -> Bool
+labelSafeAt g = safeAt
+  where
+    ctx = context g
+    safeAt rule path = case M.lookup rule (ctxRules ctx) >>= \r -> framesAt r path of
+      Just (fs, x) -> verdictOf ctx rule fs x == Safe
+      Nothing -> False
+
+-- The frames of the item at a path, as 'sites' makes them, and its
+-- expression without the captures around it.
+framesAt :: Rule -> [(Int, Int)] -> Maybe ([Frame], Expr)
+framesAt r = \case
+  [] -> Nothing
+  (i, j) : rest -> do
+    let alts = [(altLoc a, altItems a) | a <- ruleAlts r]
+    items <- index i (map snd alts)
+    item <- index j items
+    go (itemLoc item) [FSeq items j, FAlts alts i True] (itemExpr item) rest
+  where
+    go l fs e = \case
+      [] -> Just (uncapture fs e)
+      p@((k, m) : rest) -> case e of
+        EGroup gs -> do
+          let galts = [(maybe l itemLoc (headMay is), is) | is <- gs]
+          is <- index k gs
+          item <- index m is
+          go (itemLoc item) (FSeq is m : FAlts galts k False : fs) (itemExpr item) rest
+        EStar x -> go l (FStar x l : fs) x p
+        EPlus x -> go l (FPlus x l : fs) x p
+        EOpt x -> go l (FOpt : fs) x p
+        ECapture x -> go l (FCapture : fs) x p
+        ELabel _ x _ -> go l (FLabel : fs) x p
+        EDiscard x -> go l (FCapture : fs) x p
+        _ -> Nothing
+    uncapture fs = \case
+      ECapture x -> uncapture (FCapture : fs) x
+      x -> (fs, x)
+    index n xs = case drop n xs of
+      x : _ | n >= 0 -> Just x
+      _ -> Nothing
+    headMay = \case
+      x : _ -> Just x
+      [] -> Nothing
+
+-- The verdict on a label on the expression x, at the frames of a rule.
+verdictOf :: Ctx -> Text -> [Frame] -> Expr -> Verdict
+verdictOf ctx rule fs x = evalState (failed ctx rule fs ([], 0) (everything `minus` absSure (exprAbs (ctxPass ctx) x))) S.empty
+
+-- | Whether an expression can match the empty string, in a grammar whose
+-- templates are expanded: the judgement the label check uses. A predicate,
+-- a lookahead, a repetition with @*@ and an option match the empty string;
+-- a reference does when its rule can.
+matchesEmpty :: Grammar -> Expr -> Bool
+matchesEmpty g = nullableExpr (nullableRules (grammarRules g))
+
+-- The analysis of a grammar for the check, made once.
+context :: Grammar -> Ctx
+context g =
+  Ctx
+    { ctxPass = pass
+    , ctxCallers = callers
+    , ctxEntries = S.fromList (start : map unLoc (grammarEntries g))
+    , ctxRecovery = S.fromList [unLoc r | (_, r) <- grammarRecovers g]
+    , ctxDirectLr = direct
+    , ctxOtherLr = other
+    , ctxGrowing = growing
+    , ctxRules = M.fromList [(ruleName r, r) | r <- rules]
+    , ctxExpandable = S.fromList [ruleName r | r <- rules, expandable r] `S.difference` (direct `S.union` other)
+    }
+  where
+    rules = grammarRules g
     (_, pass) = abstractions rules
-    sureOf x = absSure (exprAbs pass x)
     callers = M.fromListWith (flip (++)) [(n, [s]) | r <- rules, s@(Site _ _ _ (ERef _ n _)) <- sites r]
     start = case (grammarStart g, rules) of
       (Just s, _) -> unLoc s
       (Nothing, r : _) -> ruleName r
       _ -> ""
     (direct, other, growing) = leftRecursion rules
-    ctx =
-      Ctx
-        { ctxPass = pass
-        , ctxCallers = callers
-        , ctxEntries = S.fromList (start : map unLoc (grammarEntries g))
-        , ctxRecovery = S.fromList [unLoc r | (_, r) <- grammarRecovers g]
-        , ctxDirectLr = direct
-        , ctxOtherLr = other
-        , ctxGrowing = growing
-        , ctxRules = M.fromList [(ruleName r, r) | r <- rules]
-        , ctxExpandable = S.fromList [ruleName r | r <- rules, expandable r] `S.difference` (direct `S.union` other)
-        }
     expandable r = not (any (any (exprMentions isTemplateOrEnv . itemExpr) . altItems) (ruleAlts r))
     isTemplateOrEnv = \case
       ETemplate {} -> True
@@ -560,7 +641,8 @@ plainExpr = \case
   EAnd x -> EAnd (plainExpr x)
   ENot x -> ENot (plainExpr x)
   ECapture x -> ECapture (plainExpr x)
-  ELabel _ x n -> ELabel noLoc (plainExpr x) n
+  -- The other labels are absent in the grammar the check is about.
+  ELabel _ x _ -> plainExpr x
   EDiscard x -> EDiscard (plainExpr x)
   EPred b (Located _ c) -> EPred b (Located noLoc c)
   ETemplate _ n as vs -> ETemplate noLoc n (map plainExpr as) [Located noLoc (unLoc v) | v <- vs]
