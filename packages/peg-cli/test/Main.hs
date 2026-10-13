@@ -89,18 +89,29 @@ replace old new = T.unpack . T.replace (T.pack old) (T.pack new) . T.pack
 parseEnv :: String -> IO (FilePath, [(String, String)])
 parseEnv tag = do
   base <- testDir
-  let bin = base </> ("parse-bin-" <> tag)
-      cache = base </> ("parse-cache-" <> tag)
-  createDirectoryIfMissing True bin
-  real <- findExecutable "ghc-9.10.3" >>= maybe (fromMaybe' "ghc" <$> findExecutable "ghc") pure
-  let wrapper = bin </> "ghc"
-  writeFile wrapper ("#!/bin/sh\necho \"$*\" >> " <> (base </> ("ghc-" <> tag <> ".log")) <> "\nexec " <> real <> " \"$@\"\n")
-  getPermissions wrapper >>= setPermissions wrapper . setOwnerExecutable True
+  let cache = base </> ("parse-cache-" <> tag)
   e <- getEnvironment
-  let path = bin <> ":" <> maybe "" id (lookup "PATH" e)
-  pure (base, ("PATH", path) : ("XDG_CACHE_HOME", cache) : [(k, v) | (k, v) <- e, k `notElem` ["PATH", "XDG_CACHE_HOME"]])
-  where
-    fromMaybe' d = maybe d id
+  let path = (base </> "parse-bin") <> ":" <> maybe "" id (lookup "PATH" e)
+  pure
+    ( base
+    , ("PATH", path)
+        : ("XDG_CACHE_HOME", cache)
+        : ("PEG_TEST_GHC_LOG", base </> ("ghc-" <> tag <> ".log"))
+        : [(k, v) | (k, v) <- e, k `notElem` ["PATH", "XDG_CACHE_HOME", "PEG_TEST_GHC_LOG"]]
+    )
+
+-- The ghc of parseEnv, written once before the tests run: the tests run in
+-- parallel, and on Linux a script that another thread has open for writing
+-- cannot be executed (ADR 0039). It logs its calls to $PEG_TEST_GHC_LOG.
+writeGhcWrapper :: IO ()
+writeGhcWrapper = do
+  base <- testDir
+  let bin = base </> "parse-bin"
+      wrapper = bin </> "ghc"
+  createDirectoryIfMissing True bin
+  real <- findExecutable "ghc-9.10.3" >>= maybe (maybe "ghc" id <$> findExecutable "ghc") pure
+  writeFile wrapper ("#!/bin/sh\necho \"$*\" >> \"$PEG_TEST_GHC_LOG\"\nexec " <> real <> " \"$@\"\n")
+  getPermissions wrapper >>= setPermissions wrapper . setOwnerExecutable True
 
 -- The number of compilations so far by the tests of a name.
 compiles :: String -> IO Int
@@ -214,7 +225,8 @@ stdoutOf :: [String] -> IO BL.ByteString
 stdoutOf args = (\(_, out, _) -> BL.pack out) <$> pegHs args
 
 main :: IO ()
-main =
+main = do
+  writeGhcWrapper
   defaultMain $
     testGroup
       "peg-hs"
