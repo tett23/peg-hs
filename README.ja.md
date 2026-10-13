@@ -339,7 +339,7 @@ args = ["lsp"]
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **型名の重なる規則**：`%syntax` の文法では規則ごとに型を作るので、`expr` と `Expr` のように同じ型名になる二つの規則は誤りになる。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも、そうした規則があれば扱えない（[ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)）
 - **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 21 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
-- **規則の雛形**：雛形は、自分の値の引数（`Indented<p>(n :: Int)`）を持てない。雛形の引数は呼び出し元の引数を使えるが、呼び出し元の束縛は使えない。`%entry`、`%start`、`%recover` の規則にもできない（[ADR 0031](docs/adr/0031-rule-templates.md)、[ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)）
+- **規則の雛形**：雛形の引数は呼び出し元の引数を使えるが、呼び出し元の束縛は使えない。束縛の値は値の引数で渡す。雛形は `%entry`、`%start`、`%recover` の規則にできない（[ADR 0031](docs/adr/0031-rule-templates.md)、[ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)）
 - **tree-sitter の文法**：アクションも要素もない選択肢（`S <- 'a' /`）を誤りにする。この選択肢は値を持たないので、`peg-hs gen` も必ず誤りにする。そのため、正しい文法を誤りと表示することはない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **TextMate の文法**：正規表現の規則なので、文脈に依存する区別（`A(x)` の呼び出しと `A (x)` の並び）は近似である。言語サーバーの semantic tokens は正確に区別する（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 - **エディタの設定**：上の三つのエディタの設定は、まだ手で確かめていない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。VS Code の拡張機能は Marketplace にない

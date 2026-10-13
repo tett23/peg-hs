@@ -655,20 +655,47 @@ Item <- ' '* &{ _col == ind } '-' { () }
 
 雛形の引数は、呼び出し元の選択肢の束縛（`x:N` の `x`）を使えない。
 束縛の型は束縛した式から推論しないと分からず、展開した規則の引数の型を書けないからである。
+束縛の値を雛形に渡したいときは、次の節の値の引数で渡す。
 
-取り込む名前が雛形の本体の束縛やコードの名前と同じだと、取り込めない。
+取り込む名前が雛形の本体の束縛やコードの名前、雛形の値の引数の名前と同じだと、取り込めない。
 雛形の引数は本体に埋め込まれるので、本体の束縛 `x` の後ろに置かれた引数の `x` は、呼び出し元の引数ではなく本体の束縛を指してしまう。
 この場合は、呼び出し元の引数の名前を変える。
 
-### 値の引数を渡す呼び出し
+### 雛形の値の引数
 
-雛形の呼び出しの `>` の直後には、引数付き規則の呼び出しと同じ形で値の引数を書ける（`Indented<Block(ind + 2)>(ind + 2)`）。
+雛形は、引数付き規則と同じ Haskell の値の引数を持てる（[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)）。
+値の引数は型注釈の雛形の引数の後ろに書き、定義には書かない。
+字下げの深さのように、本体の中で値として使うものを渡す。
+
+```hpeg
+%module Example.Indented
+
+Doc :: ()
+Doc <- Indented<Item(0)>(0) { () }
+
+# 深さ n に字下げした p が、改行を挟んで続く
+Indented<p>(n :: Int) :: ()
+Indented<p> <- Ind(n) p ('\n' Ind(n) p)* { () }
+
+Item(ind :: Int) :: ()
+Item <- '-' (' ' Indented<Item(ind + 2)>(ind + 2))? { () }
+
+# ちょうど n 個の空白
+Ind(n :: Int) :: ()
+Ind <- ' '* &{ _col == n } { () }
+```
+
+呼び出しでは、雛形の引数の `>` の直後に値の引数を書く（`Indented<Item(ind + 2)>(ind + 2)`）。
 `>` と `(` の間に空白を置かない。
 `Lines<p> (x)` は、これまでどおり雛形の呼び出しと括弧のグループの逐次である。
 引数付き規則の呼び出し `Name(args)` と同じ規則である。
 
-ただし、雛形はまだ値の引数を宣言できない。
-いまは、値の引数を渡す呼び出しはすべて誤りになる（[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)）。
+展開した規則は、雛形の値の引数（宣言の順）の後に、呼び出し元から取り込んだ引数（名前の順）を引数に持つ。
+上の `Indented<Item(ind + 2)>(ind + 2)` は `Indented'1(ind + 2, ind)` の呼び出しになる。
+
+- 値の引数の式は呼び出し元で評価する。引数付き規則の呼び出しと同じく、呼び出し元の引数、左にある束縛、`_env`、`_col` を使える
+- 展開した規則は、値の引数の値ごとには分かれない。値は実行時に渡り、メモ表の鍵になる
+- 雛形は雛形の引数（`<...>`）を一つ以上持つ。値の引数だけを持つものは引数付き規則である
 
 よくある誤り：
 
@@ -682,8 +709,10 @@ Item <- ' '* &{ _col == ind } '-' { () }
 | `%entry K` のように雛形を指定した | `error: the template K cannot be named in %entry` |
 | 雛形でない規則を山括弧で呼んだ（`B<'x'>`） | `error: rule B is not a template` |
 | 雛形が雛形を際限なく呼ぶ（`T<p> <- T<(p p)>`） | `error: the expansion of the template T does not end: templates call templates more than 64 levels deep` |
-| 雛形の引数が呼び出し元の束縛を使った（`x:N Lines<Item(x)>`） | `error: the argument of the template Lines uses the binding x, which a template cannot take` |
-| 雛形に値の引数を渡した（`Lines<Item>(1)`） | `error: the template Lines takes no value arguments` |
+| 雛形の引数が呼び出し元の束縛を使った（`x:N Lines<Item(x)>`） | `error: the argument of the template Lines uses the binding x, which a template cannot take; pass it as a value argument` |
+| 値の引数を宣言していない雛形に値の引数を渡した（`Lines<Item>(1)`） | `error: the template Lines takes no value arguments` |
+| 値の引数の数が違う（`Indented<Item>(1, 2)`） | `error: the template Indented expects 1 value argument(s), but got 2` |
+| 雛形の定義の側に値の引数を書いた（`Indented<p>(n :: Int) <- ...`） | `error: parameters belong to the type annotation, not the definition` |
 | 本体で `x` を使う雛形の引数が、呼び出し元の引数 `x` を使った | `error: the template T uses the name x in its body, so its argument cannot take the parameter x of the rule B; rename the parameter` |
 
 ## 左再帰
