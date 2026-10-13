@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.peg`）の書き方を、例を中心に�
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -1110,6 +1110,12 @@ Op.peg:4:7: warning: the alternative never succeeds: the alternative at 3:7 matc
 | `duplicate-alternative` | 前の選択肢と同じ選択肢 | [演算子](#演算子) |
 | `ineffective-label` | 先読みの中で効果を持たないラベル | [構文エラーからの回復](#構文エラーからの回復) |
 | `unused-binding` | アクション、意味述語、規則の引数のどれにも現れない束縛 | [束縛](#束縛) |
+
+警告に従って直しても、文法が受理する入力と、誤りの位置は変わらない。
+変わりうるのは、リテラルの接頭辞の警告に従って選択肢を消したときの、誤りの文言の「期待したもの」だけである。
+`S <- '=' { () } / '==' 'x' { () }` の後ろの選択肢は決して成功しないが、入力が `=` で始まらないときは試されて失敗するので、空の入力の誤りは `1:1: expected '=' or '=='` になる。
+後ろの選択肢を消すと、誤りは `1:1: expected '='` になる。
+入力しても通らない字句が、誤りの案内から消えるということである（[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)）。
 
 ラベルの安全性の検査は lint に含まれない。
 安全なラベルにも警告しうる近似の検査なので、警告を止める手段のない lint には入れていない。
