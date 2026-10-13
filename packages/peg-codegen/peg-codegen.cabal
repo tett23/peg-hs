@@ -69,6 +69,8 @@ test-suite peg-codegen-test
     Fixture.RecoverNoLabels
     Fixture.RecoverShared
     Fixture.RecoverSharedNoLabels
+    Fixture.Runs
+    Fixture.RunsSyntax
     Fixture.Sum
     Fixture.Syntax
     Fixture.Unicode

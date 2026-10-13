@@ -75,6 +75,7 @@ test-suite peg-grammar-test
     Recovery
     Shard
     SelfHostedNoLabels
+    TemplateParams
   build-depends:
     , base
     , bytestring
