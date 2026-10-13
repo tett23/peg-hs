@@ -1,0 +1,14 @@
+entities.json is taken from the HTML Living Standard of the WHATWG:
+
+  Source:    https://html.spec.whatwg.org/entities.json
+  Retrieved: 2026-10-11
+  Copyright: WHATWG (Apple, Google, Mozilla, Microsoft)
+
+The HTML Living Standard is licensed under the Creative Commons Attribution
+4.0 International License (CC BY 4.0). A copy of the license is at
+
+  https://creativecommons.org/licenses/by/4.0/legalcode
+
+entities.json is included without change. scripts/gen-entities.py derives
+conformance/commonmark/Conformance/CommonMark/Entities.hs from it, keeping
+the names that end in ';' and their code points.
