@@ -72,6 +72,11 @@ jobs:
       # The grammars of the repository have no warnings of the linter (ADR 0033).
       - name: Lint grammars
         run: $(cabal list-bin exe:peg-hs) lint
+      # The five published packages have one version (ADR 0044).
+      - name: Check versions
+        run: |
+          python3 scripts/versions.py self-test
+          python3 scripts/versions.py check
       - name: Check packages
         run: |
           for p in packages/*; do
@@ -183,8 +188,10 @@ jobs:
           path: ${{ steps.toolchain.outputs.store }}
           key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
           restore-keys: cabal-${{ runner.os }}-
+      # Every exposed module is fully documented (ADR 0044).
       - name: Haddock
-        run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp
+        shell: bash
+        run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp 2>&1 | scripts/haddock-coverage.sh
       # Each published package must build from its source tarball alone
       # (ADR 0009).
       - name: Build from source tarballs
