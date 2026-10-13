@@ -43,7 +43,8 @@ ADRs live in `docs/adr/`.
 
 ### Committed ADRs do not change
 
-- A committed ADR cannot be changed, except for its status line. [adr-guard](https://github.com/tett23/adr-guard) checks this in the pre-commit hook and in CI
+- A committed ADR cannot be changed, except for its status line and the links of its references to ADRs. [adr-guard](https://github.com/tett23/adr-guard) checks this in the pre-commit hook and in CI
+- A reference to an ADR (`ADR 0001`) in a document (`.md`) links to the file of the ADR. adr-guard checks this, and `adr-guard links --fix` adds the links
 - To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as 採択→(the changed part)は ADR NNNN
 - To discard an ADR, set its status to 破棄 (discarded) and write the reason in `docs/specifications.md`
 - When an implementation could not follow its ADR, or took a different form, write an ADR that records it (for example [ADR 0015](docs/adr/0015-implementation-deviations.md), [ADR 0025](docs/adr/0025-lua-toml-implementation-deviations.md), [ADR 0029](docs/adr/0029-label-safety-implementation-deviations.md))
