@@ -162,10 +162,12 @@ ghcup install ghc 9.10.3
 ghcup install cabal 3.16.1.0
 ```
 
-クローン後、git の hook を有効化する。
-コミット済みの ADR は変更不可であり、[adr-guard](https://github.com/tett23/adr-guard) が pre-commit hook と CI で変更を拒否する。
+クローン後、[adr-guard](https://github.com/tett23/adr-guard) を導入し、git の hook を有効化する。
+コミット済みの ADR と計測の記録（`docs/benchmarks/`）は変更不可であり、adr-guard が pre-commit hook と CI で変更を拒否する。ADR のステータスの行と、ADR の参照に付けるリンクの変更だけは許される。
+ADR は、行頭が `ステータス:` のステータスの行をちょうど一つ持つ（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）。
 
 ```sh
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.0
 git config core.hooksPath .githooks
 ```
 

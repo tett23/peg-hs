@@ -160,10 +160,12 @@ ghcup install ghc 9.10.3
 ghcup install cabal 3.16.1.0
 ```
 
-After cloning, enable the git hooks.
-Committed ADRs are immutable: [adr-guard](https://github.com/tett23/adr-guard) rejects changes to them in the pre-commit hook and in CI.
+After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enable the git hooks.
+Committed ADRs and benchmark records (`docs/benchmarks/`) are immutable: adr-guard rejects changes to them in the pre-commit hook and in CI, except for the status line of an ADR and the links of its references to ADRs.
+Each ADR has exactly one status line, a line starting with `ステータス:` ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)).
 
 ```sh
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.0
 git config core.hooksPath .githooks
 ```
 
