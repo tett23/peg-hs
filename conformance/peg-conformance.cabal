@@ -21,6 +21,7 @@ library
   import:           warnings
   exposed-modules:
     Conformance.Bench.JsonCounted
+    Conformance.Bench.JsonLabeled
     Conformance.Bench.JsonNomemo
     Conformance.Bench.JsonRecover
     Conformance.Bench.JsonSyntax
@@ -68,6 +69,7 @@ test-suite json-conformance
     , filepath
     , peg-codegen
     , peg-conformance
+    , peg-grammar
     , peg-runtime
     , tasty
     , tasty-golden
@@ -153,6 +155,7 @@ test-suite lua-conformance
     , filepath
     , peg-codegen
     , peg-conformance
+    , peg-grammar
     , peg-runtime
     , tasty
     , tasty-hunit

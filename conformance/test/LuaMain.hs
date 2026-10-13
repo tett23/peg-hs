@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
+import Peg.Grammar.LabelInsertion (insertLabels)
 import Peg.Runtime (renderParseError)
 import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
 import Peg.Runtime.Syntax (syntaxText)
@@ -54,6 +55,13 @@ main = do
     testGroup
       "Lua 5.5 (ADR 0022)"
       [ testCase "the committed parser is up to date" regenerated
+      , -- Every candidate of the grammar is next to Name, whose keyword check
+        -- is a semantic predicate, or in left recursion: the label check
+        -- shows none of them to be safe. The labelled grammar, and so its
+        -- parser, is the grammar itself (ADR 0054).
+        testCase "peg-hs label inserts no label, so the labelled parser is this parser (ADR 0054)" $ do
+          src <- TIO.readFile "lua/Lua.hpeg"
+          fmap fst (insertLabels [] src) @?= Right []
       , testGroup
           "accept: the official test suite"
           [testCase f (assertAccepts (sources M.! f)) | f <- files]

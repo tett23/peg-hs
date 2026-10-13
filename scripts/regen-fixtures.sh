@@ -60,6 +60,10 @@ if [ -d conformance/json ]; then
     "$peg" gen bench/JsonCounted.hpeg -o bench/Conformance/Bench/JsonCounted.hs --debug-entry >/dev/null
     # Written by hand: the JSON grammar with labels and recovery rules (ADR 0021).
     "$peg" gen bench/JsonRecover.hpeg -o bench/Conformance/Bench/JsonRecover.hs >/dev/null
+    # The JSON grammar with the labels that peg-hs label inserts (ADR 0054).
+    sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonLabeled/' json/Json.hpeg > bench/JsonLabeled.hpeg
+    "$peg" label --write bench/JsonLabeled.hpeg >/dev/null
+    "$peg" gen bench/JsonLabeled.hpeg -o bench/Conformance/Bench/JsonLabeled.hs >/dev/null
     "$peg" gen bench/JsonNomemo.hpeg -o bench/Conformance/Bench/JsonNomemo.hs --debug-entry >/dev/null
     "$peg" gen bench/Pathological.hpeg -o bench/Conformance/Bench/Pathological.hs --debug-entry >/dev/null
     for n in 2 4 8; do

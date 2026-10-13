@@ -35,6 +35,7 @@ import qualified Fixture.Units as Units
 import qualified Fixture.UnitsSyntax as UnitsSyntax
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
+import Peg.Grammar.LabelInsertion (insertLabels)
 import Peg.Grammar.Labels (stripLabelsAs)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Runtime
@@ -203,6 +204,13 @@ variantTests =
           assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.hpeg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n" src == derived)
     , check "self-hosted parser without labels" "../peg-grammar" "grammar/Peg.hpeg" "test/generated/SelfHostedNoLabels.hs" (Just "SelfHostedNoLabels")
     , check "Recover without labels" "." "test/fixtures/Recover.hpeg" "test/generated/Fixture/RecoverNoLabels.hs" (Just "Fixture.RecoverNoLabels")
+      -- Every rule of the fixture is a recovery rule, is called inside the
+      -- label block, which has a recovery rule, or has no candidate, so
+      -- the labelled fixture is the fixture, and parseRecover and
+      -- parseSyntaxRecover give the same results (ADR 0054).
+    , testCase "peg-hs label inserts no label in the Recover fixture (ADR 0054)" $ do
+        src <- TIO.readFile "test/fixtures/Recover.hpeg"
+        insertLabels [] src @?= Right ([], src)
     , check "RecoverShared without labels, with one entry for the recovery rule (ADR 0038)" "." "test/fixtures/RecoverShared.hpeg" "test/generated/Fixture/RecoverSharedNoLabels.hs" (Just "Fixture.RecoverSharedNoLabels")
     , testCase "RecoverShared without labels parses like with them (ADR 0038)" $
         map (either (const False) (const True) . RecoverSharedNoLabels.parse) ["(x)", "()", "(x"] @?= [True, False, False]
