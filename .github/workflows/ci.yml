@@ -89,8 +89,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - group: grammar
+          # peg-grammar-test runs in three parts (ADR 0042).
+          - group: grammar-1
             suites: peg-grammar:test:peg-grammar-test
+            options: --test-options='--shard 1/3'
+          - group: grammar-2
+            suites: peg-grammar:test:peg-grammar-test
+            options: --test-options='--shard 2/3'
+          - group: grammar-3
+            suites: peg-grammar:test:peg-grammar-test
+            options: --test-options='--shard 3/3'
           - group: conformance
             suites: >-
               peg-conformance:test:lua-conformance
@@ -138,7 +146,7 @@ jobs:
       - name: Build
         run: cabal build ${{ matrix.suites }}
       - name: Test
-        run: cabal test -j1 --test-show-details=direct ${{ matrix.suites }}
+        run: cabal test -j1 --test-show-details=direct ${{ matrix.options }} ${{ matrix.suites }}
 
   # The documentation and the source tarballs, alongside the tests
   # (ADR 0039).

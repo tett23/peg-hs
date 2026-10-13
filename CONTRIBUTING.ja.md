@@ -65,7 +65,8 @@ ADR は `docs/adr/` に置く。
 - 文法に `peg-hs lint` の警告を残さない。CI が `peg-hs lint` を実行する（[ADR 0033](docs/adr/0033-grammar-linter.md)）
 - `docs/` と Markdown のファイルだけの変更では、CI はビルドとテストを行わない。adr-guard の検査は行う。pull request に続けて push すると、前の push の CI は止まる（[ADR 0039](docs/adr/0039-faster-ci.md)）
 - テストスイートは、中のテストを並列に動かす。テストは、ほかのテストと共有しないファイルとディレクトリを使う（[ADR 0039](docs/adr/0039-faster-ci.md)）
-- CI は、テストスイートを三つのジョブ（`test-grammar`、`test-conformance`、`test-packages`）に分け、各ジョブの中では一つずつ動かす。新しいテストスイートは、`docs/benchmarks/` の最新の CI の時間をもとに、三つのジョブの時間がそろうジョブに加える（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）
+- CI は、テストスイートをジョブに分け、各ジョブの中では一つずつ動かす。peg-grammar-test は三つに分けて（`test-grammar-1` から `test-grammar-3`、オプション `--shard i/3`）動かし、ほかのスイートは `test-conformance` と `test-packages` で動かす（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）。新しいテストスイートは、`docs/benchmarks/` の最新の CI の時間をもとに、ジョブの時間がそろうジョブに加える（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）
+- 事例が 300 件以上で、CI で 10 秒以上かかるプロパティテストは、`packages/peg-grammar/test/Shard.hs` の `chunkedProperty` で分ける。スイートを分けた各部分の時間をそろえるためである（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）
 - 記法に構文を加えて、その構文を自己記述の文法（`packages/peg-grammar/grammar/Peg.peg`）自身で使う場合は、二回に分けて生成し直す（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。まず構文を受理する規則を、その構文を使わずに加えて生成し直す。次に `Peg.peg` でその構文を使い、新しい生成器で生成し直す
 
 ### 性能
