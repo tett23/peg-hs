@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "test": "npm run test:tree-sitter && node --test test/*.test.js",
-    "test:tree-sitter": "cd tree-sitter-peg && tree-sitter generate && tree-sitter test"
+    "test:tree-sitter": "cd tree-sitter-hpeg && tree-sitter generate && tree-sitter test"
   },
   "devDependencies": {
     "tree-sitter-cli": "0.27.0",

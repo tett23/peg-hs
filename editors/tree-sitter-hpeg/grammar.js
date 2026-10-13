@@ -1,7 +1,7 @@
 /**
- * @file The .peg notation of peg-hs (ADR 0034).
+ * @file The .hpeg notation of peg-hs (ADR 0034).
  *
- * The rules follow packages/peg-grammar/grammar/Peg.peg, the notation's own
+ * The rules follow packages/peg-grammar/grammar/Peg.hpeg, the notation's own
  * grammar. Haskell fragments (verbatim blocks, types, actions, predicates,
  * arguments) are read with the rules of ActionCode and HsPart there, and
  * are injected as Haskell by queries/injections.scm.
@@ -13,7 +13,7 @@
 const IDENT = /[\p{L}_][\p{L}\p{N}_']*/u;
 
 module.exports = grammar({
-  name: 'peg',
+  name: 'hpeg',
 
   extras: $ => [/\s/, $.comment],
 
@@ -25,7 +25,7 @@ module.exports = grammar({
   word: $ => $.identifier,
 
   // A sequence ends where the next declaration starts, which is known only
-  // after its name (Peg.peg reads ahead with DeclStart): these are resolved
+  // after its name (Peg.hpeg reads ahead with DeclStart): these are resolved
   // by trying both.
   conflicts: $ => [
 

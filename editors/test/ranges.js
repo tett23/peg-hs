@@ -29,12 +29,12 @@ export function expectedRanges() {
 const pos = (l, c) => `${l}:${c}`;
 
 const textmateKinds = [
-  ['comment', (s) => s.startsWith('comment.line.number-sign.peg')],
-  ['literal', (s) => /^string\.quoted\.(single|double)\.peg$/.test(s)],
-  ['class', (s) => s === 'string.regexp.class.peg'],
-  ['action', (s) => s === 'meta.embedded.action.peg'],
-  ['rule-name', (s) => s === 'entity.name.function.rule.peg'],
-  ['label', (s) => s === 'entity.name.tag.label.peg'],
+  ['comment', (s) => s.startsWith('comment.line.number-sign.hpeg')],
+  ['literal', (s) => /^string\.quoted\.(single|double)\.hpeg$/.test(s)],
+  ['class', (s) => s === 'string.regexp.class.hpeg'],
+  ['action', (s) => s === 'meta.embedded.action.hpeg'],
+  ['rule-name', (s) => s === 'entity.name.function.rule.hpeg'],
+  ['label', (s) => s === 'entity.name.tag.label.hpeg'],
 ];
 
 /**
@@ -93,7 +93,7 @@ const treeSitterKinds = new Map([
 export function treeSitterTrees(files) {
   const bin = join(root, 'editors/node_modules/.bin/tree-sitter');
   const output = execFileSync(bin, ['parse', '-p', '.', ...files.map((f) => join(root, f))], {
-    cwd: join(root, 'editors/tree-sitter-peg'),
+    cwd: join(root, 'editors/tree-sitter-hpeg'),
     encoding: 'utf8',
     maxBuffer: 1 << 28,
     stdio: ['ignore', 'pipe', 'ignore'],

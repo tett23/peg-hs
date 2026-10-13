@@ -2,20 +2,20 @@
   "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
   "grammars": [
     {
-      "name": "peg",
-      "camelcase": "Peg",
-      "scope": "source.peg",
+      "name": "hpeg",
+      "camelcase": "Hpeg",
+      "scope": "source.hpeg",
       "path": ".",
-      "file-types": ["peg"],
+      "file-types": ["hpeg"],
       "highlights": "queries/highlights.scm",
       "injections": "queries/injections.scm",
-      "injection-regex": "^peg$"
+      "injection-regex": "^hpeg$"
     }
   ],
   "metadata": {
     "version": "0.1.0",
     "license": "MIT",
-    "description": "The .peg notation of peg-hs",
+    "description": "The .hpeg notation of peg-hs",
     "links": {
       "repository": "https://github.com/tett23/peg-hs"
     }

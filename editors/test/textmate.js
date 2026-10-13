@@ -19,12 +19,12 @@ const registry = new textmate.Registry({
   }),
   // Haskell is embedded by its scope name; the tests do not load it.
   loadGrammar: async (scopeName) =>
-    scopeName === 'source.peg'
-      ? textmate.parseRawGrammar(readFileSync(join(here, '../textmate/peg.tmLanguage.json'), 'utf8'), 'peg.tmLanguage.json')
+    scopeName === 'source.hpeg'
+      ? textmate.parseRawGrammar(readFileSync(join(here, '../textmate/hpeg.tmLanguage.json'), 'utf8'), 'hpeg.tmLanguage.json')
       : null,
 });
 
-const grammar = await registry.loadGrammar('source.peg');
+const grammar = await registry.loadGrammar('source.hpeg');
 
 /**
  * The tokens of a text: for each line (from 1), the tokens with their

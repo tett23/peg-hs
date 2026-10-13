@@ -1,7 +1,7 @@
 {
   "name": "peg-hs",
   "displayName": "peg-hs",
-  "description": "The .peg notation of peg-hs",
+  "description": "The .hpeg notation of peg-hs",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -18,29 +18,29 @@
   "contributes": {
     "languages": [
       {
-        "id": "peg",
+        "id": "hpeg",
         "aliases": [
           "peg-hs",
-          "peg"
+          "hpeg"
         ],
         "extensions": [
-          ".peg"
+          ".hpeg"
         ],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
       {
-        "language": "peg",
-        "scopeName": "source.peg",
-        "path": "./syntaxes/peg.tmLanguage.json",
+        "language": "hpeg",
+        "scopeName": "source.hpeg",
+        "path": "./syntaxes/hpeg.tmLanguage.json",
         "embeddedLanguages": {
           "meta.embedded.block.haskell": "haskell",
-          "meta.embedded.action.peg": "haskell",
-          "meta.embedded.predicate.peg": "haskell",
-          "meta.embedded.arguments.peg": "haskell",
-          "meta.embedded.parameters.peg": "haskell",
-          "meta.embedded.type.peg": "haskell"
+          "meta.embedded.action.hpeg": "haskell",
+          "meta.embedded.predicate.hpeg": "haskell",
+          "meta.embedded.arguments.hpeg": "haskell",
+          "meta.embedded.parameters.hpeg": "haskell",
+          "meta.embedded.type.hpeg": "haskell"
         }
       }
     ],
@@ -57,7 +57,7 @@
   },
   "main": "./extension.js",
   "activationEvents": [
-    "onLanguage:peg"
+    "onLanguage:hpeg"
   ],
   "dependencies": {
     "vscode-languageclient": "10.1.1"

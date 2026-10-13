@@ -36,7 +36,17 @@ test('a multi-line action is one range', () => {
 
 test('the VS Code extension has the TextMate grammar', () => {
   assert.equal(
-    readFileSync(join(here, '../vscode/syntaxes/peg.tmLanguage.json'), 'utf8'),
-    readFileSync(join(here, '../textmate/peg.tmLanguage.json'), 'utf8'),
+    readFileSync(join(here, '../vscode/syntaxes/hpeg.tmLanguage.json'), 'utf8'),
+    readFileSync(join(here, '../textmate/hpeg.tmLanguage.json'), 'utf8'),
   );
+});
+
+// The language is hpeg, for files with the extension .hpeg (ADR 0050).
+test('the VS Code extension takes .hpeg files as the language hpeg', () => {
+  const manifest = JSON.parse(readFileSync(join(here, '../vscode/package.json'), 'utf8'));
+  const [language] = manifest.contributes.languages;
+  assert.equal(language.id, 'hpeg');
+  assert.deepEqual(language.extensions, ['.hpeg']);
+  assert.deepEqual(manifest.contributes.grammars.map((g) => [g.language, g.scopeName]), [['hpeg', 'source.hpeg']]);
+  assert.ok(manifest.activationEvents.includes('onLanguage:hpeg'));
 });

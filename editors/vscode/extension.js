@@ -1,4 +1,4 @@
-// Starts the language server `peg-hs lsp` for .peg files (ADR 0035).
+// Starts the language server `peg-hs lsp` for .hpeg files (ADR 0035).
 const vscode = require('vscode');
 const { LanguageClient } = require('vscode-languageclient/node');
 
@@ -10,7 +10,7 @@ function activate() {
     'peg-hs',
     'peg-hs',
     { command, args: ['lsp'] },
-    { documentSelector: [{ language: 'peg' }] },
+    { documentSelector: [{ language: 'hpeg' }] },
   );
   return client.start();
 }
