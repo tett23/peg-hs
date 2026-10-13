@@ -21,6 +21,7 @@ import Data.Proxy (Proxy (..))
 import Test.Tasty.Options (OptionDescription (Option))
 import Ranges (rangeTests)
 import Recovery (recoveryTests)
+import TemplateParams (templateParamTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -43,6 +44,7 @@ main = do
       , checkTests
       , unitValueTests
       , templateTests
+      , templateParamTests
       , analysisTests
       , repositoryGrammarTests files
       , errorReportTests

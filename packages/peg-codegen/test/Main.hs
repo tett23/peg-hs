@@ -23,6 +23,8 @@ import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverNoLabels as RecoverNoLabels
 import qualified Fixture.RecoverSharedNoLabels as RecoverSharedNoLabels
+import qualified Fixture.Runs as Runs
+import qualified Fixture.RunsSyntax as RunsSyntax
 import qualified Fixture.Sum as Sum
 import qualified Fixture.Syntax as Syntax
 import qualified Fixture.Templates as Templates
@@ -47,7 +49,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Gen, Property, choose, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===), withNumTests)
+import Test.Tasty.QuickCheck (Gen, Property, checkCoverage, choose, cover, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===), withNumTests)
 
 main :: IO ()
 main =
@@ -101,6 +103,7 @@ main =
                   let kinds = map TemplatesSyntax.nameOfSyntaxKind (descendantKinds tree)
                   assertBool (show kinds) (not (any ("'" `T.isInfixOf`) kinds))
           ]
+      , runsTests
       , testGroup
           "unit values are not counted (ADR 0030)"
           [ testCase "typed" $ Units.parse "1, 2,3;4; 5;  " @?= Right (Units.Result [1, 2, 3] 4 (Just 5) ())
@@ -119,7 +122,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -234,6 +237,72 @@ templateInput = "lists 1, 2; 3 expr 1 + 2 + 3 vars a, b"
 
 templateExpected :: ([[Int]], Templates.Expr, Templates.Expr)
 templateExpected = ([[1, 2], [3]], Templates.Add (Templates.Add (Templates.Num 1) (Templates.Num 2)) (Templates.Num 3), Templates.Vars ["a", "b"])
+
+-- ADR 0055: templates whose arguments use the parameters of the caller.
+runsTests :: TestTree
+runsTests =
+  testGroup
+    "templates with parameterised rules (ADR 0055)"
+    [ testCase "values at each depth" $ do
+        Runs.parse runsInput @?= Right runsExpected
+        Runs.parsePlainDoc runsInput @?= Right runsExpected
+    , testCase "%syntax, typed entry" $ fmap show (RunsSyntax.parse runsInput) @?= Right (show runsExpected)
+    , testCase "%syntax, lossless tree" $ fmap syntaxText (RunsSyntax.parseSyntax runsInput) @?= Right runsInput
+    , testProperty "the templates and the rules written out agree (values, farthest failures)" $
+        withNumTests 2000 (checkCoverage (forAll runsGen runsAgree))
+    , testProperty "the same with %syntax" $
+        withNumTests 500 (forAll runsGen (\t -> farthest (RunsSyntax.parse t) === farthest (RunsSyntax.parsePlainDoc t) .&&. fmap syntaxText (RunsSyntax.parseSyntax t) === fmap (const t) (RunsSyntax.parse t)))
+    ]
+  where
+    runsAgree t = cover 20 (either (const False) (const True) (Runs.parse t)) "accepted" (farthest (Runs.parse t) === farthest (Runs.parsePlainDoc t))
+    farthest = either (Left . parseErrorPos) Right
+
+-- Nested lists, definitions and paragraphs separated by blank lines, and
+-- the same with one character changed, inserted or removed.
+runsGen :: Gen Text
+runsGen = sized $ \n -> do
+  t <- blocksAt 0 (min 3 (1 + n `div` 25))
+  oneof [pure t, pure t, mutate t]
+  where
+    blocksAt :: Int -> Int -> Gen Text
+    blocksAt d k = do
+      m <- choose (1, 3 :: Int)
+      bs <- mapM (const (blockAt d k)) [1 .. m]
+      gaps <- mapM (const (elements ["", "", "\n", "  \n"])) bs
+      pure (T.concat (zipWith (<>) ("" : drop 1 gaps) bs))
+    blockAt d k =
+      oneof $
+        [line d "" <$> word, items d k "- " False]
+          ++ [items d k "= " True | k > 0]
+    items d k m needsBody = do
+      c <- choose (1, 3 :: Int)
+      is <- mapM (const (item d k m needsBody)) [1 .. c]
+      gaps <- mapM (const (elements ["", "", "\n"])) is
+      pure (T.concat (zipWith (<>) ("" : drop 1 gaps) is))
+    item d k m needsBody = do
+      w <- word
+      body <-
+        if needsBody
+          then blocksAt (d + 2) (k - 1)
+          else if k > 0 then oneof [pure "", blocksAt (d + 2) (k - 1)] else pure ""
+      pure (line d m w <> body)
+    line d m w = T.replicate d " " <> m <> w <> "\n"
+    word = elements ["a", "b c", "x-y"]
+    mutate t = do
+      i <- choose (0, T.length t)
+      c <- elements [" ", "-", "=", "a", "\n", ""]
+      drop1 <- elements [0, 1]
+      pure (T.take i t <> c <> T.drop (i + drop1) t)
+
+runsInput :: Text
+runsInput = "- a\n  - b\n    deep\n\n  - c\n- d\n\n= t\n  x\n\n  - e\ny\n"
+
+runsExpected :: [Runs.Block]
+runsExpected =
+  [ Runs.Bullets [("a", [Runs.Bullets [("b", [Runs.Para "deep"]), ("c", [])]]), ("d", [])]
+  , Runs.Defs [("t", [Runs.Para "x", Runs.Bullets [("e", [])]])]
+  , Runs.Para "y"
+  ]
 
 descendantKinds :: SyntaxNode -> [SyntaxKind]
 descendantKinds n = syntaxKind n : concatMap descendantKinds (syntaxChildren n)

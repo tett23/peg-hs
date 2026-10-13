@@ -9,6 +9,12 @@
 -- that results has no template, and the static checks, left recursion and
 -- code generation treat the instances as ordinary rules.
 --
+-- An argument may use the parameters of the rule that calls the template
+-- (ADR 0055). The instance then takes those parameters, in the order of
+-- their names and with the types of the caller's annotation, and the call
+-- passes them on: @Lines<Item(ind)>@ in @B(ind :: Int)@ becomes
+-- @Lines'0(ind)@. An argument cannot use a binding of the caller.
+--
 -- Expand before 'Peg.Grammar.Check.check' and
 -- 'Peg.Grammar.Labels.labelWarnings', and pass their diagnostics through
 -- 'templateNotes' so that an error inside a template names the call that
@@ -26,7 +32,7 @@ module Peg.Grammar.Templates
   , templateNotes
   ) where
 
-import Data.Char (isAlphaNum)
+import Data.Char (isAlpha, isAlphaNum, isDigit, isUpper)
 import Data.List (nub)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, mapMaybe)
@@ -87,16 +93,24 @@ expandTemplates g
            ]
 
     expandRule r = do
-      alts <- mapM (expandAlt 0) (ruleAlts r)
+      let caller = Caller (ruleName r) (M.fromList [(paramName p, paramType p) | p <- ruleParams r])
+      alts <- mapM (expandAlt caller 0 S.empty) (ruleAlts r)
       pure r {ruleAlts = alts}
 
-    expandAlt depth a = do
-      items <- mapM (expandItem depth) (altItems a)
+    -- The bindings to the left of an item are in its scope; those in a
+    -- group are not in scope after the group.
+    expandAlt caller depth scope a = do
+      items <- expandItems caller depth scope (altItems a)
       pure a {altItems = items}
 
-    expandItem depth i = (\e -> i {itemExpr = e}) <$> expandExpr depth (itemExpr i)
+    expandItems caller depth scope = \case
+      [] -> pure []
+      i : is -> do
+        i' <- (\e -> i {itemExpr = e}) <$> expandExpr caller depth scope (itemExpr i)
+        rest <- expandItems caller depth (maybe scope (`S.insert` scope) (itemBind i)) is
+        pure (i' : rest)
 
-    expandExpr depth = \case
+    expandExpr caller depth scope = \case
       ERef l n args
         | M.member n templates -> do
             addError (Diagnostic l ("the template " <> n <> " needs arguments: " <> n <> "<...>"))
@@ -106,26 +120,52 @@ expandTemplates g
           addError (Diagnostic l ("rule " <> n <> " is not a template"))
           pure (ERef l n [])
         Just t -> do
-          args' <- mapM (expandExpr depth) args
+          args' <- mapM (expandExpr caller depth scope) args
           let params = ruleTemplateParams t
           if length args' /= length params
             then do
               addError (Diagnostic l ("the template " <> n <> " expects " <> T.pack (show (length params)) <> " argument(s), but got " <> T.pack (show (length args'))))
               pure (ERef l n [])
             else do
+              captured <- captures l caller scope t args'
               tys <- mapM (argType l) (zip params args')
-              name <- instanceOf l depth t args' tys
-              pure (ERef l name [])
-      EGroup alts -> EGroup <$> mapM (mapM (expandItem depth)) alts
-      EStar x -> EStar <$> expandExpr depth x
-      EPlus x -> EPlus <$> expandExpr depth x
-      EOpt x -> EOpt <$> expandExpr depth x
-      EAnd x -> EAnd <$> expandExpr depth x
-      ENot x -> ENot <$> expandExpr depth x
-      ECapture x -> ECapture <$> expandExpr depth x
-      ELabel l x n -> (\x' -> ELabel l x' n) <$> expandExpr depth x
-      EDiscard x -> EDiscard <$> expandExpr depth x
+              name <- instanceOf l depth t args' tys captured
+              pure (ERef l name [Located l x | (x, _) <- captured])
+      EGroup alts -> EGroup <$> mapM (expandItems caller depth scope) alts
+      EStar x -> EStar <$> expandExpr caller depth scope x
+      EPlus x -> EPlus <$> expandExpr caller depth scope x
+      EOpt x -> EOpt <$> expandExpr caller depth scope x
+      EAnd x -> EAnd <$> expandExpr caller depth scope x
+      ENot x -> ENot <$> expandExpr caller depth scope x
+      ECapture x -> ECapture <$> expandExpr caller depth scope x
+      ELabel l x n -> (\x' -> ELabel l x' n) <$> expandExpr caller depth scope x
+      EDiscard x -> EDiscard <$> expandExpr caller depth scope x
       e -> pure e
+
+    -- The parameters of the caller that the arguments of a call use, in
+    -- the order of their names (ADR 0055). A binding of the caller cannot
+    -- be taken, and a parameter cannot be taken under a name that the body
+    -- of the template uses.
+    captures l caller scope t args = do
+      let names = S.fromList (concatMap (concatMap haskellIdents . exprCode) args)
+          bound = [x | x <- S.toAscList names, S.member x scope]
+          taken = [(x, ty) | x <- S.toAscList names, x `notElem` reservedBindings, not (S.member x scope), Just ty <- [M.lookup x (callerParams caller)]]
+          inBody = M.findWithDefault S.empty (ruleName t) bodyNames
+      mapM_ (\x -> addError (Diagnostic l ("the argument of the template " <> ruleName t <> " uses the binding " <> x <> ", which a template cannot take"))) bound
+      mapM_
+        (\x -> addError (Diagnostic l ("the template " <> ruleName t <> " uses the name " <> x <> " in its body, so its argument cannot take the parameter " <> x <> " of the rule " <> callerName caller <> "; rename the parameter")))
+        [x | (x, _) <- taken, S.member x inBody]
+      pure taken
+
+    -- The bindings and the identifiers of the code in the body of each
+    -- template.
+    bodyNames = M.map (\t -> S.fromList (concatMap altNames (ruleAlts t))) templates
+    altNames a = concatMap haskellIdents (altCode a) ++ concatMap itemBinds (altItems a)
+    itemBinds i = maybe [] pure (itemBind i) ++ exprBinds (itemExpr i)
+    exprBinds = \case
+      EGroup alts -> concatMap (concatMap itemBinds) alts
+      ETemplate _ _ args -> concatMap exprBinds args
+      x -> concatMap exprBinds (exprChildren x)
 
     -- The type of the argument of a typed parameter.
     argType l (p, a) = case templateParamType p of
@@ -139,8 +179,8 @@ expandTemplates g
           addError (Diagnostic l ("the argument for " <> templateParamName p <> " must be a rule, a capture or a template call, since its value is used"))
           pure (Just "()")
 
-    instanceOf l depth t args tys = do
-      let key = (ruleName t, show (map plain args))
+    instanceOf l depth t args tys captured = do
+      let key = (ruleName t, show (map plain args, [(x, unLoc ty) | (x, ty) <- captured]))
       existing <- gets' (M.lookup key . stInstances)
       case existing of
         Just name -> pure name
@@ -150,7 +190,7 @@ expandTemplates g
           modify' $ \st ->
             st
               { stInstances = M.insert key name (stInstances st)
-              , stPending = stPending st ++ [(name, t, args, tys, depth + 1, l)]
+              , stPending = stPending st ++ [(name, t, args, captured, depth + 1, l)]
               , stCount = stCount st + 1
               , stInstanceTypes = M.insert name (instanceType t tys) (stInstanceTypes st)
               , stInstanceNames = S.insert name (stInstanceNames st)
@@ -165,7 +205,7 @@ expandTemplates g
     drain =
       gets' stPending >>= \case
         [] -> pure []
-        (name, t, args, _, depth, l) : _ -> do
+        (name, t, args, captured, depth, l) : _ -> do
           modify' $ \st -> st {stPending = drop 1 (stPending st)}
           rule <-
             if depth > maxDepth || sum (map exprSize args) > maxSize
@@ -174,9 +214,16 @@ expandTemplates g
                 pure Nothing
               else do
                 let sub = M.fromList (zip (map templateParamName (ruleTemplateParams t)) (zip (ruleTemplateParams t) args))
-                alts <- mapM (expandAlt depth . substituteAlt sub) (ruleAlts t)
+                    -- The calls in the body take the parameters of the
+                    -- instance (ADR 0055).
+                    caller = Caller (ruleName t) (M.fromList captured)
+                alts <- mapM (expandAlt caller depth S.empty . substituteAlt sub) (ruleAlts t)
                 ty <- gets' (M.findWithDefault "()" name . stInstanceTypes)
-                pure (Just t {ruleName = name, ruleTemplateParams = [], ruleType = (ruleType t) {unLoc = ty}, ruleAlts = alts})
+                -- A parameter that the code of the instance does not use
+                -- is named _x', so that the generated code has no warning.
+                let used = S.fromList (concatMap (concatMap haskellIdents . altCode) alts)
+                    params = [Param (if S.member x used then x else "_" <> x <> "'") ty' | (x, ty') <- captured]
+                pure (Just t {ruleName = name, ruleParams = params, ruleTemplateParams = [], ruleType = (ruleType t) {unLoc = ty}, ruleAlts = alts})
           rest <- drain
           pure (maybe rest (: rest) rule)
 
@@ -219,8 +266,13 @@ substituteAlt sub a = a {altItems = map item (altItems a)}
       ECapture x -> ECapture (expr x)
       ELabel l x n -> ELabel l (expr x) n
       EDiscard x -> EDiscard (expr x)
-      ETemplate l n args -> ETemplate l n (map expr args)
+      -- A parameter passed on to a template is put as it is: the template
+      -- called decides whether its value is used.
+      ETemplate l n args -> ETemplate l n (map passed args)
       e -> e
+    passed = \case
+      ERef _ n [] | Just (_, arg) <- M.lookup n sub -> arg
+      e -> expr e
 
 -- The number of nodes of an expression.
 exprSize :: Expr -> Int
@@ -295,10 +347,86 @@ templateNotes g = nub . map note
       _ -> d
     showLoc (Loc a b) = T.pack (show a) <> ":" <> T.pack (show b)
 
+-- The rule whose body has a template call: its name, for the messages,
+-- and its parameters (ADR 0055).
+data Caller = Caller
+  { callerName :: Text
+  , callerParams :: M.Map Text (Located Text)
+  }
+
+-- The bindings that are not parameters of the caller, but are in the scope
+-- of every action and argument.
+reservedBindings :: [Text]
+reservedBindings = ["_env", "_col", "_span"]
+
+-- The Haskell code of an alternative: its action and the code in its
+-- expressions.
+altCode :: Alt -> [Text]
+altCode a = maybe [] (pure . unLoc) (altAction a) ++ concatMap (exprCode . itemExpr) (altItems a)
+
+-- The Haskell code in an expression: the arguments of rule calls and the
+-- semantic predicates.
+exprCode :: Expr -> [Text]
+exprCode = \case
+  ERef _ _ args -> map unLoc args
+  EPred _ c -> [unLoc c]
+  EGroup alts -> concatMap (concatMap (exprCode . itemExpr)) alts
+  ETemplate _ _ args -> concatMap exprCode args
+  x -> concatMap exprCode (exprChildren x)
+
+exprChildren :: Expr -> [Expr]
+exprChildren = \case
+  EStar x -> [x]
+  EPlus x -> [x]
+  EOpt x -> [x]
+  EAnd x -> [x]
+  ENot x -> [x]
+  ECapture x -> [x]
+  ELabel _ x _ -> [x]
+  EDiscard x -> [x]
+  _ -> []
+
+-- The variable names of a piece of Haskell code (ADR 0055). A qualified
+-- name (M.x) is one name, and the text of string and character literals is
+-- skipped. This is lexical: a name bound inside the code (\\x -> x) counts
+-- too.
+haskellIdents :: Text -> [Text]
+haskellIdents t = case T.uncons t of
+  Nothing -> []
+  Just (c, rest)
+    | c == '"' -> haskellIdents (skipString rest)
+    | c == '\'' -> haskellIdents (skipChar rest)
+    | isDigit c -> haskellIdents (T.dropWhile isIdent rest)
+    | isAlpha c || c == '_' -> let (n, rest') = qualified t in n : haskellIdents rest'
+    | otherwise -> haskellIdents rest
+  where
+    isIdent x = isAlphaNum x || x == '_' || x == '\''
+    qualified s =
+      let (n, rest) = T.span isIdent s
+       in case T.uncons rest of
+            Just ('.', after)
+              | Just (h, _) <- T.uncons n
+              , isUpper h
+              , Just (a, _) <- T.uncons after
+              , isAlpha a || a == '_' ->
+                  let (m, rest') = qualified after in (n <> "." <> m, rest')
+            _ -> (n, rest)
+    skipString s = case T.uncons s of
+      Nothing -> s
+      Just ('\\', r) -> skipString (T.drop 1 r)
+      Just ('"', r) -> r
+      Just (_, r) -> skipString r
+    -- A character literal; a quote that does not start one (a promoted
+    -- constructor or a quoted name) is skipped alone.
+    skipChar s = case T.unpack (T.take 2 s) of
+      ['\\', _] -> T.drop 1 (T.dropWhile (/= '\'') (T.drop 2 s))
+      [_, '\''] -> T.drop 2 s
+      _ -> s
+
 -- A small state monad, so that peg-grammar keeps its dependencies.
 data St = St
   { stInstances :: M.Map (Text, String) Text
-  , stPending :: [(Text, Rule, [Expr], [Maybe Text], Int, Loc)]
+  , stPending :: [(Text, Rule, [Expr], [(Text, Located Text)], Int, Loc)]
   , stErrors :: [Diagnostic]
   , stCount :: Int
   , stInstanceTypes :: M.Map Text Text

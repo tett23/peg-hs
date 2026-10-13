@@ -1,0 +1,84 @@
+# ADR 0055（%syntax）：雛形の引数が呼び出し元の引数を使う
+# 字下げの深さを引数で渡し、空行を挟んで同じものが続く形を雛形 Run で書く。
+# PlainDoc は、同じ文法を雛形を使わずに書き下したもの
+%module Fixture.RunsSyntax
+%syntax
+%entry PlainDoc
+%export Block(..)
+
+%{
+import Data.Text (Text)
+
+data Block = Para Text | Bullets [(Text, [Block])] | Defs [(Text, [Block])]
+  deriving (Eq, Show)
+}%
+
+Doc :: [Block]
+Doc <- BlankLines? bs:Blocks(0) BlankLines? { bs }
+
+# 空行を挟んで p が続く。more は続きの判定
+Run<p :: a, more> :: [a]
+Run<p, more> <- x:p xs:(BlankLines? more p)* { x : xs }
+
+# 引数を本体で使わない雛形。取り込んだ引数は、展開した規則の中で使われない
+Gap<p> :: ()
+Gap<p> <- ' '+ { () }
+
+Blocks(ind :: Int) :: [Block]
+Blocks <- Run<Block(ind), &(Ind(ind) !BlankLine .)>
+
+Block(ind :: Int) :: Block
+Block <- is:Run<ListItem(ind), &(Ind(ind) '-' ' ')> { Bullets is }
+      / ds:Run<DefGroup(ind), &(Ind(ind) '=' ' ')> { Defs ds }
+      / Ind(ind) ![-= ] t:Line { Para t }
+
+ListItem(ind :: Int) :: (Text, [Block])
+ListItem <- Ind(ind) '-' Gap<Ind(ind)> t:Line bs:Sub(ind)? { (t, maybe [] id bs) }
+
+Sub(ind :: Int) :: [Block]
+Sub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:Blocks(ind + 2) { bs }
+
+DefGroup(ind :: Int) :: (Text, [Block])
+DefGroup <- Ind(ind) '=' ' ' t:Line bs:DefBody(ind) { (t, bs) }
+
+DefBody(ind :: Int) :: [Block]
+DefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:Run<Block(ind + 2), &(Ind(ind + 2) ![ ] !BlankLine .)> { bs }
+
+# 雛形を使わずに書き下した同じ文法
+PlainDoc :: [Block]
+PlainDoc <- BlankLines? bs:PlainBlocks(0) BlankLines? { bs }
+
+PlainBlocks(ind :: Int) :: [Block]
+PlainBlocks <- x:PlainBlock(ind) xs:(BlankLines? &(Ind(ind) !BlankLine .) PlainBlock(ind))* { x : xs }
+
+PlainBlock(ind :: Int) :: Block
+PlainBlock <- i:PlainListItem(ind) is:(BlankLines? &(Ind(ind) '-' ' ') PlainListItem(ind))* { Bullets (i : is) }
+           / d:PlainDefGroup(ind) ds:(BlankLines? &(Ind(ind) '=' ' ') PlainDefGroup(ind))* { Defs (d : ds) }
+           / Ind(ind) ![-= ] t:Line { Para t }
+
+PlainListItem(ind :: Int) :: (Text, [Block])
+PlainListItem <- Ind(ind) '-' ' '+ t:Line bs:PlainSub(ind)? { (t, maybe [] id bs) }
+
+PlainSub(ind :: Int) :: [Block]
+PlainSub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:PlainBlocks(ind + 2) { bs }
+
+PlainDefGroup(ind :: Int) :: (Text, [Block])
+PlainDefGroup <- Ind(ind) '=' ' ' t:Line bs:PlainDefBody(ind) { (t, bs) }
+
+PlainDefBody(ind :: Int) :: [Block]
+PlainDefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) x:PlainBlock(ind + 2) xs:(BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) PlainBlock(ind + 2))* { x : xs }
+
+# 共通の規則
+Line :: Text
+Line <- t:$(![\n] .)+ ('\n' / !.) { t }
+
+BlankLine :: ()
+BlankLine <- [ ]* '\n' { () }
+
+BlankLines :: ()
+BlankLines <- BlankLine+ { () }
+
+# ちょうど n 個の空白
+Ind(n :: Int) :: ()
+Ind <- &{ n == 0 } { () }
+    / &{ n > 0 } ' ' Ind(n - 1) { () }

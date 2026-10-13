@@ -325,7 +325,7 @@ ADR の連番は決定の順であり、実装の順ではない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
-- 雛形と引数付き規則の組み合わせ。いまは、雛形の引数に呼び出し元の値の引数を使うことも、雛形に値の引数を持たせることもできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）は、記法、展開、静的検査、整形、lint、ハイライト、言語サーバーのすべてに影響が及ぶため、却下して残課題とした。Golem の文法のように字下げの深さを引数で渡す文法で、同じ形を雛形にまとめられない
+- 雛形と引数付き規則の組み合わせのうち、雛形が自分の値の引数を持つこと（`Indented<p>(n :: Int)`）。雛形の引数が呼び出し元の引数を使う組み合わせは、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) の段階 1 で入った。値の引数を渡す呼び出しの記法（段階 2）と、雛形の値の引数の意味（段階 3）が残っている（[ADR 0031](adr/0031-rule-templates.md)、却下した [ADR 0040](adr/0040-templates-with-parameterized-rules.md)）
 
 ## 参考文献
 

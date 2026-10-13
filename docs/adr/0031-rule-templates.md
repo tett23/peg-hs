@@ -1,6 +1,6 @@
 # ADR 0031: 式を引数に取る規則の雛形
 
-ステータス: 採択
+ステータス: 採択→雛形と引数付き規則の組み合わせは [ADR 0055](0055-templates-and-parameterized-rules-in-stages.md)
 
 ## 文脈
 
