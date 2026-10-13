@@ -503,6 +503,14 @@ main = do
               e <- getEnvironment
               (code, _, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.peg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir) : [(k, v) | (k, v) <- e, k /= "PATH"])} ""
               (code, err) @?= (ExitFailure 1, "peg-hs: peg-hs parse needs ghc on PATH\n")
+          , testCase "a ghc of a version that peg-runtime does not support is an error (ADR 0036)" $
+              forM_ ["9.8.4", "9.16.1"] $ \v -> do
+                dir <- treeWith ("parse-ghc-" <> v) [("G.peg", exprGrammar), ("in.txt", "1"), ("bin/ghc", "#!/bin/sh\necho " <> v <> "\n")]
+                getPermissions (dir </> "bin/ghc") >>= setPermissions (dir </> "bin/ghc") . setOwnerExecutable True
+                Just exe <- findExecutable "peg-hs"
+                e <- getEnvironment
+                (code, out, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.peg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir </> "bin") : [(k, x) | (k, x) <- e, k /= "PATH"])} ""
+                (code, out, err) @?= (ExitFailure 1, "", "peg-hs: peg-hs parse needs GHC 9.10, 9.12 or 9.14, the versions peg-runtime supports; ghc is " <> v <> "\n")
           , testCase "a grammar with %env is an error" $ do
               (code, _, err) <- parseRun "env" "%module M\n%env Int\nS :: ()\nS <- 'a' { () }\n" "a" []
               code @?= ExitFailure 1
