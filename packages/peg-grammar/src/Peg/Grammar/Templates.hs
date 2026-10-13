@@ -38,9 +38,13 @@ import Peg.Grammar
 -- | Replace the template calls of a grammar with references to instances,
 -- and remove the templates. Instances are rules that cannot be named in
 -- directives; in a grammar with @%syntax@, they are @%inline@.
+--
+-- A grammar with neither templates nor template calls is returned as it is.
+-- A template call in a grammar without templates is still an error, such
+-- as @rule B is not a template@ (ADR 0052).
 expandTemplates :: Grammar -> Either [Diagnostic] Grammar
 expandTemplates g
-  | M.null templates = Right g
+  | M.null templates && not (any callsTemplate (grammarRules g)) = Right g
   | not (null directiveErrors) = Left directiveErrors
   | otherwise = case runExpand (mapM expandRule ordinary >>= \rs -> (rs ++) <$> drain) (St M.empty [] [] 0 M.empty S.empty) of
       (_, St {stErrors = errs@(_ : _)}) -> Left (nub (reverse errs))
@@ -324,3 +328,20 @@ modify' f = Expand $ \s -> ((), f s)
 
 addError :: Diagnostic -> Expand ()
 addError d = modify' $ \st -> st {stErrors = d : stErrors st}
+
+-- Whether a rule calls a template anywhere in its alternatives.
+callsTemplate :: Rule -> Bool
+callsTemplate = any (any (expr . itemExpr) . altItems) . ruleAlts
+  where
+    expr = \case
+      ETemplate {} -> True
+      EGroup alts -> any (any (expr . itemExpr)) alts
+      EStar x -> expr x
+      EPlus x -> expr x
+      EOpt x -> expr x
+      EAnd x -> expr x
+      ENot x -> expr x
+      ECapture x -> expr x
+      ELabel _ x _ -> expr x
+      EDiscard x -> expr x
+      _ -> False

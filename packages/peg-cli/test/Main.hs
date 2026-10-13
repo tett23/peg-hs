@@ -720,6 +720,15 @@ main = do
               decodeUtf8File (BS.pack [0xEF, 0xBB, 0xBF, 0x41, 0xFF]) @?= Left 5
           ]
       , testGroup
+          "template calls without templates (ADR 0052)"
+          [ testCase "gen and lint report the call with its position" $ do
+              dir <- treeWith "template-call" [("G.hpeg", "%module M\nA :: ()\nA <- B<'x'> B { () }\n\nB :: ()\nB <- 'b' { () }\n")]
+              forM_ [["gen", "G.hpeg"], ["lint", "G.hpeg"]] $ \args -> do
+                (code, out, err) <- pegHsIn dir args
+                (code, out) @?= (ExitFailure 1, "")
+                lines err @?= ["G.hpeg:3:6: error: rule B is not a template"]
+          ]
+      , testGroup
           "gen (ADR 0028)"
           [ testCase "an unsafe label is a warning" $ do
               (code, _, err, written) <- genOn "warn" unsafe []

@@ -44,3 +44,11 @@ Since v0.1.0-rc1:
 
 - The notation is called the `.hpeg` notation, after the extension of its
   files ([ADR 0050](https://github.com/tett23/peg-hs/blob/main/docs/adr/0050-hpeg-extension.md)).
+
+### Fixed
+
+Since v0.1.0-rc1:
+
+- A template call in a grammar without templates is the error
+  `rule B is not a template`, not an internal error of the generator
+  ([ADR 0052](https://github.com/tett23/peg-hs/blob/main/docs/adr/0052-template-calls-in-grammars-without-templates.md)).
