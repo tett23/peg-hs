@@ -261,7 +261,7 @@ exprLabels :: Expr -> [Text]
 exprLabels = \e -> case e of
   ELabel _ x n -> n : exprLabels x
   EDiscard x -> exprLabels x
-  ETemplate _ _ args -> concatMap exprLabels args
+  ETemplate _ _ args _ -> concatMap exprLabels args
   EGroup alts -> concatMap (concatMap (exprLabels . itemExpr)) alts
   EStar x -> exprLabels x
   EPlus x -> exprLabels x
@@ -290,7 +290,7 @@ exprRefs = \e -> case e of
   ECapture x -> exprRefs x
   ELabel _ x _ -> exprRefs x
   EDiscard x -> exprRefs x
-  ETemplate _ _ args -> concatMap exprRefs args
+  ETemplate _ _ args _ -> concatMap exprRefs args
   _ -> []
 
 -- Nullability -------------------------------------------------------------------

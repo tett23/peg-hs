@@ -563,7 +563,7 @@ plainExpr = \case
   ELabel _ x n -> ELabel noLoc (plainExpr x) n
   EDiscard x -> EDiscard (plainExpr x)
   EPred b (Located _ c) -> EPred b (Located noLoc c)
-  ETemplate _ n as -> ETemplate noLoc n (map plainExpr as)
+  ETemplate _ n as vs -> ETemplate noLoc n (map plainExpr as) [Located noLoc (unLoc v) | v <- vs]
   e -> e
   where
     noLoc = Loc 0 0
@@ -589,7 +589,7 @@ subExprs = \case
   ECapture x -> [x]
   ELabel _ x _ -> [x]
   EDiscard x -> [x]
-  ETemplate _ _ as -> as
+  ETemplate _ _ as _ -> as
   _ -> []
 
 -- The identifiers of Haskell code.
@@ -636,7 +636,7 @@ substItems pm = mapM item
       ECapture x -> ECapture <$> expr x
       ELabel l x n -> (\x' -> ELabel l x' n) <$> expr x
       EDiscard x -> EDiscard <$> expr x
-      ETemplate l n as -> ETemplate l n <$> mapM expr as
+      ETemplate l n as vs -> ETemplate l n <$> mapM expr as <*> mapM code vs
       e -> Just e
     code (Located l c)
       | not (any (`M.member` pm) ws) = Just (Located l c)

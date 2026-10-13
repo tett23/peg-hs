@@ -218,10 +218,11 @@ Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
         / Ws '.' { EAny }
         / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
         / Ws l:Here n:Ident args:CallArgs { ERef l n args }
-        / Ws l:Here n:Ident as:TemplateArgs { ETemplate l n as }
+        / Ws l:Here n:Ident as:TemplateArgs vs:CallArgs? { ETemplate l n as (maybe [] id vs) }
         / Ws l:Here n:Ident !'(' { ERef l n [] }
 
-# 雛形の呼び出しの引数。引数は選択と逐次を含む式であり、, か > で終わる
+# 雛形の呼び出しの引数。引数は選択と逐次を含む式であり、, か > で終わる。
+# > の直後に空白なしで ( が続けば、値の引数である（ADR 0055）
 TemplateArgs :: [Expr]
 TemplateArgs <- '<' !'-' a:TemplateArg as:(Ws ',' TemplateArg)* Ws '>' { a : as }
 

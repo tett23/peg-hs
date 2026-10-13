@@ -152,7 +152,7 @@ sameAlternative a b = map (item keepBinds) (altItems a) == map (item keepBinds) 
       EGroup alts -> EGroup (map (map (item keep)) alts)
       ELabel _ x n -> ELabel z (expr keep x) n
       EPred p (Located _ c) -> EPred p (Located z c)
-      ETemplate _ n as -> ETemplate z n (map (expr keep) as)
+      ETemplate _ n as vs -> ETemplate z n (map (expr keep) as) [Located z t | Located _ t <- vs]
       e -> mapChildren (expr keep) e
 
 -- Ineffective labels ----------------------------------------------------------
@@ -232,7 +232,7 @@ children = \case
   ENot x -> [x]
   ECapture x -> [x]
   ELabel _ x _ -> [x]
-  ETemplate _ _ as -> as
+  ETemplate _ _ as _ -> as
   EDiscard x -> [x]
   _ -> []
 
@@ -246,7 +246,7 @@ mapChildren f = \case
   ENot x -> ENot (f x)
   ECapture x -> ECapture (f x)
   ELabel l x n -> ELabel l (f x) n
-  ETemplate l n as -> ETemplate l n (map f as)
+  ETemplate l n as vs -> ETemplate l n (map f as) vs
   EDiscard x -> EDiscard (f x)
   e -> e
 
