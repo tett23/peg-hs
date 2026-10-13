@@ -371,6 +371,13 @@ main = do
           , testCase "an unknown command far from every command suggests nothing" $ do
               (_, _, err) <- pegHs ["xyzzy"]
               lines err @?= ["peg-hs: unknown command xyzzy", "Run peg-hs help for the commands."]
+          , testCase "with relative paths, the module is the same in any directory" $ do
+              a <- treeWith "cli-reproducible-a" [("grammar/G.peg", exprGrammar), ("src/.keep", "")]
+              b <- treeWith "cli-reproducible-b/deeper" [("grammar/G.peg", exprGrammar), ("src/.keep", "")]
+              forM_ [a, b] $ \d -> pegHsIn d ["gen", "grammar/G.peg", "-o", "src/G.hs"]
+              ga <- BS.readFile (a </> "src/G.hs")
+              gb <- BS.readFile (b </> "src/G.hs")
+              ga @?= gb
           , testCase "the edit distance" $
               map (uncurry editDistance) [("fmt", "fnt"), ("parse", "prase"), ("", "abc"), ("lint", "lint"), ("gen", "xyzzy")] @?= [1, 2, 3, 0, 5]
           ]
