@@ -35,6 +35,7 @@ executable peg-hs
     Command.Parse
     Files
     Diagnostics
+    EditDistance
     Embedded
     FileIO
     GhcVersion
@@ -62,6 +63,7 @@ test-suite peg-cli-test
   main-is:          Main.hs
   hs-source-dirs:   test app
   other-modules:
+    EditDistance
     Embedded
     FileIO
     GhcVersion

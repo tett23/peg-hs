@@ -13,14 +13,19 @@ fmtCommand =
   Command
     { cmdName = "fmt"
     , cmdSummary = "format grammars"
-    , cmdArguments = "[FILE...]"
+    , cmdArguments = "[FILE|DIR...]"
     , cmdDescription =
-        [ "Format grammars in place, in the one style of peg-hs."
-        , "Without files, format every .peg file under the current directory,"
-        , "except in directories whose name starts with . and dist-newstyle."
+        [ "Format grammars in place, in the one style of peg-hs. Comments are kept."
+        , "A directory stands for the .peg files under it. Without arguments, format every .peg"
+        , "file under the current directory. Directories whose name starts with . and"
+        , "dist-newstyle are skipped. Files are read and written as UTF-8."
         ]
     , cmdOptions =
         [ Opt "check" Nothing Nothing "write nothing; list the files that are not formatted and fail if any"
+        ]
+    , cmdExamples =
+        [ ("peg-hs fmt", "format every grammar under the current directory")
+        , ("peg-hs fmt --check grammar", "list the grammars under grammar that are not formatted, and fail if any")
         ]
     , cmdRun = run
     }

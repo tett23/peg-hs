@@ -9,6 +9,7 @@ module Options
   , parseOptions
   , commandHelp
   , usageError
+  , commandUsageError
   ) where
 
 import Data.List (find, isPrefixOf)
@@ -24,6 +25,8 @@ data Command = Command
   -- ^ The arguments in the usage line, such as @GRAMMAR.peg@.
   , cmdDescription :: [String]
   , cmdOptions :: [Opt]
+  , cmdExamples :: [(String, String)]
+  -- ^ Command lines and what they do, for the help.
   , cmdRun :: Parsed -> IO ExitCode
   }
 
@@ -52,35 +55,55 @@ value name p = case [v | (n, v) <- parsedOptions p, n == name] of
   [] -> Nothing
   vs -> Just (last vs)
 
--- | Parse the arguments of a command.
+-- | Parse the arguments of a command. An option that takes a value takes
+-- it as the next argument (@--output FILE@) or after @=@
+-- (@--output=FILE@).
 parseOptions :: [Opt] -> [String] -> Either String Parsed
 parseOptions opts = go [] []
   where
     go os as [] = Right (Parsed (reverse os) (reverse as))
-    go os as (a : rest)
-      | "-" `isPrefixOf` a && a /= "-" = case find (matches a) opts of
-          Nothing -> Left ("unknown option " <> a)
-          Just o -> case (optValue o, rest) of
-            (Nothing, _) -> go ((optLong o, "") : os) as rest
-            (Just _, v : rest') -> go ((optLong o, v) : os) as rest'
-            (Just _, []) -> Left ("the option " <> a <> " needs a value")
-      | otherwise = go os (a : as) rest
+    go os as (a0 : rest)
+      | "-" `isPrefixOf` a0 && a0 /= "-" =
+          let (a, attached) = case break (== '=') a0 of
+                (name, '=' : v) | "--" `isPrefixOf` name -> (name, Just v)
+                _ -> (a0, Nothing)
+           in case find (matches a) opts of
+                Nothing -> Left ("unknown option " <> a)
+                Just o -> case (optValue o, attached, rest) of
+                  (Nothing, Just _, _) -> Left ("the option " <> a <> " takes no value")
+                  (Nothing, Nothing, _) -> go ((optLong o, "") : os) as rest
+                  (Just _, Just v, _) -> go ((optLong o, v) : os) as rest
+                  (Just _, Nothing, v : rest') -> go ((optLong o, v) : os) as rest'
+                  (Just _, Nothing, []) -> Left ("the option " <> a <> " needs a value")
+      | otherwise = go os (a0 : as) rest
     matches a o = a == "--" <> optLong o || maybe False (\c -> a == ['-', c]) (optShort o)
 
--- | The help of a command.
+-- | The help of a command: the usage, the description, the options and
+-- examples, in this order for every command.
 commandHelp :: Command -> String
 commandHelp c =
   unlines $
-    ["usage: peg-hs " <> cmdName c <> (if null (cmdArguments c) then "" else " " <> cmdArguments c) <> (if null (cmdOptions c) then "" else " [options]"), ""]
+    ["usage: peg-hs " <> cmdName c <> " [options]" <> (if null (cmdArguments c) then "" else " " <> cmdArguments c), ""]
       ++ cmdDescription c
-      ++ (if null (cmdOptions c) then [] else ["", "options:"] ++ map line (cmdOptions c))
+      ++ ["", "options:"]
+      ++ map line (cmdOptions c ++ [Opt "help" (Just 'h') Nothing "show this help"])
+      ++ (if null (cmdExamples c) then [] else ["", "examples:"] ++ concatMap example (cmdExamples c))
   where
     line o =
       let names = maybe "" (\s -> ['-', s] <> ", ") (optShort o) <> "--" <> optLong o <> maybe "" (" " <>) (optValue o)
        in "  " <> names <> replicate (max 1 (26 - length names)) ' ' <> optHelp o
+    example (cmd, what) = ["  " <> cmd, "      " <> what]
 
--- | Report a mistake in the use of a command, with exit status 2.
+-- | Report a mistake in the use of peg-hs, with exit status 2.
 usageError :: String -> IO ExitCode
 usageError msg = do
   hPutStrLn stderr ("peg-hs: " <> msg)
+  hPutStrLn stderr "Run peg-hs help for the commands."
+  pure (ExitFailure 2)
+
+-- | Report a mistake in the use of a command, with exit status 2.
+commandUsageError :: String -> String -> IO ExitCode
+commandUsageError name msg = do
+  hPutStrLn stderr ("peg-hs: " <> msg)
+  hPutStrLn stderr ("Run peg-hs help " <> name <> " for its usage.")
   pure (ExitFailure 2)

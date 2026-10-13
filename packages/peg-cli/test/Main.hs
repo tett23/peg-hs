@@ -38,6 +38,7 @@ import System.Process (CreateProcess (..), StdStream (..), createProcess, waitFo
 import System.Directory (emptyPermissions)
 import FileIO (utf8ErrorOffset, decodeUtf8File)
 import GhcVersion (supportedGhc)
+import EditDistance (editDistance)
 
 unsafe :: String
 unsafe = "%module M\nS :: ()\nS <- 'a' ('b' ^l) { () } / 'a' 'c' { () }\n"
@@ -330,6 +331,48 @@ main = do
               code @?= ExitSuccess
               assertBool out ("wrote " `isInfixOf` out)
               err @?= ""
+          ]
+      , testGroup
+          "the details of the command line (ADR 0046)"
+          [ goldenVsString "peg-hs help parse" "test/golden/help-parse.txt" (stdoutOf ["help", "parse"])
+          , goldenVsString "peg-hs help lsp" "test/golden/help-lsp.txt" (stdoutOf ["help", "lsp"])
+          , testCase "the help lists --version and --help" $ do
+              out <- BL.unpack <$> stdoutOf ["help"]
+              assertBool out ("--version" `isInfixOf` out && "--help" `isInfixOf` out)
+          , testCase "the help of every command has its options and examples" $
+              forM_ ["gen", "fmt", "lint", "lsp", "parse"] $ \c -> do
+                out <- BL.unpack <$> stdoutOf ["help", c]
+                assertBool out (all (`elem` lines out) ["options:", "examples:"])
+                assertBool out ("-h, --help" `isInfixOf` out)
+          , testCase "--name=value is --name value" $ do
+              dir <- treeWith "cli-equals" [("G.peg", exprGrammar), ("in.txt", "1 + 2")]
+              (code, _, err) <- pegHsIn dir ["gen", "--output=Out.hs", "G.peg"]
+              (code, err) @?= (ExitSuccess, "")
+              doesFileExist (dir </> "Out.hs") >>= assertBool "Out.hs"
+              (code', out', _) <- parseIn dir ["parse", "G.peg", "in.txt", "--format=cst", "--entry=Term", "--ghc-arg=-O0"]
+              (code'', out'', _) <- parseIn dir ["parse", "G.peg", "in.txt", "--format", "cst", "--entry", "Term", "--ghc-arg", "-O0"]
+              (code', out') @?= (code'', out'')
+          , testCase "a value given to an option without one is a usage error" $ do
+              (code, _, err) <- pegHs ["gen", "--debug-entry=x", "G.peg"]
+              code @?= ExitFailure 2
+              assertBool err ("the option --debug-entry takes no value" `isInfixOf` err)
+          , testCase "a usage error points to the help of the command" $ do
+              (code, out, err) <- pegHs ["gen"]
+              (code, out) @?= (ExitFailure 2, "")
+              lines err @?= ["peg-hs: gen needs a grammar file", "Run peg-hs help gen for its usage."]
+              (_, _, err') <- pegHs ["parse", "--frobnicate"]
+              lines err' @?= ["peg-hs: unknown option --frobnicate", "Run peg-hs help parse for its usage."]
+          , testCase "an unknown command near a command suggests it" $ do
+              (code, out, err) <- pegHs ["fnt"]
+              (code, out) @?= (ExitFailure 2, "")
+              lines err @?= ["peg-hs: unknown command fnt", "Did you mean fmt?", "Run peg-hs help for the commands."]
+              (_, _, err') <- pegHs ["help", "prase"]
+              lines err' @?= ["peg-hs: unknown command prase", "Did you mean parse?", "Run peg-hs help for the commands."]
+          , testCase "an unknown command far from every command suggests nothing" $ do
+              (_, _, err) <- pegHs ["xyzzy"]
+              lines err @?= ["peg-hs: unknown command xyzzy", "Run peg-hs help for the commands."]
+          , testCase "the edit distance" $
+              map (uncurry editDistance) [("fmt", "fnt"), ("parse", "prase"), ("", "abc"), ("lint", "lint"), ("gen", "xyzzy")] @?= [1, 2, 3, 0, 5]
           ]
       , testGroup
           "fmt (ADR 0032)"

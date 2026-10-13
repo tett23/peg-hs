@@ -8,4 +8,9 @@ commands:
   parse   parse an input with a grammar and show its AST and CST
   help    show the commands, or the help of a command
 
-Run peg-hs help <command> for the options of a command.
+options:
+  -h, --help    show this help
+  --version     show the version of peg-hs
+
+Run peg-hs help <command> for the options and examples of a command. An option that
+takes a value takes it as --name VALUE or as --name=VALUE.

@@ -44,14 +44,20 @@ parseCommand =
     , cmdArguments = "GRAMMAR.peg INPUT"
     , cmdDescription =
         [ "Parse INPUT with the grammar and show the value of the start rule (the AST)"
-        , "or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH,"
-        , "and cached under $XDG_CACHE_HOME/peg-hs/parse. The AST needs a Show instance of"
-        , "the type of the start rule. Run through cabal exec to use the packages of a project."
+        , "or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH"
+        , "(GHC 9.10, 9.12 or 9.14), and cached under $XDG_CACHE_HOME/peg-hs/parse. The AST needs"
+        , "a Show instance of the type of the start rule. Run through cabal exec to use the"
+        , "packages of a project. Grammars with %env are not supported. Files are read as UTF-8."
         ]
     , cmdOptions =
         [ Opt "format" Nothing (Just "ast|cst|all") "what to show (default: ast)"
         , Opt "entry" Nothing (Just "RULE") "parse with a rule of %entry instead of the start rule"
         , Opt "ghc-arg" Nothing (Just "ARG") "pass ARG to ghc, such as -isrc (repeatable)"
+        ]
+    , cmdExamples =
+        [ ("peg-hs parse Expr.peg input.txt", "show the value of the start rule for input.txt")
+        , ("peg-hs parse --format cst Expr.peg input.txt", "show the lossless syntax tree")
+        , ("cabal exec -- peg-hs parse --ghc-arg -isrc G.peg in.txt", "compile with the packages of the project and the modules under src")
         ]
     , cmdRun = run
     }
@@ -63,10 +69,10 @@ run :: Parsed -> IO ExitCode
 run p = case (parsedArguments p, value "format" p) of
   ([grammarFile, input], fmt)
     | Just format <- maybe (Just Ast) formatOf fmt -> parseWith grammarFile input format (value "entry" p) [v | ("ghc-arg", v) <- parsedOptions p]
-    | otherwise -> usageError "--format takes ast, cst or all"
-  ([_], _) -> usageError "parse needs a grammar file and an input file"
-  ([], _) -> usageError "parse needs a grammar file and an input file"
-  _ -> usageError "parse takes a grammar file and an input file"
+    | otherwise -> commandUsageError "parse" "--format takes ast, cst or all"
+  ([_], _) -> commandUsageError "parse" "parse needs a grammar file and an input file"
+  ([], _) -> commandUsageError "parse" "parse needs a grammar file and an input file"
+  _ -> commandUsageError "parse" "parse takes a grammar file and an input file"
   where
     formatOf = \case
       "ast" -> Just Ast

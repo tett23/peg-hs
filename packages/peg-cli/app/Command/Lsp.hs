@@ -18,10 +18,13 @@ lspCommand =
         , "references, hover and document symbols."
         ]
     , cmdOptions = []
+    , cmdExamples =
+        [ ("peg-hs lsp", "run by an editor; the README has the settings of VS Code, Neovim and Helix")
+        ]
     , cmdRun = run
     }
 
 run :: Parsed -> IO ExitCode
 run p = case parsedArguments p of
   [] -> runServer stdin stdout >>= \code -> pure (if code == 0 then ExitSuccess else ExitFailure code)
-  _ -> usageError "lsp takes no arguments"
+  _ -> commandUsageError "lsp" "lsp takes no arguments"
