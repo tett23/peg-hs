@@ -24,10 +24,11 @@ ghcup also installs an executable per version (`cabal-3.16.1.0`), so if the defa
 If you use [mise](https://mise.jdx.dev/), the repository's `mise.toml` puts ghcup's `~/.ghcup/bin` on the project's `PATH`.
 
 The packages support GHC 9.10, 9.12 and 9.14 ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
-The `tested-with` field of each `.cabal` file lists the versions that were checked (9.10.3, 9.12.4 and 9.14.1).
+CI checks only the version that ghcup marks as recommended (9.10.3), and the `tested-with` field of each `.cabal` file names only that version.
+CI checked 9.12 and 9.14 up to v0.1.0-rc2, and no longer does because of its limits on running time ([ADR 0057](docs/adr/0057-recommended-ghc-only.md)).
 For development, 9.10.3 alone is enough.
-CI checks the build with 9.12 and 9.14.
-To check it locally, install that GHC and name it, as in `cabal build -w ghc-9.14.1 all`.
+To check 9.12 or 9.14, install that GHC and name it, as in `cabal build -w ghc-9.14.1 all`.
+When the recommended version changes, change `with-compiler` in `cabal.project`, `GHC_VERSION` in CI and `tested-with` of each `.cabal` file in one commit.
 
 After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enable the git hooks.
 adr-guard is a tool that checks that committed ADRs and benchmark records have not changed (see "ADRs and adr-guard").
@@ -253,7 +254,6 @@ A new push to a pull request stops the run of the previous push.
 - **test-packages**: runs the tests of peg-cli, peg-lsp, peg-codegen and peg-runtime
 - **haddock**: generates the Haddock of the four published libraries, and checks with `scripts/haddock-coverage.sh` that every exposed module is fully documented ([ADR 0044](docs/adr/0044-release-v0-1-0.md))
 - **sdist-1** to **sdist-3**: each makes the sdists of the five published packages, and builds and tests them from the unpacked tarballs alone. Each runs a third of peg-grammar-test with `--shard i/3`, and `sdist-2` also runs the other four suites. Each prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md), [ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md))
-- **ghc-9.12.4, ghc-9.14.1**: build every package with the newer GHCs, and run the tests of peg-runtime and peg-codegen. The tests of peg-codegen check that generated modules compile without warnings ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md))
 - **editors**: runs the tests of the editor grammars, and checks that the committed tree-sitter parser is up to date ([ADR 0034](docs/adr/0034-syntax-highlighting.md))
 
 In a test job (`test-*`), the suites run one at a time.

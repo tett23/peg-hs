@@ -17,7 +17,7 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
-tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
+tested-with:        GHC == 9.10.3
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
   grammar/Peg.hpeg
