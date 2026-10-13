@@ -15,6 +15,12 @@
 -- passes them on: @Lines<Item(ind)>@ in @B(ind :: Int)@ becomes
 -- @Lines'0(ind)@. An argument cannot use a binding of the caller.
 --
+-- A template may also have value parameters, declared in its annotation
+-- as @Indented<p>(n :: Int)@ and passed as @Indented<Item>(ind + 2)@. The
+-- instance takes them before the parameters of the caller, and the values
+-- are not part of what makes an instance: calls that differ only in their
+-- values share one.
+--
 -- Expand before 'Peg.Grammar.Check.check' and
 -- 'Peg.Grammar.Labels.labelWarnings', and pass their diagnostics through
 -- 'templateNotes' so that an error inside a template names the call that
@@ -82,10 +88,6 @@ expandTemplates g
       , Located l n <- names
       , M.member n templates
       ]
-        ++ [ Diagnostic (ruleLoc r) ("the template " <> ruleName r <> " cannot take parameters")
-           | r <- M.elems templates
-           , not (null (ruleParams r))
-           ]
         ++ [ Diagnostic (ruleLoc r) ("the template " <> ruleName r <> " has two parameters named " <> p)
            | r <- M.elems templates
            , let names = map templateParamName (ruleTemplateParams r)
@@ -120,10 +122,14 @@ expandTemplates g
           addError (Diagnostic l ("rule " <> n <> " is not a template"))
           pure (ERef l n [])
         Just t -> do
-          -- A template has no value parameters (ADR 0055, stage 2).
-          case vals of
-            [] -> pure ()
-            _ -> addError (Diagnostic l ("the template " <> n <> " takes no value arguments"))
+          -- The value arguments of the value parameters (ADR 0055).
+          let valueParams = ruleParams t
+          if null valueParams && not (null vals)
+            then addError (Diagnostic l ("the template " <> n <> " takes no value arguments"))
+            else
+              if length vals /= length valueParams
+                then addError (Diagnostic l ("the template " <> n <> " expects " <> T.pack (show (length valueParams)) <> " value argument(s), but got " <> T.pack (show (length vals))))
+                else pure ()
           args' <- mapM (expandExpr caller depth scope) args
           let params = ruleTemplateParams t
           if length args' /= length params
@@ -134,7 +140,7 @@ expandTemplates g
               captured <- captures l caller scope t args'
               tys <- mapM (argType l) (zip params args')
               name <- instanceOf l depth t args' tys captured
-              pure (ERef l name [Located l x | (x, _) <- captured])
+              pure (ERef l name (vals ++ [Located l x | (x, _) <- captured]))
       EGroup alts -> EGroup <$> mapM (expandItems caller depth scope) alts
       EStar x -> EStar <$> expandExpr caller depth scope x
       EPlus x -> EPlus <$> expandExpr caller depth scope x
@@ -155,15 +161,15 @@ expandTemplates g
           bound = [x | x <- S.toAscList names, S.member x scope]
           taken = [(x, ty) | x <- S.toAscList names, x `notElem` reservedBindings, not (S.member x scope), Just ty <- [M.lookup x (callerParams caller)]]
           inBody = M.findWithDefault S.empty (ruleName t) bodyNames
-      mapM_ (\x -> addError (Diagnostic l ("the argument of the template " <> ruleName t <> " uses the binding " <> x <> ", which a template cannot take"))) bound
+      mapM_ (\x -> addError (Diagnostic l ("the argument of the template " <> ruleName t <> " uses the binding " <> x <> ", which a template cannot take; pass it as a value argument"))) bound
       mapM_
         (\x -> addError (Diagnostic l ("the template " <> ruleName t <> " uses the name " <> x <> " in its body, so its argument cannot take the parameter " <> x <> " of the rule " <> callerName caller <> "; rename the parameter")))
         [x | (x, _) <- taken, S.member x inBody]
       pure taken
 
-    -- The bindings and the identifiers of the code in the body of each
-    -- template.
-    bodyNames = M.map (\t -> S.fromList (concatMap altNames (ruleAlts t))) templates
+    -- The value parameters, the bindings and the identifiers of the code
+    -- in the body of each template.
+    bodyNames = M.map (\t -> S.fromList (map paramName (ruleParams t) ++ concatMap altNames (ruleAlts t))) templates
     altNames a = concatMap haskellIdents (altCode a) ++ concatMap itemBinds (altItems a)
     itemBinds i = maybe [] pure (itemBind i) ++ exprBinds (itemExpr i)
     exprBinds = \case
@@ -220,13 +226,13 @@ expandTemplates g
                 let sub = M.fromList (zip (map templateParamName (ruleTemplateParams t)) (zip (ruleTemplateParams t) args))
                     -- The calls in the body take the parameters of the
                     -- instance (ADR 0055).
-                    caller = Caller (ruleName t) (M.fromList captured)
+                    caller = Caller (ruleName t) (M.fromList ([(paramName p, paramType p) | p <- ruleParams t] ++ captured))
                 alts <- mapM (expandAlt caller depth S.empty . substituteAlt sub) (ruleAlts t)
                 ty <- gets' (M.findWithDefault "()" name . stInstanceTypes)
                 -- A parameter that the code of the instance does not use
                 -- is named _x', so that the generated code has no warning.
                 let used = S.fromList (concatMap (concatMap haskellIdents . altCode) alts)
-                    params = [Param (if S.member x used then x else "_" <> x <> "'") ty' | (x, ty') <- captured]
+                    params = ruleParams t ++ [Param (if S.member x used then x else "_" <> x <> "'") ty' | (x, ty') <- captured]
                 pure (Just t {ruleName = name, ruleParams = params, ruleTemplateParams = [], ruleType = (ruleType t) {unLoc = ty}, ruleAlts = alts})
           rest <- drain
           pure (maybe rest (: rest) rule)

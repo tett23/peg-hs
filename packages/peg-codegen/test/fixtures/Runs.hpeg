@@ -1,8 +1,10 @@
 # ADR 0055：雛形の引数が呼び出し元の引数を使う
 # 字下げの深さを引数で渡し、空行を挟んで同じものが続く形を雛形 Run で書く。
-# PlainDoc は、同じ文法を雛形を使わずに書き下したもの
+# PlainDoc は、同じ文法を雛形を使わずに書き下したもの。
+# DeepDoc は、字下げの深さを値の引数に取る雛形 Indented で書いたもの
 %module Fixture.Runs
 %entry PlainDoc
+%entry DeepDoc
 %export Block(..)
 
 %{
@@ -42,6 +44,24 @@ DefGroup <- Ind(ind) '=' ' ' t:Line bs:DefBody(ind) { (t, bs) }
 
 DefBody(ind :: Int) :: [Block]
 DefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:Run<Block(ind + 2), &(Ind(ind + 2) ![ ] !BlankLine .)> { bs }
+
+# 値の引数を取る雛形で書いた同じ文法。n の深さに字下げした p が、空行を挟んで続く
+Indented<p :: a>(n :: Int) :: [a]
+Indented<p> <- BlankLines? &(Ind(n) ![ ] !BlankLine .) x:p xs:(BlankLines? &(Ind(n) ![ ] !BlankLine .) p)* { x : xs }
+
+DeepDoc :: [Block]
+DeepDoc <- BlankLines? bs:Run<DeepBlock(0), &(Ind(0) !BlankLine .)> BlankLines? { bs }
+
+DeepBlock(ind :: Int) :: Block
+DeepBlock <- is:Run<DeepListItem(ind), &(Ind(ind) '-' ' ')> { Bullets is }
+          / ds:Run<DeepDefGroup(ind), &(Ind(ind) '=' ' ')> { Defs ds }
+          / Ind(ind) ![-= ] t:Line { Para t }
+
+DeepListItem(ind :: Int) :: (Text, [Block])
+DeepListItem <- Ind(ind) '-' ' '+ t:Line bs:Indented<DeepBlock(ind + 2)>(ind + 2)? { (t, maybe [] id bs) }
+
+DeepDefGroup(ind :: Int) :: (Text, [Block])
+DeepDefGroup <- Ind(ind) '=' ' ' t:Line bs:Indented<DeepBlock(ind + 2)>(ind + 2) { (t, bs) }
 
 # 雛形を使わずに書き下した同じ文法
 PlainDoc :: [Block]

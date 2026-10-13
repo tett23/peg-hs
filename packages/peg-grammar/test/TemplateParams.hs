@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Highlight
+import Peg.Grammar.Lint (LintWarning (..), lintGrammar)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Test.Tasty
@@ -21,6 +22,7 @@ templateParamTests =
     "templates with parameterised rules (ADR 0055)"
     [ stage1Tests
     , stage2Tests
+    , stage3Tests
     ]
 
 -- Stage 1: the parameters of the caller that the arguments use.
@@ -72,7 +74,7 @@ stage1Tests =
         calls g "B" @?= [("Lines'0", [])]
     , testCase "an argument that uses a binding of the caller" $
         expansionErrors (base "B(ind :: Int) :: ()\nB <- x:N Lines<Item(x)> { () }")
-          @?= [(13, 10, "the argument of the template Lines uses the binding x, which a template cannot take")]
+          @?= [(13, 10, "the argument of the template Lines uses the binding x, which a template cannot take; pass it as a value argument")]
     , testCase "a binding to the right of the call is not in scope" $ do
         g <- expanded (base "B(x :: Int) :: ()\nB <- Lines<Item(x)> x:N { () }")
         params g "Lines'0" @?= [("x", "Int")]
@@ -106,9 +108,6 @@ stage2Tests =
     , testCase "a value argument in the template call of an argument" $
         expansionErrors (base "B(ind :: Int) :: ()\nB <- Lines<Lines<Item(ind)>(1)> { () }")
           @?= [(13, 12, "the template Lines takes no value arguments")]
-    , testCase "value parameters in the annotation of a template are still an error" $
-        expansionErrors (base "B(ind :: Int) :: ()\nB <- T<Item(ind)> { () }\nT<p>(n :: Int) :: ()\nT<p> <- p { () }")
-          @?= [(15, 1, "the template T cannot take parameters (in the template T, expanded at 13:6)")]
     , testCase "the value arguments are highlighted as the arguments of a rule call" $ do
         let src = base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind + 2) Item(ind) { () }"
             kindsAt l = [(locColumn (hlStart h), locColumn (hlEnd h), hlKind h) | h <- maybe [] id (highlights src), locLine (hlStart h) == l, hlKind h `elem` [HArguments, HRuleReference, HTemplateBracket]]
@@ -126,6 +125,57 @@ stage2Tests =
   where
     parsed src = either (\ds -> assertFailure (show ds) >> error "unreachable") pure (parseGrammar src)
     exprsOf g n = [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == n, a <- ruleAlts r]
+
+-- Stage 3: the value parameters of templates.
+stage3Tests :: TestTree
+stage3Tests =
+  testGroup
+    "stage 3: value parameters of templates"
+    [ testCase "an instance takes the value parameters, then the parameters of the caller" $ do
+        g <- expanded (base3 "B(ind :: Int) :: ()\nB <- Indented<Item(ind)>(ind + 2) { () }")
+        params g "Indented'0" @?= [("n", "Int"), ("ind", "Int")]
+        calls g "B" @?= [("Indented'0", ["ind + 2", "ind"])]
+    , testCase "the value parameters keep the order of their declaration" $ do
+        g <- expanded (base3 "B(a :: Int) :: ()\nB <- Two<Item(a)>(1, True) { () }\nTwo<p>(z :: Int, y :: Bool) :: ()\nTwo<p> <- p &{ y && z > 0 } { () }")
+        params g "Two'0" @?= [("z", "Int"), ("y", "Bool"), ("a", "Int")]
+        calls g "B" @?= [("Two'0", ["1", "True", "a"])]
+    , testCase "calls that differ only in the value arguments share an instance" $ do
+        g <- expanded (base3 "B(ind :: Int) :: ()\nB <- Indented<Item(0)>(1) Indented<Item(0)>(ind) { () }")
+        instances g @?= ["Indented'0"]
+        calls g "B" @?= [("Indented'0", ["1"]), ("Indented'0", ["ind"])]
+    , testCase "a value argument may use a binding to its left and _col" $ do
+        checkErrors (base3 "B(ind :: Int) :: ()\nB <- x:N Indented<Item(ind)>(x + _col) { () }") @?= []
+        g <- expanded (base3 "B(ind :: Int) :: ()\nB <- x:N Indented<Item(ind)>(x + _col) { () }")
+        calls g "B" @?= [("Indented'0", ["x + _col", "ind"])]
+    , testCase "a call in the body of a template takes its value parameters" $ do
+        g <- expanded (base3 "B(ind :: Int) :: ()\nB <- Outer<Item(ind)>(2) { () }\nOuter<p>(m :: Int) :: ()\nOuter<p> <- Lines<Item(m)> p { () }")
+        params g "Outer'0" @?= [("m", "Int"), ("ind", "Int")]
+        calls g "Outer'0" @?= [("Lines'1", ["m"])]
+    , testCase "the number of value arguments" $ do
+        expansionErrors (base3 "B(ind :: Int) :: ()\nB <- Indented<Item(0)>(1, 2) { () }")
+          @?= [(15, 6, "the template Indented expects 1 value argument(s), but got 2")]
+        expansionErrors (base3 "B(ind :: Int) :: ()\nB <- Indented<Item(0)> { () }")
+          @?= [(15, 6, "the template Indented expects 1 value argument(s), but got 0")]
+    , testCase "value arguments for a template without value parameters" $
+        expansionErrors (base3 "B(ind :: Int) :: ()\nB <- Lines<Item(0)>(1) { () }")
+          @?= [(15, 6, "the template Lines takes no value arguments")]
+    , testCase "value parameters in the definition of a template are an error, as for a rule" $ do
+        let errorOf src = either (map diagMessage) (const []) (parseGrammar src)
+        errorOf "%module M\nT<p>(n :: Int) :: ()\nT<p>(n :: Int) <- p { () }\n"
+          @?= errorOf "%module M\nA(n :: Int) :: ()\nA(n :: Int) <- 'a' { () }\n"
+        assertBool "an error" (not (null (errorOf "%module M\nT<p>(n :: Int) :: ()\nT<p>(n :: Int) <- p { () }\n")))
+    , testCase "a value parameter with the name of a parameter of the caller" $
+        expansionErrors (base3 "B(n :: Int) :: ()\nB <- Indented<Item(n)>(1) { () }")
+          @?= [(15, 6, "the template Indented uses the name n in its body, so its argument cannot take the parameter n of the rule B; rename the parameter")]
+    , testCase "an instance with value parameters in left recursion" $
+        checkErrors (base3 "B(ind :: Int) :: ()\nB <- Rec<Item(0)>(1) { () }\nRec<p>(n :: Int) :: ()\nRec<p> <- Rec<p>(n) 'x' { () } / p { () }")
+          @?= [(17, 1, "rule Rec'0 takes parameters and cannot take part in left recursion (in the template Rec, expanded at 15:6)")]
+    , testCase "a binding used only in a value argument is used" $ do
+        g <- either (\ds -> assertFailure (show ds) >> error "unreachable") pure (parseGrammar (base3 "B(ind :: Int) :: ()\nB <- x:N Indented<Item(ind)>(x) { () }"))
+        [lintMessage w | w <- lintGrammar g] @?= []
+    ]
+  where
+    base3 body = base ("Indented<p>(n :: Int) :: ()\nIndented<p> <- &{ n >= 0 } p { () }\n" <> body)
 
 -- A grammar with templates and parameterised rules, with the body added
 -- at line 12.

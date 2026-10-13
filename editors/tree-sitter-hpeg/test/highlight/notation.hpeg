@@ -24,9 +24,16 @@ Term <- !'-' [0-9]+ . T<'x'> { _span }
      #                ^ @function.call
      #                 ^ @punctuation.bracket
      #                         ^ @variable.builtin
+     / V<'z'>(1) { 2 }
+     # ^ @function.call
+     #  ^ @punctuation.bracket
+     #      ^ @punctuation.bracket
      / '\n' { 0 }
      #  ^ @string.escape
      / 'y' { 1 }
+
+V<p>(n :: Int) :: Int
+V<p> <- p { n }
 
 T<p> :: Int
 T<p> <- p { 0 }
