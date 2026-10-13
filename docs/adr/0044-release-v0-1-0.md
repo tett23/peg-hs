@@ -1,6 +1,6 @@
 # ADR 0044: v0.1.0 のリリースの範囲と手順
 
-ステータス: 採択
+ステータス: 採択→プレリリースの Hackage への候補のアップロードは [ADR 0058](0058-no-hackage-candidates-for-pre-releases.md)
 
 ## 文脈
 
