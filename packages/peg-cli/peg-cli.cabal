@@ -17,7 +17,7 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
   test/golden/*.txt
-tested-with:        GHC == 9.10.3
+tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 
 source-repository head
   type:     git
@@ -45,7 +45,7 @@ executable peg-hs
     Paths_peg_cli
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , bytestring   >=0.11 && <0.13
     , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
@@ -69,7 +69,7 @@ test-suite peg-cli-test
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N"
   build-tool-depends: peg-cli:peg-hs
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
     , bytestring

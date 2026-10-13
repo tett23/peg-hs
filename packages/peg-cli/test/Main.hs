@@ -17,7 +17,7 @@ import Data.List (isInfixOf, isPrefixOf)
 import System.Directory (createDirectoryIfMissing, doesFileExist, getTemporaryDirectory, removeDirectoryRecursive, removeFile)
 import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory, takeFileName, (</>))
-import System.Process (cwd, env, proc, readCreateProcessWithExitCode, readProcessWithExitCode)
+import System.Process (proc, readCreateProcessWithExitCode, readProcessWithExitCode)
 import System.Environment (getEnvironment)
 import System.Directory (findExecutable, getPermissions, removePathForcibly, setOwnerExecutable, setPermissions)
 import Data.Char (isSpace)
@@ -527,8 +527,8 @@ main = do
               let file = dir </> "G.peg"
               old <- getPermissions file
               bracket_ (setPermissions file emptyPermissions) (setPermissions file old) $ do
-                readable <- (True <$ readFile file) `catchIOAny` pure False
-                unless readable $ do
+                canRead <- (True <$ readFile file) `catchIOAny` pure False
+                unless canRead $ do
                   (code, _, err) <- pegHsIn dir ["gen", "G.peg"]
                   (code, lines err) @?= (ExitFailure 1, ["peg-hs: cannot read G.peg: permission denied"])
           , testCase "gen -o into a missing directory" $ do

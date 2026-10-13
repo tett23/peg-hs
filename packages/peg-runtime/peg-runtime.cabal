@@ -16,7 +16,7 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
-tested-with:        GHC == 9.10.3
+tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 extra-doc-files:    CHANGELOG.md
 
 source-repository head
@@ -37,7 +37,7 @@ library
     Peg.Runtime.Position
   build-depends:
     , array       >=0.5   && <0.6
-    , base        >=4.20  && <4.21
+    , base        >=4.20  && <4.23
     , containers  >=0.6   && <0.8
     , text        >=2.0   && <2.2
   hs-source-dirs:   src
