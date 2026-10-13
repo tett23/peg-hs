@@ -10,6 +10,7 @@ peg-hs は PEG 定義から Haskell のパーサーを生成するツールチ�
 - **packages/** cabal パッケージ（peg-runtime, peg-grammar, peg-codegen, peg-cli）を配置する
 - **conformance/** 実在する言語の文法による適合性テスト（非公開パッケージ peg-conformance）と、取り込んだテストデータを配置する
 - **docs/conformance/** 適合率のスナップショットを配置する。コミット後は変更不可
+- **docs/benchmarks/** 計測のスナップショットを配置する。コミット後は変更不可で、adr-guard が変更を拒否する
 - **scripts/** 生成物の再生成（`regen-fixtures.sh`、生成器か文法を変えたら実行する）と、文字参照の表の生成（`gen-entities.py`）
 
 ## ツールチェーン

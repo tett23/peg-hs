@@ -44,6 +44,7 @@ ADR は `docs/adr/` に置く。
 ### コミットした ADR は変えない
 
 - コミットした ADR は、ステータスの行と、ADR の参照に付けるリンクを除いて変更できない。pre-commit のフックと CI で [adr-guard](https://github.com/tett23/adr-guard) が検査する
+- ADR は、行頭が `ステータス:` のステータスの行をちょうど一つ持つ。ステータスの行が無い ADR と二つ以上ある ADR は、adr-guard が拒否する（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）
 - 文書（`.md`）の中の ADR の参照（`ADR 0001` の形）には、ADR のファイルへのリンクを付ける。adr-guard が検査し、`adr-guard links --fix` でリンクに置きかえられる
 - 決定を変えたいときは、変更する内容の新しい ADR を書く。元の ADR のステータスの行を「採択→（変更した部分）は ADR NNNN」のように書き換える
 - ADR を破棄するときは、ステータスを「破棄」にし、理由を `docs/specifications.md` に書く
@@ -81,7 +82,7 @@ ADR は `docs/adr/` に置く。
 ### 適合性テストのデータ
 
 - 外部から取り込んだテストデータ（`conformance/data/`）は変更しない。取り込んだ版と取得元を `SOURCE` に、ライセンスを `LICENSE` に書く
-- 適合率や計測のスナップショット（`docs/conformance/`、`docs/benchmarks/`）は、コミットした後に変更しない。新しい結果は新しいスナップショットとして加える
+- 適合率や計測のスナップショット（`docs/conformance/`、`docs/benchmarks/`）は、コミットした後に変更しない。新しい結果は新しいスナップショットとして加える。`docs/benchmarks/` の変更は、リンクの付与も含めて adr-guard が拒否する。`docs/conformance/` は検査しない（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）
 
 ## 開発環境
 

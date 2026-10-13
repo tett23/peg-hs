@@ -44,6 +44,7 @@ ADRs live in `docs/adr/`.
 ### Committed ADRs do not change
 
 - A committed ADR cannot be changed, except for its status line and the links of its references to ADRs. [adr-guard](https://github.com/tett23/adr-guard) checks this in the pre-commit hook and in CI
+- An ADR has exactly one status line, a line starting with `ステータス:`. adr-guard rejects an ADR with no status line or with two or more ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md))
 - A reference to an ADR (`ADR 0001`) in a document (`.md`) links to the file of the ADR. adr-guard checks this, and `adr-guard links --fix` adds the links
 - To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as 採択→(the changed part)は ADR NNNN
 - To discard an ADR, set its status to 破棄 (discarded) and write the reason in `docs/specifications.md`
@@ -81,7 +82,7 @@ ADRs live in `docs/adr/`.
 ### Data of the conformance tests
 
 - Do not modify test data taken from elsewhere (`conformance/data/`). Record the version and the source in `SOURCE`, and the license in `LICENSE`
-- Snapshots of conformance and measurements (`docs/conformance/`, `docs/benchmarks/`) do not change after they are committed. New results are added as new snapshots
+- Snapshots of conformance and measurements (`docs/conformance/`, `docs/benchmarks/`) do not change after they are committed. New results are added as new snapshots. adr-guard rejects changes to `docs/benchmarks/`, links included; it does not check `docs/conformance/` ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md))
 
 ## Development environment
 
