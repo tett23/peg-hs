@@ -35,3 +35,5 @@ The first release. peg-grammar reads `.peg` grammars and checks them.
   the language server know of a grammar
   ([ADR 0034](https://github.com/tett23/peg-hs/blob/main/docs/adr/0034-syntax-highlighting.md),
   [ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/0035-language-server.md)).
+- Builds with GHC 9.10, 9.12 and 9.14
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).

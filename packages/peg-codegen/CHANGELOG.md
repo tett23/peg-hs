@@ -28,3 +28,7 @@ module.
 - Generation without the labels of a grammar, to check that labels do not
   change the language ([ADR 0028](https://github.com/tett23/peg-hs/blob/main/docs/adr/0028-label-safety-check.md),
   [ADR 0038](https://github.com/tett23/peg-hs/blob/main/docs/adr/0038-label-check-precision-and-strip-labels-entries.md)).
+- The header of a generated module names the versions of peg-runtime it
+  needs ([ADR 0046](https://github.com/tett23/peg-hs/blob/main/docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)).
+- Builds with GHC 9.10, 9.12 and 9.14
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).

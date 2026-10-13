@@ -33,3 +33,5 @@ The first release. peg-runtime is the only dependency of the modules that
   `%syntax` ([ADR 0019](https://github.com/tett23/peg-hs/blob/main/docs/adr/0019-lossless-syntax-tree.md)).
 - Recovery from syntax errors with labelled failures, so that one parse
   reports several errors ([ADR 0021](https://github.com/tett23/peg-hs/blob/main/docs/adr/0021-error-recovery.md)).
+- Builds with GHC 9.10, 9.12 and 9.14
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).

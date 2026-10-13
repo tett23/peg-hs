@@ -16,3 +16,5 @@ by `peg-hs lsp` ([ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/
   definition, hover, document symbols and semantic tokens.
 - The JSON and JSON-RPC that the server needs, without dependencies on
   other LSP libraries.
+- Builds with GHC 9.10, 9.12 and 9.14
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).

@@ -21,3 +21,14 @@ subcommands ([ADR 0037](https://github.com/tett23/peg-hs/blob/main/docs/adr/0037
 - `peg-hs lsp`: the language server
   ([ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/0035-language-server.md)).
 - `peg-hs help` and `peg-hs --version`.
+- Examples in the help of every command, options as `--name=value`, and
+  suggestions for misspelt commands
+  ([ADR 0046](https://github.com/tett23/peg-hs/blob/main/docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)).
+- Files are read and written as UTF-8 whatever the locale, and a file that
+  cannot be read or written is reported in a line with hints;
+  `fmt` and `lint` take directories
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+- `peg-hs parse` takes GHC 9.10, 9.12 and 9.14, and shows text outside
+  ASCII as itself ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+- Builds with GHC 9.10, 9.12 and 9.14
+  ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
