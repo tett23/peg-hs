@@ -9,6 +9,7 @@ Expr(n :: Int) :: [Text]
 Expr <- l:Expr '+' r:Term ^term { l <> r }
      / !'-' "a\"b" [0-9\]]+ . &{ n > 0 } $Term? Call(n + 1) { [] }
      / List<$'x', ','> { _span `seq` [] }
+     / Indented<Term>(n + 2) (Term) { [] }
 
 List<p :: a, sep> :: [a]
 List<p, sep> <- x:p xs:(sep p)* { x : xs }

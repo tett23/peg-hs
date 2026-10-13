@@ -204,6 +204,9 @@
           "include": "#template-call"
         },
         {
+          "include": "#template-value-arguments"
+        },
+        {
           "match": "<-|::",
           "name": "keyword.operator.definition.hpeg"
         },
@@ -479,6 +482,39 @@
     "haskell-char": {
       "name": "string.quoted.single.haskell",
       "match": "(?<![\\p{L}\\p{N}_'])'(?:\\\\.[^'\\n]*|[^\\\\\\n])'"
+    },
+    "template-value-arguments": {
+      "comment": "The value arguments of a template call, right after its > (ADR 0055).",
+      "begin": "(?<=>)(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.arguments.begin.hpeg"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.arguments.end.hpeg"
+        }
+      },
+      "contentName": "meta.embedded.arguments.hpeg source.haskell",
+      "patterns": [
+        {
+          "include": "#haskell-nested"
+        },
+        {
+          "include": "#haskell-string"
+        },
+        {
+          "include": "#haskell-char"
+        },
+        {
+          "include": "#reserved-binding"
+        },
+        {
+          "include": "source.haskell"
+        }
+      ]
     }
   }
 }

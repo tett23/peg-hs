@@ -675,6 +675,10 @@
       "required": true,
       "types": [
         {
+          "type": "haskell",
+          "named": true
+        },
+        {
           "type": "template_argument",
           "named": true
         }
