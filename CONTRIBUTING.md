@@ -67,7 +67,7 @@ A property left as one test would make only the part that contains it longer.
 Some tests read files outside their package (the grammars of other packages, `editors/test` and so on).
 A package unpacked from its source tarball (sdist) does not have those files.
 These tests then do not fail; they skip and report the reason in a line starting with `skipped:` ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)).
-The `sdist` job of CI counts and prints these lines.
+The `sdist` jobs of CI count and print these lines.
 A new test that reads outside its package skips in the same way.
 
 Every exposed module of the four published libraries (peg-runtime, peg-grammar, peg-codegen and peg-lsp) is fully documented with Haddock ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
@@ -252,7 +252,7 @@ A new push to a pull request stops the run of the previous push.
 - **test-conformance**: runs the conformance tests (Lua, TOML, JSON and CommonMark) and the complexity tests
 - **test-packages**: runs the tests of peg-cli, peg-lsp, peg-codegen and peg-runtime
 - **haddock**: generates the Haddock of the four published libraries, and checks with `scripts/haddock-coverage.sh` that every exposed module is fully documented ([ADR 0044](docs/adr/0044-release-v0-1-0.md))
-- **sdist**: makes the sdists of the five published packages, and builds and tests them from the unpacked tarballs alone. It prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md))
+- **sdist-1** to **sdist-3**: each makes the sdists of the five published packages, and builds and tests them from the unpacked tarballs alone. Each runs a third of peg-grammar-test with `--shard i/3`, and `sdist-2` also runs the other four suites. Each prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md), [ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md))
 - **ghc-9.12.4, ghc-9.14.1**: build every package with the newer GHCs, and run the tests of peg-runtime and peg-codegen. The tests of peg-codegen check that generated modules compile without warnings ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md))
 - **editors**: runs the tests of the editor grammars, and checks that the committed tree-sitter parser is up to date ([ADR 0034](docs/adr/0034-syntax-highlighting.md))
 

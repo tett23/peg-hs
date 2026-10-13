@@ -252,7 +252,7 @@ pull request に続けて push すると、前の push の実行は止まる。
 - **test-conformance**：適合性テスト（Lua、TOML、JSON、CommonMark）と計算量のテストを動かす
 - **test-packages**：peg-cli、peg-lsp、peg-codegen、peg-runtime のテストを動かす
 - **haddock**：公開する四つのライブラリの Haddock を生成し、公開モジュールがすべて文書化されていることを `scripts/haddock-coverage.sh` で検査する（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
-- **sdist**：公開する五つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)）
+- **sdist-1** から **sdist-3**：それぞれ、公開する五つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。peg-grammar-test を `--shard i/3` で三つに分けて動かし、`sdist-2` はほかの四つのスイートも動かす。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)、[ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md)）
 - **ghc-9.12.4、ghc-9.14.1**：新しい GHC で全パッケージをビルドし、peg-runtime と peg-codegen のテストを動かす。peg-codegen のテストは、生成したモジュールが警告なしでコンパイルできることを確かめる（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 
