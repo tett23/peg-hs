@@ -4,8 +4,8 @@
 module Command.Gen (genCommand) where
 
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Diagnostics (reportErrors, reportWarnings)
+import FileIO (readUtf8, reportFileError, writeUtf8)
 import Options
 import Peg.Codegen
 import Peg.Grammar.Check (check)
@@ -40,7 +40,14 @@ run p = case parsedArguments p of
     let out = maybe (replaceExtension input "hs") id (value "output" p)
         opts = Options {optSourceName = input, optOutputName = out, optDebugEntry = flag "debug-entry" p}
         strip = value "strip-labels" p
-    src <- TIO.readFile input
+    readUtf8 "peg-hs gen takes a grammar file, not a directory" input >>= \case
+      Left e -> reportFileError e >> pure (ExitFailure 1)
+      Right src -> generateFrom input out opts strip p src
+  [] -> usageError "gen needs a grammar file"
+  _ -> usageError "gen takes one grammar file"
+
+generateFrom :: FilePath -> FilePath -> Options -> Maybe String -> Parsed -> T.Text -> IO ExitCode
+generateFrom input out opts strip p src =
     case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (Right . (,) g0) (expandTemplates g0 >>= \g -> g <$ check g) of
       Left diags -> reportErrors input diags >> pure (ExitFailure 1)
       Right (g0, g) -> do
@@ -51,9 +58,9 @@ run p = case parsedArguments p of
           then pure (ExitFailure 1)
           else case generate opts target of
             Left diags -> reportErrors input diags >> pure (ExitFailure 1)
-            Right code -> do
-              TIO.writeFile out code
-              putStrLn ("wrote " <> out <> " (" <> show (T.length code) <> " characters)")
-              pure ExitSuccess
-  [] -> usageError "gen needs a grammar file"
-  _ -> usageError "gen takes one grammar file"
+            Right code ->
+              writeUtf8 out code >>= \case
+                Left e -> reportFileError e >> pure (ExitFailure 1)
+                Right () -> do
+                  putStrLn ("wrote " <> out <> " (" <> show (T.length code) <> " characters)")
+                  pure ExitSuccess

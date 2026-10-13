@@ -8,6 +8,7 @@ import Command.Lsp (lspCommand)
 import Command.Parse (parseCommand)
 import Data.List (find, isSuffixOf)
 import Data.Version (showVersion)
+import FileIO (setUtf8StdHandles)
 import Options
 import Paths_peg_cli (version)
 import System.Environment (getArgs)
@@ -25,7 +26,7 @@ overview =
       ++ ["  help    show the commands, or the help of a command", "", "Run peg-hs help <command> for the options of a command."]
 
 main :: IO ()
-main = getArgs >>= dispatch >>= exitWith
+main = setUtf8StdHandles >> getArgs >>= dispatch >>= exitWith
 
 dispatch :: [String] -> IO ExitCode
 dispatch = \case

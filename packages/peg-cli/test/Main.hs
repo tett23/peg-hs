@@ -22,11 +22,22 @@ import System.Environment (getEnvironment)
 import System.Directory (findExecutable, getPermissions, removePathForcibly, setOwnerExecutable, setPermissions)
 import Data.Char (isSpace)
 import Embedded (prettySource, runtimeSources)
-import Pretty (pretty)
+import Pretty (pretty, readable)
 import Test.Tasty.QuickCheck
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
+import qualified Data.ByteString as BS
+import qualified Data.Text.Encoding as TE
+import Data.Either (isRight)
+import Control.Monad (forM_, unless)
+import Control.Exception (bracket_)
+import qualified Control.Exception
+import System.IO (hClose, hSetBinaryMode)
+import System.Process (CreateProcess (..), StdStream (..), createProcess, waitForProcess)
+import System.Directory (emptyPermissions)
+import FileIO (utf8ErrorOffset, decodeUtf8File)
+import GhcVersion (supportedGhc)
 
 unsafe :: String
 unsafe = "%module M\nS :: ()\nS <- 'a' ('b' ^l) { () } / 'a' 'c' { () }\n"
@@ -223,6 +234,48 @@ discoveryTree =
 
 stdoutOf :: [String] -> IO BL.ByteString
 stdoutOf args = (\(_, out, _) -> BL.pack out) <$> pegHs args
+
+
+-- Run peg-hs in a directory with more variables of the environment, and
+-- take its output as bytes, whatever the locale of the test.
+pegHsBytes :: FilePath -> [(String, String)] -> [String] -> IO (ExitCode, BS.ByteString, BS.ByteString)
+pegHsBytes dir extra args = do
+  e <- getEnvironment
+  let env' = extra ++ [(k, v) | (k, v) <- e, k `notElem` map fst extra]
+  (_, Just o, Just er, ph) <- createProcess (proc "peg-hs" args) {cwd = Just dir, env = Just env', std_out = CreatePipe, std_err = CreatePipe}
+  hSetBinaryMode o True
+  hSetBinaryMode er True
+  out <- BS.hGetContents o
+  err <- BS.hGetContents er
+  code <- waitForProcess ph
+  hClose o >> hClose er
+  pure (code, out, err)
+
+-- The C locale, where GHC's default encoding is ASCII.
+cLocale :: [(String, String)]
+cLocale = [("LANG", "C"), ("LC_ALL", "C"), ("LC_CTYPE", "C")]
+
+-- A grammar in Japanese: a comment, a character class and a literal.
+japaneseGrammar :: String
+japaneseGrammar = "%module M\n\n# ひらがなの並び\nS :: ()\nS <- [あ-ん]+ '。' { () }\n"
+
+-- The standard error of peg-hs in a directory, with the directory in place
+-- of the current directory, for the golden test of the errors.
+errorsIn :: FilePath -> [String] -> IO String
+errorsIn dir args = do
+  (code, _, err) <- pegHsIn dir args
+  pure ("$ peg-hs " <> unwords args <> "\n" <> withoutDir dir err <> "exit: " <> show code <> "\n\n")
+
+-- Bytes that are often UTF-8 and often not.
+genBytes :: Gen BS.ByteString
+genBytes =
+  BS.concat
+    <$> listOf
+      ( oneof
+          [ TE.encodeUtf8 . T.pack <$> (arbitrary :: Gen String)
+          , BS.pack <$> listOf (elements ([0x00, 0x41, 0x7F, 0x80, 0x8F, 0x90, 0x9F, 0xA0, 0xBF, 0xC0, 0xC1, 0xC2, 0xDF, 0xE0, 0xE1, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0xF1, 0xF3, 0xF4, 0xF5, 0xFF]))
+          ]
+      )
 
 main :: IO ()
 main = do
@@ -439,6 +492,149 @@ main = do
                   ]
           ]
       , testGroup
+          "files and UTF-8 (ADR 0045)"
+          [ testCase "a missing file is one line and hints, without a backtrace, in every command" $ do
+              dir <- treeWith "file-missing" [("G.peg", formatted), ("in.txt", "a")]
+              forM_ [["gen", "nope.peg"], ["fmt", "nope.peg"], ["lint", "nope.peg"], ["parse", "nope.peg", "in.txt"]] $ \args -> do
+                (code, out, err) <- pegHsIn dir args
+                (code, out) @?= (ExitFailure 1, "")
+                take 1 (lines err) @?= ["peg-hs: cannot read nope.peg: no such file"]
+                assertBool err (all ("hint: " `isPrefixOf`) (drop 1 (lines err)))
+                assertBool err (not ("CallStack" `isInfixOf` err || "backtrace" `isInfixOf` err || "openFile" `isInfixOf` err))
+          , testCase "a missing input of parse is reported before compiling" $ do
+              dir <- treeWith "file-missing-input" [("G.peg", formatted)]
+              (code, _, err) <- pegHsIn dir ["parse", "G.peg", "nope.txt"]
+              code @?= ExitFailure 1
+              take 1 (lines err) @?= ["peg-hs: cannot read nope.txt: no such file"]
+          , testCase "the hints of a missing file name a missing directory and the current directory" $ do
+              dir <- treeWith "file-missing-dir" []
+              (_, _, err) <- pegHsIn dir ["gen", "sub/nope.peg"]
+              lines (withoutDir dir err)
+                @?= [ "peg-hs: cannot read sub/nope.peg: no such file"
+                    , "hint: the directory sub does not exist either"
+                    , "hint: the path is relative to the current directory <dir>"
+                    ]
+          , testCase "a directory given to gen and parse" $ do
+              dir <- treeWith "file-directory" [("sub/G.peg", formatted), ("in.txt", "a")]
+              (code, _, err) <- pegHsIn dir ["gen", "sub"]
+              code @?= ExitFailure 1
+              lines err @?= ["peg-hs: cannot read sub: is a directory", "hint: peg-hs gen takes a grammar file, not a directory"]
+              (code', _, err') <- pegHsIn dir ["parse", "sub", "in.txt"]
+              code' @?= ExitFailure 1
+              take 1 (lines err') @?= ["peg-hs: cannot read sub: is a directory"]
+          , testCase "a file without permission to read" $ do
+              dir <- treeWith "file-permission" [("G.peg", formatted)]
+              let file = dir </> "G.peg"
+              old <- getPermissions file
+              bracket_ (setPermissions file emptyPermissions) (setPermissions file old) $ do
+                readable <- (True <$ readFile file) `catchIOAny` pure False
+                unless readable $ do
+                  (code, _, err) <- pegHsIn dir ["gen", "G.peg"]
+                  (code, lines err) @?= (ExitFailure 1, ["peg-hs: cannot read G.peg: permission denied"])
+          , testCase "gen -o into a missing directory" $ do
+              dir <- treeWith "file-write" [("G.peg", formatted)]
+              (code, out, err) <- pegHsIn dir ["gen", "G.peg", "-o", "out/M.hs"]
+              (code, out) @?= (ExitFailure 1, "")
+              lines err @?= ["peg-hs: cannot write out/M.hs: directory out does not exist", "hint: peg-hs does not create directories; create out first"]
+          , testCase "fmt and lint report a missing file and go on with the others" $ do
+              dir <- treeWith "file-go-on" [("B.peg", unformatted)]
+              (code, _, err) <- pegHsIn dir ["fmt", "nope.peg", "B.peg"]
+              code @?= ExitFailure 1
+              take 1 (lines err) @?= ["peg-hs: cannot read nope.peg: no such file"]
+              readFile (dir </> "B.peg") >>= (@?= formatted)
+              (code', _, err') <- pegHsIn dir ["lint", "nope.peg", "B.peg"]
+              code' @?= ExitFailure 1
+              filter (not . ("hint: " `isPrefixOf`)) (lines err') @?= ["peg-hs: cannot read nope.peg: no such file"]
+          , testCase "fmt and lint take a directory, and walk it" $ do
+              dir <- treeWith "file-walk-dir" [("sub/deeper/B.peg", unformatted), ("A.peg", unformatted)]
+              (code, _, _) <- pegHsIn dir ["fmt", "sub"]
+              code @?= ExitSuccess
+              readFile (dir </> "sub/deeper/B.peg") >>= (@?= formatted)
+              readFile (dir </> "A.peg") >>= (@?= unformatted)
+              (code', _, err') <- pegHsIn dir ["lint", "sub"]
+              (code', err') @?= (ExitSuccess, "")
+          , goldenVsString "the errors of files" "test/golden/file-errors.txt" $ do
+              dir <- treeWith "file-golden" [("G.peg", formatted), ("sub/H.peg", formatted), ("bad.peg", "%module M\n")]
+              BS.writeFile (dir </> "bad.peg") (BS.pack ([0x25, 0x6D, 0x0A, 0xE3, 0x81]))
+              outs <-
+                mapM
+                  (errorsIn dir)
+                  [ ["gen", "nope.peg"]
+                  , ["gen", "sub/nope/G.peg"]
+                  , ["gen", "sub"]
+                  , ["gen", "G.peg", "-o", "out/M.hs"]
+                  , ["gen", "bad.peg"]
+                  , ["fmt", "nope.peg"]
+                  , ["lint", "nope.peg"]
+                  , ["parse", "sub", "G.peg"]
+                  , ["parse", "G.peg", "nope.txt"]
+                  ]
+              pure (BL.pack (concat outs))
+          , testCase "a file that is not UTF-8 names the byte" $ do
+              dir <- treeWith "file-utf8" []
+              BS.writeFile (dir </> "bad.peg") (BS.pack (map (fromIntegral . fromEnum) "%module M\n" ++ [0xFF]))
+              (code, _, err) <- pegHsIn dir ["gen", "bad.peg"]
+              code @?= ExitFailure 1
+              take 1 (lines err) @?= ["peg-hs: cannot read bad.peg: not UTF-8 (at byte 11)"]
+          , testCase "gen, fmt and lint read and write Japanese in the C locale" $ do
+              dir <- treeWith "file-c-locale" []
+              let bytes = TE.encodeUtf8 (T.pack japaneseGrammar)
+              BS.writeFile (dir </> "G.peg") bytes
+              (genCode, _, genErr) <- pegHsBytes dir cLocale ["gen", "G.peg", "-o", "G.hs"]
+              (genCode, genErr) @?= (ExitSuccess, BS.empty)
+              generated <- BS.readFile (dir </> "G.hs")
+              _ <- pegHsBytes dir [] ["gen", "G.peg", "-o", "G-utf8.hs"]
+              inUtf8 <- BS.readFile (dir </> "G-utf8.hs")
+              -- The same module as in a UTF-8 locale, but for its own name.
+              generated @?= replaceBytes "G-utf8.hs" "G.hs" inUtf8
+              (fmtCode, _, fmtErr) <- pegHsBytes dir cLocale ["fmt", "G.peg"]
+              (fmtCode, fmtErr) @?= (ExitSuccess, BS.empty)
+              BS.readFile (dir </> "G.peg") >>= (@?= bytes)
+              (lintCode, _, lintErr) <- pegHsBytes dir cLocale ["lint", "G.peg"]
+              (lintCode, lintErr) @?= (ExitSuccess, BS.empty)
+          , testCase "the errors of a Japanese grammar are UTF-8 in the C locale" $ do
+              dir <- treeWith "file-c-locale-error" []
+              BS.writeFile (dir </> "G.peg") (TE.encodeUtf8 (T.pack "%module M\nS :: ()\nS <- 未定義 { () }\n"))
+              (code, _, err) <- pegHsBytes dir cLocale ["gen", "G.peg"]
+              code @?= ExitFailure 1
+              assertBool (show err) (TE.encodeUtf8 (T.pack "undefined rule 未定義") `BS.isInfixOf` err)
+          , testCase "a byte order mark is skipped" $ do
+              a <- treeWith "file-bom-a" []
+              b <- treeWith "file-bom-b" []
+              BS.writeFile (a </> "G.peg") (TE.encodeUtf8 (T.pack formatted))
+              BS.writeFile (b </> "G.peg") (BS.pack [0xEF, 0xBB, 0xBF] <> TE.encodeUtf8 (T.pack formatted))
+              _ <- pegHsIn a ["gen", "G.peg"]
+              (code, _, err) <- pegHsIn b ["gen", "G.peg"]
+              (code, err) @?= (ExitSuccess, "")
+              ga <- BS.readFile (a </> "G.hs")
+              gb <- BS.readFile (b </> "G.hs")
+              ga @?= gb
+          , testCase "parse reads and shows Japanese in the C locale" $ do
+              dir <- treeWith "parse-c-locale" []
+              BS.writeFile (dir </> "G.peg") (TE.encodeUtf8 (T.pack japaneseGrammar))
+              BS.writeFile (dir </> "in.txt") (TE.encodeUtf8 (T.pack "あいう。"))
+              (base, e) <- parseEnv "parse-c-locale"
+              removePathForcibly (base </> "parse-cache-parse-c-locale")
+              (code, out, err) <- pegHsBytes dir (cLocale ++ [(k, v) | (k, v) <- e, k `elem` ["PATH", "XDG_CACHE_HOME", "PEG_TEST_GHC_LOG"]]) ["parse", "G.peg", "in.txt", "--format", "cst"]
+              (code, err) @?= (ExitSuccess, BS.empty)
+              assertBool (show out) (TE.encodeUtf8 (T.pack "あいう") `BS.isInfixOf` out)
+          , testCase "the output of show with text in any language is readable" $ do
+              readable (show "あ1\SOH") @?= "\"あ1\\SOH\""
+              readable (show ("a\\12354" :: String)) @?= show ("a\\12354" :: String)
+              readable "S@0..3 TEXT \"\\12354\"" @?= "S@0..3 TEXT \"あ\""
+          , testProperty "readable keeps the value of show" $
+              \s -> (read (readable (show (s :: String))) :: String) === s
+          , testCase "the versions of GHC that parse takes" $ do
+              map supportedGhc ["9.10.3", "9.12.2", "9.14.1"] @?= [True, True, True]
+              map supportedGhc ["9.8.4", "9.16.1", "9.1", "10.0.1", ""] @?= replicate 5 False
+          , testProperty "the first byte that is not UTF-8 is where the decoder of text fails" $
+              forAll genBytes $ \bs -> case utf8ErrorOffset bs of
+                Nothing -> isRight (TE.decodeUtf8' bs)
+                Just i -> not (isRight (TE.decodeUtf8' bs)) && isRight (TE.decodeUtf8' (BS.take i bs))
+          , testCase "the position of the byte counts the byte order mark" $
+              decodeUtf8File (BS.pack [0xEF, 0xBB, 0xBF, 0x41, 0xFF]) @?= Left 5
+          ]
+      , testGroup
           "gen (ADR 0028)"
           [ testCase "an unsafe label is a warning" $ do
               (code, _, err, written) <- genOn "warn" unsafe []
@@ -463,3 +659,16 @@ main = do
               assertBool "no label" (not ("labeled" `isInfixOf` out))
           ]
       ]
+
+catchIOAny :: IO a -> IO a -> IO a
+catchIOAny act fallback = act `catchIOError'` const fallback
+  where
+    catchIOError' = Control.Exception.catch :: IO a -> (Control.Exception.IOException -> IO a) -> IO a
+
+replaceBytes :: String -> String -> BS.ByteString -> BS.ByteString
+replaceBytes old new = TE.encodeUtf8 . T.replace (T.pack old) (T.pack new) . TE.decodeUtf8
+
+-- The output with <dir> for the directory, also where macOS reaches the
+-- temporary directory through /private.
+withoutDir :: FilePath -> String -> String
+withoutDir dir = replace dir "<dir>" . replace ("/private" <> dir) "<dir>"

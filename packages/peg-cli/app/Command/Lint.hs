@@ -3,6 +3,7 @@ module Command.Lint (lintCommand) where
 
 import qualified Data.Text.IO as TIO
 import Diagnostics (reportErrors)
+import FileIO (readUtf8, reportFileError)
 import Files (grammarFiles)
 import Options
 import Peg.Grammar.Check (check)
@@ -11,6 +12,7 @@ import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import System.Exit (ExitCode (..))
 import System.IO (stderr)
+import Data.Text (Text)
 
 lintCommand :: Command
 lintCommand =
@@ -36,8 +38,13 @@ run p = do
 
 -- Lint one file; whether it has neither errors nor warnings.
 lint :: FilePath -> IO Bool
-lint file = do
-  src <- TIO.readFile file
+lint file =
+  readUtf8 "" file >>= \case
+    Left e -> reportFileError e >> pure False
+    Right src -> lintText file src
+
+lintText :: FilePath -> Text -> IO Bool
+lintText file src =
   case parseGrammar src >>= \g -> either (Left . templateNotes g) (const (Right g)) (expandTemplates g >>= check) of
     Left diags -> reportErrors file diags >> pure False
     Right g -> case lintGrammar g of

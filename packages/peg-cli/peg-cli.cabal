@@ -36,6 +36,8 @@ executable peg-hs
     Files
     Diagnostics
     Embedded
+    FileIO
+    GhcVersion
     Options
     Paths_peg_cli
     Pretty
@@ -61,6 +63,8 @@ test-suite peg-cli-test
   hs-source-dirs:   test app
   other-modules:
     Embedded
+    FileIO
+    GhcVersion
     Pretty
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N"
   build-tool-depends: peg-cli:peg-hs

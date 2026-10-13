@@ -1,8 +1,8 @@
 -- | @peg-hs fmt@: format grammar files (ADR 0032).
 module Command.Fmt (fmtCommand) where
 
-import qualified Data.Text.IO as TIO
 import Diagnostics (reportErrors)
+import FileIO (readUtf8, reportFileError, writeUtf8)
 import Files (grammarFiles)
 import Options
 import Peg.Grammar.Format (formatGrammar)
@@ -33,13 +33,12 @@ run p = do
 
 -- Format one file; whether it was formatted (or, with --check, already was).
 format :: Bool -> FilePath -> IO Bool
-format checkOnly file = do
-  src <- TIO.readFile file
-  case formatGrammar src of
-    Left diags -> reportErrors file diags >> pure False
-    Right out
-      | out == src -> pure True
-      | checkOnly -> putStrLn file >> pure False
-      | otherwise -> do
-          TIO.writeFile file out
-          pure True
+format checkOnly file =
+  readUtf8 "" file >>= \case
+    Left e -> reportFileError e >> pure False
+    Right src -> case formatGrammar src of
+      Left diags -> reportErrors file diags >> pure False
+      Right out
+        | out == src -> pure True
+        | checkOnly -> putStrLn file >> pure False
+        | otherwise -> writeUtf8 file out >>= either (\e -> reportFileError e >> pure False) (const (pure True))

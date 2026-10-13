@@ -1,5 +1,6 @@
 -- | The grammar files of a command that takes files or, with none, every
--- @.peg@ file under the current directory (ADR 0032).
+-- @.peg@ file under the current directory (ADR 0032). A directory among the
+-- files stands for the @.peg@ files under it (ADR 0045).
 module Files (grammarFiles) where
 
 import Data.List (isPrefixOf, sort)
@@ -8,10 +9,15 @@ import System.FilePath (takeExtension, takeFileName, (</>))
 
 -- | The given files, or the @.peg@ files found by walking the current
 -- directory, skipping directories whose name starts with @.@ and
--- @dist-newstyle@, in the order of their paths.
+-- @dist-newstyle@, in the order of their paths. A given directory is
+-- walked in the same way.
 grammarFiles :: [FilePath] -> IO [FilePath]
 grammarFiles [] = sort <$> walk Nothing
-grammarFiles files = pure files
+grammarFiles files = concat <$> mapM expand files
+  where
+    expand f = do
+      isDir <- doesDirectoryExist f
+      if isDir then sort <$> walk (Just f) else pure [f]
 
 walk :: Maybe FilePath -> IO [FilePath]
 walk dir = do
