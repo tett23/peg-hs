@@ -1,0 +1,154 @@
+name: Release
+
+# A tag starting with v builds the packages and the peg-hs executables, and
+# publishes a GitHub Release with them (ADR 0044). A tag with '-' (v0.1.0-rc1)
+# is a pre-release. The release notes are written afterwards with Claude Code
+# and set with `gh release edit` (CONTRIBUTING). Hackage is uploaded by hand.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GHC_VERSION: '9.10.3'
+  CABAL_VERSION: '3.16.1.0'
+
+jobs:
+  # The tag releases the version of the five .cabal files.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check the tag against the versions
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 scripts/versions.py self-test
+          python3 scripts/versions.py check
+          python3 scripts/versions.py tag "$TAG"
+          case "$TAG" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  # The source tarballs and the documentation of the five packages, in the
+  # form that Hackage takes (ADR 0048).
+  packages:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install GHC and cabal
+        run: |
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+      - name: Source tarballs
+        run: |
+          cabal update
+          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-lsp packages/peg-cli --output-directory "$RUNNER_TEMP/out"
+      - name: Documentation for Hackage
+        shell: bash
+        run: |
+          cabal haddock --haddock-for-hackage peg-runtime peg-grammar peg-codegen peg-lsp 2>&1 | scripts/haddock-coverage.sh
+          # peg-cli has executables only (ADR 0048).
+          cabal haddock --haddock-for-hackage --haddock-executables peg-cli
+          find dist-newstyle -name '*-docs.tar.gz' -exec cp {} "$RUNNER_TEMP/out" \;
+          ls "$RUNNER_TEMP/out"
+          test "$(ls "$RUNNER_TEMP/out" | grep -c -- '-docs\.tar\.gz$')" = 5
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: ${{ runner.temp }}/out/*
+          if-no-files-found: error
+
+  # The peg-hs executable for Linux (x86-64) and macOS (arm64).
+  executable:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: x86_64-linux
+          - os: macos-latest
+            platform: aarch64-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install GHC and cabal
+        run: |
+          if ! command -v ghcup >/dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
+              | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 BOOTSTRAP_HASKELL_MINIMAL=1 sh
+          fi
+          export PATH="$HOME/.ghcup/bin:$PATH"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: |
+          cabal update
+          cabal build exe:peg-hs --enable-executable-stripping
+      - name: Archive
+        env:
+          TAG: ${{ github.ref_name }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          name="peg-hs-${TAG#v}-$PLATFORM"
+          mkdir -p "$RUNNER_TEMP/$name" "$RUNNER_TEMP/out"
+          cp "$(cabal list-bin exe:peg-hs)" "$RUNNER_TEMP/$name/peg-hs"
+          cp LICENSE README.md README.ja.md "$RUNNER_TEMP/$name/"
+          "$RUNNER_TEMP/$name/peg-hs" --version
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/out/$name.tar.gz" "$name"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: executable-${{ matrix.platform }}
+          path: ${{ runner.temp }}/out/*
+          if-no-files-found: error
+
+  release:
+    needs: [check, packages, executable]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        working-directory: out
+        run: |
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+      # A run again for the same tag replaces the files of the release.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.check.outputs.prerelease }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber
+          else
+            flags=""
+            if [ "$PRERELEASE" = true ]; then flags="--prerelease"; fi
+            gh release create "$TAG" out/* --verify-tag --title "$TAG" --generate-notes $flags
+          fi

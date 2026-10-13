@@ -5,6 +5,17 @@
 -- so that it is there while the grammar is being edited (ADR 0035): the
 -- highlights, the declarations of rules, the references to rules, and the
 -- syntax errors.
+--
+-- 'outline' never fails: the parser recovers from syntax errors (ADR 0021),
+-- so a grammar in the middle of an edit still has its declarations and
+-- references. The language server (@Peg.Lsp.Server@ in @peg-lsp@) answers
+-- go to definition, references, hover, document symbols and semantic
+-- tokens from it:
+--
+-- @
+-- let o = outline src
+--     defs = [declNameStart d | d <- outlineDeclarations o, declName d == \"Expr\", declKind d == Definition]
+-- @
 module Peg.Grammar.Outline
   ( Outline (..)
   , Declaration (..)
@@ -28,9 +39,13 @@ import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Runtime (Pos (..), SyntaxError (..))
 import Peg.Runtime.Syntax
 
+-- | What 'outline' finds in a grammar.
 data Outline = Outline
   { outlineHighlights :: [Highlight]
+  -- ^ The highlights of 'Peg.Grammar.Highlight.treeHighlights', leaving
+  -- out the ranges that recovery skipped.
   , outlineDeclarations :: [Declaration]
+  -- ^ The type annotations and definitions of rules, in source order.
   , outlineReferences :: [Reference]
   -- ^ Rule references, template calls and rule names in directives.
   , outlineSyntaxErrors :: [Diagnostic]
@@ -39,18 +54,27 @@ data Outline = Outline
   }
   deriving (Eq, Show)
 
-data DeclarationKind = Annotation | Definition
+-- | Which part of a rule a t'Declaration' is.
+data DeclarationKind
+  = -- | The type annotation, @Name :: Type@.
+    Annotation
+  | -- | The definition, @Name <- ...@.
+    Definition
   deriving (Eq, Show)
 
 -- | A type annotation or a definition of a rule.
 data Declaration = Declaration
   { declName :: Text
+  -- ^ The name of the rule.
   , declKind :: DeclarationKind
   , declTemplateParams :: Maybe [Text]
-  -- ^ The parameters of a template (ADR 0031).
+  -- ^ The parameters of a template (ADR 0031). 'Nothing' for other rules.
   , declNameStart :: Loc
+  -- ^ The start of the name.
   , declNameEnd :: Loc
+  -- ^ The location just after the name.
   , declStart :: Loc
+  -- ^ The start of the declaration.
   , declEnd :: Loc
   -- ^ The end of its last token, before the comments and spaces after it.
   , declText :: Text
@@ -58,14 +82,21 @@ data Declaration = Declaration
   }
   deriving (Eq, Show)
 
+-- | A use of a rule's name: a reference to a rule, a call of a template,
+-- or a rule named in a directive such as @%entry@ or @%recover@. A
+-- reference to a template parameter inside the template is also listed.
 data Reference = Reference
   { refName :: Text
+  -- ^ The name as written.
   , refStart :: Loc
+  -- ^ The start of the name.
   , refEnd :: Loc
+  -- ^ The location just after the name.
   }
   deriving (Eq, Show)
 
--- | The outline of a grammar. Every text has one.
+-- | The outline of a grammar. Every text has one, whether or not it is a
+-- valid grammar.
 outline :: Text -> Outline
 outline src =
   let (root, errors) = S.parseSyntaxRecover src

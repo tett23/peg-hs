@@ -5,7 +5,9 @@ synopsis:           Haskell code generation for peg-hs grammars
 description:
   Turns a checked @.peg@ grammar into the text of a Haskell module.
   Generation is a pure, deterministic function: the same grammar always
-  produces the same bytes. Generated modules depend only on @peg-runtime@.
+  produces the same bytes. Generated modules depend only on @peg-runtime@,
+  name the versions of it they need, and point the errors of GHC at the
+  lines of the grammar.
 homepage:           https://github.com/tett23/peg-hs
 bug-reports:        https://github.com/tett23/peg-hs/issues
 license:            MIT
@@ -15,7 +17,8 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
-tested-with:        GHC == 9.10.3
+tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
+extra-doc-files:    CHANGELOG.md
 extra-source-files:
   test/fixtures/*.peg
   test/golden/*.hs.golden
@@ -32,7 +35,7 @@ library
   import:           warnings
   exposed-modules:  Peg.Codegen
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , containers   >=0.6  && <0.8
     , peg-grammar  >=0.1  && <0.2
     , text         >=2.0  && <2.2

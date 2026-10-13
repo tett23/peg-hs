@@ -1,0 +1,12 @@
+usage: peg-hs lsp [options]
+
+Run the language server of the .peg notation, speaking the language server protocol
+on standard input and output: diagnostics, formatting, semantic tokens, definitions,
+references, hover and document symbols.
+
+options:
+  -h, --help                show this help
+
+examples:
+  peg-hs lsp
+      run by an editor; the README has the settings of VS Code, Neovim and Helix

@@ -7,6 +7,27 @@
 -- rule warns only about what follows from the meaning of the grammar, so a
 -- warning always points at a real problem that a mechanical change of the
 -- grammar removes. Where a rule cannot decide, it does not warn.
+--
+-- The rules are:
+--
+-- [@unreachable-alternative@] An alternative that is never tried, because
+--   an earlier one always succeeds, or that never succeeds, because an
+--   earlier one matches a literal that is its prefix.
+-- [@duplicate-alternative@] An alternative that is the same as an earlier
+--   one.
+-- [@ineffective-label@] A label inside a lookahead, whose throw is a
+--   failure of the lookahead (ADR 0021).
+-- [@unused-binding@] A binding that no code reads. Not reported in a
+--   grammar with @%syntax@, where a binding labels the children of the
+--   syntax tree.
+--
+-- 'lintGrammar' takes a grammar that passed the checks of "Peg.Grammar"
+-- (see the example there), before template expansion, and
+-- 'renderLintWarning' writes the warnings in the form of @peg-hs lint@:
+--
+-- @
+-- mapM_ (TIO.putStrLn . renderLintWarning \"Calc.peg\") (lintGrammar g0)
+-- @
 module Peg.Grammar.Lint
   ( LintWarning (..)
   , lintGrammar
@@ -23,7 +44,8 @@ import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check (countedItems, unitRules)
 
--- | A warning of the linter.
+-- | A warning of the linter, located at the alternative, label or binding
+-- it is about.
 data LintWarning = LintWarning
   { lintLoc :: Loc
   , lintRule :: Text
@@ -34,7 +56,8 @@ data LintWarning = LintWarning
   }
   deriving (Eq, Show)
 
--- | @file:line:column: warning: message [rule]; hint@.
+-- | Render as @file:line:column: warning: message [rule]; hint@, the form
+-- @peg-hs lint@ uses.
 renderLintWarning :: FilePath -> LintWarning -> Text
 renderLintWarning file w =
   T.concat

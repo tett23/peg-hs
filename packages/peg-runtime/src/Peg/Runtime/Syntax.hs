@@ -2,14 +2,36 @@
 
 -- | Lossless syntax trees (ADR 0019), after rust-analyzer's rowan.
 --
--- A 'GreenNode' is an immutable tree of kinds and text: every byte of the
+-- A t'GreenNode' is an immutable tree of kinds and text: every byte of the
 -- input belongs to exactly one token, so the text of the tree is the input.
--- 'SyntaxNode' and 'SyntaxToken' wrap green elements with their absolute
+-- t'SyntaxNode' and t'SyntaxToken' wrap green elements with their absolute
 -- offset and parent, and are what applications navigate.
 --
--- Parsers generated with @%syntax@ build these trees. They also export one
--- constant per syntax kind, @syntaxKindName@, typed wrappers for the nodes
--- of each rule and accessors for their labelled children.
+-- Parsers generated from a grammar with @%syntax@ build these trees. For a
+-- grammar with the rules @Expr@ and @Num@, the generated module exports:
+--
+-- * @parseSyntax :: Text -> Either ParseError SyntaxNode@, and with labels
+--   (ADR 0021) @parseSyntaxRecover :: Text -> (SyntaxNode, [SyntaxError])@,
+--   which always returns a tree;
+-- * one constant per syntax kind, @syntaxKindExpr@ and @syntaxKindNum@, and
+--   @nameOfSyntaxKind@ and @isTriviaSyntaxKind@;
+-- * typed wrappers for the nodes of each rule, @newtype ExprSyntax@, with a
+--   cast @castExprSyntax :: SyntaxNode -> Maybe ExprSyntax@ and one accessor
+--   per binding, such as @exprLhs :: ExprSyntax -> Maybe ExprSyntax@ for a
+--   binding @lhs:Expr@.
+--
+-- The children of a node are found with 'syntaxChildren' and
+-- 'syntaxChildrenWithTokens', or by their labels (the binding names of the
+-- grammar) with 'labeledNode' and the functions next to it:
+--
+-- @
+-- case parseSyntax src of
+--   Left err -> TIO.putStrLn (renderParseError err)
+--   Right root -> do
+--     TIO.putStr (debugTree nameOfSyntaxKind root)
+--     print (syntaxText root == src)  -- always True
+--     print [syntaxRange n | n <- syntaxChildren root, syntaxKind n == syntaxKindExpr]
+-- @
 module Peg.Runtime.Syntax
   ( -- * Kinds
     SyntaxKind (..)
@@ -64,15 +86,19 @@ import qualified Data.Text.Unsafe as TU
 import Peg.Runtime.Position (LineIndex, Pos, lineIndex, posIn)
 
 -- | The kind of a node or token. Generated modules export one constant per
--- rule; 'textKind' and 'errorKind' are fixed.
+-- rule that is not @%inline@, named @syntaxKind@ followed by the rule name,
+-- and @nameOfSyntaxKind@ to name a kind; 'textKind' (0) and 'errorKind' (1)
+-- are fixed.
 newtype SyntaxKind = SyntaxKind Int
   deriving (Eq, Ord, Show)
 
--- | Tokens of text matched by terminals outside @%token@ rules.
+-- | Tokens of text matched by terminals outside @%token@ rules: the text
+-- between the children of a node.
 textKind :: SyntaxKind
 textKind = SyntaxKind 0
 
--- | Reserved for error recovery. Not produced in this version.
+-- | Error nodes: the ranges that error recovery skipped (ADR 0021). The
+-- recovering entry points (@parseSyntaxRecover@) produce them.
 errorKind :: SyntaxKind
 errorKind = SyntaxKind 1
 

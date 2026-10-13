@@ -17,7 +17,8 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
-tested-with:        GHC == 9.10.3
+tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
+extra-doc-files:    CHANGELOG.md
 extra-source-files:
   grammar/Json.peg
   test/golden/*.txt
@@ -40,7 +41,7 @@ library
   other-modules:
     Peg.Lsp.JsonParser
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , bytestring   >=0.11 && <0.13
     , containers   >=0.6  && <0.8
     , peg-grammar  >=0.1  && <0.2

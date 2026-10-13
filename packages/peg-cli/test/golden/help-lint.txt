@@ -1,6 +1,16 @@
-usage: peg-hs lint [FILE...]
+usage: peg-hs lint [options] [FILE|DIR...]
 
 Check grammars against the fixed rules of peg-hs, and fail if there is a warning.
 The rules cannot be chosen or silenced; every warning goes away by changing the grammar.
-Without files, lint every .peg file under the current directory,
-except in directories whose name starts with . and dist-newstyle.
+A directory stands for the .peg files under it. Without arguments, lint every .peg
+file under the current directory. Directories whose name starts with . and
+dist-newstyle are skipped. Files are read as UTF-8.
+
+options:
+  -h, --help                show this help
+
+examples:
+  peg-hs lint
+      lint every grammar under the current directory
+  peg-hs lint Expr.peg
+      lint Expr.peg

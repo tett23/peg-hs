@@ -3,8 +3,12 @@ name:               peg-cli
 version:            0.1.0.0
 synopsis:           Command line interface of the peg-hs parser generator
 description:
-  The @peg-hs@ executable reads a @.peg@ grammar and writes a Haskell
-  module that parses it. The generated module depends on @peg-runtime@.
+  The @peg-hs@ executable of the peg-hs parser generator. Its
+  subcommands generate a Haskell module from a @.peg@ grammar (@gen@),
+  format grammars (@fmt@), lint them (@lint@), parse an input with a
+  grammar and show its AST or lossless syntax tree (@parse@), and run the
+  language server (@lsp@). Generated modules depend only on @peg-runtime@.
+  See the README at <https://github.com/tett23/peg-hs> for a tutorial.
 homepage:           https://github.com/tett23/peg-hs
 bug-reports:        https://github.com/tett23/peg-hs/issues
 license:            MIT
@@ -14,9 +18,10 @@ maintainer:         tett23@gmail.com
 copyright:          2026 tett23
 category:           Parsing
 build-type:         Simple
+extra-doc-files:    CHANGELOG.md
 extra-source-files:
   test/golden/*.txt
-tested-with:        GHC == 9.10.3
+tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 
 source-repository head
   type:     git
@@ -34,7 +39,10 @@ executable peg-hs
     Command.Parse
     Files
     Diagnostics
+    EditDistance
     Embedded
+    FileIO
+    GhcVersion
     Options
     Paths_peg_cli
     Pretty
@@ -42,7 +50,7 @@ executable peg-hs
     Paths_peg_cli
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , bytestring   >=0.11 && <0.13
     , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
@@ -59,12 +67,15 @@ test-suite peg-cli-test
   main-is:          Main.hs
   hs-source-dirs:   test app
   other-modules:
+    EditDistance
     Embedded
+    FileIO
+    GhcVersion
     Pretty
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N"
   build-tool-depends: peg-cli:peg-hs
   build-depends:
-    , base         >=4.20 && <4.21
+    , base         >=4.20 && <4.23
     , directory    >=1.3  && <1.4
     , filepath     >=1.4  && <1.6
     , bytestring

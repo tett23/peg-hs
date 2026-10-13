@@ -3,6 +3,7 @@
 
 module Main (main) where
 
+import Control.Monad (filterM)
 import qualified Data.ByteString.Lazy as BL
 import Data.List (sort)
 import qualified Data.Set as S
@@ -31,6 +32,7 @@ import Test.Tasty.HUnit
 main :: IO ()
 main = do
   files <- grammarFiles
+  missing <- filterM (fmap not . doesDirectoryExist) grammarDirectories
   -- The editor grammars are missing in a source tarball.
   editors <- doesDirectoryExist "../../editors/test"
   -- --shard runs a part of the tests, for the jobs of CI (ADR 0042).
@@ -49,29 +51,37 @@ main = do
       , lintTests files
       , shardTests
       , recoveryTests files
-      , testGroup "editor grammars" [rangeTests files | editors]
+      , documentExampleTests
+      , testGroup "editor grammars" [if editors then rangeTests files else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
+      , testCaseInfo "the grammars of the repository" (pure (unlines' [ "skipped: " <> d <> " is not in a source archive" | d <- missing ]))
       ]
 
 -- Every grammar in the repository. Directories outside this package are
 -- missing when the tests run from a source tarball, and are skipped.
 grammarFiles :: IO [FilePath]
-grammarFiles = concat <$> mapM pegsIn dirs
+grammarFiles = concat <$> mapM pegsIn grammarDirectories
   where
-    dirs =
-      [ "grammar"
-      , "../peg-codegen/test/fixtures"
-      , "../../conformance/json"
-      , "../../conformance/bench"
-      , "../../conformance/commonmark"
-      , "../../conformance/commonmark/v1"
-      , "../../conformance/lua"
-      , "../../conformance/toml"
-      ]
     pegsIn d = do
       exists <- doesDirectoryExist d
       if exists
         then map (d </>) . filter ((== ".peg") . takeExtension) <$> listDirectory d
         else pure []
+
+grammarDirectories :: [FilePath]
+grammarDirectories =
+  [ "grammar"
+  , "../peg-codegen/test/fixtures"
+  , "../../conformance/json"
+  , "../../conformance/bench"
+  , "../../conformance/commonmark"
+  , "../../conformance/commonmark/v1"
+  , "../../conformance/lua"
+  , "../../conformance/toml"
+  ]
+
+-- Lines without a newline at the end, for the information of a test.
+unlines' :: [String] -> String
+unlines' = foldr (\l r -> if null r then l else l <> "\n" <> r) ""
 
 -- Every grammar of the repository and a set of snippets are accepted, and
 -- the invalid snippets rejected. These were the inputs of the migration
@@ -454,3 +464,35 @@ analysisTests =
         g <- parseOk "%module M\nA :: ()\nA <- !A 'a' { () }\n"
         fmap analysisLeftRecursive (either (Left . show) Right (check g)) @?= Right (S.fromList ["A"])
     ]
+
+-- Every complete grammar in the documents (a code block that starts with
+-- %module) parses and passes the checks (ADR 0046). Fragments are not
+-- checked.
+documentExampleTests :: TestTree
+documentExampleTests =
+  testGroup
+    "the complete grammars of the documents (ADR 0046)"
+    [ testCaseInfo doc $ do
+        exists <- doesDirectoryExist "../../docs"
+        if not exists
+          then pure ("skipped: ../../" <> doc <> " is not in a source archive")
+          else do
+            text <- TIO.readFile ("../../" <> doc)
+            let examples = completeGrammars text
+                bad = [(n, ds) | (n, src) <- examples, Left ds <- [parseGrammar src >>= \g -> either (Left . templateNotes g) Right (expandTemplates g >>= \g' -> g' <$ check g')]]
+            assertBool "no complete grammar" (not (null examples))
+            take 1 bad @?= []
+            pure (show (length examples) <> " grammars")
+    | doc <- ["docs/syntax.md", "README.md", "README.ja.md"]
+    ]
+
+-- The code blocks that start with %module, with the line of their start.
+completeGrammars :: Text -> [(Int, Text)]
+completeGrammars = go . zip [1 ..] . T.lines
+  where
+    go ls = case dropWhile (not . isFence . snd) ls of
+      [] -> []
+      (_, _) : rest ->
+        let (body, rest') = break (isFence . snd) rest
+         in [(n, T.unlines (map snd body)) | (n, l) : _ <- [body], "%module" `T.isPrefixOf` l] ++ go (drop 1 rest')
+    isFence = T.isPrefixOf "```"

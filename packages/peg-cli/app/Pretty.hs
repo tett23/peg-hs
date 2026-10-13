@@ -4,9 +4,37 @@
 -- tokens are kept: only the spaces between them change. peg-hs parse
 -- compiles this module, which depends only on base, with the parser it
 -- generates.
-module Pretty (pretty) where
+module Pretty (pretty, readable) where
 
-import Data.Char (isSpace)
+import Data.Char (chr, isDigit, isPrint, isSpace)
+
+-- | The output of 'show' with the characters outside ASCII of its string
+-- literals as themselves, such as @\"あ\"@ for @\"\\12354\"@, so that text in
+-- any language can be read (ADR 0045). Characters that are not printable
+-- keep their escapes.
+readable :: String -> String
+readable = outside
+  where
+    outside = \case
+      [] -> []
+      '"' : rest -> '"' : inside rest
+      c : rest -> c : outside rest
+    inside = \case
+      [] -> []
+      '"' : rest -> '"' : outside rest
+      '\\' : rest@(d : _)
+        | isDigit d ->
+            let (digits, rest') = span isDigit rest
+                n = read digits :: Int
+             in if length digits <= 7 && n >= 128 && n <= 0x10FFFF && isPrint (chr n)
+                  then chr n : inside (dropSeparator rest')
+                  else '\\' : digits <> inside rest'
+      '\\' : x : rest -> '\\' : x : inside rest
+      c : rest -> c : inside rest
+    -- \& ends a numeric escape before a digit; a character needs no end.
+    dropSeparator = \case
+      '\\' : '&' : rest -> rest
+      rest -> rest
 
 -- | The text laid out in lines of at most 80 characters where it can be:
 -- a group that does not fit has its elements on lines of their own.

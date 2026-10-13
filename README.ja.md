@@ -1,227 +1,349 @@
 # peg-hs
 
-PEG（Parsing Expression Grammar）の定義から Haskell のパーサーを生成するツールチェーン。
+peg-hs は、PEG（Parsing Expression Grammar）で書いた文法から、Haskell のパーサーを生成するツールチェーンである。
 
 [English README](README.md)
 
-- 標準 PEG の全構文と、直接と間接の左再帰を受理する（bounded left recursion, Medeiros et al. 2014）
-- happy / alex 方式のスタンドアロン生成器。`.peg` から決定的に `.hs` を生成する（同一入力からバイト単位で同一の出力）
-- 各規則が結果型とセマンティックアクションを持ち、生成されたパーサーは利用者の AST を直接返す
-- 字下げに依存する構文や前方参照を書くための文脈依存の拡張（意味述語、引数付き規則、読み取り専用の解析環境、桁の参照）。パックラットのメモ化と左再帰の正しさを保つように設計している
-- アクションの型の誤りは、`.peg` ファイルの行と桁で報告される
-- rust-analyzer に倣った、空白とコメントを失わない構文木（`%syntax`）。lint や formatter のため
-- ラベル付きの失敗による構文エラーからの回復（`e ^label` と `%recover`）。回復するモードは、誤りのノードを含むロスレスな構文木を必ず返す。LSP のため
+## 概要
 
-**ステータス：公開前（0.1）。** 生成器、実行時ライブラリ、適合性テストは実装済み。Hackage には未公開。
+文法は `.peg` ファイルに書く。
+各規則には結果の型とセマンティックアクション（規則が成功したときに値を作る Haskell の式）を付ける。
+`peg-hs gen` が文法から Haskell のモジュールを生成し、利用者のプログラムはそのモジュールの `parse` を呼んで、自分の AST を直接受け取る。
 
-- JSON（[JSONTestSuite](https://github.com/nst/JSONTestSuite)）：受理すべき 95 件と拒否すべき 188 件のすべてに合格
-- CommonMark 0.31.2：仕様の例 652 件すべてに適合
-- Lua 5.5（Lua 5.5.1 の公式のテストスイート）：マニュアルの構文を間接の左再帰のまま書いた文法で、34 ファイルすべてを受理。優先順位、結合性、拒否は、参照実装から作った正解と一致
-- TOML 1.1.0（[toml-test](https://github.com/toml-lang/toml-test) v2.2.0）：受理すべき 214 件のすべてで期待する JSON と一致し、拒否すべき 467 件をすべて拒否。回復するモードでは全件でロスレスな構文木を返す
+ほかのパーサー生成器と比べたときの特徴は、次のとおりである。
 
-仕様は [docs/specifications.md](docs/specifications.md)、`.peg` 記法の解説とサンプルは [docs/syntax.md](docs/syntax.md)、設計決定は [docs/adr/](docs/adr/) を参照。
+- **左再帰をそのまま書ける**：`Expr <- Expr '+' Term / Term` のような直接と間接の左再帰を受理する。意味論は bounded left recursion（Medeiros et al. 2014）である（[ADR 0001](docs/adr/0001-bounded-left-recursion.md)）
+- **生成したモジュールの依存が小さい**：生成したモジュールが依存するのは実行時のライブラリ peg-runtime だけである。同じ文法からはバイト単位で同じモジュールを生成するので、生成物をリポジトリにコミットできる（[ADR 0002](docs/adr/0002-standalone-code-generator.md)）
+- **型の誤りを文法の行で報告する**：アクションの型の誤りは、GHC が `.peg` ファイルの行と桁で報告する（[ADR 0014](docs/adr/0014-generated-module-api.md)）
+- **文脈に依存する構文を書ける**：意味述語、引数付き規則、読み取り専用の解析環境、桁の参照で、字下げに依存する構文や前方参照を書ける。パックラットのメモ化と左再帰の正しさを保つように設計している（[ADR 0012](docs/adr/0012-context-sensitive-extensions.md)）
+- **空白とコメントを失わない構文木**：`%syntax` を書くと、rust-analyzer に倣ったロスレスな構文木も作る。整形や lint のような道具のためである（[ADR 0019](docs/adr/0019-lossless-syntax-tree.md)）
+- **構文エラーから回復する**：ラベル付きの失敗（`e ^label` と `%recover`）で、一度の解析で複数の誤りを報告できる。回復するモードは、誤りのノードを含むロスレスな構文木を必ず返す。言語サーバーのためである（[ADR 0021](docs/adr/0021-error-recovery.md)）
 
-## 使い方
+実在する言語の文法で、適合性を確かめている。
 
-### CLI のビルド
+- **JSON**（[JSONTestSuite](https://github.com/nst/JSONTestSuite)）：受理すべき 95 件と拒否すべき 188 件のすべてに合格する
+- **CommonMark 0.31.2**：仕様の例 652 件すべてに適合する
+- **Lua 5.5**（Lua 5.5.1 の公式のテストスイート）：マニュアルの構文を間接の左再帰のまま書いた文法で、34 ファイルすべてを受理する。優先順位、結合性、拒否は、参照実装から作った正解と一致する
+- **TOML 1.1.0**（[toml-test](https://github.com/toml-lang/toml-test) v2.2.0）：受理すべき 214 件のすべてで期待する JSON と一致し、拒否すべき 467 件をすべて拒否する。回復するモードでは、全件でロスレスな構文木を返す
 
-コマンドラインのツール `peg-hs` は、[開発](#開発)の節のツールチェーン（GHC 9.10.3 と cabal-install 3.16.1.0）で、リポジトリからビルドする。
+**状態**：最初のリリース候補 v0.1.0-rc1 を、GitHub の [Releases](https://github.com/tett23/peg-hs/releases) で配布している。
+Hackage にはまだ上げていない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。
+
+## 導入
+
+### 実行ファイル
+
+GitHub の [Releases](https://github.com/tett23/peg-hs/releases) に、Linux（x86-64）と macOS（arm64）の `peg-hs` を置いている。
+アーカイブを展開し、`peg-hs` を `PATH` の通ったディレクトリに置く。
+アーカイブが壊れていないことは、同じ Release の `SHA256SUMS` で確かめられる。
+
+```sh
+tar xzf peg-hs-0.1.0-rc1-x86_64-linux.tar.gz
+install peg-hs-0.1.0-rc1-x86_64-linux/peg-hs ~/.local/bin/
+peg-hs --version
+```
+
+### ソースから
+
+ほかの環境では、ソースからビルドする。
+GHC 9.10、9.12、9.14 のどれかと、cabal-install が要る（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。
 
 ```sh
 git clone https://github.com/tett23/peg-hs.git
 cd peg-hs
-cabal build exe:peg-hs
-```
-
-ビルドした実行ファイルのパスは `cabal list-bin exe:peg-hs` で表示できる。
-`PATH` の通ったディレクトリ（たとえば `~/.local/bin`）にインストールするには、次のようにする。
-
-```sh
 cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy --overwrite-policy=always
 ```
 
-### パーサーの生成
+## 最初の文法
 
-```sh
-peg-hs gen Grammar.peg -o Grammar.hs
+足し算と掛け算と括弧の式を読む文法を例に、生成して使うまでを示す。
+次の文法を `grammar/Calc.peg` に置く。
+
+<!-- readme-example: grammar/Calc.peg -->
+```peg
+%module Calc.Parser
+%{
+import qualified Data.Text as T
+
+data Expr = Num Int | Add Expr Expr | Mul Expr Expr
+  deriving (Show)
+}%
+
+# 足し算は掛け算より弱く、どちらも左に結合する。左再帰でそのまま書ける。
+Expr :: Expr
+Expr <- l:Expr '+' Sp r:Term { Add l r }
+     / Term
+
+Term :: Expr
+Term <- l:Term '*' Sp r:Atom { Mul l r }
+     / Atom
+
+Atom :: Expr
+Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
+     / '(' Sp e:Expr ')' Sp { e }
+
+Sp :: ()
+Sp <- ' '* { () }
 ```
 
-インストールせずに使う場合は、cabal を通して実行する。
+`%module` は生成するモジュールの名前である。
+`%{` と `}%` の間（verbatim ブロック）には、生成したモジュールにそのまま入る Haskell を書く。
+`Expr :: Expr` は規則 `Expr` の結果の型で、`Expr <- ...` が規則の定義である。
+`l:Expr` は結果に名前を付け（束縛）、`{ Add l r }` はアクションである。
+`$[0-9]+` は、読んだ範囲の文字列（`Text`）を値にする。
+記法の詳しい解説は [docs/syntax.md](docs/syntax.md) にある。
+
+`peg-hs gen` でモジュールを生成する。
 
 ```sh
-cabal run peg-hs -- gen Grammar.peg -o Grammar.hs
+peg-hs gen grammar/Calc.peg -o src/Calc/Parser.hs
 ```
 
-生成されたモジュールは `peg-runtime` パッケージだけに依存し、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。
+生成したモジュールは、渡したパスを記録する。
+先頭のコメントと、GHC の誤りを文法の行に向ける `LINE` プラグマである。
+パスは、モジュールをコンパイルするパッケージのディレクトリからの相対パスで渡す。
+cabal はそのディレクトリで GHC を動かすので、エディタが誤りの位置から文法を開ける。
+また、どの機械で生成しても同じモジュールになる（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
+
+文法を確かめるだけなら、生成したモジュールをプロジェクトに組み込む前に `peg-hs parse` で入力を解析できる。
+
+```sh
+echo -n '1 + 2 * (3 + 4)' > input.txt
+peg-hs parse grammar/Calc.peg input.txt
+```
+
+```text
+Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))
+```
+
+## 生成したモジュールを使う
+
+生成したモジュールは、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。
+`a` は開始規則（最初に定義した規則、または `%start` で指定した規則）の型である。
+解析に失敗すると、最も遠くまで読めた位置と、そこで期待した字句の集合を `ParseError` で返す。
+`Peg.Runtime` の `renderParseError` は、それを `1:4: expected ' ', '(' or [0-9]` のような一行にする。
+
+次のプログラムは、標準入力の一行を解析して、AST か誤りを表示する。
+
+<!-- readme-example: src/Main.hs -->
+```haskell
+module Main (main) where
+
+import Calc.Parser (parse)
+import qualified Data.Text.IO as TIO
+import Peg.Runtime (renderParseError)
+
+main :: IO ()
+main = do
+  input <- TIO.getLine
+  case parse input of
+    Right expr -> print expr
+    Left err -> TIO.putStrLn (renderParseError err)
+```
+
+利用者のパッケージの `.cabal` には、peg-runtime と text を `build-depends` に加える。
+生成したモジュールの先頭のコメントに、要る peg-runtime の版の範囲が書いてある（`-- It needs peg-runtime >=0.1 && <0.2.`）。
+
+```cabal
+executable calc
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  other-modules:    Calc.Parser
+  build-depends:
+    , base
+    , peg-runtime  >=0.1 && <0.2
+    , text
+  default-language: GHC2021
+```
+
+peg-runtime はまだ Hackage にない。
+それまでは、`cabal.project` で GitHub のリポジトリを指す。
+`tag` には、使う peg-hs のリリースのタグを書く。
+
+```cabal
+packages: .
+
+source-repository-package
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  tag:      v0.1.0-rc1
+  subdir:   packages/peg-runtime
+```
+
+文法を変えたら、`peg-hs gen` で生成し直し、生成したモジュールもコミットする。
+生成したモジュールは文法から決まるので、CI で生成し直して差分がないことを確かめると、生成し忘れを防げる。
+
+このほか、生成したモジュールは次のものを公開する。
+
+- `%entry` で指定した規則の入口（`parseExpr` など）
+- `%syntax` を書いた文法では、ロスレスな構文木を返す `parseSyntax`（[ADR 0019](docs/adr/0019-lossless-syntax-tree.md)）
+- `%recover` を書いた文法では、誤りから回復して複数の誤りを返す `parseRecover`。`%syntax` も書くと、誤りのノードを含む構文木を返す `parseSyntaxRecover` も公開する（[ADR 0021](docs/adr/0021-error-recovery.md)）
+- `%env` を書いた文法では、どの入口も最初の引数に解析環境の値を取る（[ADR 0012](docs/adr/0012-context-sensitive-extensions.md)）
+
+詳しい一覧は、Hackage の文書（peg-codegen の `Peg.Codegen` と peg-runtime の `Peg.Runtime`）にある。
+
+## コマンド
+
+`peg-hs` は、目的ごとのサブコマンドを持つ（[ADR 0037](docs/adr/0037-cli-subcommands.md)）。
+オプションと例は `peg-hs help COMMAND` で表示できる。
+値を取るオプションは、`--output FILE` と `--output=FILE` のどちらの形でも書ける。
+ファイルは、ロケールによらず UTF-8 で読み書きする（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。
+
+| コマンド | 目的 |
+|---|---|
+| `peg-hs gen GRAMMAR.peg [-o FILE]` | 文法から Haskell のモジュールを生成する |
+| `peg-hs fmt [FILE\|DIR...]` | 文法を一つの流儀で整形する |
+| `peg-hs lint [FILE\|DIR...]` | 誤りである書き方を警告する |
+| `peg-hs parse GRAMMAR.peg INPUT` | 入力を解析して、AST か構文木を表示する |
+| `peg-hs lsp` | 言語サーバーを標準入出力で動かす |
+
+終了状態は、成功で 0、コマンドの使い方の誤りで 2 である。
+文法の誤り、読み書きできないファイル、`lint` の警告、`fmt --check` で見つかった整形されていないファイル、`gen --Werror` での警告では 1 になる。
+
+### gen
+
+`gen` は文法を検査し、モジュールを書き出す。
+出力のパスを省くと、文法のパスの拡張子を `.hs` にしたものになる。
 
 生成器は、正しい入力を拒否するかもしれないラベルを警告する（[ADR 0028](docs/adr/0028-label-safety-check.md)）。
-`--Werror` を付けると警告で生成を止め、文法に `%safe label` を書くと、作者が確かめたラベルの警告を止められる。
+`--Werror` を付けると、警告があればモジュールを書かずに失敗する。
+作者が確かめたラベルは、文法に `%safe label` と書くと警告されない。
 
-### 入力を解析して確かめる
+### fmt
 
-```sh
-peg-hs parse Grammar.peg input.txt [--format ast|cst|all] [--entry RULE] [--ghc-arg ARG]...
-```
+`fmt` は、文法を一つに固定した流儀で整形して上書きする（[ADR 0032](docs/adr/0032-grammar-formatter.md)）。
+流儀を選ぶオプションはない。コメントは残る。
+`--check` はファイルを書き換えず、整形されていないファイルの名前を表示し、一つでもあれば失敗する。CI での検査に使う。
 
-`parse` は、入力を解析して、開始規則の値（AST、既定）かロスレスな構文木（CST）を表示する（[ADR 0036](docs/adr/0036-parse-command.md)）。
-生成したパーサーを `PATH` の `ghc`（GHC 9.10）でコンパイルし、実行ファイルを `$XDG_CACHE_HOME/peg-hs/parse` にキャッシュする。GHC を待つのは、文法ごとに最初の一回だけである。
-AST の表示には、開始規則の型の `Show` のインスタンスが要る。
-文法の Haskell の断片が利用者のモジュールを import する場合は、`--ghc-arg -isrc` のように探索のパスを渡す。cabal のプロジェクトのパッケージを使う場合は、`cabal exec -- peg-hs parse ...` で実行する。
+引数にディレクトリを渡すと、その下の `.peg` ファイルを対象にする。
+引数を省くと、現在のディレクトリの下の `.peg` ファイルをすべて対象にする。
+どちらの場合も、名前が `.` で始まるディレクトリと `dist-newstyle` はたどらない。
 
-### 文法の整形
+### lint
 
-```sh
-peg-hs fmt [FILE...]
-peg-hs fmt --check [FILE...]
-```
+`lint` は、静的検査を通った文法のうち、誤りである書き方を警告する（[ADR 0033](docs/adr/0033-grammar-linter.md)）。
+対象は、試されない選択肢と成功しない選択肢、前の選択肢と同じ選択肢、先読みの中の効果のないラベル、使われない束縛である。
+規則は固定で、警告を抑える手段はない。どの警告も文法を直せば消え、警告が一つでもあれば失敗する。
+対象のファイルの選び方は `fmt` と同じである。
 
-`fmt` は、文法を一つに固定した流儀で整形して上書きする。オプションはない（[ADR 0032](docs/adr/0032-grammar-formatter.md)）。
-ファイルを指定しなければ、現在のディレクトリから再帰的にたどった `.peg` ファイルをすべて整形する。名前が `.` で始まるディレクトリと `dist-newstyle` はたどらない。
-`--check` はファイルを書き換えず、整形されていないファイルの名前を表示し、一つでもあれば失敗する。
+### parse
 
-### 文法の lint
+`parse` は、入力を解析して、開始規則の値（AST、既定）かロスレスな構文木（CST、`--format cst`）を表示する（[ADR 0036](docs/adr/0036-parse-command.md)）。
+生成したパーサーを `PATH` の `ghc` でコンパイルし、実行ファイルを `$XDG_CACHE_HOME/peg-hs/parse` にキャッシュする。
+GHC を待つのは、文法ごとに最初の一回だけである。
 
-```sh
-peg-hs lint [FILE...]
-```
+- AST の表示には、開始規則の型の `Show` のインスタンスが要る。ない場合は `--format cst` を使う
+- `--entry RULE` は、`%entry` の規則で解析する
+- 文法の Haskell の断片が利用者のモジュールを import する場合は、`--ghc-arg -isrc` のように探索のパスを渡す。cabal のプロジェクトのパッケージを使う場合は、`cabal exec -- peg-hs parse ...` で実行する
+- 文字列の中の ASCII 以外の文字は、エスケープせずにそのまま表示する
 
-`lint` は、静的検査を通った文法のうち、確実に誤りである書き方を警告する（[ADR 0033](docs/adr/0033-grammar-linter.md)）。
-対象は、試されない選択肢と成功しない選択肢、先読みの中の効果のないラベル、使われない束縛である。
-規則は固定で、警告を抑制する手段はない。どの警告も文法を直せば消え、警告が一つでもあればコマンドは失敗する。
-ファイルを指定しない場合の対象は `fmt` と同じである。
+### lsp
 
-### エディタ
+`lsp` は、標準入出力で Language Server Protocol を話す言語サーバーである（[ADR 0035](docs/adr/0035-language-server.md)）。
+エディタが起動するもので、手で動かすことはない。設定は次の節にある。
 
-`editors/` に、シンタックスハイライトのための文法を置いている（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）。
+## エディタ
+
+`editors/` に、シンタックスハイライトの文法と VS Code の拡張機能を置いている（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）。
 Haskell の断片（verbatim ブロック、型、アクション、意味述語、引数）は、エディタの Haskell の文法がハイライトする。
 
-- **VS Code**：`editors/vscode` は、TextMate の文法（`editors/textmate/peg.tmLanguage.json`）を含み、言語サーバーを起動する拡張機能である。依存を入れ、拡張機能のディレクトリにリンクを張り、VS Code を再起動する。`peg-hs` の実行ファイルは設定 `peg-hs.path` で指定する
+言語サーバー `peg-hs lsp` は、編集のたびに `gen` と `lint` の誤りと警告を報告し、`fmt` で整形する。
+semantic tokens、定義への移動、参照の検索、ホバー、文書の記号も提供する。
 
-  ```sh
-  (cd editors/vscode && npm ci)
-  ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
-  ```
+下の設定は、どれもまだエディタで手で確かめていない（**未確認**）。
+確かめた結果は `docs/editors/` に記録し、記録したエディタからこの表示を外す（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。
 
-- **Neovim**（nvim-treesitter）：`editors/tree-sitter-peg` の tree-sitter の文法を登録し、問い合わせをランタイムパスの `queries/peg/` に写す
+### VS Code（未確認）
 
-  ```lua
-  vim.filetype.add({ extension = { peg = 'peg' } })
-  require('nvim-treesitter.parsers').get_parser_configs().peg = {
-    install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c' } },
-    filetype = 'peg',
+`editors/vscode` は、TextMate の文法（`editors/textmate/peg.tmLanguage.json`）を含み、言語サーバーを起動する拡張機能である。
+Marketplace にはまだ公開していないので、リポジトリから入れる。
+依存を入れ、拡張機能のディレクトリにリンクを張り、VS Code を再起動する。
+`peg-hs` が `PATH` にない場合は、設定 `peg-hs.path` で実行ファイルを指す。
+
+```sh
+(cd editors/vscode && npm ci)
+ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
+```
+
+### Neovim（未確認）
+
+ハイライトには、`editors/tree-sitter-peg` の tree-sitter の文法を nvim-treesitter（main ブランチ）に登録する。
+`User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall peg` を実行する。
+文法のビルドには tree-sitter の CLI が要る。
+nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
+
+```lua
+vim.filetype.add({ extension = { peg = 'peg' } })
+vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
+  require('nvim-treesitter.parsers').peg = {
+    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-peg', queries = 'queries' },
   }
-  ```
+end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'peg', callback = function() vim.treesitter.start() end })
+```
 
-- **Helix**：`languages.toml` に言語と文法を加え、`hx --grammar build` を実行し、問い合わせを `runtime/queries/peg/` に写す
+nvim-treesitter の旧版（master ブランチ）では、`get_parser_configs()` に登録する。
+文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書き、問い合わせをランタイムパスの `queries/peg/` に写す。
 
-  ```toml
-  [[language]]
-  name = "peg"
-  scope = "source.peg"
-  file-types = ["peg"]
-  comment-token = "#"
+```lua
+require('nvim-treesitter.parsers').get_parser_configs().peg = {
+  install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c', 'src/scanner.c' } },
+  filetype = 'peg',
+}
+```
 
-  [[grammar]]
-  name = "peg"
-  source = { path = "/path/to/peg-hs/editors/tree-sitter-peg" }
-  ```
-
-### 言語サーバー
-
-`peg-hs lsp` は、標準入出力で動く言語サーバーである（[ADR 0035](docs/adr/0035-language-server.md)）。
-編集のたびに `gen` と `lint` の誤りと警告を報告し、`fmt` で整形する。semantic tokens、定義への移動、参照の検索、ホバー、文書の記号も提供する。
-上の VS Code の拡張機能のほか、Neovim では次のように設定する。
+言語サーバーは、Neovim 0.11 以降の `vim.lsp.config` で設定する。
 
 ```lua
 vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'peg' }, root_markers = { '.git' } })
 vim.lsp.enable('peg_hs')
 ```
 
-Helix では `languages.toml` に書く。
+### Helix（未確認）
+
+`languages.toml` に言語、文法、言語サーバーを加え、`hx --grammar build` を実行する。
+問い合わせは `runtime/queries/peg/` に写す。
 
 ```toml
+[[language]]
+name = "peg"
+scope = "source.peg"
+file-types = ["peg"]
+comment-token = "#"
+language-servers = ["peg-hs"]
+
+[[grammar]]
+name = "peg"
+source = { path = "/path/to/peg-hs/editors/tree-sitter-peg" }
+
 [language-server.peg-hs]
 command = "peg-hs"
 args = ["lsp"]
-
-[[language]]
-name = "peg"
-language-servers = ["peg-hs"]
 ```
 
-## 開発
+## 既知の制限
 
-変更の進め方（ADR、テストを先に書くこと、コミットとリリース）は [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) に定める。
+- **配布**：実行ファイルは Linux（x86-64）と macOS（arm64）だけである。Windows では、ソースからビルドする。Hackage にはまだない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
+- **GHC の版**：パッケージと生成したモジュールは GHC 9.10、9.12、9.14 で確かめている。9.8 以前には対応しない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
+- **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **漢字や仮名で始まる規則名**：`%syntax` の文法では、規則名から型名を作るので、大文字と小文字の区別のない文字（漢字や仮名）で始まる規則名があると、生成したモジュールのコンパイルが失敗する。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも失敗する。そうした文法は `peg-hs gen` で生成したモジュールを使う（[ADR 0019](docs/adr/0019-lossless-syntax-tree.md)、[ADR 0020](docs/adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0036](docs/adr/0036-parse-command.md)）
+- **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 21 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
+- **規則の雛形**：雛形は、引数付き規則の引数を取れない。`%entry`、`%start`、`%recover` の規則にもできない（[ADR 0031](docs/adr/0031-rule-templates.md)。組み合わせる案は [ADR 0040](docs/adr/0040-templates-with-parameterized-rules.md) で却下した）
+- **tree-sitter の文法**：アクションも要素もない選択肢（`S <- 'a' /`）を誤りにする。この選択肢は値を持たないので、`peg-hs gen` も必ず誤りにする。そのため、正しい文法を誤りと表示することはない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **TextMate の文法**：正規表現の規則なので、文脈に依存する区別（`A(x)` の呼び出しと `A (x)` の並び）は近似である。言語サーバーの semantic tokens は正確に区別する（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
+- **エディタの設定**：上の三つのエディタの設定は、まだ手で確かめていない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。VS Code の拡張機能は Marketplace にない
 
-ツールチェーンは ghcup が recommended とする版を使う（GHC 9.10.3、cabal-install 3.16.1.0、HLS 2.14.0.0）。
-コンパイラの版は `cabal.project` で固定する。
-[mise](https://mise.jdx.dev/) を使う場合は、同梱の `mise.toml` が ghcup のバイナリをプロジェクトの PATH に加える。
+## 文書
 
-```sh
-ghcup install ghc 9.10.3
-ghcup install cabal 3.16.1.0
-```
-
-クローン後、[adr-guard](https://github.com/tett23/adr-guard) を導入し、git の hook を有効化する。
-コミット済みの ADR と計測の記録（`docs/benchmarks/`）は変更不可であり、adr-guard が pre-commit hook と CI で変更を拒否する。ADR のステータスの行と、ADR の参照に付けるリンクの変更だけは許される。
-ADR は、行頭が `ステータス:` のステータスの行をちょうど一つ持つ（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）。
-
-```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.1
-git config core.hooksPath .githooks
-```
-
-すべてのテストを実行する。
-
-```sh
-cabal test all
-```
-
-生成したモジュールはリポジトリにコミットしており、テストが生成器の現在の出力との一致を検査する。
-生成器か文法を変えたら、次のコマンドで生成し直す。
-
-```sh
-scripts/regen-fixtures.sh
-```
-
-`.peg` 記法のパーサーは、記法自身の文法 `packages/peg-grammar/grammar/Peg.peg` から生成している（[ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)）。
-記法に構文を加え、その構文を `Peg.peg` 自身で使う場合は、二回に分けて生成し直す。
-まず、その構文を受理する規則を、その構文を使わずに加えて生成し直す。
-次に、`Peg.peg` でその構文を使い、新しい生成器で生成し直す。
-
-性能の退行は手元のベンチマークで検出する。
-peg-runtime や peg-codegen に触れる変更では、変更前後で同一マシンのベンチマークを比較すること（[ADR 0007](docs/adr/0007-performance-discipline.md)）。
-
-```sh
-cabal bench peg-conformance
-```
-
-`%nomemo` で規則のメモ化を外す前に、メモ表の項目がどの規則に集まっているかを調べ、外す前後の最大の常駐メモリを別々のプロセスで比べる（[ADR 0017](docs/adr/0017-nomemo-implementation.md)）。
-
-```sh
-cd conformance && $(cabal list-bin peg-conformance:bench:peg-bench) --memo-report
-```
-
-CommonMark のテストは、結果を調べるためのオプションを受け付ける。
-`--show N` は一つの例を表示し、`--report FILE` は節ごとの結果を書き出し、`--accept` は現在適合している例を記録する。
-
-```sh
-cd conformance && $(cabal list-bin peg-conformance:test:commonmark-conformance) --show 5
-```
-
-エディタの文法は、Node と tree-sitter の CLI でテストする。
-記法を変えたら、`editors/` の文法も直す。テストは、エディタの文法の字句の範囲を、自己記述の文法の範囲と比べる。後者は、`cabal test peg-grammar` に `--accept` を付けると `editors/test/ranges.txt` に書き出される。
-
-```sh
-cd editors && npm ci && npm test
-```
-
-Lua のテストの正解は、参照実装の Lua 5.5.1 で作る。参照実装が要るのは、正解を作り直すときだけである。
-
-```sh
-conformance/lua/golden/regen.sh
-```
+- [docs/syntax.md](docs/syntax.md)：`.peg` 記法の解説とサンプル
+- [docs/specifications.md](docs/specifications.md)：製品の仕様
+- [docs/adr/](docs/adr/)：設計の決定の記録（ADR）。仕様の各項目がどの決定によるかをたどれる
+- [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)：開発の環境、テスト、生成物の再生成、ADR の書き方、コミット、リリースの手順
+- 各パッケージの `CHANGELOG.md`：版ごとの変更
 
 ## ライセンス
 
-[MIT](LICENSE)
+[MIT](LICENSE)。
+`conformance/data/` に取り込んだテストデータは、それぞれのディレクトリの LICENSE に従う。

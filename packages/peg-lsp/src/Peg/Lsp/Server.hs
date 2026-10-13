@@ -1,5 +1,29 @@
 -- | The language server as a pure function from its state and a message to
 -- the new state and the messages to send (ADR 0035).
+--
+-- The server supports diagnostics (pushed on @didOpen@ and @didChange@,
+-- with full text synchronisation), formatting, semantic tokens, go to
+-- definition, references, hover and document symbols. Positions are
+-- counted in UTF-16 code units, or in bytes when the client offers
+-- @utf-8@ in @positionEncodings@.
+--
+-- Start from 'initialState' and pass each message to 'handleFrame' (for
+-- the output of 'Peg.Lsp.Rpc.decodeFrames') or 'handleMessage' (for a
+-- parsed message); send the messages of the t'Step' and stop when
+-- 'stepExit' is set. "Peg.Lsp" does this over handles; a test can do it
+-- with values:
+--
+-- @
+-- let open = object
+--       [ (\"jsonrpc\", String \"2.0\"), (\"method\", String \"textDocument\/didOpen\")
+--       , (\"params\", object [(\"textDocument\", object [(\"uri\", String \"file:\/\/\/a.peg\"), (\"text\", String src)])])
+--       ]
+--     s1 = handleMessage initialState (object [(\"jsonrpc\", String \"2.0\"), (\"id\", int 1), (\"method\", String \"initialize\"), (\"params\", object [])])
+--     s2 = handleMessage (stepState s1) open
+-- in stepOutput s2  -- [the textDocument\/publishDiagnostics notification]
+-- @
+--
+-- 'diagnose' is the analysis behind the diagnostics, usable on its own.
 module Peg.Lsp.Server
   ( State
   , initialState
@@ -44,6 +68,9 @@ data Document = Document
   -- ^ Computed when first used, and kept until the document changes.
   }
 
+-- | The state of the server: the open documents, the position encoding
+-- agreed on in @initialize@, and whether @initialize@ and @shutdown@ have
+-- been received. Opaque; start from 'initialState'.
 data State = State
   { stDocuments :: M.Map Text Document
   , stEncoding :: Encoding
@@ -51,6 +78,8 @@ data State = State
   , stShutdown :: Bool
   }
 
+-- | The state before @initialize@: no document is open. Requests other
+-- than @initialize@ are answered with an error until it arrives.
 initialState :: State
 initialState = State M.empty Utf16 False False
 
@@ -62,7 +91,9 @@ data Step = Step
   , stepExit :: Maybe Int
   }
 
--- | Handle the body of a framed message, or an error of the framing.
+-- | Handle the body of a framed message, or an error of the framing (see
+-- 'Peg.Lsp.Rpc.decodeFrames'). A framing error or a body that is not JSON
+-- is answered with a parse error (-32700).
 handleFrame :: State -> Either Text Text -> Step
 handleFrame st = \case
   Left err -> Step st [errorResponse Null (-32700) err] Nothing
@@ -70,7 +101,8 @@ handleFrame st = \case
     Nothing -> Step st [errorResponse Null (-32700) "the message is not JSON"] Nothing
     Just v -> handleMessage st v
 
--- | Handle a message.
+-- | Handle a parsed message: a request (with an @id@), which gets a
+-- response, or a notification. A message without a method is ignored.
 handleMessage :: State -> Value -> Step
 handleMessage st msg =
   case (member "method" msg >>= asText, member "id" msg) of
@@ -165,11 +197,18 @@ initializeResult enc =
 
 -- Diagnostics ---------------------------------------------------------------------
 
-data Severity = Error | Warning
+-- | The severity of a diagnostic of 'diagnose'.
+data Severity
+  = -- | An error of @peg-hs gen@: the grammar cannot be generated.
+    Error
+  | -- | A warning of the label check or of @peg-hs lint@.
+    Warning
   deriving (Eq, Show)
 
 -- | The diagnostics of a grammar with the messages and locations of
--- @peg-hs gen@ and @peg-hs lint@, and the code of a lint rule. A grammar
+-- @peg-hs gen@ and @peg-hs lint@, and the code of a lint rule
+-- ('Peg.Grammar.Lint.lintRule'). An error stops the checks as in
+-- @peg-hs gen@: a grammar with an error has no warnings. A grammar
 -- with a syntax error has only its syntax errors: the first is the one of
 -- @peg-hs gen@, followed by those that recovery finds on later lines.
 diagnose :: Text -> [(Severity, Diagnostic, Maybe Text)]
@@ -238,7 +277,8 @@ formatting enc _ d _ = Just $ case formatGrammar (docText d) of
          in Array [object [("range", rangeValue enc d (Loc 1 1) end), ("newText", String out)]]
   _ -> Array []
 
--- | The token types of the semantic tokens, in the order of their indices.
+-- | The token types of the semantic tokens, in the order of their indices,
+-- as announced in the legend of the @initialize@ response.
 tokenTypes :: [Text]
 tokenTypes = ["function", "macro", "parameter", "variable", "string", "regexp", "keyword", "operator", "decorator", "comment"]
 

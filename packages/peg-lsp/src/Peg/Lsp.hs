@@ -1,6 +1,19 @@
 -- | The language server of the @.peg@ notation over standard input and
 -- output (ADR 0035). The handling of messages is in "Peg.Lsp.Server"; this
--- module only reads and writes the framed messages.
+-- module only reads and writes the framed messages ("Peg.Lsp.Rpc").
+--
+-- @peg-hs lsp@ is this function applied to the standard handles:
+--
+-- @
+-- import Peg.Lsp (runServer)
+-- import System.Exit (ExitCode (..), exitWith)
+-- import System.IO (stdin, stdout)
+--
+-- main :: IO ()
+-- main = do
+--   code <- runServer stdin stdout
+--   exitWith (if code == 0 then ExitSuccess else ExitFailure code)
+-- @
 module Peg.Lsp
   ( runServer
   ) where
@@ -10,8 +23,10 @@ import Peg.Lsp.Rpc (decodeFrames, encodeMessage)
 import Peg.Lsp.Server
 import System.IO
 
--- | Serve until the client sends @exit@ or closes the input; the exit
--- status is 0 after a @shutdown@ request and 1 otherwise.
+-- | Serve on an input and an output handle until the client sends @exit@
+-- or closes the input, and return the exit status: 0 after a @shutdown@
+-- request and 1 otherwise. Both handles are switched to binary mode; the
+-- messages are UTF-8.
 runServer :: Handle -> Handle -> IO Int
 runServer input output = do
   hSetBinaryMode input True

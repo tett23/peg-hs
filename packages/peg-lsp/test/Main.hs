@@ -15,7 +15,7 @@ import Peg.Grammar.Highlight
 import Peg.Lsp.Json
 import Peg.Lsp.Rpc
 import Peg.Lsp.Server
-import System.Directory (doesFileExist)
+import System.Directory (doesPathExist)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
@@ -42,7 +42,7 @@ main =
           let src = "%module M\n\nS :: ()\nS <- a\x1D465 b { () }\n\na\x1D465 :: ()\na\x1D465 <- 'x' { () }\n\nb :: ()\nb <- 'b' { () }\n"
               results = [r | m <- session [initialize False, open src, request 2 "textDocument/definition" (docAt 3 9), request 3 "textDocument/definition" (docAt 3 5)], Just r <- [member "result" m]]
           drop 1 results @?= [object [("uri", String uri), ("range", rangeOf (9, 0) (9, 1))], object [("uri", String uri), ("range", rangeOf (6, 0) (6, 3))]]
-      , testCase "the semantic tokens are ranges of the syntax tree" $ do
+      , skippedWithout "../peg-grammar/grammar/Peg.peg" "the semantic tokens are ranges of the syntax tree" $ do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
           let out = session [initialize True, open src, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])])]
               tokens = decodeTokens src (fromMaybe [] (lastResult out >>= member "data" >>= asArray))
@@ -58,13 +58,9 @@ main =
                 Right out ->
                   let ids xs = sort (mapMaybe (\m -> member "id" m >>= asInt) xs)
                    in ids out === ids [m | m <- msgs, member "method" m /= Nothing]
-      , testCase "the notation's grammar has no errors in the server" $ do
-          exists <- doesFileExist "../peg-grammar/grammar/Peg.peg"
-          if exists
-            then do
-              src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
-              [d | (Error, d, _) <- diagnose src] @?= []
-            else pure ()
+      , skippedWithout "../peg-grammar/grammar/Peg.peg" "the notation's grammar has no errors in the server" $ do
+          src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
+          [d | (Error, d, _) <- diagnose src] @?= []
       ]
 
 -- Run messages through the server from its initial state, until it exits.
@@ -214,3 +210,11 @@ decodeTokens src vs = go 0 0 (mapMaybe asInt vs)
           col n = T.length (TE.decodeUtf8 (BS.take n (TE.encodeUtf8 text))) + 1
        in (Loc (line' + 1) (col ch'), Loc (line' + 1) (col (ch' + len))) : go line' ch' rest
     go _ _ _ = []
+
+-- | A test of files outside this package, which a source archive does not
+-- have: without them it passes and reports that it was skipped, so that
+-- the run says how many were (ADR 0046).
+skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
+skippedWithout file name act = testCaseInfo name $ do
+  exists <- doesPathExist file
+  if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")

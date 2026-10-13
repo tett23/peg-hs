@@ -1,9 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The abstract syntax of @.peg@ grammar files.
+-- | The abstract syntax of @.peg@ grammar files, and the diagnostics that
+-- the modules of this package report about them.
 --
--- Use "Peg.Grammar.Parser" to read a grammar and "Peg.Grammar.Check" to
--- validate it.
+-- The other modules work on a t'Grammar' or on the source text:
+--
+-- * "Peg.Grammar.Parser" reads a grammar ('Peg.Grammar.Parser.parseGrammar').
+-- * "Peg.Grammar.Templates" expands rule templates (ADR 0031).
+-- * "Peg.Grammar.Check" checks the expanded grammar and analyses it for
+--   the code generator.
+-- * "Peg.Grammar.Labels" warns about labels that may change the language
+--   (ADR 0028).
+-- * "Peg.Grammar.Lint" warns about mistakes that are not errors (ADR 0033).
+-- * "Peg.Grammar.Format" formats the source (ADR 0032).
+-- * "Peg.Grammar.Highlight" and "Peg.Grammar.Outline" describe the source
+--   for editors and the language server (ADR 0034, ADR 0035).
+--
+-- The checks of @peg-hs gen@ run in this order. Errors in the body of a
+-- template are reported once for each call that expanded it, so
+-- 'Peg.Grammar.Templates.templateNotes' adds the call to them:
+--
+-- @
+-- import Peg.Grammar
+-- import Peg.Grammar.Check (check)
+-- import Peg.Grammar.Labels (labelWarnings)
+-- import Peg.Grammar.Lint (lintGrammar)
+-- import Peg.Grammar.Parser (parseGrammar)
+-- import Peg.Grammar.Templates (expandTemplates, templateNotes)
+--
+-- -- The grammar as parsed and expanded, and the warnings about its labels.
+-- checkGrammar :: Text -> Either [Diagnostic] (Grammar, Grammar, [Diagnostic])
+-- checkGrammar src = do
+--   g0 <- parseGrammar src
+--   g <- either (Left . templateNotes g0) Right (expandTemplates g0)
+--   _ <- either (Left . templateNotes g0) Right (check g)
+--   pure (g0, g, templateNotes g0 (labelWarnings g))
+-- @
+--
+-- 'Peg.Grammar.Lint.lintGrammar' takes the grammar as parsed (@g0@), and
+-- @Peg.Codegen.generate@ (in the @peg-codegen@ package) generates a module
+-- from it.
 module Peg.Grammar
   ( -- * Locations
     Loc (..)
@@ -39,7 +75,9 @@ data Located a = Located
   }
   deriving (Eq, Show)
 
--- | A whole grammar file.
+-- | A whole grammar file, as read by 'Peg.Grammar.Parser.parseGrammar'.
+-- The directives are kept as written; whether they make sense together is
+-- decided by 'Peg.Grammar.Check.check'.
 data Grammar = Grammar
   { grammarModule :: Located Text
   -- ^ @%module@: the name of the generated module.
@@ -152,14 +190,21 @@ data Expr
     EDiscard Expr
   deriving (Eq, Show)
 
--- | An error found in a grammar.
+-- | A message about a location in a grammar: an error, or a warning such
+-- as those of 'Peg.Grammar.Labels.labelWarnings'. The message is one line
+-- of English without the location.
 data Diagnostic = Diagnostic
   { diagLoc :: Loc
   , diagMessage :: Text
   }
   deriving (Eq, Show)
 
--- | Render as @file:line:column: error: message@.
+-- | Render as @file:line:column: error: message@, the form @peg-hs@ uses
+-- for errors. The file name is written as given.
+--
+-- @
+-- either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic \"Calc.peg\")) (const (pure ())) (parseGrammar src)
+-- @
 renderDiagnostic :: FilePath -> Diagnostic -> Text
 renderDiagnostic file (Diagnostic (Loc l c) msg) =
   T.concat [T.pack file, ":", T.pack (show l), ":", T.pack (show c), ": error: ", msg]
