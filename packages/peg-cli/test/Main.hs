@@ -35,7 +35,7 @@ import Control.Exception (bracket_)
 import qualified Control.Exception
 import System.IO (hClose, hSetBinaryMode)
 import System.Process (CreateProcess (..), StdStream (..), createProcess, waitForProcess)
-import System.Directory (emptyPermissions)
+import System.Directory (doesPathExist, emptyPermissions)
 import FileIO (utf8ErrorOffset, decodeUtf8File)
 import GhcVersion (supportedGhc)
 import EditDistance (editDistance)
@@ -457,7 +457,7 @@ main = do
           , testCase "exit without shutdown fails" $ do
               (code, _, _) <- readProcessWithExitCode "peg-hs" ["lsp"] "Content-Length: 33\r\n\r\n{\"jsonrpc\":\"2.0\",\"method\":\"exit\"}"
               code @?= ExitFailure 1
-          , testCase "the diagnostics are those of peg-hs gen and peg-hs lint" $ do
+          , skippedWithout "../peg-grammar/grammar" "the diagnostics are those of peg-hs gen and peg-hs lint" $ do
               files <- repositoryGrammars
               dir <- treeWith "lsp-agree" []
               bad <- fmap concat . forM files $ \f -> do
@@ -521,9 +521,7 @@ main = do
               _ <- parseRun "cache" (exprGrammar <> "\n# changed\n") "1" []
               n3 <- compiles "parse-cache"
               (n2 - n1, n3 - n2) @?= (0, 1)
-          , testCase "the embedded sources are those of peg-runtime and the pretty-printer" $ do
-              exists <- doesDirectoryExist "../peg-runtime/src"
-              when exists $ do
+          , skippedWithout "../peg-runtime/src" "the embedded sources are those of peg-runtime and the pretty-printer" $ do
                 files <- mapM (\(f, _) -> readFile ("../peg-runtime/src" </> f)) runtimeSources
                 assertBool "run scripts/regen-fixtures.sh" (files == map snd runtimeSources)
                 pretty' <- readFile "app/Pretty.hs"
@@ -722,3 +720,11 @@ replaceBytes old new = TE.encodeUtf8 . T.replace (T.pack old) (T.pack new) . TE.
 -- temporary directory through /private.
 withoutDir :: FilePath -> String -> String
 withoutDir dir = replace dir "<dir>" . replace ("/private" <> dir) "<dir>"
+
+-- | A test of files outside this package, which a source archive does not
+-- have: without them it passes and reports that it was skipped, so that
+-- the run says how many were (ADR 0046).
+skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
+skippedWithout file name act = testCaseInfo name $ do
+  exists <- doesPathExist file
+  if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")

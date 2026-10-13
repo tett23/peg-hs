@@ -38,7 +38,7 @@ import Peg.Runtime
 import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
 import Peg.Runtime.Syntax
 import Control.Monad (when)
-import System.Directory (createDirectoryIfMissing, doesFileExist, getTemporaryDirectory)
+import System.Directory (createDirectoryIfMissing, doesFileExist, doesPathExist, getTemporaryDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
 import System.Info (fullCompilerVersion)
@@ -183,17 +183,13 @@ variantTests =
     "committed self-hosted parser and label-free variants are up to date"
     [ check "self-hosted parser" "../peg-grammar" "grammar/Peg.peg" "src/Peg/Grammar/SelfHosted.hs" Nothing
     , check "self-hosted parser with a syntax tree" "../peg-grammar" "grammar/PegSyntax.peg" "src/Peg/Grammar/SelfHostedSyntax.hs" Nothing
-    , testCase "the syntax tree variant of the notation's grammar is derived from it" $ do
-        exists <- doesFileExist "../peg-grammar/grammar/Peg.peg"
-        when exists $ do
+    , skippedWithout "../peg-grammar/grammar/Peg.peg" "the syntax tree variant of the notation's grammar is derived from it" $ do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
           extra <- TIO.readFile "../peg-grammar/grammar/SyntaxVariant.txt"
           variant <- TIO.readFile "../peg-grammar/grammar/PegSyntax.peg"
           assertBool "regenerate with scripts/regen-fixtures.sh: grammar/PegSyntax.peg" (syntaxVariant src extra == variant)
     , check "JSON parser of the language server" "../peg-lsp" "grammar/Json.peg" "src/Peg/Lsp/JsonParser.hs" Nothing
-    , testCase "the JSON grammar of the language server is derived from the conformance one" $ do
-        exists <- doesFileExist "../../conformance/json/Json.peg"
-        when exists $ do
+    , skippedWithout "../../conformance/json/Json.peg" "the JSON grammar of the language server is derived from the conformance one" $ do
           src <- TIO.readFile "../../conformance/json/Json.peg"
           derived <- TIO.readFile "../peg-lsp/grammar/Json.peg"
           assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.peg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n" src == derived)
@@ -207,9 +203,7 @@ variantTests =
           either (const False) (const True) (Recover.parse t) === either (const False) (const True) (RecoverNoLabels.parse t)
     ]
   where
-    check name dir src out strip = testCase name $ do
-      exists <- doesFileExist (dir </> src)
-      when exists $ do
+    check name dir src out strip = skippedWithout (dir </> src) name $ do
         grammarText <- TIO.readFile (dir </> src)
         committed <- BL.readFile (dir </> out)
         let opts = Options {optSourceName = src, optOutputName = out, optDebugEntry = False}
@@ -373,7 +367,8 @@ ghc :: FilePath
 ghc = "ghc-" <> showVersion fullCompilerVersion
 
 -- Generate a module from a grammar and type-check it with GHC, using the
--- runtime sources directly so that no package database is needed.
+-- runtime sources directly so that no package database is needed. A source
+-- archive has no runtime sources, and the tests are skipped.
 typecheck :: String -> Text -> IO (ExitCode, String)
 typecheck name src = do
   tmp <- getTemporaryDirectory
@@ -395,7 +390,7 @@ compileTests :: TestTree
 compileTests =
   testGroup
     "compiling generated code"
-    [ testCase "type errors in actions point at the grammar" $ do
+    [ skippedWithout "../peg-runtime/src" "type errors in actions point at the grammar" $ do
         (ex, err) <-
           typecheck "Bad" $
             T.unlines
@@ -407,12 +402,12 @@ compileTests =
               ]
         ex @?= ExitFailure 1
         assertBool ("error not reported at Bad.peg:5:15\n" <> err) ("Bad.peg:5:15" `T.isInfixOf` T.pack err)
-    , testCase "type errors in rule types point at the grammar" $ do
+    , skippedWithout "../peg-runtime/src" "type errors in rule types point at the grammar" $ do
         (_, err) <-
           typecheck "BadType" $
             T.unlines ["%module BadType", "", "A :: Intt", "A <- 'a' { 1 }"]
         assertBool ("error not reported at BadType.peg:3:6\n" <> err) ("BadType.peg:3:6" `T.isInfixOf` T.pack err)
-    , testCase "argument types must be instances of Ord" $ do
+    , skippedWithout "../peg-runtime/src" "argument types must be instances of Ord" $ do
         (ex, err) <-
           typecheck "NoOrd" $
             T.unlines
@@ -424,7 +419,7 @@ compileTests =
               ]
         ex @?= ExitFailure 1
         assertBool ("expected a missing Ord instance\n" <> err) ("Ord" `T.isInfixOf` T.pack err)
-    , testCase "multi-line actions keep their layout" $ do
+    , skippedWithout "../peg-runtime/src" "multi-line actions keep their layout" $ do
         (ex, err) <-
           typecheck "MultiLine" $
             T.unlines
@@ -611,3 +606,11 @@ recoveryTests =
     , testCase "a valid input never reports errors in recovery mode" $
         mapM_ (\t -> snd (Recover.parseRecover t) @?= []) ["x", "x\n\ny", "[a]", "[a [b c] d]\n"]
     ]
+
+-- | A test of files outside this package, which a source archive does not
+-- have: without them it passes and reports that it was skipped, so that
+-- the run says how many were (ADR 0046).
+skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
+skippedWithout file name act = testCaseInfo name $ do
+  exists <- doesPathExist file
+  if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")

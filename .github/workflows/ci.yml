@@ -153,9 +153,9 @@ jobs:
       - name: Test
         run: cabal test -j1 --test-show-details=direct ${{ matrix.options }} ${{ matrix.suites }}
 
-  # The documentation and the source tarballs, alongside the tests
-  # (ADR 0039).
-  package:
+  # The documentation, alongside the tests (ADR 0039). Every exposed
+  # module is fully documented (ADR 0044).
+  haddock:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -188,19 +188,57 @@ jobs:
           path: ${{ steps.toolchain.outputs.store }}
           key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
           restore-keys: cabal-${{ runner.os }}-
-      # Every exposed module is fully documented (ADR 0044).
       - name: Haddock
         shell: bash
         run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp 2>&1 | scripts/haddock-coverage.sh
-      # Each published package must build from its source tarball alone
-      # (ADR 0009).
-      - name: Build from source tarballs
+
+  # Each published package builds and passes its tests from its source
+  # tarball alone (ADR 0009, ADR 0046). Tests of files outside a package
+  # report that they were skipped.
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Install GHC and cabal
+        id: toolchain
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          # Without a config file, cabal also prints a note before the path.
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v6
+        with:
+          path: dist-newstyle
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
+      - name: Resolve dependencies
+        run: |
+          cabal update
+          cabal build all --dry-run
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.toolchain.outputs.store }}
+          key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-
+      - name: Test from source tarballs
+        shell: bash
         run: |
           cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-lsp packages/peg-cli --output-directory "$RUNNER_TEMP/sdist"
           cd "$RUNNER_TEMP/sdist"
           for t in *.tar.gz; do tar xzf "$t"; done
-          printf 'packages: */*.cabal\nwith-compiler: ghc-%s\n' "$GHC_VERSION" > cabal.project
+          printf 'packages: */*.cabal\nwith-compiler: ghc-%s\ntests: True\n' "$GHC_VERSION" > cabal.project
           cabal build all
+          cabal test all -j1 --test-show-details=direct | tee test.log
+          echo "skipped tests: $(grep -c 'skipped:' test.log)"
+          grep 'skipped:' test.log | sort | uniq -c
 
   # The newer versions of GHC that the packages support: the packages
   # build, and the generated modules compile without warnings (ADR 0045).
