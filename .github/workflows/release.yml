@@ -42,8 +42,8 @@ jobs:
             *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
           esac
 
-  # The source tarballs of the five packages, and the documentation of the
-  # four libraries in the form that Hackage takes.
+  # The source tarballs and the documentation of the five packages, in the
+  # form that Hackage takes (ADR 0048).
   packages:
     needs: check
     runs-on: ubuntu-latest
@@ -64,9 +64,11 @@ jobs:
         shell: bash
         run: |
           cabal haddock --haddock-for-hackage peg-runtime peg-grammar peg-codegen peg-lsp 2>&1 | scripts/haddock-coverage.sh
+          # peg-cli has executables only (ADR 0048).
+          cabal haddock --haddock-for-hackage --haddock-executables peg-cli
           find dist-newstyle -name '*-docs.tar.gz' -exec cp {} "$RUNNER_TEMP/out" \;
           ls "$RUNNER_TEMP/out"
-          test "$(ls "$RUNNER_TEMP/out" | grep -c -- '-docs\.tar\.gz$')" = 4
+          test "$(ls "$RUNNER_TEMP/out" | grep -c -- '-docs\.tar\.gz$')" = 5
       - uses: actions/upload-artifact@v7
         with:
           name: packages

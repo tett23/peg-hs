@@ -356,7 +356,7 @@ git push origin v0.1.0-rc1
 Pushing the tag runs `.github/workflows/release.yml`, which does the following.
 
 - Checks that the version of the tag matches the versions of the five `.cabal` files. If not, it fails and makes no Release
-- Makes the sdists of the five packages, and the Haddock tarballs of the four libraries in the form that Hackage takes
+- Makes the sdists and the Haddock tarballs of the five packages, in the form that Hackage takes. The Haddock of peg-cli, which has executables only, is made with `--haddock-executables` ([ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md))
 - Builds the `peg-hs` executable for Linux (x86-64) and macOS (arm64)
 - Creates a GitHub Release with the tarballs, the executables and `SHA256SUMS` attached, and publishes it. A tag containing `-` is published as a pre-release
 - Puts GitHub's generated release notes (the pull requests merged since the previous tag) in the body as a placeholder
@@ -433,7 +433,7 @@ Upload the packages in the order of their dependencies (peg-runtime, peg-grammar
 
 ```sh
 cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz
+cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
 ```
 
 On the candidate pages, check the documentation of the modules, the description and examples at the top of each module, the CHANGELOG and the dependencies.
@@ -443,7 +443,7 @@ On the candidate pages, check the documentation of the modules, the description 
 
 ```sh
 cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz
+cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
 ```
 
 After publishing a final version, update the status at the top of the README and of this document to say that peg-hs is on Hackage.

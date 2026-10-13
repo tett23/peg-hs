@@ -356,7 +356,7 @@ git push origin v0.1.0-rc1
 タグの push で `.github/workflows/release.yml` が動き、次を行う。
 
 - タグの版と五つの `.cabal` の版が一致することを確かめる。一致しなければ失敗し、Release を作らない
-- 五つのパッケージの sdist と、四つのライブラリの Haddock の tarball（Hackage にそのまま上げられる形）を作る
+- 五つのパッケージの sdist と Haddock の tarball（Hackage にそのまま上げられる形）を作る。実行ファイルだけの peg-cli は `--haddock-executables` で作る（[ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md)）
 - `peg-hs` の実行ファイルを、Linux（x86-64）と macOS（arm64）で作る
 - GitHub の Release を作り、tarball、実行ファイル、`SHA256SUMS` を添付して公開する。`-` を含むタグでは、プレリリースとして公開する
 - Release の本文には、仮の本文として GitHub が自動で作るリリースノート（前のタグからマージした pull request の一覧）を入れる
@@ -434,7 +434,7 @@ shasum -a 256 -c SHA256SUMS
 
 ```sh
 cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz
+cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
 ```
 
 候補のページで、モジュールの文書、各モジュールの先頭の説明と例、CHANGELOG、依存の表示を確かめる。
@@ -444,7 +444,7 @@ cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0
 
 ```sh
 cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz
+cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
 ```
 
 正式な版を公開したら、README とこの文書の冒頭の状態の表示を、Hackage に公開した状態に合わせる。
