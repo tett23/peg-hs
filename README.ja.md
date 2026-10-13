@@ -167,7 +167,7 @@ ghcup install cabal 3.16.1.0
 ADR は、行頭が `ステータス:` のステータスの行をちょうど一つ持つ（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）。
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.0
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.1
 git config core.hooksPath .githooks
 ```
 

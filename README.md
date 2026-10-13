@@ -165,7 +165,7 @@ Committed ADRs and benchmark records (`docs/benchmarks/`) are immutable: adr-gua
 Each ADR has exactly one status line, a line starting with `ステータス:` ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)).
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.0
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.1
 git config core.hooksPath .githooks
 ```
 
