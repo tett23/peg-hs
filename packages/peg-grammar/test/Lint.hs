@@ -6,6 +6,7 @@ module Lint (lintTests) where
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -21,7 +22,7 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.QuickCheck.Gen (unGen)
 import Test.QuickCheck.Random (mkQCGen)
-import Data.List (nub)
+import Data.List (intercalate, nub)
 import Shard (chunkedProperty, chunks)
 
 lintTests :: [FilePath] -> TestTree
@@ -37,7 +38,17 @@ lintTests files =
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
     ]
-      ++ chunkedProperty "removing what a warning names keeps the results and the farthest failure" 3000 (\part ->
+      ++ [ testGroup "the failures of the interpreter are those of peg-runtime (ADR 0049)" [testCase (T.unpack body <> " on " <> show input) (fmap renderFailure (run (grammarOf body) input) @?= Just message) | (body, input, message) <- runtimeErrors]
+         , testCase "the comparison allows only the literal of the removed alternative to go (ADR 0049)" $ do
+            let report xs = (Fail, Just (0, S.fromList xs))
+            sameReport Nothing (report [XLit "'='", XLit "'=='"]) (report [XLit "'='"]) @?= False
+            sameReport (Just "'=='") (report [XLit "'='", XLit "'=='"]) (report [XLit "'='"]) @?= True
+            sameReport (Just "'=='") (report [XLit "'='", XLit "'=='", XLit "'a'"]) (report [XLit "'='"]) @?= False
+            sameReport (Just "'=='") (report [XLit "'='"]) (report [XLit "'='", XLit "'=='"]) @?= False
+            sameReport (Just "'=='") (Fail, Just (1, S.fromList [XLit "'='"])) (report [XLit "'='"]) @?= False
+            sameReport Nothing (Ok 1, Nothing) (Fail, Nothing) @?= False
+         ]
+      ++ chunkedProperty "removing what a warning names keeps the results and the failure reports (ADR 0049)" 3000 (\part ->
           forAll (variant part genGrammar) $ \src -> case parseGrammar src of
             Right g | Right _ <- check g -> case [w | w <- lintGrammar g, lintRule w /= "unused-binding"] of
               [] -> label "no warnings" True
@@ -47,7 +58,8 @@ lintTests files =
                     [ counterexample (T.unpack src <> "\n" <> show w <> "\ndiffers on " <> show (take 3 bad)) (null bad)
                     | w <- ws
                     , let g' = fixed w g
-                          bad = [s | s <- inputs, let (x, y) = (run g s, run g' s), x /= y, x /= Nothing, y /= Nothing]
+                          removed = removedLiteral w g
+                          bad = [s | s <- inputs, Just x <- [run g s], Just y <- [run g' s], not (sameReport removed x y)]
                     ]
             _ -> discard
         )
@@ -136,35 +148,59 @@ fixed w g = g {grammarRules = map rule (grammarRules g)}
 data Res = Ok Int | Fail | Throw
   deriving (Eq, Show)
 
--- The result of the start rule and the farthest position where a terminal
--- failed. 'Nothing' when the evaluation ran out of fuel.
-run :: Grammar -> String -> Maybe (Res, Int)
+-- What a failed terminal expected, as peg-runtime reports it: literals and
+-- classes as written, any character, and the end of the input.
+data Expect = XLit Text | XClass Text | XAny | XEnd
+  deriving (Eq, Ord, Show)
+
+-- The farthest position where a terminal failed, and what failed there.
+type Failure = Maybe (Int, S.Set Expect)
+
+-- Failures merge as in peg-runtime: the farther one wins, and at the same
+-- position the expectations add up.
+merge :: Failure -> Failure -> Failure
+merge Nothing f = f
+merge f Nothing = f
+merge a@(Just (i, xs)) b@(Just (j, ys))
+  | i > j = a
+  | i < j = b
+  | otherwise = Just (i, S.union xs ys)
+
+-- The result of the start rule over the whole input, and the failure report.
+-- As in peg-runtime, failures inside a negative lookahead and semantic
+-- predicates are not reported, and a match that ends before the end of the
+-- input expects the end there. 'Nothing' when the evaluation ran out of
+-- fuel.
+run :: Grammar -> String -> Maybe (Res, Failure)
 run g input = case grammarRules g of
   [] -> Nothing
-  start : _ -> rule (ruleName start) 0 200
+  start : _ ->
+    rule (ruleName start) 0 200 >>= \case
+      (Ok j, f) | j < length input -> Just (Fail, merge f (Just (j, S.singleton XEnd)))
+      r -> Just r
   where
     rules = M.fromList [(ruleName r, r) | r <- grammarRules g]
     rule n i fuel
       | fuel <= (0 :: Int) = Nothing
       | otherwise = case M.lookup n rules of
           Just r -> choice (map altItems (ruleAlts r)) i (fuel - 1)
-          Nothing -> Just (Fail, -1)
-    choice [] _ _ = Just (Fail, -1)
+          Nothing -> Just (Fail, Nothing)
+    choice [] _ _ = Just (Fail, Nothing)
     choice (a : as) i fuel =
       sequ a i fuel >>= \case
         (Fail, f) -> fmap (far f) (choice as i fuel)
         r -> Just r
-    sequ [] i _ = Just (Ok i, -1)
+    sequ [] i _ = Just (Ok i, Nothing)
     sequ (x : xs) i fuel =
       expr (itemExpr x) i fuel >>= \case
         (Ok j, f) -> fmap (far f) (sequ xs j fuel)
         r -> Just r
-    far f (r, f') = (r, max f f')
-    terminal ok i j = Just (if ok then (Ok j, -1) else (Fail, i))
+    far f (r, f') = (r, merge f f')
+    terminal ok i j e = Just (if ok then (Ok j, Nothing) else (Fail, Just (i, S.singleton e)))
     expr e i fuel = case e of
-      ELit t _ -> terminal (T.unpack t == take (T.length t) (drop i input)) i (i + T.length t)
-      EClass rs _ -> terminal (case drop i input of c : _ -> any (\(a, b) -> a <= c && c <= b) rs; [] -> False) i (i + 1)
-      EAny -> terminal (i < length input) i (i + 1)
+      ELit t orig -> terminal (T.unpack t == take (T.length t) (drop i input)) i (i + T.length t) (XLit orig)
+      EClass rs orig -> terminal (case drop i input of c : _ -> any (\(a, b) -> a <= c && c <= b) rs; [] -> False) i (i + 1) (XClass orig)
+      EAny -> terminal (i < length input) i (i + 1) XAny
       ERef _ n _ -> rule n i fuel
       EGroup alts -> choice alts i fuel
       EStar x -> star x i fuel
@@ -177,13 +213,13 @@ run g input = case grammarRules g of
           (Fail, f) -> Just (Ok i, f)
           r -> Just r
       EAnd x -> fmap (\(r, f) -> (case r of Ok _ -> Ok i; _ -> Fail, f)) (expr x i fuel)
-      ENot x -> fmap (\(r, f) -> (case r of Ok _ -> Fail; _ -> Ok i, f)) (expr x i fuel)
+      ENot x -> fmap (\(r, _) -> (case r of Ok _ -> Fail; _ -> Ok i, Nothing)) (expr x i fuel)
       ECapture x -> expr x i fuel
       ELabel _ x _ ->
         expr x i fuel >>= \case
           (Fail, f) -> Just (Throw, f)
           r -> Just r
-      EPred _ _ -> Just (Ok i, -1)
+      EPred _ _ -> Just (Ok i, Nothing)
       EDiscard x -> expr x i fuel
       ETemplate {} -> Nothing
     star x i fuel =
@@ -192,6 +228,59 @@ run g input = case grammarRules g of
         (Ok _, f) -> Just (Ok i, f)
         (Fail, f) -> Just (Ok i, f)
         r -> Just r
+
+-- The failure report as renderParseError writes it, for inputs of one line.
+renderFailure :: (Res, Failure) -> String
+renderFailure (_, f) = case f of
+  Nothing -> "1:1: parse error"
+  Just (i, xs) -> "1:" <> show (i + 1) <> ": " <> case map render (S.toAscList xs) of
+    [] -> "parse error"
+    [x] -> "expected " <> x
+    ys -> "expected " <> intercalate ", " (init ys) <> " or " <> last ys
+  where
+    render = \case
+      XLit t -> T.unpack t
+      XClass t -> T.unpack t
+      XAny -> "any character"
+      XEnd -> "end of input"
+
+-- Whether the grammar fixed by a warning reports the same as the original
+-- (ADR 0049): the same result and farthest position, and the same
+-- expectations, but for the first literal of an alternative removed by the
+-- rule of literal prefixes, which may go.
+sameReport :: Maybe Text -> (Res, Failure) -> (Res, Failure) -> Bool
+sameReport removed (r, f) (r', f') =
+  r == r' && fmap fst f == fmap fst f' && case (f, f') of
+    (Just (_, xs), Just (_, ys)) ->
+      ys `S.isSubsetOf` xs && (xs S.\\ ys) `S.isSubsetOf` maybe S.empty (S.singleton . XLit) removed
+    _ -> True
+
+-- The first literal of the alternative that a warning of a literal prefix
+-- names.
+removedLiteral :: LintWarning -> Grammar -> Maybe Text
+removedLiteral w g
+  | lintRule w == "unreachable-alternative" && "matches its prefix" `T.isInfixOf` lintMessage w =
+      case [altItems a | r <- grammarRules g, a <- ruleAlts r, altLoc a == lintLoc w] of
+        (x : _) : _ | ELit _ orig <- itemExpr x -> Just orig
+        _ -> Nothing
+  | otherwise = Nothing
+
+-- Errors of peg-runtime, from peg-hs parse, for the grammar S <- BODY.
+runtimeErrors :: [(Text, String, String)]
+runtimeErrors =
+  [ ("'a' 'b' { () } / 'a' 'c' { () }", "ax", "1:2: expected 'b' or 'c'")
+  , ("'a' 'b' 'c' { () } / 'a' { () }", "abx", "1:3: expected 'c'")
+  , ("&('a' 'b') 'a' 'x' { () } / 'z' { () }", "ac", "1:2: expected 'b'")
+  , ("!('a' 'b') [a-z] [a-z] { () }", "ab", "1:1: parse error")
+  , ("'=' { () } / '==' 'x' { () }", "", "1:1: expected '=' or '=='")
+  , ("'=' { () }", "", "1:1: expected '='")
+  , ("'a' { () }", "ab", "1:2: expected end of input")
+  , ("[0-9] . { () }", "1", "1:2: expected any character")
+  , ("'a' ('b' ^l) { () } / 'a' 'c' { () }", "ax", "1:2: expected 'b'")
+  ]
+
+grammarOf :: Text -> Grammar
+grammarOf body = either (error . show) id (parseGrammar (grammar ["S :: ()", "S <- " <> body]))
 
 inputs :: [String]
 inputs = concatMap (\n -> sequence (replicate n "ab=")) [0 .. 3]
