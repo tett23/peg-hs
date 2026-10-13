@@ -239,6 +239,7 @@ ADR の連番は決定の順であり、実装の順ではない。
 以下は残課題として保持し、この文書では確定させない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
+- VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
 
 ## 参考文献
 
