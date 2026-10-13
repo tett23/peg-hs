@@ -17,6 +17,11 @@ module.exports = grammar({
 
   extras: $ => [/\s/, $.comment],
 
+  // The text of a verbatim block, up to the first }% (src/scanner.c). A
+  // regular expression cannot leave out the } of }% after other }s, as in
+  // f = g {}}% (ADR 0045).
+  externals: $ => [$._verbatim_body],
+
   word: $ => $.identifier,
 
   // A sequence ends where the next declaration starts, which is known only
@@ -38,7 +43,6 @@ module.exports = grammar({
 
     verbatim: $ => seq('%{', optional(alias($._verbatim_body, $.haskell)), '}%'),
 
-    _verbatim_body: _ => token.immediate(prec(-1, /([^}]|\}+[^}%])+/)),
 
     directive: $ => seq(
       field('name', $.directive_name),

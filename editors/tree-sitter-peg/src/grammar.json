@@ -78,17 +78,6 @@
         }
       ]
     },
-    "_verbatim_body": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": -1,
-        "content": {
-          "type": "PATTERN",
-          "value": "([^}]|\\}+[^}%])+"
-        }
-      }
-    },
     "directive": {
       "type": "SEQ",
       "members": [
@@ -1305,7 +1294,12 @@
     ]
   ],
   "precedences": [],
-  "externals": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "_verbatim_body"
+    }
+  ],
   "inline": [],
   "supertypes": [],
   "reserved": {}
