@@ -326,7 +326,6 @@ ADR の連番は決定の順であり、実装の順ではない。
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
 - 雛形と引数付き規則の組み合わせ。いまは、雛形の引数に呼び出し元の値の引数を使うことも、雛形に値の引数を持たせることもできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）は、記法、展開、静的検査、整形、lint、ハイライト、言語サーバーのすべてに影響が及ぶため、却下して残課題とした。Golem の文法のように字下げの深さを引数で渡す文法で、同じ形を雛形にまとめられない
-- 大文字と小文字の区別のない文字で始まる規則名と `%syntax`。規則名と束縛には Unicode の文字を使える（[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)）が、`%syntax` の文法は規則名から型名（`数式Syntax` など）を作る（[ADR 0019](adr/0019-lossless-syntax-tree.md)）。Haskell の型名は大文字で始まらなければならず、漢字や仮名は大文字として扱われないので、生成モジュールのコンパイルが GHC の誤り（`Expecting a type constructor but found a variable`）になる。`peg-hs parse` は構文木を表示するために常に `%syntax` を有効にして生成する（[ADR 0036](adr/0036-parse-command.md)）ので、`%syntax` を書いていない文法でも、このような規則名があれば `parse` が失敗する。生成器が型名に接頭辞を付ける、生成の前に誤りとして報告する、`parse` で AST だけを表示するときは `%syntax` を有効にしない、などの直し方がありうる
 
 ## 参考文献
 

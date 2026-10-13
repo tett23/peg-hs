@@ -588,9 +588,6 @@ lowerFirst t = case T.uncons t of
 kindVar :: Text -> Text
 kindVar n = "syntaxKind" <> upperFirst n
 
-syntaxTypeName :: Text -> Text
-syntaxTypeName n = upperFirst n <> "Syntax"
-
 castName :: Text -> Text
 castName n = "cast" <> syntaxTypeName n
 

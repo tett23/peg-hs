@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -237,8 +237,8 @@ import Data.Text (unpack)
 数 <- ds:$[0-9]+ { read (unpack ds) }
 ```
 
-ただし `%syntax` の文法では、規則名から Haskell の型名を作る。
-漢字のように大文字と小文字の区別のない文字で始まる規則名は型名にならず、生成モジュールのコンパイルが GHC のエラーになる（[ロスレスな構文木](#ロスレスな構文木)）。
+`%syntax` の文法では、規則名から Haskell の型名を作る。
+漢字のように大文字のない文字で始まる規則名は、型名の前に `Rule'` が付く（[ロスレスな構文木](#ロスレスな構文木)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)）。
 
 ### 開始規則と到達しない規則
 
@@ -950,7 +950,12 @@ exprR :: ExprSyntax -> Maybe SyntaxToken
 
 取り出し関数の名前は、規則名の先頭を小文字にし、束縛の名前の先頭を大文字にしてつないだものになる。
 型の名前は、規則名の先頭を大文字にしたものに `Syntax` を付ける。
-漢字のように大文字と小文字の区別のない文字で始まる規則名は、`%syntax` の文法では Haskell の型名にならず、GHC のエラーになる。
+Haskell の型名は大文字で始まらなければならないので、漢字、仮名、`_` のように大文字のない文字で始まる規則名は、前に `Rule'` を付ける（`数式` から `Rule'数式Syntax`、`castRule'数式Syntax`）。
+二つの規則が同じ型名になる場合（`expr` と `Expr` など）は、`%syntax` の文法では誤りになる（[ADR 0053](adr/0053-type-names-of-rules-without-case.md)）。
+
+| よくある誤り | 報告 |
+|---|---|
+| `%syntax` の文法に `expr` と `Expr` がある | `error: the rules expr and Expr have the same type name ExprSyntax in the syntax tree; rename one of them` |
 
 束縛の名前の変更は、生成モジュールの公開 API の変更になる。
 取り出し関数の名前が verbatim ブロックの名前と重なると、GHC のエラーになる。

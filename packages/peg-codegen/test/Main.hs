@@ -28,6 +28,7 @@ import qualified Fixture.Syntax as Syntax
 import qualified Fixture.Templates as Templates
 import qualified Fixture.TemplatesSyntax as TemplatesSyntax
 import qualified Fixture.Unicode as Unicode
+import qualified Fixture.UnicodeSyntax as UnicodeSyntax
 import qualified Fixture.Units as Units
 import qualified Fixture.UnitsSyntax as UnitsSyntax
 import Peg.Codegen
@@ -80,6 +81,9 @@ main =
       , syntaxTests
       , recoveryTests
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
+      , testCase "rule names without case have syntax tree types (ADR 0053)" $ do
+          UnicodeSyntax.parse "1＋20＋300" @?= Right 321
+          fmap (fmap (const ()) . UnicodeSyntax.castRule'式Syntax) (UnicodeSyntax.parseSyntax "1＋20") @?= Right (Just ())
       , discardTests
       , testGroup
           "rule templates (ADR 0031)"
@@ -115,7 +119,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "Units", "UnitsSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =

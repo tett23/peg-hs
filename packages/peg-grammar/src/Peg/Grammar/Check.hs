@@ -122,6 +122,7 @@ checkRules g firstRule =
         ++ concatMap (repetitionErrors nullable) rules
         ++ concatMap (altErrors units) rules
         ++ paramLrErrors
+        ++ syntaxNameErrors g
         ++ concatMap hygieneErrors (grammarVerbatim g)
         ++ languageErrors
         ++ nomemoErrors
@@ -448,3 +449,21 @@ hygieneErrors (Located (Loc l0 _) body) =
     afterAs ws' = case dropWhile (/= "as") ws' of
       _ : a : _ -> Just [T.takeWhile (\c -> c /= '(' && c /= ' ') a]
       _ -> Nothing
+
+-- In a grammar with @%syntax@, two rules whose nodes would have the same
+-- type, such as @expr@ and @Expr@ (ADR 0053). Tokens and inline rules have
+-- no nodes.
+syntaxNameErrors :: Grammar -> [Diagnostic]
+syntaxNameErrors g
+  | Nothing <- grammarSyntax g = []
+  | otherwise = go M.empty [r | r <- grammarRules g, ruleName r `notElem` noNode]
+  where
+    noNode = map unLoc (grammarTokens g ++ grammarInline g)
+    go _ [] = []
+    go seen (r : rs) =
+      let t = syntaxTypeName (ruleName r)
+       in case M.lookup t seen of
+            Just earlier ->
+              Diagnostic (ruleLoc r) ("the rules " <> earlier <> " and " <> ruleName r <> " have the same type name " <> t <> " in the syntax tree; rename one of them")
+                : go seen rs
+            Nothing -> go (M.insert t (ruleName r) seen) rs

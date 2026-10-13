@@ -709,6 +709,18 @@ main = do
               readable "S@0..3 TEXT \"\\12354\"" @?= "S@0..3 TEXT \"あ\""
           , testProperty "readable keeps the value of show" $
               \s -> (read (readable (show (s :: String))) :: String) === s
+          , testCase "parse takes rule names that start with kanji (ADR 0053)" $ do
+              dir <- treeWith "parse-kanji" []
+              BS.writeFile (dir </> "G.hpeg") (TE.encodeUtf8 (T.pack "%module Example.Japanese\n%start 数式\n\n%{\nimport Data.Text (unpack)\n}%\n\n数式 :: Int\n数式 <- 左:数式 '＋' 右:数 { 左 + 右 }\n     / 数\n\n数 :: Int\n数 <- ds:$[0-9]+ { read (unpack ds) }\n"))
+              BS.writeFile (dir </> "in.txt") (TE.encodeUtf8 (T.pack "1＋2"))
+              (base, e) <- parseEnv "parse-kanji"
+              removePathForcibly (base </> "parse-cache-parse-kanji")
+              let env' = [(k, v) | (k, v) <- e, k `elem` ["PATH", "XDG_CACHE_HOME", "PEG_TEST_GHC_LOG"]]
+              (code, out, err) <- pegHsBytes dir env' ["parse", "G.hpeg", "in.txt"]
+              (code, out, err) @?= (ExitSuccess, TE.encodeUtf8 (T.pack "3\n"), BS.empty)
+              (code', out', _) <- pegHsBytes dir env' ["parse", "--format", "cst", "G.hpeg", "in.txt"]
+              code' @?= ExitSuccess
+              assertBool (show out') (TE.encodeUtf8 (T.pack "数式@") `BS.isInfixOf` out')
           , testCase "the versions of GHC that parse takes" $ do
               map supportedGhc ["9.10.3", "9.12.2", "9.14.1"] @?= [True, True, True]
               map supportedGhc ["9.8.4", "9.16.1", "9.1", "10.0.1", ""] @?= replicate 5 False
