@@ -61,6 +61,15 @@ main =
       , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
             @?= [(3, 6, "rule B is not a template")]
+      , testCase "a template call with value arguments: its name is a macro, and goes to the template (ADR 0055)" $ do
+          let src = "%module M\n\nS :: ()\nS <- T<'a'>(1) { () }\n\nT<p> :: ()\nT<p> <- p { () }\n"
+              out = session [initialize False, open src, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])]), request 3 "textDocument/definition" (docAt 3 5)]
+              results = [r | m <- out, Just r <- [member "result" m]]
+              typed = decodeTypedTokens src (fromMaybe [] (member "data" (results !! 1) >>= asArray))
+          [ty | (Loc 4 6, Loc 4 7, ty) <- typed] @?= ["macro"]
+          drop 2 results @?= [object [("uri", String uri), ("range", rangeOf (6, 0) (6, 1))]]
+          [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose src]
+            @?= [(4, 6, "the template T takes no value arguments")]
       , skippedWithout "../peg-grammar/grammar/Peg.hpeg" "the notation's grammar has no errors in the server" $ do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           [d | (Error, d, _) <- diagnose src] @?= []
@@ -213,6 +222,13 @@ decodeTokens src vs = go 0 0 (mapMaybe asInt vs)
           col n = T.length (TE.decodeUtf8 (BS.take n (TE.encodeUtf8 text))) + 1
        in (Loc (line' + 1) (col ch'), Loc (line' + 1) (col (ch' + len))) : go line' ch' rest
     go _ _ _ = []
+
+-- The ranges and the types of semantic tokens.
+decodeTypedTokens :: Text -> [Value] -> [(Loc, Loc, Text)]
+decodeTypedTokens src vs = zipWith (\(a, b) ty -> (a, b, ty)) (decodeTokens src vs) (types (mapMaybe asInt vs))
+  where
+    types (_ : _ : _ : ty : _ : rest) = (tokenTypes !! ty) : types rest
+    types _ = []
 
 -- | A test of files outside this package, which a source archive does not
 -- have: without them it passes and reports that it was skipped, so that
