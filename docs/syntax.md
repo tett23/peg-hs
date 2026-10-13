@@ -660,6 +660,16 @@ Item <- ' '* &{ _col == ind } '-' { () }
 雛形の引数は本体に埋め込まれるので、本体の束縛 `x` の後ろに置かれた引数の `x` は、呼び出し元の引数ではなく本体の束縛を指してしまう。
 この場合は、呼び出し元の引数の名前を変える。
 
+### 値の引数を渡す呼び出し
+
+雛形の呼び出しの `>` の直後には、引数付き規則の呼び出しと同じ形で値の引数を書ける（`Indented<Block(ind + 2)>(ind + 2)`）。
+`>` と `(` の間に空白を置かない。
+`Lines<p> (x)` は、これまでどおり雛形の呼び出しと括弧のグループの逐次である。
+引数付き規則の呼び出し `Name(args)` と同じ規則である。
+
+ただし、雛形はまだ値の引数を宣言できない。
+いまは、値の引数を渡す呼び出しはすべて誤りになる（[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)）。
+
 よくある誤り：
 
 | 書き方 | 報告 |
@@ -673,6 +683,7 @@ Item <- ' '* &{ _col == ind } '-' { () }
 | 雛形でない規則を山括弧で呼んだ（`B<'x'>`） | `error: rule B is not a template` |
 | 雛形が雛形を際限なく呼ぶ（`T<p> <- T<(p p)>`） | `error: the expansion of the template T does not end: templates call templates more than 64 levels deep` |
 | 雛形の引数が呼び出し元の束縛を使った（`x:N Lines<Item(x)>`） | `error: the argument of the template Lines uses the binding x, which a template cannot take` |
+| 雛形に値の引数を渡した（`Lines<Item>(1)`） | `error: the template Lines takes no value arguments` |
 | 本体で `x` を使う雛形の引数が、呼び出し元の引数 `x` を使った | `error: the template T uses the name x in its body, so its argument cannot take the parameter x of the rule B; rename the parameter` |
 
 ## 左再帰
