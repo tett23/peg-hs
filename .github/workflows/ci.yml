@@ -194,9 +194,22 @@ jobs:
 
   # Each published package builds and passes its tests from its source
   # tarball alone (ADR 0009, ADR 0046). Tests of files outside a package
-  # report that they were skipped.
+  # report that they were skipped. peg-grammar-test runs in three parts, as
+  # in the test jobs; the other suites run in the second part, the shortest
+  # one (ADR 0051).
   sdist:
+    name: sdist-${{ matrix.shard }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1
+            others: ''
+          - shard: 2
+            others: peg-runtime:test:peg-runtime-test peg-codegen:test:peg-codegen-test peg-lsp:test:peg-lsp-test peg-cli:test:peg-cli-test
+          - shard: 3
+            others: ''
     steps:
       - uses: actions/checkout@v7
         with:
@@ -236,7 +249,10 @@ jobs:
           for t in *.tar.gz; do tar xzf "$t"; done
           printf 'packages: */*.cabal\nwith-compiler: ghc-%s\ntests: True\n' "$GHC_VERSION" > cabal.project
           cabal build all
-          cabal test all -j1 --test-show-details=direct | tee test.log
+          cabal test -j1 --test-show-details=direct peg-grammar:test:peg-grammar-test --test-options='--shard ${{ matrix.shard }}/3' | tee test.log
+          if [ -n "${{ matrix.others }}" ]; then
+            cabal test -j1 --test-show-details=direct ${{ matrix.others }} | tee -a test.log
+          fi
           echo "skipped tests: $(grep -c 'skipped:' test.log)"
           grep 'skipped:' test.log | sort | uniq -c
 
