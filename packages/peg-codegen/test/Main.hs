@@ -40,7 +40,7 @@ import Peg.Runtime.Syntax
 import Control.Monad (when)
 import System.Directory (createDirectoryIfMissing, doesFileExist, doesPathExist, getTemporaryDirectory)
 import System.Exit (ExitCode (..))
-import System.FilePath ((</>))
+import System.FilePath (takeDirectory, (</>))
 import System.Info (fullCompilerVersion)
 import System.Process (readProcessWithExitCode)
 import Test.Tasty
@@ -111,6 +111,7 @@ main =
           ]
       , generatorErrorTests
       , compileTests
+      , readmeTests
       ]
 
 fixtures :: [String]
@@ -614,3 +615,48 @@ skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
 skippedWithout file name act = testCaseInfo name $ do
   exists <- doesPathExist file
   if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")
+
+-- The example of the README, in English and in Japanese (ADR 0045): the
+-- grammar and the program, put at the paths their markers name, generate,
+-- compile and run as the README says.
+readmeTests :: TestTree
+readmeTests =
+  testGroup
+    "the example of the README (ADR 0045)"
+    [ skippedWithout ("../.." </> readme) ("the example of " <> readme <> " compiles and runs") (runExample readme)
+    | readme <- ["README.md", "README.ja.md"]
+    ]
+  where
+    runExample readme = do
+      text <- TIO.readFile ("../.." </> readme)
+      let blocks = readmeExamples text
+      map fst blocks @?= ["grammar/Calc.peg", "src/Main.hs"]
+      tmp <- getTemporaryDirectory
+      let dir = tmp </> "peg-codegen-readme" </> readme
+      mapM_ (\(path, body) -> createDirectoryIfMissing True (takeDirectory (dir </> path)) >> TIO.writeFile (dir </> path) body) blocks
+      grammar <- TIO.readFile (dir </> "grammar/Calc.peg")
+      let opts = Options {optSourceName = "grammar/Calc.peg", optOutputName = "src/Calc/Parser.hs", optDebugEntry = False}
+      case generateFromSource opts grammar of
+        Left ds -> assertFailure (show ds)
+        Right code -> createDirectoryIfMissing True (dir </> "src/Calc") >> TIO.writeFile (dir </> "src/Calc/Parser.hs") code
+      (built, _, err) <-
+        readProcessWithExitCode ghc ["-v0", "-i../peg-runtime/src", "-i" <> (dir </> "src"), "-outputdir", dir </> "out", "-o", dir </> "calc", dir </> "src/Main.hs"] ""
+      assertEqual err ExitSuccess built
+      (_, out, _) <- readProcessWithExitCode (dir </> "calc") [] "1 + 2 * (3 + 4)\n"
+      out @?= "Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))\n"
+      assertBool "the README shows the output" (T.pack (init out) `T.isInfixOf` text)
+      (_, out', _) <- readProcessWithExitCode (dir </> "calc") [] "1 +\n"
+      out' @?= "1:4: expected ' ', '(' or [0-9]\n"
+      assertBool "the README shows the error" (T.pack (init out') `T.isInfixOf` text)
+
+-- The code blocks of a README after a marker @<!-- readme-example: PATH -->@,
+-- with their paths.
+readmeExamples :: Text -> [(FilePath, Text)]
+readmeExamples = go . T.lines
+  where
+    go ls = case break (T.isPrefixOf "<!-- readme-example: ") ls of
+      (_, []) -> []
+      (_, marker : rest) ->
+        let path = T.unpack (T.strip (T.dropEnd 3 (T.drop (T.length "<!-- readme-example: ") marker)))
+            body = takeWhile (/= "```") (drop 1 rest)
+         in (path, T.unlines body) : go (drop (length body + 2) rest)
