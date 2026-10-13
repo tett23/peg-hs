@@ -16,16 +16,20 @@ recoveryTests :: [FilePath] -> TestTree
 recoveryTests files =
   testGroup
     "syntax tree with recovery (ADR 0035)"
-    [ testCase "the tree of every mutant of the grammars is its text, and has its errors" $ do
-        srcs <- mapM TIO.readFile files
-        let bad =
-              [ (f, m)
-              | (f, src) <- zip files srcs
-              , m <- src : mutants src
-              , let o = outline m
-              , recoveredText m /= m || (either (const True) (const False) (parseTops m) && null (outlineSyntaxErrors o))
-              ]
-        assertBool (show (length bad) <> " mutants, the first ones:\n" <> unlines [f <> ":\n" <> T.unpack m | (f, m) <- take 2 bad]) (null bad)
+    -- One test per grammar file, so that they run in parallel (ADR 0039).
+    [ testGroup
+        "the tree of every mutant of the grammars is its text, and has its errors"
+        [ testCase f $ do
+            src <- TIO.readFile f
+            let bad =
+                  [ m
+                  | m <- src : mutants src
+                  , let o = outline m
+                  , recoveredText m /= m || (either (const True) (const False) (parseTops m) && null (outlineSyntaxErrors o))
+                  ]
+            assertBool (show (length bad) <> " mutants, the first ones:\n" <> unlines (map T.unpack (take 2 bad))) (null bad)
+        | f <- files
+        ]
     , testCase "a valid grammar has no syntax errors" $ do
         srcs <- mapM TIO.readFile files
         [f | (f, src) <- zip files srcs, not (null (outlineSyntaxErrors (outline src)))] @?= []

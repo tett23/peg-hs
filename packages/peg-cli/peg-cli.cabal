@@ -61,7 +61,7 @@ test-suite peg-cli-test
   other-modules:
     Embedded
     Pretty
-  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N"
   build-tool-depends: peg-cli:peg-hs
   build-depends:
     , base         >=4.20 && <4.21
