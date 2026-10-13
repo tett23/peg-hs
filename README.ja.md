@@ -347,7 +347,7 @@ args = ["lsp"]
 ## 既知の制限
 
 - **配布**：実行ファイルは Linux（x86-64）と macOS（arm64）だけである。Windows では、ソースからビルドする。Hackage にはまだない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
-- **GHC の版**：パッケージと生成したモジュールは GHC 9.10、9.12、9.14 で確かめている。9.8 以前には対応しない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **GHC の版**：パッケージと生成したモジュールは GHC 9.10、9.12、9.14 に対応する。CI で確かめるのは ghcup の recommended の版（9.10）だけで、9.12 と 9.14 は v0.1.0-rc2 まで確かめた（[ADR 0057](docs/adr/0057-recommended-ghc-only.md)）。9.8 以前には対応しない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）

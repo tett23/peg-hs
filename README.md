@@ -343,7 +343,7 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 ## Known limitations
 
 - **Distribution**: executables are for Linux (x86-64) and macOS (arm64) only. On Windows, build from source. The packages are not on Hackage yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
-- **Versions of GHC**: the packages and generated modules are checked with GHC 9.10, 9.12 and 9.14. GHC 9.8 and earlier are not supported ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
+- **Versions of GHC**: the packages and generated modules support GHC 9.10, 9.12 and 9.14. CI checks only 9.10, the version ghcup recommends; 9.12 and 9.14 were checked up to v0.1.0-rc2 ([ADR 0057](docs/adr/0057-recommended-ghc-only.md)). GHC 9.8 and earlier are not supported ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **Encoding**: grammars and inputs must be UTF-8. Convert files in other encodings first ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **`peg-hs parse` and `%env`**: `parse` cannot handle grammars with `%env` (the read-only parse environment), since it has no way to give the value of the environment. Check such grammars by calling the generated module from a program ([ADR 0036](docs/adr/0036-parse-command.md)).
 - **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).

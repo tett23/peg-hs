@@ -24,10 +24,11 @@ ghcup は版ごとの実行ファイル（`cabal-3.16.1.0`）も置くので、�
 [mise](https://mise.jdx.dev/) を使う場合は、リポジトリの `mise.toml` が ghcup の `~/.ghcup/bin` をプロジェクトの `PATH` に加える。
 
 パッケージが対応する GHC は 9.10、9.12、9.14 である（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。
-各 `.cabal` の `tested-with` に、確かめた版（9.10.3、9.12.4、9.14.1）を並べている。
+CI で確かめるのは、ghcup の recommended の版（9.10.3）だけである。各 `.cabal` の `tested-with` にも、この版だけを書く。
+9.12 と 9.14 は v0.1.0-rc2 まで CI で確かめていたが、CI の実行の上限のため、いまは確かめていない（[ADR 0057](docs/adr/0057-recommended-ghc-only.md)）。
 開発で使うのは 9.10.3 だけでよい。
-9.12 と 9.14 でのビルドは CI が確かめる。
-手元で確かめるときは、その版の GHC を入れて `cabal build -w ghc-9.14.1 all` のように版を指定する。
+9.12 と 9.14 で確かめるときは、その版の GHC を入れて `cabal build -w ghc-9.14.1 all` のように版を指定する。
+recommended の版が変わったときは、`cabal.project` の `with-compiler`、CI の `GHC_VERSION`、各 `.cabal` の `tested-with` を同じコミットで変える。
 
 clone した後に、[adr-guard](https://github.com/tett23/adr-guard) を入れ、git のフックを有効にする。
 adr-guard は、コミットした ADR とベンチマークの記録が変わっていないことを検査する道具である（「ADR と adr-guard」の節）。
@@ -253,7 +254,6 @@ pull request に続けて push すると、前の push の実行は止まる。
 - **test-packages**：peg-cli、peg-lsp、peg-codegen、peg-runtime のテストを動かす
 - **haddock**：公開する四つのライブラリの Haddock を生成し、公開モジュールがすべて文書化されていることを `scripts/haddock-coverage.sh` で検査する（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
 - **sdist-1** から **sdist-3**：それぞれ、公開する五つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。peg-grammar-test を `--shard i/3` で三つに分けて動かし、`sdist-2` はほかの四つのスイートも動かす。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)、[ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md)）
-- **ghc-9.12.4、ghc-9.14.1**：新しい GHC で全パッケージをビルドし、peg-runtime と peg-codegen のテストを動かす。peg-codegen のテストは、生成したモジュールが警告なしでコンパイルできることを確かめる（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 
 テストのジョブ（`test-*`）の中では、スイートを一つずつ動かす。
