@@ -231,7 +231,6 @@ Hackage に一度公開した版は取り消せないためである。
 - **インクリメンタルパースとストリーミングパース**：入力は全体をメモリに載せた `Text` とする。
 - **自動のエラー回復**：同期の位置を生成器が自動で探す回復や、ラベルの自動挿入はしない。回復の位置は文法の作者がラベルと回復の規則で決める（[ADR 0021](adr/0021-error-recovery.md)）。
 - **結合性と優先順位のアノテーション**：yacc 系の `%left` `%prec` は導入しない。左再帰が書けるため、結合性は文法の形で表現できる。
-- **雛形と引数付き規則の組み合わせ**：雛形の引数に呼び出し元の値の引数を使うことと、雛形に値の引数を持たせることはできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案は却下した（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）。
 - **整形と lint の設定**：整形の流儀を変える設定、lint の規則を加えたり止めたりする設定は持たない（[ADR 0032](adr/0032-grammar-formatter.md)、[ADR 0033](adr/0033-grammar-linter.md)）。
 - **生成モジュールへの peg-hs の版の記録**：書くと、版を上げるたびにすべての生成物が変わる。互換が崩れるときにだけ変わる peg-runtime の版の範囲を書く（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 - **生成器によるパスの書き換え**：GHC がどのディレクトリで動くかを生成器は知らないので、生成モジュールに記録するパスを生成器は相対パスに直さない（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
@@ -325,6 +324,9 @@ ADR の連番は決定の順であり、実装の順ではない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
+- 雛形と引数付き規則の組み合わせ。いまは、雛形の引数に呼び出し元の値の引数を使うことも、雛形に値の引数を持たせることもできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）は、記法、展開、静的検査、整形、lint、ハイライト、言語サーバーのすべてに影響が及ぶため、却下して残課題とした。Golem の文法のように字下げの深さを引数で渡す文法で、同じ形を雛形にまとめられない
+- 雛形を一つも定義していない文法での雛形の呼び出し。`A <- B<'x'> { () }` のように普通の規則を `<...>` で呼ぶと、`peg-hs gen` は「rule B is not a template」の誤りにならず、内部の誤り（`a template call must be expanded before generating code`）で止まり、`peg-hs lint` は何も報告しない。雛形の展開（[ADR 0031](adr/0031-rule-templates.md)）が、雛形のない文法では呼び出しを調べずに文法を返すためである。雛形を一つでも定義した文法では、正しい誤りになる
+- 大文字と小文字の区別のない文字で始まる規則名と `%syntax`。規則名と束縛には Unicode の文字を使える（[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)）が、`%syntax` の文法は規則名から型名（`数式Syntax` など）を作る（[ADR 0019](adr/0019-lossless-syntax-tree.md)）。Haskell の型名は大文字で始まらなければならず、漢字や仮名は大文字として扱われないので、生成モジュールのコンパイルが GHC の誤り（`Expecting a type constructor but found a variable`）になる。`peg-hs parse` は構文木を表示するために常に `%syntax` を有効にして生成する（[ADR 0036](adr/0036-parse-command.md)）ので、`%syntax` を書いていない文法でも、このような規則名があれば `parse` が失敗する。生成器が型名に接頭辞を付ける、生成の前に誤りとして報告する、`parse` で AST だけを表示するときは `%syntax` を有効にしない、などの直し方がありうる
 
 ## 参考文献
 

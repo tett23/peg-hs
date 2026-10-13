@@ -328,6 +328,7 @@ args = ["lsp"]
 - **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **漢字や仮名で始まる規則名**：`%syntax` の文法では、規則名から型名を作るので、大文字と小文字の区別のない文字（漢字や仮名）で始まる規則名があると、生成したモジュールのコンパイルが失敗する。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも失敗する。そうした文法は `peg-hs gen` で生成したモジュールを使う（[ADR 0019](docs/adr/0019-lossless-syntax-tree.md)、[ADR 0020](docs/adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0036](docs/adr/0036-parse-command.md)）
 - **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 21 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
 - **規則の雛形**：雛形は、引数付き規則の引数を取れない。`%entry`、`%start`、`%recover` の規則にもできない（[ADR 0031](docs/adr/0031-rule-templates.md)。組み合わせる案は [ADR 0040](docs/adr/0040-templates-with-parameterized-rules.md) で却下した）
 - **tree-sitter の文法**：アクションも要素もない選択肢（`S <- 'a' /`）を誤りにする。この選択肢は値を持たないので、`peg-hs gen` も必ず誤りにする。そのため、正しい文法を誤りと表示することはない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
