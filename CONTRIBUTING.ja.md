@@ -4,9 +4,9 @@
 日本語版（この文書）を正とする。
 英語版（[CONTRIBUTING.md](CONTRIBUTING.md)）は翻訳であり、内容が食い違う場合は日本語版に従う。
 
-peg-hs の最初のリリース候補 `v0.1.0-rc1` は、GitHub の Release で配布している。
+peg-hs のリリース候補（最新は `v0.1.0-rc2`）は、GitHub の Release で配布している。
 Hackage にはまだ公開していない。
-Hackage への公開は `v0.1.0` で行う（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。
+Hackage には、rc が取れた `v0.1.0` から上げる（[ADR 0044](docs/adr/0044-release-v0-1-0.md)、[ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md)）。
 
 ## 開発の環境
 
@@ -439,7 +439,7 @@ cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0
 
 候補のページで、モジュールの文書、各モジュールの先頭の説明と例、CHANGELOG、依存の表示を確かめる。
 
-- **プレリリース（`v0.1.0-rc1` など）**：候補として上げて確かめるだけにし、公開しない。Hackage の版は rc を表せず、`0.1.0.0` を一度公開すると取り消せないためである
+- **プレリリース（`v0.1.0-rc2` など）**：Hackage には何も上げない。候補も上げない。rc は GitHub の Release で配布し、Hackage での表示は正式な版の前に一度確かめれば足りるからである（[ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md)）
 - **正式な版（`v0.1.0` など）**：候補として上げて確かめた後に、同じファイルを `--publish` を付けて上げ、公開する
 
 ```sh
