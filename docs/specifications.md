@@ -207,7 +207,7 @@ peg-lsp は peg-cli が依存するので、peg-cli を Hackage から入れる�
 プレリリースのタグは `v0.1.0-rc1` のように `-` の後に印を付け、cabal の版は `-` の前と同じ（`0.1.0.0`）とする。
 PVP の版は rc を表せないためである。
 
-リリースは GitHub の Release として公開し、五つのパッケージのソースのアーカイブ、Haddock のアーカイブ、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、それらのチェックサムを添付する。
+リリースは GitHub の Release として公開し、五つのパッケージのソースのアーカイブと Haddock のアーカイブ（実行ファイルだけの peg-cli も含む。[ADR 0048](adr/0048-release-commands-and-haddock-of-peg-cli.md)）、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、それらのチェックサムを添付する。
 リリースノートは変更を「追加」「変更」「削除」「修正」などに分け、各変更にコミットと ADR へのリンクを添える。
 各パッケージは、版ごとの変更を英語の `CHANGELOG.md` に記録する。
 
@@ -324,6 +324,7 @@ ADR の連番は決定の順であり、実装の順ではない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
+- 文法ファイルの拡張子を `.peg` から `.hpeg` に変えること（v1 までの課題）。`.peg` はほかの PEG の道具（PEG.js、Peggy、pest など）の文法ファイルと重なり、エディタや GitHub の言語判定が取り違える。変えると、`fmt` と `lint` のファイルの探し方、エディタの文法と拡張機能、文書、リポジトリの文法の名前が変わる
 - 雛形と引数付き規則の組み合わせ。いまは、雛形の引数に呼び出し元の値の引数を使うことも、雛形に値の引数を持たせることもできない（[ADR 0031](adr/0031-rule-templates.md)）。これを可能にする提案（[ADR 0040](adr/0040-templates-with-parameterized-rules.md)）は、記法、展開、静的検査、整形、lint、ハイライト、言語サーバーのすべてに影響が及ぶため、却下して残課題とした。Golem の文法のように字下げの深さを引数で渡す文法で、同じ形を雛形にまとめられない
 - 雛形を一つも定義していない文法での雛形の呼び出し。`A <- B<'x'> { () }` のように普通の規則を `<...>` で呼ぶと、`peg-hs gen` は「rule B is not a template」の誤りにならず、内部の誤り（`a template call must be expanded before generating code`）で止まり、`peg-hs lint` は何も報告しない。雛形の展開（[ADR 0031](adr/0031-rule-templates.md)）が、雛形のない文法では呼び出しを調べずに文法を返すためである。雛形を一つでも定義した文法では、正しい誤りになる
 - 大文字と小文字の区別のない文字で始まる規則名と `%syntax`。規則名と束縛には Unicode の文字を使える（[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)）が、`%syntax` の文法は規則名から型名（`数式Syntax` など）を作る（[ADR 0019](adr/0019-lossless-syntax-tree.md)）。Haskell の型名は大文字で始まらなければならず、漢字や仮名は大文字として扱われないので、生成モジュールのコンパイルが GHC の誤り（`Expecting a type constructor but found a variable`）になる。`peg-hs parse` は構文木を表示するために常に `%syntax` を有効にして生成する（[ADR 0036](adr/0036-parse-command.md)）ので、`%syntax` を書いていない文法でも、このような規則名があれば `parse` が失敗する。生成器が型名に接頭辞を付ける、生成の前に誤りとして報告する、`parse` で AST だけを表示するときは `%syntax` を有効にしない、などの直し方がありうる
