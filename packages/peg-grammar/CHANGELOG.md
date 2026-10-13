@@ -46,6 +46,11 @@ Since v0.1.0-rc1:
   an error. A template may have value parameters, as
   `Indented<p>(n :: Int)`, called as `Indented<Item>(ind + 2)`
   ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
+- `Peg.Grammar.LabelInsertion`: the positions where a label is shown to
+  be safe, their names, the source with the labels inserted, and the
+  recovery rules to propose for labels; `labelSafeAt` and `matchesEmpty`
+  in `Peg.Grammar.Labels`
+  ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).
 
 ### Changed
 
