@@ -61,6 +61,11 @@ formatTests files =
         length (grammarComments src) @?= 14
         formatGrammar out @?= Right out
         assertBool "same grammar" (sameGrammar src out)
+    , testCase "a template call with value arguments has no space before them (ADR 0055)" $ do
+        let src = "%module M\nS :: ()\nS <- T<'a',  'b'>(x  +  1) T<'c'> (U) { () }\n"
+        out <- either (assertFailure . show) pure (formatGrammar src)
+        out @?= "%module M\n\nS :: ()\nS <- T<'a', 'b'>(x  +  1) T<'c'> (U) { () }\n"
+        formatGrammar out @?= Right out
     , testCase "a grammar with a syntax error is not formatted" $
         assertBool "error" (isLeft (formatGrammar "%module M\nA :: ()\nA <- 'a { () }\n"))
     ]

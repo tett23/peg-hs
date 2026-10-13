@@ -146,11 +146,14 @@ module.exports = grammar({
       ')',
     ),
 
+    // The value arguments follow > without a space (ADR 0055): T<a> (b) is
+    // a template call and a group.
     template_call: $ => seq(
       field('name', alias($.identifier, $.rule_reference)),
       token.immediate('<'),
       commaSep1($.template_argument),
       '>',
+      optional(seq(token.immediate('('), commaSep1(alias($._argument_code, $.haskell)), ')')),
     ),
 
     template_argument: $ => $._group_alternatives,

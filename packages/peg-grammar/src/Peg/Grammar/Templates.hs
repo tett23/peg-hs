@@ -115,11 +115,15 @@ expandTemplates g
         | M.member n templates -> do
             addError (Diagnostic l ("the template " <> n <> " needs arguments: " <> n <> "<...>"))
             pure (ERef l n args)
-      ETemplate l n args -> case M.lookup n templates of
+      ETemplate l n args vals -> case M.lookup n templates of
         Nothing -> do
           addError (Diagnostic l ("rule " <> n <> " is not a template"))
           pure (ERef l n [])
         Just t -> do
+          -- A template has no value parameters (ADR 0055, stage 2).
+          case vals of
+            [] -> pure ()
+            _ -> addError (Diagnostic l ("the template " <> n <> " takes no value arguments"))
           args' <- mapM (expandExpr caller depth scope) args
           let params = ruleTemplateParams t
           if length args' /= length params
@@ -164,7 +168,7 @@ expandTemplates g
     itemBinds i = maybe [] pure (itemBind i) ++ exprBinds (itemExpr i)
     exprBinds = \case
       EGroup alts -> concatMap (concatMap itemBinds) alts
-      ETemplate _ _ args -> concatMap exprBinds args
+      ETemplate _ _ args _ -> concatMap exprBinds args
       x -> concatMap exprBinds (exprChildren x)
 
     -- The type of the argument of a typed parameter.
@@ -268,7 +272,7 @@ substituteAlt sub a = a {altItems = map item (altItems a)}
       EDiscard x -> EDiscard (expr x)
       -- A parameter passed on to a template is put as it is: the template
       -- called decides whether its value is used.
-      ETemplate l n args -> ETemplate l n (map passed args)
+      ETemplate l n args vals -> ETemplate l n (map passed args) vals
       e -> e
     passed = \case
       ERef _ n [] | Just (_, arg) <- M.lookup n sub -> arg
@@ -286,7 +290,7 @@ exprSize = \case
   ECapture x -> 1 + exprSize x
   ELabel _ x _ -> 1 + exprSize x
   EDiscard x -> 1 + exprSize x
-  ETemplate _ _ args -> 1 + sum (map exprSize args)
+  ETemplate _ _ args _ -> 1 + sum (map exprSize args)
   _ -> 1
 
 -- An expression without locations, to compare arguments.
@@ -302,7 +306,7 @@ plain = \case
   ECapture x -> ECapture (plain x)
   ELabel _ x n -> ELabel noLoc (plain x) n
   EPred b (Located _ c) -> EPred b (Located noLoc c)
-  ETemplate _ n args -> ETemplate noLoc n (map plain args)
+  ETemplate _ n args vals -> ETemplate noLoc n (map plain args) [Located noLoc (unLoc v) | v <- vals]
   EDiscard x -> EDiscard (plain x)
   e -> e
   where
@@ -322,7 +326,7 @@ templateNotes g = nub . map note
     itemLocs i = itemLoc i : exprLocs (itemExpr i)
     exprLocs = \case
       ERef l _ args -> l : map locOf args
-      ETemplate l _ args -> l : concatMap exprLocs args
+      ETemplate l _ args vals -> l : concatMap exprLocs args ++ map locOf vals
       ELabel l x _ -> l : exprLocs x
       EGroup alts -> concatMap (concatMap itemLocs) alts
       EPred _ c -> [locOf c]
@@ -337,7 +341,7 @@ templateNotes g = nub . map note
       EDiscard x -> [x]
       _ -> []
     calls = \case
-      ETemplate l n args -> (l, n) : concatMap calls args
+      ETemplate l n args _ -> (l, n) : concatMap calls args
       EGroup alts -> concatMap (concatMap (calls . itemExpr)) alts
       ELabel _ x _ -> calls x
       x -> concatMap calls (children x)
@@ -371,7 +375,7 @@ exprCode = \case
   ERef _ _ args -> map unLoc args
   EPred _ c -> [unLoc c]
   EGroup alts -> concatMap (concatMap (exprCode . itemExpr)) alts
-  ETemplate _ _ args -> concatMap exprCode args
+  ETemplate _ _ args vals -> concatMap exprCode args ++ map unLoc vals
   x -> concatMap exprCode (exprChildren x)
 
 exprChildren :: Expr -> [Expr]

@@ -101,40 +101,61 @@
 11:39-40 "]" meta.embedded.action.hpeg source.haskell
 11:40-41 " " meta.embedded.action.hpeg source.haskell
 11:41-42 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
-13:1-5 "List" entity.name.function.rule.hpeg
-13:5-6 "<" punctuation.definition.template.hpeg
-13:6-7 "p" variable.parameter.template.hpeg
-13:7-8 " "
-13:8-10 "::" keyword.operator.definition.hpeg
-13:10-11 " "
-13:11-12 "a" variable.parameter.template.hpeg
-13:12-14 ", "
-13:14-17 "sep" variable.parameter.template.hpeg
-13:17-18 ">" punctuation.definition.template.hpeg
-13:18-19 " "
-13:19-21 "::" keyword.operator.definition.hpeg
-13:21-22 " "
-13:22-25 "[a]" meta.embedded.type.hpeg source.haskell
+12:1-6 "     "
+12:6-7 "/" keyword.operator.choice.hpeg
+12:7-8 " "
+12:8-16 "Indented" variable.other.rule.hpeg
+12:16-17 "<" punctuation.definition.template.hpeg
+12:17-21 "Term" variable.other.rule.hpeg
+12:21-22 ">" punctuation.definition.template.hpeg
+12:22-23 "(" punctuation.section.arguments.begin.hpeg
+12:23-28 "n + 2" meta.embedded.arguments.hpeg source.haskell
+12:28-29 ")" punctuation.section.arguments.end.hpeg
+12:29-30 " "
+12:30-31 "(" punctuation.section.group.hpeg
+12:31-35 "Term" variable.other.rule.hpeg
+12:35-36 ")" punctuation.section.group.hpeg
+12:36-37 " "
+12:37-38 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+12:38-39 " " meta.embedded.action.hpeg source.haskell
+12:39-40 "[" meta.embedded.action.hpeg source.haskell
+12:40-41 "]" meta.embedded.action.hpeg source.haskell
+12:41-42 " " meta.embedded.action.hpeg source.haskell
+12:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
 14:1-5 "List" entity.name.function.rule.hpeg
 14:5-6 "<" punctuation.definition.template.hpeg
 14:6-7 "p" variable.parameter.template.hpeg
-14:7-9 ", "
-14:9-12 "sep" variable.parameter.template.hpeg
-14:12-13 ">" punctuation.definition.template.hpeg
-14:13-14 " "
-14:14-16 "<-" keyword.operator.definition.hpeg
-14:16-17 " "
-14:17-19 "x:" variable.parameter.binding.hpeg
-14:19-20 "p" variable.other.rule.hpeg
-14:20-21 " "
-14:21-24 "xs:" variable.parameter.binding.hpeg
-14:24-25 "(" punctuation.section.group.hpeg
-14:25-28 "sep" variable.other.rule.hpeg
-14:28-29 " "
-14:29-30 "p" variable.other.rule.hpeg
-14:30-31 ")" punctuation.section.group.hpeg
-14:31-32 "*" keyword.operator.hpeg
-14:32-33 " "
-14:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-14:34-42 " x : xs " meta.embedded.action.hpeg source.haskell
-14:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+14:7-8 " "
+14:8-10 "::" keyword.operator.definition.hpeg
+14:10-11 " "
+14:11-12 "a" variable.parameter.template.hpeg
+14:12-14 ", "
+14:14-17 "sep" variable.parameter.template.hpeg
+14:17-18 ">" punctuation.definition.template.hpeg
+14:18-19 " "
+14:19-21 "::" keyword.operator.definition.hpeg
+14:21-22 " "
+14:22-25 "[a]" meta.embedded.type.hpeg source.haskell
+15:1-5 "List" entity.name.function.rule.hpeg
+15:5-6 "<" punctuation.definition.template.hpeg
+15:6-7 "p" variable.parameter.template.hpeg
+15:7-9 ", "
+15:9-12 "sep" variable.parameter.template.hpeg
+15:12-13 ">" punctuation.definition.template.hpeg
+15:13-14 " "
+15:14-16 "<-" keyword.operator.definition.hpeg
+15:16-17 " "
+15:17-19 "x:" variable.parameter.binding.hpeg
+15:19-20 "p" variable.other.rule.hpeg
+15:20-21 " "
+15:21-24 "xs:" variable.parameter.binding.hpeg
+15:24-25 "(" punctuation.section.group.hpeg
+15:25-28 "sep" variable.other.rule.hpeg
+15:28-29 " "
+15:29-30 "p" variable.other.rule.hpeg
+15:30-31 ")" punctuation.section.group.hpeg
+15:31-32 "*" keyword.operator.hpeg
+15:32-33 " "
+15:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+15:34-42 " x : xs " meta.embedded.action.hpeg source.haskell
+15:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg

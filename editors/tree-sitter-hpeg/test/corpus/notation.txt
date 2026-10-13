@@ -192,6 +192,41 @@ A <- (B / C D / ) Call(x + 1, [y, z]) List<'a' / 'b', ','> T<(X Y)>
                       (identifier))))))))))))
 
 ========================================================================
+template calls with value arguments (ADR 0055)
+========================================================================
+
+A <- T<B>(x + 1, y) T<'c'> (D)
+
+------------------------------------------------------------------------
+
+(source_file
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (template_call
+            (rule_reference)
+            (template_argument
+              (item
+                (rule_reference
+                  (identifier))))
+            (haskell)
+            (haskell)))
+        (item
+          (template_call
+            (rule_reference)
+            (template_argument
+              (item
+                (literal)))))
+        (item
+          (group
+            (item
+              (rule_reference
+                (identifier)))))))))
+
+========================================================================
 literals and classes
 ========================================================================
 

@@ -185,8 +185,9 @@ data Expr
     ELabel Loc Expr Text
   | -- | @&{ e }@ ('True') or @!{ e }@ ('False').
     EPred Bool (Located Text)
-  | -- | @Name<e, ...>@: a call of a rule template (ADR 0031).
-    ETemplate Loc Text [Expr]
+  | -- | @Name<e, ...>@: a call of a rule template (ADR 0031), with the
+    -- value arguments of @Name<e, ...>(x, ...)@ (ADR 0055).
+    ETemplate Loc Text [Expr] [Located Text]
   | -- | An expression whose value is discarded. It does not appear in the
     -- notation: template expansion puts the arguments of untyped template
     -- parameters in it (ADR 0031).

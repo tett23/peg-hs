@@ -99,7 +99,7 @@ eraseTop = \case
       ECapture e -> ECapture (expr e)
       ELabel _ e l -> ELabel z (expr e) l
       EPred p c -> EPred p (erase c)
-      ETemplate _ n as -> ETemplate z n (map expr as)
+      ETemplate _ n as vs -> ETemplate z n (map expr as) (map erase vs)
       EDiscard e -> EDiscard (expr e)
       e -> e
 

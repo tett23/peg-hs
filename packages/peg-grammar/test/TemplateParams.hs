@@ -9,6 +9,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check (check)
+import Peg.Grammar.Highlight
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Test.Tasty
@@ -19,6 +20,7 @@ templateParamTests =
   testGroup
     "templates with parameterised rules (ADR 0055)"
     [ stage1Tests
+    , stage2Tests
     ]
 
 -- Stage 1: the parameters of the caller that the arguments use.
@@ -86,6 +88,44 @@ stage1Tests =
     , testCase "an instance without parameters can still take part in left recursion" $
         checkErrors (base "B(ind :: Int) :: ()\nB <- Rec<Item(0)> { () }\nRec<p> :: ()\nRec<p> <- Rec<p> 'x' { () } / p { () }") @?= []
     ]
+
+-- Stage 2: the notation of a call with value arguments.
+stage2Tests :: TestTree
+stage2Tests =
+  testGroup
+    "stage 2: the notation of value arguments"
+    [ testCase "a template call with value arguments" $ do
+        g <- parsed (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind + 2, 3) { () }")
+        exprsOf g "B" @?= [[ETemplate (Loc 13 6) "Lines" [ERef (Loc 13 12) "Item" [Located (Loc 13 17) "ind"]] [Located (Loc 13 23) "ind + 2", Located (Loc 13 32) "3"]]]
+    , testCase "a space before the parenthesis makes a group" $ do
+        g <- parsed (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)> (N) { () }")
+        exprsOf g "B" @?= [[ETemplate (Loc 13 6) "Lines" [ERef (Loc 13 12) "Item" [Located (Loc 13 17) "ind"]] [], EGroup [[Item (Loc 13 24) Nothing (ERef (Loc 13 24) "N" [])]]]]
+    , testCase "a template takes no value arguments" $
+        expansionErrors (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind) { () }")
+          @?= [(13, 6, "the template Lines takes no value arguments")]
+    , testCase "a value argument in the template call of an argument" $
+        expansionErrors (base "B(ind :: Int) :: ()\nB <- Lines<Lines<Item(ind)>(1)> { () }")
+          @?= [(13, 12, "the template Lines takes no value arguments")]
+    , testCase "value parameters in the annotation of a template are still an error" $
+        expansionErrors (base "B(ind :: Int) :: ()\nB <- T<Item(ind)> { () }\nT<p>(n :: Int) :: ()\nT<p> <- p { () }")
+          @?= [(15, 1, "the template T cannot take parameters (in the template T, expanded at 13:6)")]
+    , testCase "the value arguments are highlighted as the arguments of a rule call" $ do
+        let src = base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind + 2) Item(ind) { () }"
+            kindsAt l = [(locColumn (hlStart h), locColumn (hlEnd h), hlKind h) | h <- maybe [] id (highlights src), locLine (hlStart h) == l, hlKind h `elem` [HArguments, HRuleReference, HTemplateBracket]]
+        kindsAt 13
+          @?= [ (6, 11, HRuleReference)
+              , (11, 12, HTemplateBracket)
+              , (12, 16, HRuleReference)
+              , (16, 21, HArguments)
+              , (21, 22, HTemplateBracket)
+              , (22, 31, HArguments)
+              , (32, 36, HRuleReference)
+              , (36, 41, HArguments)
+              ]
+    ]
+  where
+    parsed src = either (\ds -> assertFailure (show ds) >> error "unreachable") pure (parseGrammar src)
+    exprsOf g n = [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == n, a <- ruleAlts r]
 
 -- A grammar with templates and parameterised rules, with the body added
 -- at line 12.

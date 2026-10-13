@@ -350,7 +350,7 @@ templateTests =
     [ testCase "parse a template and its calls" $ do
         g <- parseOk (t "S :: [Int]\nS <- List<N, ','>")
         [ruleTemplateParams r | r <- grammarRules g, ruleName r == "List"] @?= [[TemplateParam "p" (Just "a"), TemplateParam "sep" Nothing]]
-        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "S", a <- ruleAlts r] @?= [[ETemplate (Loc 10 6) "List" [ERef (Loc 10 11) "N" [], ELit "," "','"]]]
+        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "S", a <- ruleAlts r] @?= [[ETemplate (Loc 10 6) "List" [ERef (Loc 10 11) "N" [], ELit "," "','"] []]]
     , testCase "the same arguments make one instance, others another" $ do
         g <- expanded (t "S :: ([Int], [Int], [Int])\nS <- a:List<N, ','> b:List<N, ','> c:List<N, ';'> { (a, b, c) }")
         sort [ruleName r | r <- grammarRules g] @?= ["List'0", "List'1", "N", "S", "Sp"]
