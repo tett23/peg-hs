@@ -47,6 +47,16 @@ main = do
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files
+      , testGroup
+          "type names of the syntax tree (ADR 0053)"
+          [ testCase "a type name from a rule name" $
+              map syntaxTypeName ["expr", "Expr", "数式", "_項", "\196", "\453"] @?= ["ExprSyntax", "ExprSyntax", "Rule'数式Syntax", "Rule'_項Syntax", "\196Syntax", "\452Syntax"]
+          , testCase "rules with the same type name are an error with %syntax" $ do
+              let two a b = "%module M\n%syntax\nS :: ()\nS <- " <> a <> " " <> b <> " { () }\n" <> a <> " :: ()\n" <> a <> " <- 'a' { () }\n" <> b <> " :: ()\n" <> b <> " <- 'b' { () }\n"
+              checkErrorsAt (two "expr" "Expr") @?= [(8, 1, "the rules expr and Expr have the same type name ExprSyntax in the syntax tree; rename one of them")]
+              checkErrorsAt (two "数式" "Rule'数式") @?= [(8, 1, "the rules 数式 and Rule'数式 have the same type name Rule'数式Syntax in the syntax tree; rename one of them")]
+              checkErrorsAt (T.replace "%syntax\n" "" (two "expr" "Expr")) @?= []
+          ]
       , testCase "a grammar with neither templates nor template calls is the same after expansion (ADR 0052)" $ do
           srcs <- mapM TIO.readFile files
           let plain = [g | Right g <- map parseGrammar srcs, not (any (not . null . ruleTemplateParams) (grammarRules g))]
@@ -529,3 +539,9 @@ hasTemplateCall g = any (any (any (expr . itemExpr) . altItems) . ruleAlts) (gra
       ELabel _ x _ -> expr x
       EDiscard x -> expr x
       _ -> False
+
+-- The errors of parsing and checking a grammar, as (line, column, message).
+checkErrorsAt :: Text -> [(Int, Int, Text)]
+checkErrorsAt src = case parseGrammar src >>= check of
+  Left ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- ds]
+  Right _ -> []

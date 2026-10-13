@@ -47,7 +47,8 @@ parseCommand =
         , "or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH"
         , "(GHC 9.10, 9.12 or 9.14), and cached under $XDG_CACHE_HOME/peg-hs/parse. The AST needs"
         , "a Show instance of the type of the start rule. Run through cabal exec to use the"
-        , "packages of a project. Grammars with %env are not supported. Files are read as UTF-8."
+        , "packages of a project. Grammars with %env are not supported, nor grammars with two rules"
+        , "whose syntax tree types have the same name, such as expr and Expr. Files are read as UTF-8."
         ]
     , cmdOptions =
         [ Opt "format" Nothing (Just "ast|cst|all") "what to show (default: ast)"

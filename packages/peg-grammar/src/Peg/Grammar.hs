@@ -55,8 +55,11 @@ module Peg.Grammar
     -- * Diagnostics
   , Diagnostic (..)
   , renderDiagnostic
+    -- * Names in generated modules
+  , syntaxTypeName
   ) where
 
+import Data.Char (isUpper, toUpper)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -208,3 +211,18 @@ data Diagnostic = Diagnostic
 renderDiagnostic :: FilePath -> Diagnostic -> Text
 renderDiagnostic file (Diagnostic (Loc l c) msg) =
   T.concat [T.pack file, ":", T.pack (show l), ":", T.pack (show c), ": error: ", msg]
+
+-- | The name of the type of the syntax tree nodes of a rule, in a grammar
+-- with @%syntax@ (ADR 0019): the rule name with its first letter made
+-- upper case, and @Syntax@ after it. A rule name whose first letter has
+-- no upper case, such as kanji, kana or @_@, gets @Rule'@ before it, since
+-- a Haskell type name must start with an upper case letter (ADR 0053).
+--
+-- @
+-- syntaxTypeName "expr" == "ExprSyntax"
+-- syntaxTypeName "数式" == "Rule'数式Syntax"
+-- @
+syntaxTypeName :: Text -> Text
+syntaxTypeName n = case T.uncons n of
+  Just (c, rest) | isUpper (toUpper c) -> T.cons (toUpper c) rest <> "Syntax"
+  _ -> "Rule'" <> n <> "Syntax"

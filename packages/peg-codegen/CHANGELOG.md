@@ -32,3 +32,11 @@ module.
   needs ([ADR 0046](https://github.com/tett23/peg-hs/blob/main/docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)).
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+
+### Fixed
+
+Since v0.1.0-rc1:
+
+- With `%syntax`, a rule name that starts with a letter without upper
+  case (kanji, kana, `_`) gets `Rule'` before its type name, so the module
+  compiles ([ADR 0053](https://github.com/tett23/peg-hs/blob/main/docs/adr/0053-type-names-of-rules-without-case.md)).

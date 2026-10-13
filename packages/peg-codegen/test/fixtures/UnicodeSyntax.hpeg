@@ -1,0 +1,14 @@
+%module Fixture.UnicodeSyntax
+%syntax
+
+# 大文字のない文字で始まる規則名の構文木の型（ADR 0053）
+式 :: Int
+式 <- 左:式 '＋' 右:_項 { 左 + 右 }
+  / _項
+
+_項 :: Int
+_項 <- 桁:$[0-9]+ { read (unpack 桁) }
+
+%{
+import Data.Text (unpack)
+}%

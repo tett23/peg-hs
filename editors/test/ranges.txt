@@ -3877,6 +3877,16 @@ rule-name 8:1-8:2
 rule-name 9:1-9:2
 class 9:9-9:14
 action 9:16-9:41
+== packages/peg-codegen/test/fixtures/UnicodeSyntax.hpeg
+comment 4:1-4:34
+rule-name 5:1-5:2
+rule-name 6:1-6:2
+literal 6:10-6:13
+action 6:19-6:28
+rule-name 9:1-9:3
+rule-name 10:1-10:3
+class 10:10-10:15
+action 10:17-10:36
 == packages/peg-codegen/test/fixtures/Units.hpeg
 comment 1:1-1:43
 rule-name 11:1-11:6
