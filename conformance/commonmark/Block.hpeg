@@ -3,7 +3,7 @@
 # 開いているコンテナの列 cs を引数で渡し、各行の先頭で継続の接頭辞
 # Prefix(cs) を照合し直す。b はその行で接頭辞を読んだ後の桁（0 始まり）で、
 # 字下げは b からの相対で判定する。葉ブロックは生のインライン文字列を返し、
-# インラインの解析は Inline.peg が行う。
+# インラインの解析は Inline.hpeg が行う。
 %module Conformance.CommonMark.Block
 %syntax
 %language OverloadedStrings

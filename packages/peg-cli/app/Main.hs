@@ -51,7 +51,7 @@ dispatch = \case
       | any (`elem` ["-h", "--help"]) rest -> putStr (commandHelp c) >> pure ExitSuccess
       | otherwise -> either (commandUsageError (cmdName c)) (cmdRun c) (parseOptions (cmdOptions c) rest)
     Nothing
-      | ".peg" `isSuffixOf` name -> usageError ("no command: to generate a module, use peg-hs gen " <> name)
+      | any (`isSuffixOf` name) [".hpeg", ".peg"] -> usageError ("no command: to generate a module, use peg-hs gen " <> name)
       | otherwise -> unknown name
   where
     lookupCommand name = find ((== name) . cmdName) commands

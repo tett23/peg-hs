@@ -51,7 +51,7 @@ pegHs args = readProcessWithExitCode "peg-hs" args ""
 genOn :: String -> String -> [String] -> IO (ExitCode, String, String, Bool)
 genOn name grammar flags = do
   dir <- testDir
-  let input = dir </> (name <> ".peg")
+  let input = dir </> (name <> ".hpeg")
       output = dir </> (name <> ".hs")
   doesFileExist output >>= \e -> when e (removeFile output)
   writeFile input grammar
@@ -141,8 +141,8 @@ parseIn dir args = do
 -- Run peg-hs parse on a grammar and an input in a fresh directory.
 parseRun :: String -> String -> String -> [String] -> IO (ExitCode, String, String)
 parseRun name grammar input flags = do
-  dir <- treeWith ("parse-" <> name) [("G.peg", grammar), ("in.txt", input)]
-  parseIn dir (["parse", "G.peg", "in.txt"] ++ flags)
+  dir <- treeWith ("parse-" <> name) [("G.hpeg", grammar), ("in.txt", input)]
+  parseIn dir (["parse", "G.hpeg", "in.txt"] ++ flags)
 
 parseOut :: String -> [String] -> IO BL.ByteString
 parseOut name flags = (\(_, out, err) -> BL.pack (out <> err)) <$> parseRun name exprGrammar "1 + 22 + 333" flags
@@ -192,7 +192,7 @@ repositoryGrammars = concat <$> mapM pegsIn ["../peg-grammar/grammar", "../peg-c
   where
     pegsIn d = do
       exists <- doesDirectoryExist d
-      if exists then map (d </>) . filter ((== ".peg") . takeExtension) <$> listDirectory d else pure []
+      if exists then map (d </>) . filter ((== ".hpeg") . takeExtension) <$> listDirectory d else pure []
 
 -- One character deleted or duplicated, at a few positions of a file.
 mutants :: T.Text -> [T.Text]
@@ -226,10 +226,10 @@ pegHsIn dir args = readCreateProcessWithExitCode (proc "peg-hs" args) {cwd = Jus
 -- The files of the discovery test: two to format, and three to skip.
 discoveryTree :: [(FilePath, String)]
 discoveryTree =
-  [ ("A.peg", unformatted)
-  , ("sub/deeper/B.peg", unformatted)
-  , (".hidden/C.peg", unformatted)
-  , ("dist-newstyle/D.peg", unformatted)
+  [ ("A.hpeg", unformatted)
+  , ("sub/deeper/B.hpeg", unformatted)
+  , (".hidden/C.hpeg", unformatted)
+  , ("dist-newstyle/D.hpeg", unformatted)
   , ("sub/E.txt", unformatted)
   ]
 
@@ -303,15 +303,15 @@ main = do
               code @?= ExitFailure 2
               assertBool err ("unknown command frobnicate" `isInfixOf` err)
           , testCase "a grammar without a command points to gen" $ do
-              (code, _, err) <- pegHs ["Grammar.peg"]
+              (code, _, err) <- pegHs ["Grammar.hpeg"]
               code @?= ExitFailure 2
-              assertBool err ("peg-hs gen Grammar.peg" `isInfixOf` err)
+              assertBool err ("peg-hs gen Grammar.hpeg" `isInfixOf` err)
           , testCase "an unknown option is a usage error" $ do
-              (code, _, err) <- pegHs ["gen", "--frobnicate", "x.peg"]
+              (code, _, err) <- pegHs ["gen", "--frobnicate", "x.hpeg"]
               code @?= ExitFailure 2
               assertBool err ("unknown option --frobnicate" `isInfixOf` err)
           , testCase "usage errors of lsp, parse and fmt" $ do
-              codes <- mapM (fmap (\(c, _, _) -> c) . pegHs) [["lsp", "x"], ["parse", "G.peg"], ["parse", "--format", "xml", "G.peg", "in.txt"], ["fmt", "--frobnicate"], ["lint", "--frobnicate"]]
+              codes <- mapM (fmap (\(c, _, _) -> c) . pegHs) [["lsp", "x"], ["parse", "G.hpeg"], ["parse", "--format", "xml", "G.hpeg", "in.txt"], ["fmt", "--frobnicate"], ["lint", "--frobnicate"]]
               codes @?= replicate 5 (ExitFailure 2)
           , testCase "a missing argument is a usage error" $ do
               (code, _, _) <- pegHs ["gen"]
@@ -345,15 +345,15 @@ main = do
                 assertBool out (all (`elem` lines out) ["options:", "examples:"])
                 assertBool out ("-h, --help" `isInfixOf` out)
           , testCase "--name=value is --name value" $ do
-              dir <- treeWith "cli-equals" [("G.peg", exprGrammar), ("in.txt", "1 + 2")]
-              (code, _, err) <- pegHsIn dir ["gen", "--output=Out.hs", "G.peg"]
+              dir <- treeWith "cli-equals" [("G.hpeg", exprGrammar), ("in.txt", "1 + 2")]
+              (code, _, err) <- pegHsIn dir ["gen", "--output=Out.hs", "G.hpeg"]
               (code, err) @?= (ExitSuccess, "")
               doesFileExist (dir </> "Out.hs") >>= assertBool "Out.hs"
-              (code', out', _) <- parseIn dir ["parse", "G.peg", "in.txt", "--format=cst", "--entry=Term", "--ghc-arg=-O0"]
-              (code'', out'', _) <- parseIn dir ["parse", "G.peg", "in.txt", "--format", "cst", "--entry", "Term", "--ghc-arg", "-O0"]
+              (code', out', _) <- parseIn dir ["parse", "G.hpeg", "in.txt", "--format=cst", "--entry=Term", "--ghc-arg=-O0"]
+              (code'', out'', _) <- parseIn dir ["parse", "G.hpeg", "in.txt", "--format", "cst", "--entry", "Term", "--ghc-arg", "-O0"]
               (code', out') @?= (code'', out'')
           , testCase "a value given to an option without one is a usage error" $ do
-              (code, _, err) <- pegHs ["gen", "--debug-entry=x", "G.peg"]
+              (code, _, err) <- pegHs ["gen", "--debug-entry=x", "G.hpeg"]
               code @?= ExitFailure 2
               assertBool err ("the option --debug-entry takes no value" `isInfixOf` err)
           , testCase "a usage error points to the help of the command" $ do
@@ -372,9 +372,9 @@ main = do
               (_, _, err) <- pegHs ["xyzzy"]
               lines err @?= ["peg-hs: unknown command xyzzy", "Run peg-hs help for the commands."]
           , testCase "with relative paths, the module is the same in any directory" $ do
-              a <- treeWith "cli-reproducible-a" [("grammar/G.peg", exprGrammar), ("src/.keep", "")]
-              b <- treeWith "cli-reproducible-b/deeper" [("grammar/G.peg", exprGrammar), ("src/.keep", "")]
-              forM_ [a, b] $ \d -> pegHsIn d ["gen", "grammar/G.peg", "-o", "src/G.hs"]
+              a <- treeWith "cli-reproducible-a" [("grammar/G.hpeg", exprGrammar), ("src/.keep", "")]
+              b <- treeWith "cli-reproducible-b/deeper" [("grammar/G.hpeg", exprGrammar), ("src/.keep", "")]
+              forM_ [a, b] $ \d -> pegHsIn d ["gen", "grammar/G.hpeg", "-o", "src/G.hs"]
               ga <- BS.readFile (a </> "src/G.hs")
               gb <- BS.readFile (b </> "src/G.hs")
               ga @?= gb
@@ -382,32 +382,61 @@ main = do
               map (uncurry editDistance) [("fmt", "fnt"), ("parse", "prase"), ("", "abc"), ("lint", "lint"), ("gen", "xyzzy")] @?= [1, 2, 3, 0, 5]
           ]
       , testGroup
+          "the extension .hpeg (ADR 0050)"
+          [ testCase "fmt and lint walk .hpeg files, not .peg files" $ do
+              dir <- treeWith "hpeg-walk" [("A.hpeg", unformatted), ("other/B.peg", unformatted), ("sub/C.hpeg", unformatted), ("sub/D.peg", unformatted)]
+              (code, out, _) <- pegHsIn dir ["fmt", "--check"]
+              (code, out) @?= (ExitFailure 1, "A.hpeg\nsub/C.hpeg\n")
+              (code', out', _) <- pegHsIn dir ["fmt", "--check", "sub"]
+              (code', out') @?= (ExitFailure 1, "sub/C.hpeg\n")
+              (_, _, err) <- pegHsIn dir ["lint"]
+              assertBool err (not (".peg:" `isInfixOf` err))
+          , testCase "a .peg file given directly is handled" $ do
+              dir <- treeWith "hpeg-direct" [("G.peg", unformatted)]
+              (code, _, _) <- pegHsIn dir ["fmt", "G.peg"]
+              code @?= ExitSuccess
+              readFile (dir </> "G.peg") >>= (@?= formatted)
+              (codeGen, _, errGen) <- pegHsIn dir ["gen", "G.peg"]
+              (codeGen, errGen) @?= (ExitSuccess, "")
+              doesFileExist (dir </> "G.hs") >>= assertBool "G.hs"
+              (codeLint, _, _) <- pegHsIn dir ["lint", "G.peg"]
+              codeLint @?= ExitSuccess
+          , testCase "a grammar without a command points to gen, with either extension" $
+              forM_ ["Grammar.hpeg", "Grammar.peg"] $ \g -> do
+                (code, _, err) <- pegHs [g]
+                code @?= ExitFailure 2
+                assertBool err (("peg-hs gen " <> g) `isInfixOf` err)
+          , skippedWithout "../../.git" "the repository has no .peg files" $ do
+              (_, out, _) <- readProcessWithExitCode "git" ["-C", "../..", "ls-files", "*.peg"] ""
+              lines out @?= []
+          ]
+      , testGroup
           "fmt (ADR 0032)"
           [ goldenVsString "peg-hs help fmt" "test/golden/help-fmt.txt" (stdoutOf ["help", "fmt"])
           , testCase "fmt formats a file in place" $ do
-              dir <- treeWith "fmt-one" [("G.peg", unformatted)]
-              (code, out, err) <- pegHsIn dir ["fmt", "G.peg"]
+              dir <- treeWith "fmt-one" [("G.hpeg", unformatted)]
+              (code, out, err) <- pegHsIn dir ["fmt", "G.hpeg"]
               (code, out, err) @?= (ExitSuccess, "", "")
-              readFile (dir </> "G.peg") >>= (@?= formatted)
+              readFile (dir </> "G.hpeg") >>= (@?= formatted)
           , testCase "--check succeeds on a formatted file" $ do
-              dir <- treeWith "fmt-ok" [("G.peg", formatted)]
-              (code, out, _) <- pegHsIn dir ["fmt", "--check", "G.peg"]
+              dir <- treeWith "fmt-ok" [("G.hpeg", formatted)]
+              (code, out, _) <- pegHsIn dir ["fmt", "--check", "G.hpeg"]
               (code, out) @?= (ExitSuccess, "")
           , testCase "--check fails on an unformatted file, names it and writes nothing" $ do
-              dir <- treeWith "fmt-ng" [("G.peg", unformatted)]
-              (code, out, _) <- pegHsIn dir ["fmt", "--check", "G.peg"]
-              (code, out) @?= (ExitFailure 1, "G.peg\n")
-              readFile (dir </> "G.peg") >>= (@?= unformatted)
+              dir <- treeWith "fmt-ng" [("G.hpeg", unformatted)]
+              (code, out, _) <- pegHsIn dir ["fmt", "--check", "G.hpeg"]
+              (code, out) @?= (ExitFailure 1, "G.hpeg\n")
+              readFile (dir </> "G.hpeg") >>= (@?= unformatted)
           , testCase "a file with a syntax error is reported, and the others are formatted" $ do
-              dir <- treeWith "fmt-broken" [("A.peg", "%module M\nS <- 'a\n"), ("B.peg", unformatted)]
-              (code, _, err) <- pegHsIn dir ["fmt", "A.peg", "B.peg"]
+              dir <- treeWith "fmt-broken" [("A.hpeg", "%module M\nS <- 'a\n"), ("B.hpeg", unformatted)]
+              (code, _, err) <- pegHsIn dir ["fmt", "A.hpeg", "B.hpeg"]
               code @?= ExitFailure 1
-              assertBool err ("A.peg:2:8: error: unterminated literal" `isInfixOf` err)
-              readFile (dir </> "B.peg") >>= (@?= formatted)
+              assertBool err ("A.hpeg:2:8: error: unterminated literal" `isInfixOf` err)
+              readFile (dir </> "B.hpeg") >>= (@?= formatted)
           , testCase "--check without files walks the directory" $ do
               dir <- treeWith "fmt-walk-check" discoveryTree
               (code, out, _) <- pegHsIn dir ["fmt", "--check"]
-              (code, out) @?= (ExitFailure 1, "A.peg\nsub/deeper/B.peg\n")
+              (code, out) @?= (ExitFailure 1, "A.hpeg\nsub/deeper/B.hpeg\n")
           , testCase "fmt without files formats the files of the directory" $ do
               dir <- treeWith "fmt-walk" discoveryTree
               (code, _, _) <- pegHsIn dir ["fmt"]
@@ -419,24 +448,24 @@ main = do
           "lint (ADR 0033)"
           [ goldenVsString "peg-hs help lint" "test/golden/help-lint.txt" (stdoutOf ["help", "lint"])
           , testCase "a grammar without warnings succeeds" $ do
-              dir <- treeWith "lint-ok" [("G.peg", formatted)]
-              (code, out, err) <- pegHsIn dir ["lint", "G.peg"]
+              dir <- treeWith "lint-ok" [("G.hpeg", formatted)]
+              (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out, err) @?= (ExitSuccess, "", "")
           , testCase "a warning fails with 1, on stderr" $ do
-              dir <- treeWith "lint-ng" [("G.peg", linted)]
-              (code, out, err) <- pegHsIn dir ["lint", "G.peg"]
+              dir <- treeWith "lint-ng" [("G.hpeg", linted)]
+              (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out) @?= (ExitFailure 1, "")
-              err @?= "G.peg:3:20: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds\n"
+              err @?= "G.hpeg:3:20: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds\n"
           , testCase "an error in the grammar fails with 1" $ do
-              dir <- treeWith "lint-broken" [("G.peg", "%module M\nS :: ()\nS <- Missing { () }\n")]
-              (code, _, err) <- pegHsIn dir ["lint", "G.peg"]
+              dir <- treeWith "lint-broken" [("G.hpeg", "%module M\nS :: ()\nS <- Missing { () }\n")]
+              (code, _, err) <- pegHsIn dir ["lint", "G.hpeg"]
               code @?= ExitFailure 1
-              assertBool err ("G.peg:3:6: error: undefined rule Missing" `isInfixOf` err)
+              assertBool err ("G.hpeg:3:6: error: undefined rule Missing" `isInfixOf` err)
           , testCase "without files, lint the files fmt formats" $ do
               dir <- treeWith "lint-walk" [(f, linted) | (f, _) <- discoveryTree]
               (code, _, err) <- pegHsIn dir ["lint"]
               code @?= ExitFailure 1
-              map (takeWhile (/= ':')) (lines err) @?= ["A.peg", "sub/deeper/B.peg"]
+              map (takeWhile (/= ':')) (lines err) @?= ["A.hpeg", "sub/deeper/B.hpeg"]
           ]
       , testGroup
           "lsp (ADR 0035)"
@@ -445,7 +474,7 @@ main = do
                   msgs =
                     [ "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"capabilities\":{}}}"
                     , "{\"jsonrpc\":\"2.0\",\"method\":\"initialized\",\"params\":{}}"
-                    , "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///g.peg\",\"languageId\":\"peg\",\"version\":1,\"text\":\"%module M\\nS :: ()\\nS <- Missing { () }\\n\"}}}"
+                    , "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///g.hpeg\",\"languageId\":\"peg\",\"version\":1,\"text\":\"%module M\\nS :: ()\\nS <- Missing { () }\\n\"}}}"
                     , "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"shutdown\"}"
                     , "{\"jsonrpc\":\"2.0\",\"method\":\"exit\"}"
                     ]
@@ -498,26 +527,26 @@ main = do
               (code', out', _) <- parseRun "noshow" (replace "  deriving (Show)\n" "" exprGrammar) "1" ["--format", "cst"]
               (code', take 5 out') @?= (ExitSuccess, "Expr@")
           , testCase "without ghc on PATH, an error" $ do
-              dir <- treeWith "parse-noghc" [("G.peg", exprGrammar), ("in.txt", "1")]
+              dir <- treeWith "parse-noghc" [("G.hpeg", exprGrammar), ("in.txt", "1")]
               Just exe <- findExecutable "peg-hs"
               e <- getEnvironment
-              (code, _, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.peg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir) : [(k, v) | (k, v) <- e, k /= "PATH"])} ""
+              (code, _, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.hpeg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir) : [(k, v) | (k, v) <- e, k /= "PATH"])} ""
               (code, err) @?= (ExitFailure 1, "peg-hs: peg-hs parse needs ghc on PATH\n")
           , testCase "a ghc of a version that peg-runtime does not support is an error (ADR 0036)" $
               forM_ ["9.8.4", "9.16.1"] $ \v -> do
-                dir <- treeWith ("parse-ghc-" <> v) [("G.peg", exprGrammar), ("in.txt", "1"), ("bin/ghc", "#!/bin/sh\necho " <> v <> "\n")]
+                dir <- treeWith ("parse-ghc-" <> v) [("G.hpeg", exprGrammar), ("in.txt", "1"), ("bin/ghc", "#!/bin/sh\necho " <> v <> "\n")]
                 getPermissions (dir </> "bin/ghc") >>= setPermissions (dir </> "bin/ghc") . setOwnerExecutable True
                 Just exe <- findExecutable "peg-hs"
                 e <- getEnvironment
-                (code, out, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.peg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir </> "bin") : [(k, x) | (k, x) <- e, k /= "PATH"])} ""
+                (code, out, err) <- readCreateProcessWithExitCode (proc exe ["parse", "G.hpeg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir </> "bin") : [(k, x) | (k, x) <- e, k /= "PATH"])} ""
                 (code, out, err) @?= (ExitFailure 1, "", "peg-hs: peg-hs parse needs GHC 9.10, 9.12 or 9.14, the versions peg-runtime supports; ghc is " <> v <> "\n")
           , testCase "a grammar with %env is an error" $ do
               (code, _, err) <- parseRun "env" "%module M\n%env Int\nS :: ()\nS <- 'a' { () }\n" "a" []
               code @?= ExitFailure 1
               assertBool err ("does not support grammars with %env" `isInfixOf` err)
           , testCase "a verbatim block that imports a module of the user, with --ghc-arg" $ do
-              dir <- treeWith "parse-user" [("lib/User/Value.hs", "module User.Value (V (..)) where\ndata V = V Int deriving (Show)\n"), ("G.peg", "%module G\n%{\nimport User.Value\n}%\n\nS :: V\nS <- 'a' { V 1 }\n"), ("in.txt", "a")]
-              (code, out, err) <- parseIn dir ["parse", "G.peg", "in.txt", "--ghc-arg", "-i" <> (dir </> "lib")]
+              dir <- treeWith "parse-user" [("lib/User/Value.hs", "module User.Value (V (..)) where\ndata V = V Int deriving (Show)\n"), ("G.hpeg", "%module G\n%{\nimport User.Value\n}%\n\nS :: V\nS <- 'a' { V 1 }\n"), ("in.txt", "a")]
+              (code, out, err) <- parseIn dir ["parse", "G.hpeg", "in.txt", "--ghc-arg", "-i" <> (dir </> "lib")]
               (code, out, err) @?= (ExitSuccess, "V 1\n", "")
           , testCase "a second parse with the same grammar does not compile" $ do
               base <- testDir
@@ -550,28 +579,28 @@ main = do
       , testGroup
           "files and UTF-8 (ADR 0045)"
           [ testCase "a missing file is one line and hints, without a backtrace, in every command" $ do
-              dir <- treeWith "file-missing" [("G.peg", formatted), ("in.txt", "a")]
-              forM_ [["gen", "nope.peg"], ["fmt", "nope.peg"], ["lint", "nope.peg"], ["parse", "nope.peg", "in.txt"]] $ \args -> do
+              dir <- treeWith "file-missing" [("G.hpeg", formatted), ("in.txt", "a")]
+              forM_ [["gen", "nope.hpeg"], ["fmt", "nope.hpeg"], ["lint", "nope.hpeg"], ["parse", "nope.hpeg", "in.txt"]] $ \args -> do
                 (code, out, err) <- pegHsIn dir args
                 (code, out) @?= (ExitFailure 1, "")
-                take 1 (lines err) @?= ["peg-hs: cannot read nope.peg: no such file"]
+                take 1 (lines err) @?= ["peg-hs: cannot read nope.hpeg: no such file"]
                 assertBool err (all ("hint: " `isPrefixOf`) (drop 1 (lines err)))
                 assertBool err (not ("CallStack" `isInfixOf` err || "backtrace" `isInfixOf` err || "openFile" `isInfixOf` err))
           , testCase "a missing input of parse is reported before compiling" $ do
-              dir <- treeWith "file-missing-input" [("G.peg", formatted)]
-              (code, _, err) <- pegHsIn dir ["parse", "G.peg", "nope.txt"]
+              dir <- treeWith "file-missing-input" [("G.hpeg", formatted)]
+              (code, _, err) <- pegHsIn dir ["parse", "G.hpeg", "nope.txt"]
               code @?= ExitFailure 1
               take 1 (lines err) @?= ["peg-hs: cannot read nope.txt: no such file"]
           , testCase "the hints of a missing file name a missing directory and the current directory" $ do
               dir <- treeWith "file-missing-dir" []
-              (_, _, err) <- pegHsIn dir ["gen", "sub/nope.peg"]
+              (_, _, err) <- pegHsIn dir ["gen", "sub/nope.hpeg"]
               lines (withoutDir dir err)
-                @?= [ "peg-hs: cannot read sub/nope.peg: no such file"
+                @?= [ "peg-hs: cannot read sub/nope.hpeg: no such file"
                     , "hint: the directory sub does not exist either"
                     , "hint: the path is relative to the current directory <dir>"
                     ]
           , testCase "a directory given to gen and parse" $ do
-              dir <- treeWith "file-directory" [("sub/G.peg", formatted), ("in.txt", "a")]
+              dir <- treeWith "file-directory" [("sub/G.hpeg", formatted), ("in.txt", "a")]
               (code, _, err) <- pegHsIn dir ["gen", "sub"]
               code @?= ExitFailure 1
               lines err @?= ["peg-hs: cannot read sub: is a directory", "hint: peg-hs gen takes a grammar file, not a directory"]
@@ -579,99 +608,99 @@ main = do
               code' @?= ExitFailure 1
               take 1 (lines err') @?= ["peg-hs: cannot read sub: is a directory"]
           , testCase "a file without permission to read" $ do
-              dir <- treeWith "file-permission" [("G.peg", formatted)]
-              let file = dir </> "G.peg"
+              dir <- treeWith "file-permission" [("G.hpeg", formatted)]
+              let file = dir </> "G.hpeg"
               old <- getPermissions file
               bracket_ (setPermissions file emptyPermissions) (setPermissions file old) $ do
                 canRead <- (True <$ readFile file) `catchIOAny` pure False
                 unless canRead $ do
-                  (code, _, err) <- pegHsIn dir ["gen", "G.peg"]
-                  (code, lines err) @?= (ExitFailure 1, ["peg-hs: cannot read G.peg: permission denied"])
+                  (code, _, err) <- pegHsIn dir ["gen", "G.hpeg"]
+                  (code, lines err) @?= (ExitFailure 1, ["peg-hs: cannot read G.hpeg: permission denied"])
           , testCase "gen -o into a missing directory" $ do
-              dir <- treeWith "file-write" [("G.peg", formatted)]
-              (code, out, err) <- pegHsIn dir ["gen", "G.peg", "-o", "out/M.hs"]
+              dir <- treeWith "file-write" [("G.hpeg", formatted)]
+              (code, out, err) <- pegHsIn dir ["gen", "G.hpeg", "-o", "out/M.hs"]
               (code, out) @?= (ExitFailure 1, "")
               lines err @?= ["peg-hs: cannot write out/M.hs: directory out does not exist", "hint: peg-hs does not create directories; create out first"]
           , testCase "fmt and lint report a missing file and go on with the others" $ do
-              dir <- treeWith "file-go-on" [("B.peg", unformatted)]
-              (code, _, err) <- pegHsIn dir ["fmt", "nope.peg", "B.peg"]
+              dir <- treeWith "file-go-on" [("B.hpeg", unformatted)]
+              (code, _, err) <- pegHsIn dir ["fmt", "nope.hpeg", "B.hpeg"]
               code @?= ExitFailure 1
-              take 1 (lines err) @?= ["peg-hs: cannot read nope.peg: no such file"]
-              readFile (dir </> "B.peg") >>= (@?= formatted)
-              (code', _, err') <- pegHsIn dir ["lint", "nope.peg", "B.peg"]
+              take 1 (lines err) @?= ["peg-hs: cannot read nope.hpeg: no such file"]
+              readFile (dir </> "B.hpeg") >>= (@?= formatted)
+              (code', _, err') <- pegHsIn dir ["lint", "nope.hpeg", "B.hpeg"]
               code' @?= ExitFailure 1
-              filter (not . ("hint: " `isPrefixOf`)) (lines err') @?= ["peg-hs: cannot read nope.peg: no such file"]
+              filter (not . ("hint: " `isPrefixOf`)) (lines err') @?= ["peg-hs: cannot read nope.hpeg: no such file"]
           , testCase "fmt and lint take a directory, and walk it" $ do
-              dir <- treeWith "file-walk-dir" [("sub/deeper/B.peg", unformatted), ("A.peg", unformatted)]
+              dir <- treeWith "file-walk-dir" [("sub/deeper/B.hpeg", unformatted), ("A.hpeg", unformatted)]
               (code, _, _) <- pegHsIn dir ["fmt", "sub"]
               code @?= ExitSuccess
-              readFile (dir </> "sub/deeper/B.peg") >>= (@?= formatted)
-              readFile (dir </> "A.peg") >>= (@?= unformatted)
+              readFile (dir </> "sub/deeper/B.hpeg") >>= (@?= formatted)
+              readFile (dir </> "A.hpeg") >>= (@?= unformatted)
               (code', _, err') <- pegHsIn dir ["lint", "sub"]
               (code', err') @?= (ExitSuccess, "")
           , goldenVsString "the errors of files" "test/golden/file-errors.txt" $ do
-              dir <- treeWith "file-golden" [("G.peg", formatted), ("sub/H.peg", formatted), ("bad.peg", "%module M\n")]
-              BS.writeFile (dir </> "bad.peg") (BS.pack ([0x25, 0x6D, 0x0A, 0xE3, 0x81]))
+              dir <- treeWith "file-golden" [("G.hpeg", formatted), ("sub/H.hpeg", formatted), ("bad.hpeg", "%module M\n")]
+              BS.writeFile (dir </> "bad.hpeg") (BS.pack ([0x25, 0x6D, 0x0A, 0xE3, 0x81]))
               outs <-
                 mapM
                   (errorsIn dir)
-                  [ ["gen", "nope.peg"]
-                  , ["gen", "sub/nope/G.peg"]
+                  [ ["gen", "nope.hpeg"]
+                  , ["gen", "sub/nope/G.hpeg"]
                   , ["gen", "sub"]
-                  , ["gen", "G.peg", "-o", "out/M.hs"]
-                  , ["gen", "bad.peg"]
-                  , ["fmt", "nope.peg"]
-                  , ["lint", "nope.peg"]
-                  , ["parse", "sub", "G.peg"]
-                  , ["parse", "G.peg", "nope.txt"]
+                  , ["gen", "G.hpeg", "-o", "out/M.hs"]
+                  , ["gen", "bad.hpeg"]
+                  , ["fmt", "nope.hpeg"]
+                  , ["lint", "nope.hpeg"]
+                  , ["parse", "sub", "G.hpeg"]
+                  , ["parse", "G.hpeg", "nope.txt"]
                   ]
               pure (BL.pack (concat outs))
           , testCase "a file that is not UTF-8 names the byte" $ do
               dir <- treeWith "file-utf8" []
-              BS.writeFile (dir </> "bad.peg") (BS.pack (map (fromIntegral . fromEnum) "%module M\n" ++ [0xFF]))
-              (code, _, err) <- pegHsIn dir ["gen", "bad.peg"]
+              BS.writeFile (dir </> "bad.hpeg") (BS.pack (map (fromIntegral . fromEnum) "%module M\n" ++ [0xFF]))
+              (code, _, err) <- pegHsIn dir ["gen", "bad.hpeg"]
               code @?= ExitFailure 1
-              take 1 (lines err) @?= ["peg-hs: cannot read bad.peg: not UTF-8 (at byte 11)"]
+              take 1 (lines err) @?= ["peg-hs: cannot read bad.hpeg: not UTF-8 (at byte 11)"]
           , testCase "gen, fmt and lint read and write Japanese in the C locale" $ do
               dir <- treeWith "file-c-locale" []
               let bytes = TE.encodeUtf8 (T.pack japaneseGrammar)
-              BS.writeFile (dir </> "G.peg") bytes
-              (genCode, _, genErr) <- pegHsBytes dir cLocale ["gen", "G.peg", "-o", "G.hs"]
+              BS.writeFile (dir </> "G.hpeg") bytes
+              (genCode, _, genErr) <- pegHsBytes dir cLocale ["gen", "G.hpeg", "-o", "G.hs"]
               (genCode, genErr) @?= (ExitSuccess, BS.empty)
               generated <- BS.readFile (dir </> "G.hs")
-              _ <- pegHsBytes dir [] ["gen", "G.peg", "-o", "G-utf8.hs"]
+              _ <- pegHsBytes dir [] ["gen", "G.hpeg", "-o", "G-utf8.hs"]
               inUtf8 <- BS.readFile (dir </> "G-utf8.hs")
               -- The same module as in a UTF-8 locale, but for its own name.
               generated @?= replaceBytes "G-utf8.hs" "G.hs" inUtf8
-              (fmtCode, _, fmtErr) <- pegHsBytes dir cLocale ["fmt", "G.peg"]
+              (fmtCode, _, fmtErr) <- pegHsBytes dir cLocale ["fmt", "G.hpeg"]
               (fmtCode, fmtErr) @?= (ExitSuccess, BS.empty)
-              BS.readFile (dir </> "G.peg") >>= (@?= bytes)
-              (lintCode, _, lintErr) <- pegHsBytes dir cLocale ["lint", "G.peg"]
+              BS.readFile (dir </> "G.hpeg") >>= (@?= bytes)
+              (lintCode, _, lintErr) <- pegHsBytes dir cLocale ["lint", "G.hpeg"]
               (lintCode, lintErr) @?= (ExitSuccess, BS.empty)
           , testCase "the errors of a Japanese grammar are UTF-8 in the C locale" $ do
               dir <- treeWith "file-c-locale-error" []
-              BS.writeFile (dir </> "G.peg") (TE.encodeUtf8 (T.pack "%module M\nS :: ()\nS <- 未定義 { () }\n"))
-              (code, _, err) <- pegHsBytes dir cLocale ["gen", "G.peg"]
+              BS.writeFile (dir </> "G.hpeg") (TE.encodeUtf8 (T.pack "%module M\nS :: ()\nS <- 未定義 { () }\n"))
+              (code, _, err) <- pegHsBytes dir cLocale ["gen", "G.hpeg"]
               code @?= ExitFailure 1
               assertBool (show err) (TE.encodeUtf8 (T.pack "undefined rule 未定義") `BS.isInfixOf` err)
           , testCase "a byte order mark is skipped" $ do
               a <- treeWith "file-bom-a" []
               b <- treeWith "file-bom-b" []
-              BS.writeFile (a </> "G.peg") (TE.encodeUtf8 (T.pack formatted))
-              BS.writeFile (b </> "G.peg") (BS.pack [0xEF, 0xBB, 0xBF] <> TE.encodeUtf8 (T.pack formatted))
-              _ <- pegHsIn a ["gen", "G.peg"]
-              (code, _, err) <- pegHsIn b ["gen", "G.peg"]
+              BS.writeFile (a </> "G.hpeg") (TE.encodeUtf8 (T.pack formatted))
+              BS.writeFile (b </> "G.hpeg") (BS.pack [0xEF, 0xBB, 0xBF] <> TE.encodeUtf8 (T.pack formatted))
+              _ <- pegHsIn a ["gen", "G.hpeg"]
+              (code, _, err) <- pegHsIn b ["gen", "G.hpeg"]
               (code, err) @?= (ExitSuccess, "")
               ga <- BS.readFile (a </> "G.hs")
               gb <- BS.readFile (b </> "G.hs")
               ga @?= gb
           , testCase "parse reads and shows Japanese in the C locale" $ do
               dir <- treeWith "parse-c-locale" []
-              BS.writeFile (dir </> "G.peg") (TE.encodeUtf8 (T.pack japaneseGrammar))
+              BS.writeFile (dir </> "G.hpeg") (TE.encodeUtf8 (T.pack japaneseGrammar))
               BS.writeFile (dir </> "in.txt") (TE.encodeUtf8 (T.pack "あいう。"))
               (base, e) <- parseEnv "parse-c-locale"
               removePathForcibly (base </> "parse-cache-parse-c-locale")
-              (code, out, err) <- pegHsBytes dir (cLocale ++ [(k, v) | (k, v) <- e, k `elem` ["PATH", "XDG_CACHE_HOME", "PEG_TEST_GHC_LOG"]]) ["parse", "G.peg", "in.txt", "--format", "cst"]
+              (code, out, err) <- pegHsBytes dir (cLocale ++ [(k, v) | (k, v) <- e, k `elem` ["PATH", "XDG_CACHE_HOME", "PEG_TEST_GHC_LOG"]]) ["parse", "G.hpeg", "in.txt", "--format", "cst"]
               (code, err) @?= (ExitSuccess, BS.empty)
               assertBool (show out) (TE.encodeUtf8 (T.pack "あいう") `BS.isInfixOf` out)
           , testCase "the output of show with text in any language is readable" $ do

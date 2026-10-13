@@ -88,7 +88,7 @@ main = do
           ]
       , testGroup
           "%nomemo variant (ADR 0017)"
-          [ testCase "the variant grammars are derived from json/Json.peg" variantsDerived
+          [ testCase "the variant grammars are derived from json/Json.hpeg" variantsDerived
           , testCase "same results on the whole test suite" $ do
               rs <- mapM (\f -> (,) f <$> sameOnFile f) files
               assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
@@ -100,9 +100,9 @@ main = do
 
 regenerated :: Assertion
 regenerated = do
-  src <- TIO.readFile "json/Json.peg"
+  src <- TIO.readFile "json/Json.hpeg"
   committed <- B.readFile "json/Conformance/Json/Parser.hs"
-  let opts = Options {optSourceName = "json/Json.peg", optOutputName = "json/Conformance/Json/Parser.hs", optDebugEntry = False}
+  let opts = Options {optSourceName = "json/Json.hpeg", optOutputName = "json/Conformance/Json/Parser.hs", optDebugEntry = False}
   case generateFromSource opts src of
     Left ds -> assertFailure (show ds)
     Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
@@ -170,16 +170,16 @@ roundTrip = forAll (sized genValue) $ \v -> Json.parse (Encode.encode v) === Rig
 -- are written by scripts/regen-fixtures.sh.
 variantsDerived :: Assertion
 variantsDerived = do
-  base <- TIO.readFile "json/Json.peg"
+  base <- TIO.readFile "json/Json.hpeg"
   let header = T.pack "%module Conformance.Json.Parser"
       derive m extra = T.replace header (T.pack ("%module " <> m) <> extra) base
       nomemo = T.concat [T.pack ("\n%nomemo " <> r) | r <- ["Ws", "Unit", "Hex", "IntPart", "Frac", "Exp"]]
       syntaxDirectives = T.pack "\n%syntax\n%token Ws\n%trivia Ws"
-  counted <- TIO.readFile "bench/JsonCounted.peg"
-  nm <- TIO.readFile "bench/JsonNomemo.peg"
+  counted <- TIO.readFile "bench/JsonCounted.hpeg"
+  nm <- TIO.readFile "bench/JsonNomemo.hpeg"
   counted @?= derive "Conformance.Bench.JsonCounted" T.empty
   nm @?= derive "Conformance.Bench.JsonNomemo" nomemo
-  sy <- TIO.readFile "bench/JsonSyntax.peg"
+  sy <- TIO.readFile "bench/JsonSyntax.hpeg"
   sy @?= derive "Conformance.Bench.JsonSyntax" syntaxDirectives
   mapM_
     ( \(src, out) -> do
@@ -189,9 +189,9 @@ variantsDerived = do
           Left ds -> assertFailure (show ds)
           Right code -> assertBool ("regenerate " <> out) (TE.encodeUtf8 code == committed)
     )
-    [ ("bench/JsonCounted.peg", "bench/Conformance/Bench/JsonCounted.hs")
-    , ("bench/JsonNomemo.peg", "bench/Conformance/Bench/JsonNomemo.hs")
-    , ("bench/JsonSyntax.peg", "bench/Conformance/Bench/JsonSyntax.hs")
+    [ ("bench/JsonCounted.hpeg", "bench/Conformance/Bench/JsonCounted.hs")
+    , ("bench/JsonNomemo.hpeg", "bench/Conformance/Bench/JsonNomemo.hs")
+    , ("bench/JsonSyntax.hpeg", "bench/Conformance/Bench/JsonSyntax.hs")
     ]
 
 -- Accept or reject the same way, with the same error.
@@ -223,8 +223,8 @@ syntaxAgrees name = do
 -- its labels and its recovery rules.
 labelledDerived :: Assertion
 labelledDerived = do
-  base <- TIO.readFile "json/Json.peg"
-  labelled <- TIO.readFile "bench/JsonRecover.peg"
+  base <- TIO.readFile "json/Json.hpeg"
+  labelled <- TIO.readFile "bench/JsonRecover.hpeg"
   let body = T.unlines . filter (\l -> not (any (`T.isPrefixOf` l) (map T.pack ["%syntax", "%token", "%trivia", "%recover"]))) . T.lines
       withoutRecovery = fst (T.breakOn (T.pack "\n# 回復の規則") labelled)
       unlabel = T.unwords . filter (not . T.isPrefixOf (T.pack "^")) . T.words

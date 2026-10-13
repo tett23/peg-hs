@@ -41,7 +41,7 @@ parseCommand =
   Command
     { cmdName = "parse"
     , cmdSummary = "parse an input with a grammar and show its AST and CST"
-    , cmdArguments = "GRAMMAR.peg INPUT"
+    , cmdArguments = "GRAMMAR.hpeg INPUT"
     , cmdDescription =
         [ "Parse INPUT with the grammar and show the value of the start rule (the AST)"
         , "or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH"
@@ -55,9 +55,9 @@ parseCommand =
         , Opt "ghc-arg" Nothing (Just "ARG") "pass ARG to ghc, such as -isrc (repeatable)"
         ]
     , cmdExamples =
-        [ ("peg-hs parse Expr.peg input.txt", "show the value of the start rule for input.txt")
-        , ("peg-hs parse --format cst Expr.peg input.txt", "show the lossless syntax tree")
-        , ("cabal exec -- peg-hs parse --ghc-arg -isrc G.peg in.txt", "compile with the packages of the project and the modules under src")
+        [ ("peg-hs parse Expr.hpeg input.txt", "show the value of the start rule for input.txt")
+        , ("peg-hs parse --format cst Expr.hpeg input.txt", "show the lossless syntax tree")
+        , ("cabal exec -- peg-hs parse --ghc-arg -isrc G.hpeg in.txt", "compile with the packages of the project and the modules under src")
         ]
     , cmdRun = run
     }

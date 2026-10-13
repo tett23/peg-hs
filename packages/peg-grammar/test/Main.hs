@@ -64,7 +64,7 @@ grammarFiles = concat <$> mapM pegsIn grammarDirectories
     pegsIn d = do
       exists <- doesDirectoryExist d
       if exists
-        then map (d </>) . filter ((== ".peg") . takeExtension) <$> listDirectory d
+        then map (d </>) . filter ((== ".hpeg") . takeExtension) <$> listDirectory d
         else pure []
 
 grammarDirectories :: [FilePath]

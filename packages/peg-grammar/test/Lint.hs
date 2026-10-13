@@ -33,7 +33,7 @@ lintTests files =
     , testGroup "does not warn" [testCase (T.unpack n) (rulesOf src @?= Right []) | (n, src) <- notWarned]
     , goldenVsString "the warnings" "test/golden/lint-warnings.txt" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
-          concat [n : map (("  " <>) . renderLintWarning "G.peg") (either (const []) id (lintOf src)) | (n, _, src) <- warned]
+          concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- warned]
     , testCase "the grammars of the repository have no warnings" $ do
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []

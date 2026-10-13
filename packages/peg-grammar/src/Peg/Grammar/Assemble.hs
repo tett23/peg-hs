@@ -2,7 +2,7 @@
 
 -- | Turning the top-level items of a grammar file into a t'Grammar'.
 --
--- The parser of the notation, generated from @grammar/Peg.peg@ (ADR 0027),
+-- The parser of the notation, generated from @grammar/Peg.hpeg@ (ADR 0027),
 -- calls these functions from its actions. They are exposed for that parser,
 -- for its variant without labels that the tests of label safety compile
 -- (ADR 0029), and for tests of it; the language server also uses

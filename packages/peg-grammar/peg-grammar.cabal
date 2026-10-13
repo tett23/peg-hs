@@ -1,9 +1,9 @@
 cabal-version:      3.0
 name:               peg-grammar
 version:            0.1.0.0
-synopsis:           The .peg grammar notation of peg-hs: syntax tree, parser and checks
+synopsis:           The .hpeg grammar notation of peg-hs: syntax tree, parser and checks
 description:
-  Reads @.peg@ grammar files for the peg-hs parser generator and checks
+  Reads @.hpeg@ grammar files for the peg-hs parser generator and checks
   them: undefined and unreachable rules, left recursion, repetitions of
   expressions that match the empty string, the values of groups and
   actions, and labels that may reject valid input. It also formats and
@@ -20,11 +20,11 @@ build-type:         Simple
 tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
-  grammar/Peg.peg
-  grammar/PegSyntax.peg
+  grammar/Peg.hpeg
+  grammar/PegSyntax.hpeg
   grammar/SyntaxVariant.txt
   test/golden/*.txt
-  test/golden/format/*.peg
+  test/golden/format/*.hpeg
   test/golden/format/*.txt
 
 source-repository head

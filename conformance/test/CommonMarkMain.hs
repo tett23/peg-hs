@@ -136,7 +136,7 @@ main = do
 
 regenerated :: String -> IO Bool
 regenerated name = do
-  let src = "commonmark/" <> name <> ".peg"
+  let src = "commonmark/" <> name <> ".hpeg"
       out = "commonmark/Conformance/CommonMark/" <> name <> ".hs"
   grammar <- TIO.readFile src
   committed <- B.readFile out

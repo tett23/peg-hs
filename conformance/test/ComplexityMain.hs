@@ -24,9 +24,9 @@ main =
     testGroup
       "complexity (ADR 0007)"
       [ testCase "the committed benchmark parser is up to date" $ do
-          src <- TIO.readFile "bench/Pathological.peg"
+          src <- TIO.readFile "bench/Pathological.hpeg"
           committed <- B.readFile "bench/Conformance/Bench/Pathological.hs"
-          let opts = Options {optSourceName = "bench/Pathological.peg", optOutputName = "bench/Conformance/Bench/Pathological.hs", optDebugEntry = True}
+          let opts = Options {optSourceName = "bench/Pathological.hpeg", optOutputName = "bench/Conformance/Bench/Pathological.hs", optDebugEntry = True}
           case generateFromSource opts src of
             Left ds -> assertFailure (show ds)
             Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
@@ -40,7 +40,7 @@ main =
       , testCase "the nested left recursion parsers are up to date" $
           mapM_
             ( \n -> do
-                let src = "bench/NestedLR" <> show n <> ".peg"
+                let src = "bench/NestedLR" <> show n <> ".hpeg"
                     out = "bench/Conformance/Bench/NestedLR" <> show n <> ".hs"
                 grammar <- TIO.readFile src
                 committed <- B.readFile out

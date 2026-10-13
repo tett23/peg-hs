@@ -93,7 +93,7 @@ main = do
 
 benchmarks :: IO ()
 benchmarks = do
-  jsonGrammar <- TIO.readFile "json/Json.peg"
+  jsonGrammar <- TIO.readFile "json/Json.hpeg"
   json <- evaluate (force (syntheticJson 10000))
   spec <- TIO.readFile specPath >>= evaluate . force
   lua <- luaSources >>= evaluate . force
@@ -125,8 +125,8 @@ benchmarks = do
         ]
     , bgroup
         "generator"
-        [ bench "parse Json.peg" (whnf (either (const 0) (length . show) . parseGrammar) jsonGrammar)
-        , bench "generate Json.peg" (whnf (either (const 0) T.length . generateFromSource defaultOptions) jsonGrammar)
+        [ bench "parse Json.hpeg" (whnf (either (const 0) (length . show) . parseGrammar) jsonGrammar)
+        , bench "generate Json.hpeg" (whnf (either (const 0) T.length . generateFromSource defaultOptions) jsonGrammar)
         ]
     ]
 

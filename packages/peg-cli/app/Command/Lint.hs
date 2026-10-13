@@ -23,14 +23,14 @@ lintCommand =
     , cmdDescription =
         [ "Check grammars against the fixed rules of peg-hs, and fail if there is a warning."
         , "The rules cannot be chosen or silenced; every warning goes away by changing the grammar."
-        , "A directory stands for the .peg files under it. Without arguments, lint every .peg"
+        , "A directory stands for the .hpeg files under it. Without arguments, lint every .hpeg"
         , "file under the current directory. Directories whose name starts with . and"
         , "dist-newstyle are skipped. Files are read as UTF-8."
         ]
     , cmdOptions = []
     , cmdExamples =
         [ ("peg-hs lint", "lint every grammar under the current directory")
-        , ("peg-hs lint Expr.peg", "lint Expr.peg")
+        , ("peg-hs lint Expr.hpeg", "lint Expr.hpeg")
         ]
     , cmdRun = run
     }

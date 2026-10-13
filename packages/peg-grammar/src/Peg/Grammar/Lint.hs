@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The linter of the @.peg@ notation (ADR 0033).
+-- | The linter of the @.hpeg@ notation (ADR 0033).
 --
 -- The rules are fixed: they cannot be chosen, extended or silenced. Each
 -- rule warns only about what follows from the meaning of the grammar, so a
@@ -26,7 +26,7 @@
 -- 'renderLintWarning' writes the warnings in the form of @peg-hs lint@:
 --
 -- @
--- mapM_ (TIO.putStrLn . renderLintWarning \"Calc.peg\") (lintGrammar g0)
+-- mapM_ (TIO.putStrLn . renderLintWarning \"Calc.hpeg\") (lintGrammar g0)
 -- @
 module Peg.Grammar.Lint
   ( LintWarning (..)

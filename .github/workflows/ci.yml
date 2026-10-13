@@ -53,7 +53,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: dist-newstyle
-          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.hpeg') }}
           restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
       - name: Resolve dependencies
         run: |
@@ -137,7 +137,7 @@ jobs:
       - uses: actions/cache/restore@v6
         with:
           path: dist-newstyle
-          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.hpeg') }}
           restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
       - name: Resolve dependencies
         run: |
@@ -177,7 +177,7 @@ jobs:
       - uses: actions/cache/restore@v6
         with:
           path: dist-newstyle
-          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.hpeg') }}
           restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
       - name: Resolve dependencies
         run: |
@@ -217,7 +217,7 @@ jobs:
       - uses: actions/cache/restore@v6
         with:
           path: dist-newstyle
-          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.hpeg') }}
           restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
       - name: Resolve dependencies
         run: |
@@ -296,4 +296,4 @@ jobs:
       - run: npm ci
       - run: npm test
       # The generated parser is committed and up to date.
-      - run: git diff --exit-code -- tree-sitter-peg/src
+      - run: git diff --exit-code -- tree-sitter-hpeg/src

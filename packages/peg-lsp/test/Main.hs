@@ -42,8 +42,8 @@ main =
           let src = "%module M\n\nS :: ()\nS <- a\x1D465 b { () }\n\na\x1D465 :: ()\na\x1D465 <- 'x' { () }\n\nb :: ()\nb <- 'b' { () }\n"
               results = [r | m <- session [initialize False, open src, request 2 "textDocument/definition" (docAt 3 9), request 3 "textDocument/definition" (docAt 3 5)], Just r <- [member "result" m]]
           drop 1 results @?= [object [("uri", String uri), ("range", rangeOf (9, 0) (9, 1))], object [("uri", String uri), ("range", rangeOf (6, 0) (6, 3))]]
-      , skippedWithout "../peg-grammar/grammar/Peg.peg" "the semantic tokens are ranges of the syntax tree" $ do
-          src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
+      , skippedWithout "../peg-grammar/grammar/Peg.hpeg" "the semantic tokens are ranges of the syntax tree" $ do
+          src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           let out = session [initialize True, open src, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])])]
               tokens = decodeTokens src (fromMaybe [] (lastResult out >>= member "data" >>= asArray))
               hs = fromMaybe [] (highlights src)
@@ -58,8 +58,8 @@ main =
                 Right out ->
                   let ids xs = sort (mapMaybe (\m -> member "id" m >>= asInt) xs)
                    in ids out === ids [m | m <- msgs, member "method" m /= Nothing]
-      , skippedWithout "../peg-grammar/grammar/Peg.peg" "the notation's grammar has no errors in the server" $ do
-          src <- TIO.readFile "../peg-grammar/grammar/Peg.peg"
+      , skippedWithout "../peg-grammar/grammar/Peg.hpeg" "the notation's grammar has no errors in the server" $ do
+          src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           [d | (Error, d, _) <- diagnose src] @?= []
       ]
 
@@ -102,7 +102,7 @@ genValue = sized go
 -- Messages -----------------------------------------------------------------------
 
 uri :: Text
-uri = "file:///grammar.peg"
+uri = "file:///grammar.hpeg"
 
 request :: Int -> Text -> Value -> Value
 request i m p = object [("jsonrpc", String "2.0"), ("id", int i), ("method", String m), ("params", p)]

@@ -1,12 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The formatter of the @.peg@ notation (ADR 0032).
+-- | The formatter of the @.hpeg@ notation (ADR 0032).
 --
 -- There is one style and no option. The formatter rewrites spaces and line
 -- breaks only: the tokens, the comments and the Haskell fragments are kept,
 -- and so is the order of the directives, rules and alternatives. It reads
--- the grammar with a parser generated from @grammar/PegSyntax.peg@, the
+-- the grammar with a parser generated from @grammar/PegSyntax.hpeg@, the
 -- notation's grammar with a lossless syntax tree (ADR 0019), so that the
 -- comments are found where they are written.
 --
@@ -15,8 +15,8 @@
 --
 -- @
 -- case formatGrammar src of
---   Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"Calc.peg\") diags
---   Right out -> when (out /= src) (TIO.writeFile \"Calc.peg\" out)
+--   Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"Calc.hpeg\") diags
+--   Right out -> when (out /= src) (TIO.writeFile \"Calc.hpeg\" out)
 -- @
 --
 -- 'sameGrammar' and 'grammarComments' are the comparisons the formatter's

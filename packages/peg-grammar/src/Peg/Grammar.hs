@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The abstract syntax of @.peg@ grammar files, and the diagnostics that
+-- | The abstract syntax of @.hpeg@ grammar files, and the diagnostics that
 -- the modules of this package report about them.
 --
 -- The other modules work on a t'Grammar' or on the source text:
@@ -203,7 +203,7 @@ data Diagnostic = Diagnostic
 -- for errors. The file name is written as given.
 --
 -- @
--- either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic \"Calc.peg\")) (const (pure ())) (parseGrammar src)
+-- either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic \"Calc.hpeg\")) (const (pure ())) (parseGrammar src)
 -- @
 renderDiagnostic :: FilePath -> Diagnostic -> Text
 renderDiagnostic file (Diagnostic (Loc l c) msg) =

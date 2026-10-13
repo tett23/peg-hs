@@ -268,18 +268,18 @@ recoveredInPlace b
 
 regeneratedNoLabels :: Assertion
 regeneratedNoLabels = do
-  src <- TIO.readFile "toml/Toml.peg"
+  src <- TIO.readFile "toml/Toml.hpeg"
   committed <- B.readFile "toml/Conformance/Toml/NoLabels.hs"
-  let opts = Options {optSourceName = "toml/Toml.peg", optOutputName = "toml/Conformance/Toml/NoLabels.hs", optDebugEntry = False}
+  let opts = Options {optSourceName = "toml/Toml.hpeg", optOutputName = "toml/Conformance/Toml/NoLabels.hs", optDebugEntry = False}
   case parseGrammar src >>= generate opts . stripLabelsAs (T.pack "Conformance.Toml.NoLabels") of
     Left ds -> assertFailure (show ds)
     Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
 
 regenerated :: Assertion
 regenerated = do
-  src <- TIO.readFile "toml/Toml.peg"
+  src <- TIO.readFile "toml/Toml.hpeg"
   committed <- B.readFile "toml/Conformance/Toml/Parser.hs"
-  let opts = Options {optSourceName = "toml/Toml.peg", optOutputName = "toml/Conformance/Toml/Parser.hs", optDebugEntry = False}
+  let opts = Options {optSourceName = "toml/Toml.hpeg", optOutputName = "toml/Conformance/Toml/Parser.hs", optDebugEntry = False}
   case generateFromSource opts src of
     Left ds -> assertFailure (show ds)
     Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)

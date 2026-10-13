@@ -1,7 +1,7 @@
 usage: peg-hs fmt [options] [FILE|DIR...]
 
 Format grammars in place, in the one style of peg-hs. Comments are kept.
-A directory stands for the .peg files under it. Without arguments, format every .peg
+A directory stands for the .hpeg files under it. Without arguments, format every .hpeg
 file under the current directory. Directories whose name starts with . and
 dist-newstyle are skipped. Files are read and written as UTF-8.
 

@@ -3,7 +3,7 @@ name:               peg-codegen
 version:            0.1.0.0
 synopsis:           Haskell code generation for peg-hs grammars
 description:
-  Turns a checked @.peg@ grammar into the text of a Haskell module.
+  Turns a checked @.hpeg@ grammar into the text of a Haskell module.
   Generation is a pure, deterministic function: the same grammar always
   produces the same bytes. Generated modules depend only on @peg-runtime@,
   name the versions of it they need, and point the errors of GHC at the
@@ -20,7 +20,7 @@ build-type:         Simple
 tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
-  test/fixtures/*.peg
+  test/fixtures/*.hpeg
   test/golden/*.hs.golden
 
 source-repository head
