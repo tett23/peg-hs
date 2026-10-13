@@ -65,7 +65,8 @@ ADRs live in `docs/adr/`.
 - Grammars have no warnings of `peg-hs lint`, which CI runs ([ADR 0033](docs/adr/0033-grammar-linter.md))
 - CI does not build or test a change of `docs/` and Markdown files only; adr-guard still checks it. A new push to a pull request stops the run of the previous push ([ADR 0039](docs/adr/0039-faster-ci.md))
 - Test suites run their tests in parallel. Each test uses files and directories that no other test uses ([ADR 0039](docs/adr/0039-faster-ci.md))
-- CI runs the test suites in three jobs (`test-grammar`, `test-conformance` and `test-packages`), one suite at a time in each. A new test suite goes to the job that keeps the three about the same length, from the latest CI timings in `docs/benchmarks/` ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md))
+- CI runs the test suites in jobs, one suite at a time in each: peg-grammar-test in three parts (`test-grammar-1` to `test-grammar-3`, with its option `--shard i/3`), and the other suites in `test-conformance` and `test-packages` ([ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)). A new test suite goes to the job that keeps the jobs about the same length, from the latest CI timings in `docs/benchmarks/` ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md))
+- A property test of 300 cases or more that takes 10 seconds or more in CI is split into parts with `chunkedProperty` in `packages/peg-grammar/test/Shard.hs`, so that the parts of the suite take about the same time ([ADR 0042](docs/adr/0042-shard-peg-grammar-test.md))
 - To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
 
 ### Performance

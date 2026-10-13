@@ -22,12 +22,16 @@ import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+import Test.QuickCheck.Gen (unGen)
+import Test.QuickCheck.Random (mkQCGen)
+import Data.List (nub)
+import Shard (chunkedProperty, chunks)
 
 labelTests :: [FilePath] -> TestTree
 labelTests files =
   testGroup
     "label safety (ADR 0028)"
-    [ testGroup "unsafe" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- unsafeSnippets]
+    ( [ testGroup "unsafe" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- unsafeSnippets]
     , testGroup "safe" [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- safeSnippets]
     , testCase "indirect left recursion cannot be checked" $
         fmap (map (T.isInfixOf "cannot be checked")) (warningMessages indirect) @?= Right [True]
@@ -66,9 +70,9 @@ labelTests files =
     , testCase "a rule named twice in %entry is an error (ADR 0038)" $
         fmap (const ()) (parseGrammar (grammar ["%entry A", "%entry A", "S :: ()", "S <- A { () }", "A :: ()", "A <- 'a' { () }"]) >>= check)
           @?= Left [Diagnostic (Loc 3 1) "the rule A is named in %entry twice"]
-    , testProperty "with parameters, constant predicates and long literals, a grammar without warnings accepts the same language without its labels (ADR 0038)" $
-        withNumTests 3000 $
-          forAll genGrammarWithParams $ \src -> case parseGrammar src >>= check >> parseGrammar src of
+    ]
+      ++ chunkedProperty "with parameters, constant predicates and long literals, a grammar without warnings accepts the same language without its labels (ADR 0038)" 3000 (\part ->
+          forAll (variant part genGrammarWithParams) $ \src -> case parseGrammar src >>= check >> parseGrammar src of
             Left _ -> discard
             Right g
               | not (null (labelWarnings g)) -> label "warned" True
@@ -77,9 +81,9 @@ labelTests files =
                   let sameOn s = run True g s == run False g s || isNothing (run True g s) || isNothing (run False g s)
                       bad = filter (not . sameOn) paramInputs
                    in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
-    , testProperty "a grammar without warnings accepts the same language without its labels" $
-        withNumTests 3000 $
-          forAll genGrammar $ \src -> case parseGrammar src >>= check >> parseGrammar src of
+        )
+      ++ chunkedProperty "a grammar without warnings accepts the same language without its labels" 3000 (\part ->
+          forAll (variant part genGrammar) $ \src -> case parseGrammar src >>= check >> parseGrammar src of
             Left _ -> discard
             Right g
               | not (null (labelWarnings g)) -> label "warned" True
@@ -88,7 +92,13 @@ labelTests files =
                   let sameOn s = run True g s == run False g s || isNothing (run True g s) || isNothing (run False g s)
                       bad = filter (not . sameOn) inputs
                    in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
-    ]
+        )
+      ++ [ testCase "the parts of a split property check different grammars (ADR 0042)" $ do
+            let firsts g = [unGen (variant part g) (mkQCGen 42) 30 | part <- [1 .. chunks]]
+            length (nub (firsts genGrammar)) @?= chunks
+            length (nub (firsts genGrammarWithParams)) @?= chunks
+         ]
+    )
   where
     grammarOf f = parseGrammar <$> TIO.readFile f
     renderD (Diagnostic (Loc l c) m) = T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> m

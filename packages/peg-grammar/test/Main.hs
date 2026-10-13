@@ -15,6 +15,9 @@ import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
 import Labels (labelTests)
 import Lint (lintTests)
+import Shard (Shard, shardTests, sharded)
+import Data.Proxy (Proxy (..))
+import Test.Tasty.Options (OptionDescription (Option))
 import Ranges (rangeTests)
 import Recovery (recoveryTests)
 import qualified Data.Text.Encoding as TE
@@ -30,7 +33,8 @@ main = do
   files <- grammarFiles
   -- The editor grammars are missing in a source tarball.
   editors <- doesDirectoryExist "../../editors/test"
-  defaultMain $
+  -- --shard runs a part of the tests, for the jobs of CI (ADR 0042).
+  defaultMainWithIngredients (includingOptions [Option (Proxy :: Proxy Shard)] : defaultIngredients) . sharded $
     testGroup
       "peg-grammar"
       [ notationTests
@@ -43,6 +47,7 @@ main = do
       , labelTests files
       , formatTests files
       , lintTests files
+      , shardTests
       , recoveryTests files
       , testGroup "editor grammars" [rangeTests files | editors]
       ]

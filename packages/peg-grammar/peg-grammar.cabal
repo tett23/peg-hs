@@ -70,6 +70,7 @@ test-suite peg-grammar-test
     Lint
     Ranges
     Recovery
+    Shard
     SelfHostedNoLabels
   build-depends:
     , base
@@ -79,6 +80,7 @@ test-suite peg-grammar-test
     , filepath     >=1.4  && <1.6
     , peg-grammar
     , peg-runtime
+    , QuickCheck
     , tasty        >=1.4  && <1.6
     , tasty-golden >=2.3  && <2.4
     , tasty-hunit  >=0.10 && <0.11

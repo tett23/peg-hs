@@ -19,12 +19,16 @@ import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+import Test.QuickCheck.Gen (unGen)
+import Test.QuickCheck.Random (mkQCGen)
+import Data.List (nub)
+import Shard (chunkedProperty, chunks)
 
 lintTests :: [FilePath] -> TestTree
 lintTests files =
   testGroup
     "linter (ADR 0033)"
-    [ testGroup "warns" [testCase (T.unpack n) (rulesOf src @?= Right [r]) | (n, r, src) <- warned]
+    ( [ testGroup "warns" [testCase (T.unpack n) (rulesOf src @?= Right [r]) | (n, r, src) <- warned]
     , testGroup "does not warn" [testCase (T.unpack n) (rulesOf src @?= Right []) | (n, src) <- notWarned]
     , goldenVsString "the warnings" "test/golden/lint-warnings.txt" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
@@ -32,9 +36,9 @@ lintTests files =
     , testCase "the grammars of the repository have no warnings" $ do
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
-    , testProperty "removing what a warning names keeps the results and the farthest failure" $
-        withNumTests 3000 $
-          forAll genGrammar $ \src -> case parseGrammar src of
+    ]
+      ++ chunkedProperty "removing what a warning names keeps the results and the farthest failure" 3000 (\part ->
+          forAll (variant part genGrammar) $ \src -> case parseGrammar src of
             Right g | Right _ <- check g -> case [w | w <- lintGrammar g, lintRule w /= "unused-binding"] of
               [] -> label "no warnings" True
               ws ->
@@ -46,7 +50,11 @@ lintTests files =
                           bad = [s | s <- inputs, let (x, y) = (run g s, run g' s), x /= y, x /= Nothing, y /= Nothing]
                     ]
             _ -> discard
-    ]
+        )
+      ++ [ testCase "the parts of the split property check different grammars (ADR 0042)" $
+            length (nub [unGen (variant part genGrammar) (mkQCGen 42) 30 | part <- [1 .. chunks]]) @?= chunks
+         ]
+    )
 
 -- A grammar whose start rule S is defined by the given rules.
 grammar :: [Text] -> Text
