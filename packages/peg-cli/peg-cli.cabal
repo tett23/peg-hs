@@ -3,8 +3,12 @@ name:               peg-cli
 version:            0.1.0.0
 synopsis:           Command line interface of the peg-hs parser generator
 description:
-  The @peg-hs@ executable reads a @.peg@ grammar and writes a Haskell
-  module that parses it. The generated module depends on @peg-runtime@.
+  The @peg-hs@ executable of the peg-hs parser generator. Its
+  subcommands generate a Haskell module from a @.peg@ grammar (@gen@),
+  format grammars (@fmt@), lint them (@lint@), parse an input with a
+  grammar and show its AST or lossless syntax tree (@parse@), and run the
+  language server (@lsp@). Generated modules depend only on @peg-runtime@.
+  See the README at <https://github.com/tett23/peg-hs> for a tutorial.
 homepage:           https://github.com/tett23/peg-hs
 bug-reports:        https://github.com/tett23/peg-hs/issues
 license:            MIT

@@ -4,8 +4,10 @@ version:            0.1.0.0
 synopsis:           The .peg grammar notation of peg-hs: syntax tree, parser and checks
 description:
   Reads @.peg@ grammar files for the peg-hs parser generator and checks
-  them: undefined and unreachable rules, repetitions of expressions that
-  match the empty string, bindings, and left recursion.
+  them: undefined and unreachable rules, left recursion, repetitions of
+  expressions that match the empty string, the values of groups and
+  actions, and labels that may reject valid input. It also formats and
+  lints grammars, and gives editors their highlights and outlines.
 homepage:           https://github.com/tett23/peg-hs
 bug-reports:        https://github.com/tett23/peg-hs/issues
 license:            MIT
