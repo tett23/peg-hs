@@ -26,7 +26,7 @@ Grammars of real languages check the conformance:
 - **Lua 5.5** (the official test suite of Lua 5.5.1): a grammar that keeps the manual's syntax with its indirect left recursion accepts all 34 files. Precedence, associativity and rejection agree with expectations made from the reference implementation.
 - **TOML 1.1.0** ([toml-test](https://github.com/toml-lang/toml-test) v2.2.0): all 214 valid cases match the expected JSON, and all 467 invalid cases are rejected. The recovering mode returns a lossless syntax tree for every case.
 
-**Status**: the first release candidate, v0.1.0-rc1, is distributed on GitHub [Releases](https://github.com/tett23/peg-hs/releases).
+**Status**: release candidates (the latest is v0.1.0-rc2) are distributed on GitHub [Releases](https://github.com/tett23/peg-hs/releases).
 It is not on Hackage yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
 
 ## Installation
@@ -38,8 +38,8 @@ Extract the archive and put `peg-hs` in a directory on `PATH`.
 `SHA256SUMS` of the same release checks that the archive is intact.
 
 ```sh
-tar xzf peg-hs-0.1.0-rc1-x86_64-linux.tar.gz
-install peg-hs-0.1.0-rc1-x86_64-linux/peg-hs ~/.local/bin/
+tar xzf peg-hs-0.1.0-rc2-x86_64-linux.tar.gz
+install peg-hs-0.1.0-rc2-x86_64-linux/peg-hs ~/.local/bin/
 peg-hs --version
 ```
 
@@ -164,7 +164,7 @@ packages: .
 source-repository-package
   type:     git
   location: https://github.com/tett23/peg-hs
-  tag:      v0.1.0-rc1
+  tag:      v0.1.0-rc2
   subdir:   packages/peg-runtime
 ```
 

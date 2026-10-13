@@ -4,9 +4,9 @@ This document describes how peg-hs is developed.
 The Japanese version ([CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)) is canonical.
 This English version is a translation; where the two differ, the Japanese version applies.
 
-The first release candidate of peg-hs, `v0.1.0-rc1`, is distributed through GitHub Releases.
+The release candidates of peg-hs (the latest is `v0.1.0-rc2`) are distributed through GitHub Releases.
 peg-hs is not yet published on Hackage.
-It will be published on Hackage with `v0.1.0` ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
+It goes to Hackage from `v0.1.0`, once rc is dropped ([ADR 0044](docs/adr/0044-release-v0-1-0.md), [ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md)).
 
 ## Development environment
 
@@ -438,7 +438,7 @@ cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0
 
 On the candidate pages, check the documentation of the modules, the description and examples at the top of each module, the CHANGELOG and the dependencies.
 
-- **Pre-releases (`v0.1.0-rc1` and so on)**: upload as candidates and check them only; never publish. Hackage versions cannot express rc, and once `0.1.0.0` is published it cannot be taken back
+- **Pre-releases (`v0.1.0-rc2` and so on)**: upload nothing to Hackage, not even candidates. Release candidates are distributed through GitHub Releases, and checking how the packages look on Hackage once, before the final version, is enough ([ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md))
 - **Final versions (`v0.1.0` and so on)**: after uploading and checking the candidates, upload the same files with `--publish` to publish them
 
 ```sh
