@@ -6,7 +6,7 @@ peg-hs は、PEG（Parsing Expression Grammar）で書いた文法から、Haske
 
 ## 概要
 
-文法は `.peg` ファイルに書く。
+文法は `.hpeg` ファイルに書く。
 各規則には結果の型とセマンティックアクション（規則が成功したときに値を作る Haskell の式）を付ける。
 `peg-hs gen` が文法から Haskell のモジュールを生成し、利用者のプログラムはそのモジュールの `parse` を呼んで、自分の AST を直接受け取る。
 
@@ -14,7 +14,7 @@ peg-hs は、PEG（Parsing Expression Grammar）で書いた文法から、Haske
 
 - **左再帰をそのまま書ける**：`Expr <- Expr '+' Term / Term` のような直接と間接の左再帰を受理する。意味論は bounded left recursion（Medeiros et al. 2014）である（[ADR 0001](docs/adr/0001-bounded-left-recursion.md)）
 - **生成したモジュールの依存が小さい**：生成したモジュールが依存するのは実行時のライブラリ peg-runtime だけである。同じ文法からはバイト単位で同じモジュールを生成するので、生成物をリポジトリにコミットできる（[ADR 0002](docs/adr/0002-standalone-code-generator.md)）
-- **型の誤りを文法の行で報告する**：アクションの型の誤りは、GHC が `.peg` ファイルの行と桁で報告する（[ADR 0014](docs/adr/0014-generated-module-api.md)）
+- **型の誤りを文法の行で報告する**：アクションの型の誤りは、GHC が `.hpeg` ファイルの行と桁で報告する（[ADR 0014](docs/adr/0014-generated-module-api.md)）
 - **文脈に依存する構文を書ける**：意味述語、引数付き規則、読み取り専用の解析環境、桁の参照で、字下げに依存する構文や前方参照を書ける。パックラットのメモ化と左再帰の正しさを保つように設計している（[ADR 0012](docs/adr/0012-context-sensitive-extensions.md)）
 - **空白とコメントを失わない構文木**：`%syntax` を書くと、rust-analyzer に倣ったロスレスな構文木も作る。整形や lint のような道具のためである（[ADR 0019](docs/adr/0019-lossless-syntax-tree.md)）
 - **構文エラーから回復する**：ラベル付きの失敗（`e ^label` と `%recover`）で、一度の解析で複数の誤りを報告できる。回復するモードは、誤りのノードを含むロスレスな構文木を必ず返す。言語サーバーのためである（[ADR 0021](docs/adr/0021-error-recovery.md)）
@@ -57,10 +57,10 @@ cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy -
 ## 最初の文法
 
 足し算と掛け算と括弧の式を読む文法を例に、生成して使うまでを示す。
-次の文法を `grammar/Calc.peg` に置く。
+次の文法を `grammar/Calc.hpeg` に置く。
 
-<!-- readme-example: grammar/Calc.peg -->
-```peg
+<!-- readme-example: grammar/Calc.hpeg -->
+```hpeg
 %module Calc.Parser
 %{
 import qualified Data.Text as T
@@ -96,7 +96,7 @@ Sp <- ' '* { () }
 `peg-hs gen` でモジュールを生成する。
 
 ```sh
-peg-hs gen grammar/Calc.peg -o src/Calc/Parser.hs
+peg-hs gen grammar/Calc.hpeg -o src/Calc/Parser.hs
 ```
 
 生成したモジュールは、渡したパスを記録する。
@@ -109,7 +109,7 @@ cabal はそのディレクトリで GHC を動かすので、エディタが誤
 
 ```sh
 echo -n '1 + 2 * (3 + 4)' > input.txt
-peg-hs parse grammar/Calc.peg input.txt
+peg-hs parse grammar/Calc.hpeg input.txt
 ```
 
 ```text
@@ -191,10 +191,10 @@ source-repository-package
 
 | コマンド | 目的 |
 |---|---|
-| `peg-hs gen GRAMMAR.peg [-o FILE]` | 文法から Haskell のモジュールを生成する |
+| `peg-hs gen GRAMMAR.hpeg [-o FILE]` | 文法から Haskell のモジュールを生成する |
 | `peg-hs fmt [FILE\|DIR...]` | 文法を一つの流儀で整形する |
 | `peg-hs lint [FILE\|DIR...]` | 誤りである書き方を警告する |
-| `peg-hs parse GRAMMAR.peg INPUT` | 入力を解析して、AST か構文木を表示する |
+| `peg-hs parse GRAMMAR.hpeg INPUT` | 入力を解析して、AST か構文木を表示する |
 | `peg-hs lsp` | 言語サーバーを標準入出力で動かす |
 
 終了状態は、成功で 0、コマンドの使い方の誤りで 2 である。
@@ -215,8 +215,9 @@ source-repository-package
 流儀を選ぶオプションはない。コメントは残る。
 `--check` はファイルを書き換えず、整形されていないファイルの名前を表示し、一つでもあれば失敗する。CI での検査に使う。
 
-引数にディレクトリを渡すと、その下の `.peg` ファイルを対象にする。
-引数を省くと、現在のディレクトリの下の `.peg` ファイルをすべて対象にする。
+引数にディレクトリを渡すと、その下の `.hpeg` ファイルを対象にする。
+以前の拡張子 `.peg` は、ほかの PEG の道具と重なるので探さない。ファイルを直接渡せば、拡張子によらず扱う（[ADR 0050](docs/adr/0050-hpeg-extension.md)）。
+引数を省くと、現在のディレクトリの下の `.hpeg` ファイルをすべて対象にする。
 どちらの場合も、名前が `.` で始まるディレクトリと `dist-newstyle` はたどらない。
 
 ### lint
@@ -255,7 +256,7 @@ semantic tokens、定義への移動、参照の検索、ホバー、文書の�
 
 ### VS Code（未確認）
 
-`editors/vscode` は、TextMate の文法（`editors/textmate/peg.tmLanguage.json`）を含み、言語サーバーを起動する拡張機能である。
+`editors/vscode` は、TextMate の文法（`editors/textmate/hpeg.tmLanguage.json`）を含み、言語サーバーを起動する拡張機能である。
 Marketplace にはまだ公開していないので、リポジトリから入れる。
 依存を入れ、拡張機能のディレクトリにリンクを張り、VS Code を再起動する。
 `peg-hs` が `PATH` にない場合は、設定 `peg-hs.path` で実行ファイルを指す。
@@ -267,59 +268,67 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim（未確認）
 
-ハイライトには、`editors/tree-sitter-peg` の tree-sitter の文法を nvim-treesitter（main ブランチ）に登録する。
-`User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall peg` を実行する。
+ハイライトには、`editors/tree-sitter-hpeg` の tree-sitter の文法を nvim-treesitter（main ブランチ）に登録する。
+`User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall hpeg` を実行する。
 文法のビルドには tree-sitter の CLI が要る。
 nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
 
 ```lua
-vim.filetype.add({ extension = { peg = 'peg' } })
+vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
-  require('nvim-treesitter.parsers').peg = {
-    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-peg', queries = 'queries' },
+  require('nvim-treesitter.parsers').hpeg = {
+    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
   }
 end })
-vim.api.nvim_create_autocmd('FileType', { pattern = 'peg', callback = function() vim.treesitter.start() end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() vim.treesitter.start() end })
 ```
 
 nvim-treesitter の旧版（master ブランチ）では、`get_parser_configs()` に登録する。
-文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書き、問い合わせをランタイムパスの `queries/peg/` に写す。
+文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書き、問い合わせをランタイムパスの `queries/hpeg/` に写す。
 
 ```lua
-require('nvim-treesitter.parsers').get_parser_configs().peg = {
-  install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c', 'src/scanner.c' } },
-  filetype = 'peg',
+require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
+  install_info = { url = '/path/to/peg-hs/editors/tree-sitter-hpeg', files = { 'src/parser.c', 'src/scanner.c' } },
+  filetype = 'hpeg',
 }
 ```
 
 言語サーバーは、Neovim 0.11 以降の `vim.lsp.config` で設定する。
 
 ```lua
-vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'peg' }, root_markers = { '.git' } })
+vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
 vim.lsp.enable('peg_hs')
 ```
 
 ### Helix（未確認）
 
 `languages.toml` に言語、文法、言語サーバーを加え、`hx --grammar build` を実行する。
-問い合わせは `runtime/queries/peg/` に写す。
+問い合わせは `runtime/queries/hpeg/` に写す。
 
 ```toml
 [[language]]
-name = "peg"
-scope = "source.peg"
-file-types = ["peg"]
+name = "hpeg"
+scope = "source.hpeg"
+file-types = ["hpeg"]
 comment-token = "#"
 language-servers = ["peg-hs"]
 
 [[grammar]]
-name = "peg"
-source = { path = "/path/to/peg-hs/editors/tree-sitter-peg" }
+name = "hpeg"
+source = { path = "/path/to/peg-hs/editors/tree-sitter-hpeg" }
 
-[language-server.peg-hs]
+[language-server.hpeg-hs]
 command = "peg-hs"
 args = ["lsp"]
 ```
+
+## 拡張子 .peg からの移行
+
+文法ファイルの拡張子は、v0.1.0-rc1 までは `.peg` で、いまは `.hpeg` である。エディタの言語の名前も `hpeg` になった（[ADR 0050](docs/adr/0050-hpeg-extension.md)）。
+
+1. 文法の名前を改める（`git mv Grammar.peg Grammar.hpeg`）
+2. 新しいパスでモジュールを生成し直す。生成したモジュールは文法のパスを記録するためである
+3. エディタの設定を改める。言語とファイルの種類の `peg` は `hpeg` に、tree-sitter の文法は `editors/tree-sitter-hpeg` に、問い合わせの置き場所は `queries/hpeg/` になる
 
 ## 既知の制限
 
@@ -337,7 +346,7 @@ args = ["lsp"]
 
 ## 文書
 
-- [docs/syntax.md](docs/syntax.md)：`.peg` 記法の解説とサンプル
+- [docs/syntax.md](docs/syntax.md)：`.hpeg` 記法の解説とサンプル
 - [docs/specifications.md](docs/specifications.md)：製品の仕様
 - [docs/adr/](docs/adr/)：設計の決定の記録（ADR）。仕様の各項目がどの決定によるかをたどれる
 - [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)：開発の環境、テスト、生成物の再生成、ADR の書き方、コミット、リリースの手順

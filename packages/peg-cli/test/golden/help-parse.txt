@@ -1,4 +1,4 @@
-usage: peg-hs parse [options] GRAMMAR.peg INPUT
+usage: peg-hs parse [options] GRAMMAR.hpeg INPUT
 
 Parse INPUT with the grammar and show the value of the start rule (the AST)
 or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH
@@ -13,9 +13,9 @@ options:
   -h, --help                show this help
 
 examples:
-  peg-hs parse Expr.peg input.txt
+  peg-hs parse Expr.hpeg input.txt
       show the value of the start rule for input.txt
-  peg-hs parse --format cst Expr.peg input.txt
+  peg-hs parse --format cst Expr.hpeg input.txt
       show the lossless syntax tree
-  cabal exec -- peg-hs parse --ghc-arg -isrc G.peg in.txt
+  cabal exec -- peg-hs parse --ghc-arg -isrc G.hpeg in.txt
       compile with the packages of the project and the modules under src

@@ -1,13 +1,15 @@
 -- | The grammar files of a command that takes files or, with none, every
--- @.peg@ file under the current directory (ADR 0032). A directory among the
--- files stands for the @.peg@ files under it (ADR 0045).
+-- @.hpeg@ file under the current directory (ADR 0032). A directory among the
+-- files stands for the @.hpeg@ files under it (ADR 0045). Files with the
+-- old extension @.peg@ are not looked for, since other tools use it too; a
+-- file given by name is taken whatever its extension (ADR 0050).
 module Files (grammarFiles) where
 
 import Data.List (isPrefixOf, sort)
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeExtension, takeFileName, (</>))
 
--- | The given files, or the @.peg@ files found by walking the current
+-- | The given files, or the @.hpeg@ files found by walking the current
 -- directory, skipping directories whose name starts with @.@ and
 -- @dist-newstyle@, in the order of their paths. A given directory is
 -- walked in the same way.
@@ -29,5 +31,5 @@ walk dir = do
       isDir <- doesDirectoryExist path
       if isDir
         then if skipped name then pure [] else walk (Just path)
-        else pure [path | takeExtension name == ".peg"]
+        else pure [path | takeExtension name == ".hpeg"]
     skipped name = "." `isPrefixOf` takeFileName name || name == "dist-newstyle"

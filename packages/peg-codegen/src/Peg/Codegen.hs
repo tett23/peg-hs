@@ -64,11 +64,11 @@ data Options = Options
   }
   deriving (Eq, Show)
 
--- | Options for a grammar named @Grammar.peg@ generated into @Grammar.hs@,
+-- | Options for a grammar named @Grammar.hpeg@ generated into @Grammar.hs@,
 -- without the debugging entry points. Override the file names with record
 -- update syntax.
 defaultOptions :: Options
-defaultOptions = Options "Grammar.peg" "Grammar.hs" False
+defaultOptions = Options "Grammar.hpeg" "Grammar.hs" False
 
 -- | Parse, check and generate: 'Peg.Grammar.Parser.parseGrammar' followed
 -- by 'generate'. The diagnostics are errors, located in the grammar.
@@ -80,10 +80,10 @@ defaultOptions = Options "Grammar.peg" "Grammar.hs" False
 --
 -- main :: IO ()
 -- main = do
---   src <- TIO.readFile \"grammar\/Calc.peg\"
---   let opts = defaultOptions {optSourceName = \"grammar\/Calc.peg\", optOutputName = \"src\/Calc.hs\"}
+--   src <- TIO.readFile \"grammar\/Calc.hpeg\"
+--   let opts = defaultOptions {optSourceName = \"grammar\/Calc.hpeg\", optOutputName = \"src\/Calc.hs\"}
 --   case generateFromSource opts src of
---     Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"grammar\/Calc.peg\") diags
+--     Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"grammar\/Calc.hpeg\") diags
 --     Right code -> TIO.writeFile \"src\/Calc.hs\" code
 -- @
 --

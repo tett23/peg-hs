@@ -1,4 +1,4 @@
--- | The language server of the @.peg@ notation over standard input and
+-- | The language server of the @.hpeg@ notation over standard input and
 -- output (ADR 0035). The handling of messages is in "Peg.Lsp.Server"; this
 -- module only reads and writes the framed messages ("Peg.Lsp.Rpc").
 --

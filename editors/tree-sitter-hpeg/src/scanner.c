@@ -1,27 +1,27 @@
-// The external scanner of the .peg notation (ADR 0045): the text of a
+// The external scanner of the .hpeg notation (ADR 0045): the text of a
 // verbatim block, which ends before the first }%. With }}% the first } is
 // text, which a regular expression of tree-sitter cannot say.
 #include "tree_sitter/parser.h"
 
 enum TokenType { VERBATIM_BODY };
 
-void *tree_sitter_peg_external_scanner_create(void) { return NULL; }
+void *tree_sitter_hpeg_external_scanner_create(void) { return NULL; }
 
-void tree_sitter_peg_external_scanner_destroy(void *payload) { (void)payload; }
+void tree_sitter_hpeg_external_scanner_destroy(void *payload) { (void)payload; }
 
-unsigned tree_sitter_peg_external_scanner_serialize(void *payload, char *buffer) {
+unsigned tree_sitter_hpeg_external_scanner_serialize(void *payload, char *buffer) {
   (void)payload;
   (void)buffer;
   return 0;
 }
 
-void tree_sitter_peg_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+void tree_sitter_hpeg_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
   (void)payload;
   (void)buffer;
   (void)length;
 }
 
-bool tree_sitter_peg_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+bool tree_sitter_hpeg_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   (void)payload;
   if (!valid_symbols[VERBATIM_BODY]) return false;
   bool any = false;

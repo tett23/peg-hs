@@ -6,7 +6,7 @@ peg-hs is a toolchain that generates Haskell parsers from grammars written as PE
 
 ## Overview
 
-A grammar is written in a `.peg` file.
+A grammar is written in a `.hpeg` file.
 Each rule has a result type and semantic actions: Haskell expressions that make the value of the rule when it succeeds.
 `peg-hs gen` generates a Haskell module from the grammar, and a program calls the `parse` of that module to get its own AST directly.
 
@@ -14,7 +14,7 @@ Compared with other parser generators, peg-hs has these features:
 
 - **Left recursion as written**: direct and indirect left recursion, such as `Expr <- Expr '+' Term / Term`, is accepted. The semantics is bounded left recursion (Medeiros et al. 2014) ([ADR 0001](docs/adr/0001-bounded-left-recursion.md)).
 - **Small dependencies of generated modules**: a generated module depends only on the runtime library peg-runtime. The same grammar generates the same module byte for byte, so generated modules can be committed ([ADR 0002](docs/adr/0002-standalone-code-generator.md)).
-- **Type errors at the lines of the grammar**: GHC reports type errors in actions at the line and column of the `.peg` file ([ADR 0014](docs/adr/0014-generated-module-api.md)).
+- **Type errors at the lines of the grammar**: GHC reports type errors in actions at the line and column of the `.hpeg` file ([ADR 0014](docs/adr/0014-generated-module-api.md)).
 - **Context-sensitive syntax**: semantic predicates, parameterized rules, a read-only parse environment and column references express indentation-sensitive syntax and forward references, while keeping packrat memoization and left recursion correct ([ADR 0012](docs/adr/0012-context-sensitive-extensions.md)).
 - **Syntax trees that keep whitespace and comments**: with `%syntax`, a lossless syntax tree in the style of rust-analyzer is built too, for tools such as formatters and linters ([ADR 0019](docs/adr/0019-lossless-syntax-tree.md)).
 - **Recovery from syntax errors**: labelled failures (`e ^label` and `%recover`) report several errors in one parse. The recovering mode always returns a lossless syntax tree with error nodes, for language servers ([ADR 0021](docs/adr/0021-error-recovery.md)).
@@ -57,10 +57,10 @@ cabal install exe:peg-hs --installdir="$HOME/.local/bin" --install-method=copy -
 ## A first grammar
 
 This section generates and uses a grammar of expressions with addition, multiplication and parentheses.
-Put the following grammar in `grammar/Calc.peg`.
+Put the following grammar in `grammar/Calc.hpeg`.
 
-<!-- readme-example: grammar/Calc.peg -->
-```peg
+<!-- readme-example: grammar/Calc.hpeg -->
+```hpeg
 %module Calc.Parser
 %{
 import qualified Data.Text as T
@@ -97,7 +97,7 @@ Between `%{` and `}%` (a verbatim block) is Haskell that goes into the generated
 Generate the module with `peg-hs gen`.
 
 ```sh
-peg-hs gen grammar/Calc.peg -o src/Calc/Parser.hs
+peg-hs gen grammar/Calc.hpeg -o src/Calc/Parser.hs
 ```
 
 A generated module records the paths given to `gen`: in the comment at its top, and in `LINE` pragmas that point the errors of GHC at the lines of the grammar.
@@ -108,7 +108,7 @@ To try the grammar before putting the module in a project, `peg-hs parse` parses
 
 ```sh
 echo -n '1 + 2 * (3 + 4)' > input.txt
-peg-hs parse grammar/Calc.peg input.txt
+peg-hs parse grammar/Calc.hpeg input.txt
 ```
 
 ```text
@@ -189,10 +189,10 @@ Files are read and written as UTF-8, whatever the locale ([ADR 0045](docs/adr/00
 
 | Command | Purpose |
 |---|---|
-| `peg-hs gen GRAMMAR.peg [-o FILE]` | generate a Haskell module from a grammar |
+| `peg-hs gen GRAMMAR.hpeg [-o FILE]` | generate a Haskell module from a grammar |
 | `peg-hs fmt [FILE\|DIR...]` | format grammars in one style |
 | `peg-hs lint [FILE\|DIR...]` | warn of what is a mistake in grammars |
-| `peg-hs parse GRAMMAR.peg INPUT` | parse an input and show its AST or syntax tree |
+| `peg-hs parse GRAMMAR.hpeg INPUT` | parse an input and show its AST or syntax tree |
 | `peg-hs lsp` | run the language server on standard input and output |
 
 The exit status is 0 on success and 2 for a mistake in the use of a command.
@@ -213,8 +213,9 @@ With `--Werror`, a warning makes it fail without writing the module.
 No option chooses the style. Comments are kept.
 `--check` writes nothing; it lists the files that are not formatted, and fails if there are any. It is for checks in CI.
 
-A directory among the arguments stands for the `.peg` files under it.
-Without arguments, `fmt` takes every `.peg` file under the current directory.
+A directory among the arguments stands for the `.hpeg` files under it.
+Files with the old extension `.peg` are not looked for, since other PEG tools use it too; a file given by name is taken whatever its extension ([ADR 0050](docs/adr/0050-hpeg-extension.md)).
+Without arguments, `fmt` takes every `.hpeg` file under the current directory.
 Either way, directories whose name starts with `.` and `dist-newstyle` are skipped.
 
 ### lint
@@ -252,7 +253,7 @@ The results of checks go to `docs/editors/`, and an editor loses this mark when 
 
 ### VS Code (unchecked)
 
-`editors/vscode` is an extension with the TextMate grammar (`editors/textmate/peg.tmLanguage.json`) that starts the language server.
+`editors/vscode` is an extension with the TextMate grammar (`editors/textmate/hpeg.tmLanguage.json`) that starts the language server.
 It is not on the Marketplace yet, so install it from the repository: install its dependencies, link it into the directory of extensions, and restart VS Code.
 If `peg-hs` is not on `PATH`, the setting `peg-hs.path` points at the executable.
 
@@ -263,59 +264,67 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim (unchecked)
 
-For highlighting, register the tree-sitter grammar `editors/tree-sitter-peg` with nvim-treesitter (the main branch).
-A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall peg` in Neovim.
+For highlighting, register the tree-sitter grammar `editors/tree-sitter-hpeg` with nvim-treesitter (the main branch).
+A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall hpeg` in Neovim.
 Building the grammar needs the tree-sitter CLI.
 nvim-treesitter does not turn highlighting on by itself, so a `FileType` autocommand calls `vim.treesitter.start()`.
 
 ```lua
-vim.filetype.add({ extension = { peg = 'peg' } })
+vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
-  require('nvim-treesitter.parsers').peg = {
-    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-peg', queries = 'queries' },
+  require('nvim-treesitter.parsers').hpeg = {
+    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
   }
 end })
-vim.api.nvim_create_autocmd('FileType', { pattern = 'peg', callback = function() vim.treesitter.start() end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() vim.treesitter.start() end })
 ```
 
 With the old version of nvim-treesitter (the master branch), register it with `get_parser_configs()`.
-The grammar has an external scanner (`src/scanner.c`), so `files` lists two files; copy the queries to `queries/peg/` on the runtime path.
+The grammar has an external scanner (`src/scanner.c`), so `files` lists two files; copy the queries to `queries/hpeg/` on the runtime path.
 
 ```lua
-require('nvim-treesitter.parsers').get_parser_configs().peg = {
-  install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c', 'src/scanner.c' } },
-  filetype = 'peg',
+require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
+  install_info = { url = '/path/to/peg-hs/editors/tree-sitter-hpeg', files = { 'src/parser.c', 'src/scanner.c' } },
+  filetype = 'hpeg',
 }
 ```
 
 The language server is set up with `vim.lsp.config` of Neovim 0.11 or later.
 
 ```lua
-vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'peg' }, root_markers = { '.git' } })
+vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
 vim.lsp.enable('peg_hs')
 ```
 
 ### Helix (unchecked)
 
 Add the language, the grammar and the language server to `languages.toml`, and run `hx --grammar build`.
-Copy the queries to `runtime/queries/peg/`.
+Copy the queries to `runtime/queries/hpeg/`.
 
 ```toml
 [[language]]
-name = "peg"
-scope = "source.peg"
-file-types = ["peg"]
+name = "hpeg"
+scope = "source.hpeg"
+file-types = ["hpeg"]
 comment-token = "#"
 language-servers = ["peg-hs"]
 
 [[grammar]]
-name = "peg"
-source = { path = "/path/to/peg-hs/editors/tree-sitter-peg" }
+name = "hpeg"
+source = { path = "/path/to/peg-hs/editors/tree-sitter-hpeg" }
 
-[language-server.peg-hs]
+[language-server.hpeg-hs]
 command = "peg-hs"
 args = ["lsp"]
 ```
+
+## Migrating from the extension .peg
+
+Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the language of the editors is `hpeg` ([ADR 0050](docs/adr/0050-hpeg-extension.md)).
+
+1. Rename the grammars: `git mv Grammar.peg Grammar.hpeg`.
+2. Generate the modules again with the new paths, since a generated module records the path of its grammar.
+3. Change the editor settings: the language and file type `peg` becomes `hpeg`, the tree-sitter grammar is `editors/tree-sitter-hpeg`, and the queries go to `queries/hpeg/`.
 
 ## Known limitations
 
@@ -333,7 +342,7 @@ args = ["lsp"]
 
 ## Documents
 
-- [docs/syntax.md](docs/syntax.md): the `.peg` notation, with examples (in Japanese)
+- [docs/syntax.md](docs/syntax.md): the `.hpeg` notation, with examples (in Japanese)
 - [docs/specifications.md](docs/specifications.md): the specification of the product (in Japanese)
 - [docs/adr/](docs/adr/): the records of design decisions (ADRs), in Japanese. Each item of the specification can be traced to its decision.
 - [CONTRIBUTING.md](CONTRIBUTING.md): the development environment, tests, regenerating generated files, ADRs, commits and the release procedure

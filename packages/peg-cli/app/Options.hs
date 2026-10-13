@@ -22,7 +22,7 @@ data Command = Command
   , cmdSummary :: String
   -- ^ One line for the list of commands.
   , cmdArguments :: String
-  -- ^ The arguments in the usage line, such as @GRAMMAR.peg@.
+  -- ^ The arguments in the usage line, such as @GRAMMAR.hpeg@.
   , cmdDescription :: [String]
   , cmdOptions :: [Opt]
   , cmdExamples :: [(String, String)]

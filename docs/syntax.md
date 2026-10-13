@@ -1,12 +1,12 @@
-# .peg 記法
+# .hpeg 記法
 
-peg-hs の文法定義ファイル（`.peg`）の書き方を、例を中心に解説する。
+peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に解説する。
 記法の各要素について、何をするものか、どう書くか、書き誤ったときに peg-hs が何を報告するかを順に述べる。
 規範は各 ADR にあり、この文書はそれを利用者の側から読める形にまとめたものである。
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -15,7 +15,7 @@ peg-hs の文法定義ファイル（`.peg`）の書き方を、例を中心に�
 
 加算だけを持つ式の文法から始める。
 
-```peg
+```hpeg
 %module Example.Sum
 
 %{
@@ -31,7 +31,7 @@ Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 ```
 
-`peg-hs gen Sum.peg` は、この文法から Haskell のモジュール `Example.Sum` を生成する。
+`peg-hs gen Sum.hpeg` は、この文法から Haskell のモジュール `Example.Sum` を生成する。
 モジュールは入口 `parse :: Text -> Either ParseError Int` を公開し、`parse "1+2+3"` は `Right 6` を返す。
 `Sum` は自分自身を左端で呼ぶ左再帰の規則であり、`1+2+3` は `(1+2)+3` の順に組み立てられる。
 
@@ -45,7 +45,7 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 peg-hs は、文法の誤りを次の形で標準エラー出力に書く。
 
 ```
-Sum.peg:3:6: error: undefined rule Num
+Sum.hpeg:3:6: error: undefined rule Num
 ```
 
 ファイル名、行、桁に続けて、誤りの文言が来る。
@@ -70,7 +70,7 @@ Sum.peg:3:6: error: undefined rule Num
 `#` から行末までがコメントになる。
 リテラル、文字クラス、アクションの内側の `#` はコメントにならない。
 
-```peg
+```hpeg
 %module Example.Hash
 
 # この行はコメント
@@ -126,7 +126,7 @@ Hash <- '#' { () }    # リテラルの '#' はコメントではない
 import、構文木の型、アクションから呼ぶ補助関数をここに書く。
 複数のブロックを書いた場合は、出現順に連結される。
 
-```peg
+```hpeg
 %module Example.Digit
 
 %{
@@ -163,7 +163,7 @@ verbatim ブロックはモジュールの先頭より後ろに置かれる。
 そのため、verbatim ブロックに `{-# LANGUAGE OverloadedStrings #-}` を書いても効かない。
 言語拡張は `%language` ディレクティブで有効にする（[ADR 0016](adr/0016-language-extensions.md)）。
 
-```peg
+```hpeg
 %module Example.Words
 %language OverloadedStrings
 
@@ -202,7 +202,7 @@ Sign <- '+' { "plus" }
 
 規則は、型注釈と定義の組で書く。
 
-```peg
+```hpeg
 # 断片
 Name :: 型
 Name <- 選択肢 / 選択肢 / ...
@@ -221,7 +221,7 @@ Name <- 選択肢 / 選択肢 / ...
 先頭は英字か `_`、二文字目以降は英数字、`_`、`'` である。
 英字の判定は Haskell の `Data.Char.isAlpha` に従うので、漢字や仮名も英字として扱われる。
 
-```peg
+```hpeg
 %module Example.Japanese
 %start 数式
 
@@ -284,7 +284,7 @@ import Data.Text (unpack)
 文字クラスに否定の形 `[^...]` はない。
 「`a` から `z` 以外の一文字」は、否定先読みと `.` を組み合わせて `![a-z] .` と書く。
 
-```peg
+```hpeg
 %module Example.Quoted
 
 %{
@@ -369,7 +369,7 @@ lint の警告の位置（`3:6` など）は、後ろの選択肢を成功させ
 リテラル、文字クラス、`.`、先読み、意味述語は値を持たない。
 リテラルや文字クラスに一致した文字が欲しいときは、`$` で取る。
 
-```peg
+```hpeg
 # 断片
 Ident :: Text
 Ident <- s:$([a-z] [a-z0-9]*) { s }
@@ -384,7 +384,7 @@ Ident <- s:$([a-z] [a-z0-9]*) { s }
 型注釈が `()` の規則と、それに `*`、`+`、`?` を付けたものがこれにあたる。
 そのため、空白の規則を挟んでもグループの値は一つのままである。
 
-```peg
+```hpeg
 %module Example.List
 
 %{
@@ -412,7 +412,7 @@ Sp <- [ \t]* { () }
 値が使われない位置では、グループの選択肢の値の型が違ってもよい（[ADR 0026](adr/0026-discard-unused-values.md)）。
 値が使われない位置は、テキストキャプチャ `$e` の中、先読み `&e` と `!e` の中、アクションを書いた選択肢の束縛しない要素である。
 
-```peg
+```hpeg
 %module Example.Word
 
 %{
@@ -431,14 +431,14 @@ Name <- n:$[a-z]+ { n }
 ```
 
 逆に、グループの値が使われる位置（束縛した要素や、アクションを省略した選択肢の値になる要素）では、どの選択肢の値も同じ型でなければならない。
-型が合わなければ、生成モジュールのコンパイルで GHC が `.peg` の位置を指して報告する。
+型が合わなければ、生成モジュールのコンパイルで GHC が `.hpeg` の位置を指して報告する。
 
 ### 束縛
 
 `名前:式` の形で、式の値に名前を付ける。
 名前はアクション、意味述語、規則の引数から Haskell の変数として参照するので、小文字で始める。
 
-```peg
+```hpeg
 # 断片
 Pair :: (Int, Int)
 Pair <- '(' a:Num ',' b:Num ')' { (a, b) }
@@ -481,7 +481,7 @@ Pair <- '(' a:Num ',' b:Num ')' { (a, b) }
 選択肢の末尾に `{ Haskell の式 }` を書くと、その式が選択肢の値になる。
 式の型は、規則の型注釈と一致しなければならない。
 
-```peg
+```hpeg
 # 断片
 Signed :: Int
 Signed <- '-' n:Num { negate n }
@@ -495,7 +495,7 @@ peg-hs はアクションを、波括弧の釣り合いを数えて読む。
 Haskell の文字列リテラルと文字リテラルの中の括弧は数えないので、`{ pack "}" }` は正しく読める。
 ブロックコメント `{- -}` の中の括弧は数えてしまうので、アクションにはブロックコメントを書かない。
 
-アクションに型の誤りがあると、GHC はそのエラーを生成されたファイルではなく `.peg` ファイルの行と桁で報告する（[ADR 0014](adr/0014-generated-module-api.md)）。
+アクションに型の誤りがあると、GHC はそのエラーを生成されたファイルではなく `.hpeg` ファイルの行と桁で報告する（[ADR 0014](adr/0014-generated-module-api.md)）。
 
 よくある誤り：
 
@@ -515,7 +515,7 @@ Haskell の文字列リテラルと文字リテラルの中の括弧は数えな
 その要素の値がそのまま選択肢の値になる。
 上の `Signed` の二つめの選択肢は、次のように書いてもよい。
 
-```peg
+```hpeg
 # 断片
 Signed :: Int
 Signed <- '-' n:Num { negate n }
@@ -541,7 +541,7 @@ Signed <- '-' n:Num { negate n }
 `Span` は開始と終了の位置を持ち、位置はバイトオフセット、行、桁からなる。
 構文木のノードに位置を持たせるときに使う。
 
-```peg
+```hpeg
 %module Example.Located
 %export Expr(..)
 
@@ -577,7 +577,7 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 雛形は、予約語や区切りのある列のように、文法の中に何度も現れる形を一度だけ書くためのものである。
 引数は式であり、雛形の本体では引数を非終端のように書く。
 
-```peg
+```hpeg
 %module Example.Print
 
 %{
@@ -641,7 +641,7 @@ List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 直接の左再帰は左結合の値を作る。
 右結合にしたい場合は、右再帰で書く。
 
-```peg
+```hpeg
 # 断片
 Sub :: Int
 Sub <- l:Sub '-' r:Num { l - r }   # 10-3-2 は (10-3)-2 すなわち 5
@@ -655,7 +655,7 @@ Pow <- b:Num '^' e:Pow { b ^ e }   # 2^3^2 は 2^(3^2)
 複数の規則を経由する間接の左再帰も書ける。
 演算子の優先順位は、規則の階層で表す。
 
-```peg
+```hpeg
 %module Example.Calc
 
 %{
@@ -707,7 +707,7 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 `&{ 式 }` は、Haskell の真偽式が真のときに、入力を消費せずに成功する。
 `!{ 式 }` は偽のときに成功する。
 
-```peg
+```hpeg
 # 断片
 Byte :: Int
 Byte <- n:Num &{ n < 256 } { n }
@@ -722,7 +722,7 @@ Byte <- n:Num &{ n < 256 } { n }
 規則は Haskell の値を引数に取れる。
 型注釈で引数の名前と型を宣言し、呼び出しでは Haskell の式を渡す。
 
-```peg
+```hpeg
 # 断片
 Indent(w :: Int) :: ()
 Indent <- &{ _col >= w } { () }
@@ -754,7 +754,7 @@ Indent <- &{ _col >= w } { () }
 宣言した文法の入口は、最初の引数に環境を取る。
 規則の中からは `_env` で参照する。
 
-```peg
+```hpeg
 %module Example.Link
 %env Set Text
 
@@ -785,7 +785,7 @@ Link <- '[' l:$[a-z]+ ']' &{ member l _env } { l }
 `_col` はアクションからは参照できない。
 桁を値として受け取りたいときは、桁を引数に取ってそのまま返す規則を通す。
 
-```peg
+```hpeg
 %module Example.Column
 
 Item :: Int
@@ -806,7 +806,7 @@ CommonMark のように、コンテナの接頭辞がタブの途中までを消
 既定では、すべての規則の結果は位置ごとにメモ表に記録され、同じ規則が同じ位置で二度評価されることはない。
 空白や一文字の字句のように、同じ位置で二度呼ばれることがほとんどない規則は、`%nomemo` でメモ化を外すとメモリを減らせる（[ADR 0017](adr/0017-nomemo-implementation.md)）。
 
-```peg
+```hpeg
 # 断片
 %nomemo Ws
 %nomemo Hex
@@ -883,7 +883,7 @@ peg-runtime の `renderParseError` は、失敗を人間向けの一行にする
 型付きの値に空白やコメントを持たせると、すべての規則のアクションで空白の値を拾うことになり、一か所でも拾い忘れれば元の文字列を復元できなくなる。
 構文木は、この手間をなくす。
 
-```peg
+```hpeg
 %module Example.CalcSyntax
 %syntax
 %token Num
@@ -970,7 +970,7 @@ exprR :: ExprSyntax -> Maybe SyntaxToken
 一つは、誤りの報告にラベルの名前を載せることである。
 もう一つは、`%recover` で回復の規則を与え、誤りを含む入力からも結果を得ることである。
 
-```peg
+```hpeg
 %module Example.Commands
 %recover close CloseAtLineEnd
 
@@ -1018,8 +1018,8 @@ CloseAtLineEnd <- &('\n' / !.) { () }
 危険かもしれないラベルは警告として報告し、生成は続ける。
 
 ```
-$ peg-hs gen Grammar.peg
-Grammar.peg:3:11: warning: the label l may reject valid input: where it fails, the alternative at 3:28 can match
+$ peg-hs gen Grammar.hpeg
+Grammar.hpeg:3:11: warning: the label l may reject valid input: where it fails, the alternative at 3:28 can match
 ```
 
 この例は、`S <- 'a' ('b' ^l) { () } / 'a' 'c' { () }` の `l` への警告である。
@@ -1048,7 +1048,7 @@ Grammar.peg:3:11: warning: the label l may reject valid input: where it fails, t
 安全なことを確かめたラベルは、`%safe` で警告を止める。
 理由はコメントに書く。
 
-```peg
+```hpeg
 # 断片
 # [[ と [ は二文字目まで見れば区別できる
 %safe table
@@ -1097,8 +1097,8 @@ parseRecover :: Text -> (Maybe [Inline], [SyntaxError])     -- 回復する
 その代わり、どの規則も文法の意味から必ず導ける問題だけを指すので、警告は文法を直せば必ず消える。
 
 ```
-$ peg-hs lint Op.peg
-Op.peg:4:7: warning: the alternative never succeeds: the alternative at 3:7 matches its prefix '=' first [unreachable-alternative]; move it before the alternative that matches the prefix
+$ peg-hs lint Op.hpeg
+Op.hpeg:4:7: warning: the alternative never succeeds: the alternative at 3:7 matches its prefix '=' first [unreachable-alternative]; move it before the alternative that matches the prefix
 ```
 
 警告は、位置、文言、角括弧の中の規則の名前、セミコロンの後の直し方の順に並ぶ。

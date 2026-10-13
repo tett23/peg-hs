@@ -320,8 +320,8 @@ HsIdent :: ()
 HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }
 
 # ---------------------------------------------------------------------------------
-# ここから下は構文木の変種（grammar/PegSyntax.peg）にだけ加わる。
-# 再生成のスクリプトが、grammar/Peg.peg の %module を置き換え、TopItem の
+# ここから下は構文木の変種（grammar/PegSyntax.hpeg）にだけ加わる。
+# 再生成のスクリプトが、grammar/Peg.hpeg の %module を置き換え、TopItem の
 # 送出を加え、この文書を末尾に加えて変種を作る（ADR 0032、0035）。
 %syntax
 %token Comment

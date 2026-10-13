@@ -32,3 +32,12 @@ subcommands ([ADR 0037](https://github.com/tett23/peg-hs/blob/main/docs/adr/0037
   ASCII as itself ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+
+### Changed
+
+Since v0.1.0-rc1:
+
+- Grammar files are `.hpeg`: `fmt` and `lint` look for `.hpeg` files, not
+  `.peg` files, which other PEG tools use too. A file given by name is
+  taken whatever its extension
+  ([ADR 0050](https://github.com/tett23/peg-hs/blob/main/docs/adr/0050-hpeg-extension.md)).

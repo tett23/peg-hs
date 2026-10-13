@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "peg-hs",
-  "scopeName": "source.peg",
+  "scopeName": "source.hpeg",
   "fileTypes": [
-    "peg"
+    "hpeg"
   ],
   "patterns": [
     {
@@ -24,7 +24,7 @@
   ],
   "repository": {
     "comment": {
-      "name": "comment.line.number-sign.peg",
+      "name": "comment.line.number-sign.hpeg",
       "match": "#.*$"
     },
     "verbatim": {
@@ -32,13 +32,13 @@
       "begin": "^\\s*(%\\{)",
       "beginCaptures": {
         "1": {
-          "name": "punctuation.section.embedded.begin.peg"
+          "name": "punctuation.section.embedded.begin.hpeg"
         }
       },
       "end": "(\\}%)",
       "endCaptures": {
         "1": {
-          "name": "punctuation.section.embedded.end.peg"
+          "name": "punctuation.section.embedded.end.hpeg"
         }
       },
       "contentName": "source.haskell",
@@ -55,13 +55,13 @@
       "match": "^\\s*(%[\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
       "captures": {
         "1": {
-          "name": "keyword.other.directive.peg"
+          "name": "keyword.other.directive.hpeg"
         },
         "2": {
-          "name": "string.unquoted.directive.peg"
+          "name": "string.unquoted.directive.hpeg"
         },
         "3": {
-          "name": "comment.line.number-sign.peg"
+          "name": "comment.line.number-sign.hpeg"
         }
       }
     },
@@ -69,7 +69,7 @@
       "begin": "^([\\p{L}_][\\p{L}\\p{N}_']*)(?=(?:\\s*<[^>\\n]*>)?(?:\\s*\\([^\\n]*\\))?\\s*::)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.function.rule.peg"
+          "name": "entity.name.function.rule.hpeg"
         }
       },
       "end": "$",
@@ -81,16 +81,16 @@
           "begin": "\\(",
           "beginCaptures": {
             "0": {
-              "name": "punctuation.section.parameters.begin.peg"
+              "name": "punctuation.section.parameters.begin.hpeg"
             }
           },
           "end": "\\)",
           "endCaptures": {
             "0": {
-              "name": "punctuation.section.parameters.end.peg"
+              "name": "punctuation.section.parameters.end.hpeg"
             }
           },
-          "contentName": "meta.embedded.parameters.peg source.haskell",
+          "contentName": "meta.embedded.parameters.hpeg source.haskell",
           "patterns": [
             {
               "include": "#haskell-nested"
@@ -113,10 +113,10 @@
           "match": "(::)\\s*(.*)$",
           "captures": {
             "1": {
-              "name": "keyword.operator.definition.peg"
+              "name": "keyword.operator.definition.hpeg"
             },
             "2": {
-              "name": "meta.embedded.type.peg source.haskell",
+              "name": "meta.embedded.type.hpeg source.haskell",
               "patterns": [
                 {
                   "include": "#haskell-string"
@@ -134,7 +134,7 @@
       "begin": "^([\\p{L}_][\\p{L}\\p{N}_']*)(?=(?:\\s*<[^>\\n]*>)?\\s*<-)",
       "beginCaptures": {
         "1": {
-          "name": "entity.name.function.rule.peg"
+          "name": "entity.name.function.rule.hpeg"
         }
       },
       "end": "(?=^\\s*(?:%|[\\p{L}_][\\p{L}\\p{N}_']*(?:\\s*<[^>\\n]*>)?(?:\\s*\\([^\\n]*\\))?\\s*(?:::|<-)))",
@@ -151,23 +151,23 @@
       "begin": "\\G\\s*(<)(?!-)",
       "beginCaptures": {
         "1": {
-          "name": "punctuation.definition.template.peg"
+          "name": "punctuation.definition.template.hpeg"
         }
       },
       "end": ">",
       "endCaptures": {
         "0": {
-          "name": "punctuation.definition.template.peg"
+          "name": "punctuation.definition.template.hpeg"
         }
       },
       "patterns": [
         {
           "match": "::",
-          "name": "keyword.operator.definition.peg"
+          "name": "keyword.operator.definition.hpeg"
         },
         {
           "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
-          "name": "variable.parameter.template.peg"
+          "name": "variable.parameter.template.hpeg"
         }
       ]
     },
@@ -205,42 +205,42 @@
         },
         {
           "match": "<-|::",
-          "name": "keyword.operator.definition.peg"
+          "name": "keyword.operator.definition.hpeg"
         },
         {
           "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
-          "name": "variable.other.rule.peg"
+          "name": "variable.other.rule.hpeg"
         },
         {
           "match": "/",
-          "name": "keyword.operator.choice.peg"
+          "name": "keyword.operator.choice.hpeg"
         },
         {
           "match": "[*+?&!$]",
-          "name": "keyword.operator.peg"
+          "name": "keyword.operator.hpeg"
         },
         {
           "match": "\\.",
-          "name": "constant.language.any.peg"
+          "name": "constant.language.any.hpeg"
         },
         {
           "match": "[()]",
-          "name": "punctuation.section.group.peg"
+          "name": "punctuation.section.group.hpeg"
         }
       ]
     },
     "action": {
-      "name": "meta.embedded.action.peg",
+      "name": "meta.embedded.action.hpeg",
       "begin": "\\{",
       "beginCaptures": {
         "0": {
-          "name": "punctuation.section.action.begin.peg"
+          "name": "punctuation.section.action.begin.hpeg"
         }
       },
       "end": "\\}",
       "endCaptures": {
         "0": {
-          "name": "punctuation.section.action.end.peg"
+          "name": "punctuation.section.action.end.hpeg"
         }
       },
       "contentName": "source.haskell",
@@ -263,20 +263,20 @@
       ]
     },
     "predicate": {
-      "name": "meta.embedded.predicate.peg",
+      "name": "meta.embedded.predicate.hpeg",
       "begin": "([&!])\\s*(\\{)",
       "beginCaptures": {
         "1": {
-          "name": "keyword.operator.peg"
+          "name": "keyword.operator.hpeg"
         },
         "2": {
-          "name": "punctuation.section.predicate.begin.peg"
+          "name": "punctuation.section.predicate.begin.hpeg"
         }
       },
       "end": "\\}",
       "endCaptures": {
         "0": {
-          "name": "punctuation.section.predicate.end.peg"
+          "name": "punctuation.section.predicate.end.hpeg"
         }
       },
       "contentName": "source.haskell",
@@ -302,19 +302,19 @@
       "begin": "([\\p{L}_][\\p{L}\\p{N}_']*)(\\()",
       "beginCaptures": {
         "1": {
-          "name": "variable.other.rule.peg"
+          "name": "variable.other.rule.hpeg"
         },
         "2": {
-          "name": "punctuation.section.arguments.begin.peg"
+          "name": "punctuation.section.arguments.begin.hpeg"
         }
       },
       "end": "\\)",
       "endCaptures": {
         "0": {
-          "name": "punctuation.section.arguments.end.peg"
+          "name": "punctuation.section.arguments.end.hpeg"
         }
       },
-      "contentName": "meta.embedded.arguments.peg source.haskell",
+      "contentName": "meta.embedded.arguments.hpeg source.haskell",
       "patterns": [
         {
           "include": "#haskell-nested"
@@ -337,22 +337,22 @@
       "begin": "([\\p{L}_][\\p{L}\\p{N}_']*)(<)(?!-)",
       "beginCaptures": {
         "1": {
-          "name": "variable.other.rule.peg"
+          "name": "variable.other.rule.hpeg"
         },
         "2": {
-          "name": "punctuation.definition.template.peg"
+          "name": "punctuation.definition.template.hpeg"
         }
       },
       "end": ">",
       "endCaptures": {
         "0": {
-          "name": "punctuation.definition.template.peg"
+          "name": "punctuation.definition.template.hpeg"
         }
       },
       "patterns": [
         {
           "match": ",",
-          "name": "punctuation.separator.template.peg"
+          "name": "punctuation.separator.template.hpeg"
         },
         {
           "include": "#expression"
@@ -360,7 +360,7 @@
       ]
     },
     "literal-single": {
-      "name": "string.quoted.single.peg",
+      "name": "string.quoted.single.hpeg",
       "begin": "'",
       "end": "'|$",
       "patterns": [
@@ -370,7 +370,7 @@
       ]
     },
     "literal-double": {
-      "name": "string.quoted.double.peg",
+      "name": "string.quoted.double.hpeg",
       "begin": "\"",
       "end": "\"|$",
       "patterns": [
@@ -380,7 +380,7 @@
       ]
     },
     "class": {
-      "name": "string.regexp.class.peg",
+      "name": "string.regexp.class.hpeg",
       "begin": "\\[",
       "end": "\\]|$",
       "patterns": [
@@ -390,19 +390,19 @@
       ]
     },
     "escape": {
-      "name": "constant.character.escape.peg",
+      "name": "constant.character.escape.hpeg",
       "match": "\\\\(?:u\\{[0-9a-fA-F]*\\}|.)"
     },
     "label": {
-      "name": "entity.name.tag.label.peg",
+      "name": "entity.name.tag.label.hpeg",
       "match": "\\^\\s*[\\p{L}_][\\p{L}\\p{N}_']*"
     },
     "binding": {
-      "name": "variable.parameter.binding.peg",
+      "name": "variable.parameter.binding.hpeg",
       "match": "[\\p{L}_][\\p{L}\\p{N}_']*:(?!:)"
     },
     "reserved-binding": {
-      "name": "variable.language.peg",
+      "name": "variable.language.hpeg",
       "match": "(?<![\\p{L}\\p{N}_'])(?:_span|_env|_col)(?![\\p{L}\\p{N}_'])"
     },
     "haskell-nested": {

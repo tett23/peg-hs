@@ -1,7 +1,7 @@
 {
-  "name": "tree-sitter-peg",
+  "name": "tree-sitter-hpeg",
   "version": "0.1.0",
-  "description": "The .peg notation of peg-hs for tree-sitter",
+  "description": "The .hpeg notation of peg-hs for tree-sitter",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -10,13 +10,13 @@
   },
   "tree-sitter": [
     {
-      "scope": "source.peg",
+      "scope": "source.hpeg",
       "file-types": [
-        "peg"
+        "hpeg"
       ],
       "highlights": "queries/highlights.scm",
       "injections": "queries/injections.scm",
-      "injection-regex": "^peg$"
+      "injection-regex": "^hpeg$"
     }
   ]
 }

@@ -3,6 +3,6 @@ dist-newstyle/
 *.o
 .ghc.environment.*
 # The parser that tree-sitter and nvim-treesitter build in the grammar directory.
-editors/tree-sitter-peg/*.so
-editors/tree-sitter-peg/*.dylib
-editors/tree-sitter-peg/*.wasm
+editors/tree-sitter-hpeg/*.so
+editors/tree-sitter-hpeg/*.dylib
+editors/tree-sitter-hpeg/*.wasm

@@ -23,7 +23,7 @@ formatTests :: [FilePath] -> TestTree
 formatTests files =
   testGroup
     "formatter (ADR 0032)"
-    ( [ goldenVsString "the style" "test/golden/format/output.peg" $ do
+    ( [ goldenVsString "the style" "test/golden/format/output.hpeg" $ do
         src <- TIO.readFile "test/golden/format/input.txt"
         either (assertFailure . show) (pure . BL.fromStrict . TE.encodeUtf8) (formatGrammar src)
     , testCase "idempotent and meaning-preserving on the grammars of the repository" $ do

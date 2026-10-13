@@ -20,7 +20,7 @@ genCommand =
   Command
     { cmdName = "gen"
     , cmdSummary = "generate a Haskell module from a grammar"
-    , cmdArguments = "GRAMMAR.peg"
+    , cmdArguments = "GRAMMAR.hpeg"
     , cmdDescription =
         [ "Generate a Haskell module from a grammar. The module depends only on the package"
         , "peg-runtime. The output defaults to the grammar's path with the extension .hs."
@@ -37,8 +37,8 @@ genCommand =
         , Opt "strip-labels" Nothing (Just "MODULE") "generate the grammar without its labels as MODULE (for testing that the labels are safe)"
         ]
     , cmdExamples =
-        [ ("peg-hs gen grammar/Expr.peg -o src/Expr/Parser.hs", "generate src/Expr/Parser.hs from grammar/Expr.peg")
-        , ("peg-hs gen --Werror Expr.peg", "generate Expr.hs, and fail if a label may reject valid input")
+        [ ("peg-hs gen grammar/Expr.hpeg -o src/Expr/Parser.hs", "generate src/Expr/Parser.hs from grammar/Expr.hpeg")
+        , ("peg-hs gen --Werror Expr.hpeg", "generate Expr.hs, and fail if a label may reject valid input")
         ]
     , cmdRun = run
     }

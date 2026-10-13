@@ -1,9 +1,9 @@
 cabal-version:      3.0
 name:               peg-lsp
 version:            0.1.0.0
-synopsis:           The language server of the .peg notation of peg-hs
+synopsis:           The language server of the .hpeg notation of peg-hs
 description:
-  A language server for @.peg@ grammar files of the peg-hs parser
+  A language server for @.hpeg@ grammar files of the peg-hs parser
   generator: diagnostics, formatting, semantic tokens, definitions,
   references, hover and document symbols. The protocol (JSON-RPC over
   standard input and output) is implemented here, without the lsp
@@ -20,7 +20,7 @@ build-type:         Simple
 tested-with:        GHC == 9.10.3 || == 9.12.4 || == 9.14.1
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
-  grammar/Json.peg
+  grammar/Json.hpeg
   test/golden/*.txt
 
 source-repository head

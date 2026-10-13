@@ -1,10 +1,10 @@
-$ peg-hs gen nope.peg
-peg-hs: cannot read nope.peg: no such file
+$ peg-hs gen nope.hpeg
+peg-hs: cannot read nope.hpeg: no such file
 hint: the path is relative to the current directory <dir>
 exit: ExitFailure 1
 
-$ peg-hs gen sub/nope/G.peg
-peg-hs: cannot read sub/nope/G.peg: no such file
+$ peg-hs gen sub/nope/G.hpeg
+peg-hs: cannot read sub/nope/G.hpeg: no such file
 hint: the directory sub/nope does not exist either
 hint: the path is relative to the current directory <dir>
 exit: ExitFailure 1
@@ -14,32 +14,32 @@ peg-hs: cannot read sub: is a directory
 hint: peg-hs gen takes a grammar file, not a directory
 exit: ExitFailure 1
 
-$ peg-hs gen G.peg -o out/M.hs
+$ peg-hs gen G.hpeg -o out/M.hs
 peg-hs: cannot write out/M.hs: directory out does not exist
 hint: peg-hs does not create directories; create out first
 exit: ExitFailure 1
 
-$ peg-hs gen bad.peg
-peg-hs: cannot read bad.peg: not UTF-8 (at byte 4)
+$ peg-hs gen bad.hpeg
+peg-hs: cannot read bad.hpeg: not UTF-8 (at byte 4)
 hint: peg-hs reads grammars and inputs as UTF-8; convert the file to UTF-8
 exit: ExitFailure 1
 
-$ peg-hs fmt nope.peg
-peg-hs: cannot read nope.peg: no such file
+$ peg-hs fmt nope.hpeg
+peg-hs: cannot read nope.hpeg: no such file
 hint: the path is relative to the current directory <dir>
 exit: ExitFailure 1
 
-$ peg-hs lint nope.peg
-peg-hs: cannot read nope.peg: no such file
+$ peg-hs lint nope.hpeg
+peg-hs: cannot read nope.hpeg: no such file
 hint: the path is relative to the current directory <dir>
 exit: ExitFailure 1
 
-$ peg-hs parse sub G.peg
+$ peg-hs parse sub G.hpeg
 peg-hs: cannot read sub: is a directory
 hint: peg-hs parse takes a grammar file and an input file, not a directory
 exit: ExitFailure 1
 
-$ peg-hs parse G.peg nope.txt
+$ peg-hs parse G.hpeg nope.txt
 peg-hs: cannot read nope.txt: no such file
 hint: the path is relative to the current directory <dir>
 exit: ExitFailure 1

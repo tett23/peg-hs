@@ -16,7 +16,7 @@
 -- @
 -- let open = object
 --       [ (\"jsonrpc\", String \"2.0\"), (\"method\", String \"textDocument\/didOpen\")
---       , (\"params\", object [(\"textDocument\", object [(\"uri\", String \"file:\/\/\/a.peg\"), (\"text\", String src)])])
+--       , (\"params\", object [(\"textDocument\", object [(\"uri\", String \"file:\/\/\/a.hpeg\"), (\"text\", String src)])])
 --       ]
 --     s1 = handleMessage initialState (object [(\"jsonrpc\", String \"2.0\"), (\"id\", int 1), (\"method\", String \"initialize\"), (\"params\", object [])])
 --     s2 = handleMessage (stepState s1) open

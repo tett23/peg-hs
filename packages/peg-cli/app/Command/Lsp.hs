@@ -13,7 +13,7 @@ lspCommand =
     , cmdSummary = "run the language server on standard input and output"
     , cmdArguments = ""
     , cmdDescription =
-        [ "Run the language server of the .peg notation, speaking the language server protocol"
+        [ "Run the language server of the .hpeg notation, speaking the language server protocol"
         , "on standard input and output: diagnostics, formatting, semantic tokens, definitions,"
         , "references, hover and document symbols."
         ]

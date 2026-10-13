@@ -190,9 +190,9 @@ lexicalTests =
 
 regenerated :: Assertion
 regenerated = do
-  src <- TIO.readFile "lua/Lua.peg"
+  src <- TIO.readFile "lua/Lua.hpeg"
   committed <- B.readFile "lua/Conformance/Lua/Parser.hs"
-  let opts = Options {optSourceName = "lua/Lua.peg", optOutputName = "lua/Conformance/Lua/Parser.hs", optDebugEntry = True}
+  let opts = Options {optSourceName = "lua/Lua.hpeg", optOutputName = "lua/Conformance/Lua/Parser.hs", optDebugEntry = True}
   case generateFromSource opts src of
     Left ds -> assertFailure (show ds)
     Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
