@@ -3,7 +3,8 @@
 --
 -- The server supports diagnostics (pushed on @didOpen@ and @didChange@,
 -- with full text synchronisation), formatting, semantic tokens, go to
--- definition, references, hover and document symbols. Positions are
+-- definition, references, hover, document symbols, and code actions that
+-- insert safe labels and add recovery rules (ADR 0054). Positions are
 -- counted in UTF-16 code units, or in bytes when the client offers
 -- @utf-8@ in @positionEncodings@.
 --
@@ -50,6 +51,7 @@ import Peg.Grammar.Assemble (isIdentChar)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Format (formatGrammar)
 import Peg.Grammar.Highlight
+import Peg.Grammar.LabelInsertion (Edit (..), Insertion (..), RecoverProposal (..), insertLabels, recoverProposals)
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Lint (LintWarning (..), lintGrammar)
 import Peg.Grammar.Outline
@@ -66,6 +68,10 @@ data Document = Document
   , docLines :: [Text]
   , docOutline :: Outline
   -- ^ Computed when first used, and kept until the document changes.
+  , docLabels :: [Insertion]
+  -- ^ The labels that can be inserted (ADR 0054), computed when first used.
+  , docRecovers :: [RecoverProposal]
+  -- ^ The recovery rules to propose (ADR 0054), computed when first used.
   }
 
 -- | The state of the server: the open documents, the position encoding
@@ -135,6 +141,7 @@ request st method i params
       , ("textDocument/references", references)
       , ("textDocument/hover", hover)
       , ("textDocument/documentSymbol", documentSymbols)
+      , ("textDocument/codeAction", codeActions)
       ]
 
 notification :: State -> Text -> Value -> Step
@@ -159,7 +166,14 @@ notification st method params = case method of
        in Step st {stDocuments = M.insert uri d (stDocuments st)} [publish uri (map (diagnosticValue (stEncoding st) d) (diagnose text))] Nothing
 
 newDocument :: Text -> Document
-newDocument text = Document text (T.splitOn "\n" text) (outline text)
+newDocument text =
+  Document
+    { docText = text
+    , docLines = T.splitOn "\n" text
+    , docOutline = outline text
+    , docLabels = either (const []) fst (insertLabels [] text)
+    , docRecovers = either (const []) id (recoverProposals text)
+    }
 
 -- Messages ----------------------------------------------------------------------
 
@@ -190,6 +204,7 @@ initializeResult enc =
           , ("referencesProvider", Bool True)
           , ("hoverProvider", Bool True)
           , ("documentSymbolProvider", Bool True)
+          , ("codeActionProvider", Bool True)
           ]
       )
     , ("serverInfo", object [("name", String "peg-hs")])
@@ -393,3 +408,29 @@ documentSymbols enc _ d _ =
                 ]
                   ++ [("detail", String (T.strip (T.drop 2 (snd (T.breakOn "::" (declText a)))))) | Just a <- [annotation]]
    in Just (Array (mapMaybe symbol names))
+
+-- The code actions of ADR 0054: a label at a position where the label check
+-- shows it to be safe, all those labels, and @%recover@ with a recovery
+-- rule for a label without one.
+codeActions :: Handler
+codeActions enc uri d params = do
+  a <- path ["range", "start"] params >>= locOf enc d
+  b <- path ["range", "end"] params >>= locOf enc d
+  let overlaps s e = s <= b && a <= e
+      labelEdit i = Edit (insertionEnd i) (" ^" <> insertionName i)
+      labels = docLabels d
+  pure . Array $
+    [action ("Add the label ^" <> insertionName i) [labelEdit i] | i <- labels, overlaps (insertionStart i) (insertionEnd i)]
+      ++ [action ("Add the " <> T.pack (show (length labels)) <> " labels that are safe") (map labelEdit labels) | not (null labels)]
+      ++ [ action ("Add %recover " <> proposalLabel p <> " and the rule " <> proposalRule p) (proposalEdits p)
+         | p <- docRecovers d
+         , overlaps (proposalStart p) (proposalEnd p)
+         ]
+  where
+    action title edits =
+      object
+        [ ("title", String title)
+        , ("kind", String "refactor.rewrite")
+        , ("edit", object [("changes", object [(uri, Array [textEdit e | e <- edits])])])
+        ]
+    textEdit (Edit at text) = object [("range", rangeValue enc d at at), ("newText", String text)]
