@@ -64,6 +64,7 @@ ADRs live in `docs/adr/`.
 - Grammars have no warnings of `peg-hs lint`, which CI runs ([ADR 0033](docs/adr/0033-grammar-linter.md))
 - CI does not build or test a change of `docs/` and Markdown files only; adr-guard still checks it. A new push to a pull request stops the run of the previous push ([ADR 0039](docs/adr/0039-faster-ci.md))
 - Test suites run their tests in parallel. Each test uses files and directories that no other test uses ([ADR 0039](docs/adr/0039-faster-ci.md))
+- CI runs the test suites in three jobs (`test-grammar`, `test-conformance` and `test-packages`), one suite at a time in each. A new test suite goes to the job that keeps the three about the same length, from the latest CI timings in `docs/benchmarks/` ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md))
 - To add a construct to the notation and use it in the notation's own grammar (`packages/peg-grammar/grammar/Peg.peg`), regenerate twice ([ADR 0027](docs/adr/0027-switch-to-self-hosted-parser.md)): first add the rules that accept the construct without using it, and regenerate; then use it in `Peg.peg`, and regenerate with the new generator
 
 ### Performance

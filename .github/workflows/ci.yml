@@ -66,9 +66,6 @@ jobs:
           restore-keys: cabal-${{ runner.os }}-
       - name: Build
         run: cabal build all
-      # The test suites run their tests in parallel (ADR 0039).
-      - name: Test
-        run: cabal test all --test-show-details=direct
       # The grammars of the repository are formatted (ADR 0032).
       - name: Check formatting of grammars
         run: $(cabal list-bin exe:peg-hs) fmt --check
@@ -80,6 +77,68 @@ jobs:
           for p in packages/*; do
             (cd "$p" && cabal check)
           done
+
+  # The test suites, in three jobs of about the same length. In a job, the
+  # suites run one at a time, so that each has all the cores of the runner
+  # for its tests (ADR 0041). The jobs restore the caches that the haskell
+  # job saves.
+  test:
+    name: test-${{ matrix.group }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: grammar
+            suites: peg-grammar:test:peg-grammar-test
+          - group: conformance
+            suites: >-
+              peg-conformance:test:lua-conformance
+              peg-conformance:test:toml-conformance
+              peg-conformance:test:json-conformance
+              peg-conformance:test:commonmark-conformance
+              peg-conformance:test:complexity
+          - group: packages
+            suites: >-
+              peg-cli:test:peg-cli-test
+              peg-lsp:test:peg-lsp-test
+              peg-codegen:test:peg-codegen-test
+              peg-runtime:test:peg-runtime-test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Install GHC and cabal
+        id: toolchain
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          # Without a config file, cabal also prints a note before the path.
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v6
+        with:
+          path: dist-newstyle
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.peg') }}
+          restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
+      - name: Resolve dependencies
+        run: |
+          cabal update
+          cabal build all --dry-run
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.toolchain.outputs.store }}
+          key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-
+      - name: Build
+        run: cabal build ${{ matrix.suites }}
+      - name: Test
+        run: cabal test -j1 --test-show-details=direct ${{ matrix.suites }}
 
   # The documentation and the source tarballs, alongside the tests
   # (ADR 0039).
