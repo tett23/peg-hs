@@ -192,6 +192,7 @@ Files are read and written as UTF-8, whatever the locale ([ADR 0045](docs/adr/00
 | `peg-hs gen GRAMMAR.hpeg [-o FILE]` | generate a Haskell module from a grammar |
 | `peg-hs fmt [FILE\|DIR...]` | format grammars in one style |
 | `peg-hs lint [FILE\|DIR...]` | warn of what is a mistake in grammars |
+| `peg-hs label GRAMMAR.hpeg [--write]` | insert labels where they are shown to be safe |
 | `peg-hs parse GRAMMAR.hpeg INPUT` | parse an input and show its AST or syntax tree |
 | `peg-hs lsp` | run the language server on standard input and output |
 
@@ -225,6 +226,17 @@ alternatives that are never tried or never succeed, alternatives that are the sa
 The rules are fixed, and no warning can be silenced: every warning goes away by fixing the grammar, and any warning makes `lint` fail.
 It chooses files as `fmt` does.
 
+### label
+
+`label` finds the positions where the label check shows that a label cannot reject valid input, and lists the labels there as `FILE:LINE:COLUMN: ^NAME` ([ADR 0054](docs/adr/0054-automatic-label-insertion.md)).
+With `--write`, it also writes them in the grammar, keeping comments and spaces.
+The labels do not change the language, and they do not recover: the author writes `%recover` and a recovery rule for the labels to recover from (a code action of the language server adds a skeleton).
+
+- A label is named `RULE_TARGET`: the rule referred to, the text of a literal of identifier characters, or the name of a literal of one symbol (such as `rparen`). `peg-hs help label` shows the table
+- `--rule RULE` inserts only in that rule. It can be given more than once
+- Nothing is inserted inside a label with a recovery rule, or in the rules it calls
+- Near rules that test characters with semantic predicates, and in left recursion, the check cannot show labels to be safe, and none is inserted. The Lua grammar, for one, gets no label
+
 ### parse
 
 `parse` parses an input and shows the value of the start rule (the AST, by default) or the lossless syntax tree (the CST, with `--format cst`) ([ADR 0036](docs/adr/0036-parse-command.md)).
@@ -247,6 +259,8 @@ The Haskell of a grammar (verbatim blocks, types, actions, semantic predicates, 
 
 The language server `peg-hs lsp` reports the errors and warnings of `gen` and `lint` as a grammar is edited, and formats it with `fmt`.
 It also provides semantic tokens, go to definition, find references, hover and document symbols.
+Its code actions add the labels of `label`, and add `%recover` with a skeleton of a recovery rule to a label without one ([ADR 0054](docs/adr/0054-automatic-label-insertion.md)).
+The skeleton's value is the typed hole `{ _ }`: GHC shows its type, and the author writes the value.
 
 None of the settings below has been checked by hand in the editor yet (**unchecked**).
 The results of checks go to `docs/editors/`, and an editor loses this mark when its check is recorded ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).

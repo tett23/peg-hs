@@ -18,3 +18,9 @@ by `peg-hs lsp` ([ADR 0035](https://github.com/tett23/peg-hs/blob/main/docs/adr/
   other LSP libraries.
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+
+Since v0.1.0-rc1:
+
+- Code actions that insert the labels of `peg-hs label`, and that add
+  `%recover` with a skeleton of a recovery rule to a label without one
+  ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).

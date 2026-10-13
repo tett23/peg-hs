@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -1143,6 +1143,44 @@ Grammar.hpeg:3:11: warning: the label l may reject valid input: where it fails, 
 同じ名前のラベルを複数の位置で使うと、一か所が危険でもすべての警告が止まるので、確かめた位置ごとに別の名前を付けるのがよい。
 安全を確かめるには、`peg-hs gen --strip-labels MODULE` でラベルを外した文法を別のモジュールとして生成し、元の文法と受理する入力を比べるテストを書く。
 `peg-hs gen --Werror` は、警告があれば生成せずに失敗する。
+
+#### 安全なラベルの挿入
+
+検査が安全と示せる位置には、`peg-hs label` でラベルをまとめて挿入できる（[ADR 0054](adr/0054-automatic-label-insertion.md)）。
+候補は、逐次の中で必ず入力を読む要素より後にある、リテラル、文字クラス、`.`、規則の参照、グループ、`e+`（`$` が付いたものを含む）である。
+候補ごとに仮のラベルを置いて検査し、安全と判定したものだけを挿入する。
+したがって、挿入したラベルに `peg-hs gen` は警告せず、受理する言語も変わらない。
+
+```hpeg
+%module Example.List
+
+List :: [Int]
+List <- '[' v:Num vs:(',' Num)* ']' !. { v : vs }
+
+Num :: Int
+Num <- [0-9]+ { 1 }
+```
+
+この文法に `peg-hs label --write` を実行すると、`List` の定義は次のようになる。
+
+```hpeg
+# 断片
+List <- '[' v:Num ^List_Num vs:(',' Num ^List_Num_2)* ']' ^List_rbracket !. { v : vs }
+```
+
+`'['`、`','`、`[0-9]+` は逐次の先頭にあり、`(...)*` は空文字列に一致し、`!.` は先読みなので、どれも候補にならない。
+名前は `規則名_対象` であり、同じ名前の二つめからは `_2`、`_3` が付く。
+`S <- 'a' 'b' { () } / 'a' 'c' { () }` では、`'b'` のラベルは `ac` を拒否するので挿入されず、`'c'` にだけ `^S_c` が付く。
+
+挿入されない位置もある。
+`%recover` を持つラベルを付けた式の内側と、そこから呼ぶ規則には挿入しない。回復の規則を持たないラベルの送出は外側の回復を素通りするので、回復していた誤りが文法全体の誤りに変わってしまうからである。
+`peg-hs lint` が「後の選択肢は試されない」と警告する、常に成功する選択肢とそこから呼ぶ規則にも挿入しない。そこにラベルがあると lint の判定が変わるためである。
+意味述語で文字を判定する規則の近くと間接の左再帰の中は、安全でも検査が示せないので、やはり挿入されない。
+
+挿入したラベルは回復しない。
+回復させたいラベルには、`%recover` と回復の規則を書く。
+言語サーバーのコードアクション「`%recover` を加える」は、`%recover 名前 Recover_名前` と、次のリテラルの手前（なければ行の終わり）まで読み飛ばす回復の規則の雛形を加える。
+雛形のアクションは型の穴 `{ _ }` なので、生成したモジュールをコンパイルすると GHC が型を示す。それを見て値を書き入れる。
 
 ### 二つのモード
 
