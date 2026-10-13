@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Turning the top-level items of a grammar file into a 'Grammar'.
+-- | Turning the top-level items of a grammar file into a t'Grammar'.
 --
 -- The parser of the notation, generated from @grammar/Peg.peg@ (ADR 0027),
--- calls these functions from its actions. They are exposed for that parser
--- and for tests of it; use "Peg.Grammar.Parser" to read a grammar.
+-- calls these functions from its actions. They are exposed for that parser,
+-- for its variant without labels that the tests of label safety compile
+-- (ADR 0029), and for tests of it; the language server also uses
+-- 'isIdentChar'. Use "Peg.Grammar.Parser" to read a grammar.
 module Peg.Grammar.Assemble
   ( Top (..)
   , assemble
@@ -87,7 +89,10 @@ verbatimBody l body =
 directiveArg :: Text -> Text -> Text
 directiveArg name raw = T.strip (if name == "env" then raw else T.takeWhile (/= '#') raw)
 
--- | Check the top-level items and build the grammar.
+-- | Check the top-level items and build the grammar: the directives and
+-- their arguments, the pairing of each rule's type annotation with its
+-- definition, and duplicate rules. The rules themselves are checked by
+-- 'Peg.Grammar.Check.check'.
 assemble :: [Top] -> Either [Diagnostic] Grammar
 assemble items =
   case errors of

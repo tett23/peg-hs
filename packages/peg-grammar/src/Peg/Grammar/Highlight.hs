@@ -4,6 +4,15 @@
 -- | The kinds and ranges of the tokens of a grammar, from its lossless
 -- syntax tree: for the editor grammars' consistency test (ADR 0034) and the
 -- semantic tokens of the language server (ADR 0035).
+--
+-- 'highlights' reads a grammar that has no syntax error; 'treeHighlights'
+-- works on any syntax tree of the notation, including the one that error
+-- recovery builds, which is how "Peg.Grammar.Outline" uses it.
+--
+-- @
+-- forM_ (fromMaybe [] (highlights src)) $ \\h ->
+--   print (hlKind h, locLine (hlStart h), locColumn (hlStart h))
+-- @
 module Peg.Grammar.Highlight
   ( HighlightKind (..)
   , Highlight (..)

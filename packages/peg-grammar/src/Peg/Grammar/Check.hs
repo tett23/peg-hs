@@ -2,6 +2,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Static checks and analyses of a grammar.
+--
+-- 'check' is the check that decides whether code can be generated from a
+-- grammar: undefined rules, wrong numbers of arguments, unreachable rules,
+-- repetitions of expressions that can match the empty string, bindings and
+-- alternatives without a value, rules that take parameters in left
+-- recursion, names reserved for generated code, and the consistency of the
+-- directives. On success it returns the t'Analysis' that the code generator
+-- needs. It takes a grammar whose templates have been expanded by
+-- 'Peg.Grammar.Templates.expandTemplates'.
+--
+-- @
+-- case expandTemplates g0 >>= check of
+--   Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic file) (templateNotes g0 diags)
+--   Right analysis -> print (analysisLeftRecursive analysis)
+-- @
+--
+-- 'check' checks that labels named in @%recover@ and @%safe@ exist, but
+-- not whether a label is safe; 'Peg.Grammar.Labels.labelWarnings' warns
+-- about the labels that may not be (ADR 0028). 'hasValue', 'countedItems' and 'unitRules' decide
+-- which expressions have values (ADR 0030), and are shared with the code
+-- generator and the linter.
 module Peg.Grammar.Check
   ( Analysis (..)
   , check
@@ -74,7 +95,8 @@ isUnit units = \case
 unitRules :: [Rule] -> Set Text
 unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) (unLoc (ruleType r)) == "()"]
 
--- | Check a grammar.
+-- | Check a grammar whose templates have been expanded. The errors are
+-- sorted by location.
 check :: Grammar -> Either [Diagnostic] Analysis
 check g = case grammarRules g of
   [] -> Left [Diagnostic (Loc 1 1) "the grammar has no rules"]

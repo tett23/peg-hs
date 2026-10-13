@@ -3,10 +3,28 @@
 -- | Generate a Haskell module from a grammar.
 --
 -- The generator is a pure function from a grammar to the text of a module
--- (ADR 0002). The generated module depends only on the @peg-runtime@
--- package. Its public interface is described in ADR 0014: an entry point
--- @parse@ for the start rule, one entry point per @%entry@ directive, and
--- the names listed by @%export@.
+-- (ADR 0002); 'generateFromSource' and 'generate' are its entry points, and
+-- @peg-hs gen@ calls them. The generated module depends only on the
+-- @peg-runtime@ package. Its public interface is described in ADR 0014.
+-- For a start rule @Expr@ of type @T@ it exports:
+--
+-- * @parse :: Text -> Either ParseError T@ for the start rule, and
+--   @parseName@ for each rule @Name@ in @%entry@;
+-- * with labels (ADR 0021), @parseRecover :: Text -> (Maybe T, [SyntaxError])@
+--   and its @%entry@ variants;
+-- * with @%syntax@ (ADR 0019), @parseSyntax@ and, with labels,
+--   @parseSyntaxRecover@, which return a @SyntaxNode@, together with the
+--   syntax kinds, typed wrappers and accessors described in
+--   @Peg.Runtime.Syntax@;
+-- * the names listed by @%export@.
+--
+-- With @%env@, every entry point first takes the environment. The types
+-- @ParseError@ and @SyntaxError@ come from the @Peg.Runtime@ module of
+-- @peg-runtime@, and @SyntaxNode@ from @Peg.Runtime.Syntax@.
+--
+-- The grammar is checked before generating (see 'generate'), but the
+-- warnings about labels are not computed here; call
+-- @Peg.Grammar.Labels.labelWarnings@ for them, as @peg-hs gen@ does.
 module Peg.Codegen
   ( Options (..)
   , defaultOptions
@@ -38,19 +56,46 @@ data Options = Options
   -- the generated code after each fragment of user code.
   , optDebugEntry :: Bool
   -- ^ Also export @peg'parseWith@, which takes a runtime configuration and
-  -- returns statistics. Only meant for testing the generator.
+  -- returns statistics, and its variants for the syntax tree and recovery
+  -- (@peg'parseSyntaxWith@, @peg'parseRecoverWith@,
+  -- @peg'parseSyntaxRecoverWith@) when the grammar has them. Only meant for
+  -- testing the generator (@peg-hs gen --debug-entry@).
   }
   deriving (Eq, Show)
 
--- | Options for a grammar named @Grammar.peg@ generated into @Grammar.hs@.
+-- | Options for a grammar named @Grammar.peg@ generated into @Grammar.hs@,
+-- without the debugging entry points. Override the file names with record
+-- update syntax.
 defaultOptions :: Options
 defaultOptions = Options "Grammar.peg" "Grammar.hs" False
 
--- | Parse, check and generate.
+-- | Parse, check and generate: 'Peg.Grammar.Parser.parseGrammar' followed
+-- by 'generate'. The diagnostics are errors, located in the grammar.
+--
+-- @
+-- import qualified Data.Text.IO as TIO
+-- import Peg.Codegen
+-- import Peg.Grammar (renderDiagnostic)
+--
+-- main :: IO ()
+-- main = do
+--   src <- TIO.readFile \"grammar\/Calc.peg\"
+--   let opts = defaultOptions {optSourceName = \"grammar\/Calc.peg\", optOutputName = \"src\/Calc.hs\"}
+--   case generateFromSource opts src of
+--     Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"grammar\/Calc.peg\") diags
+--     Right code -> TIO.writeFile \"src\/Calc.hs\" code
+-- @
+--
+-- The name of the generated module is the one given by @%module@ in the
+-- grammar; 'optOutputName' is only written into @LINE@ pragmas.
 generateFromSource :: Options -> Text -> Either [Diagnostic] Text
 generateFromSource opts src = parseGrammar src >>= generate opts
 
--- | Check a grammar and generate its module.
+-- | Check a grammar and generate its module. Templates are expanded first
+-- ('Peg.Grammar.Templates.expandTemplates', ADR 0031), then the grammar
+-- is checked by 'Peg.Grammar.Check.check'; errors inside a template name
+-- the call that expanded it ('Peg.Grammar.Templates.templateNotes'). The
+-- grammar may be given before or after the expansion of templates.
 generate :: Options -> Grammar -> Either [Diagnostic] Text
 generate opts g0 = do
   g <- either (Left . templateNotes g0) Right (expandTemplates g0)

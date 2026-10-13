@@ -1,5 +1,9 @@
 -- | The base protocol of the language server protocol: messages framed by a
 -- @Content-Length@ header (ADR 0035).
+--
+-- 'decodeFrames' splits the bytes read so far into message bodies, and
+-- 'encodeMessage' frames a message to send. "Peg.Lsp" runs them around
+-- 'Peg.Lsp.Server.handleFrame'.
 module Peg.Lsp.Rpc
   ( encodeMessage
   , decodeFrames

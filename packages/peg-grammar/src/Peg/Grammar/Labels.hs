@@ -16,7 +16,22 @@
 -- same arguments, and against the texts that matched literals are known to
 -- be; constant predicates are known to succeed or fail (ADR 0038). It is an
 -- approximation: a label it calls safe is safe, but it may warn about a
--- safe label.
+-- safe label. Labels the author has checked can be listed in @%safe@, and
+-- are then not reported. Each label is judged in the grammar without the
+-- other labels (ADR 0029).
+--
+-- 'labelWarnings' takes the grammar after template expansion and
+-- 'Peg.Grammar.Check.check'; @peg-hs gen@ reports its warnings, and fails
+-- on them with @--Werror@:
+--
+-- @
+-- case expandTemplates g0 >>= \\g -> g \<$ check g of
+--   Left diags -> ...
+--   Right g -> mapM_ (TIO.putStrLn . renderDiagnostic file) (templateNotes g0 (labelWarnings g))
+-- @
+--
+-- 'stripLabels' and 'stripLabelsAs' make the grammar without labels, to
+-- test that the labelled grammar accepts the same inputs (ADR 0029).
 module Peg.Grammar.Labels
   ( labelWarnings
   , stripLabels
@@ -332,8 +347,11 @@ modify' :: (s -> s) -> State s ()
 modify' f = State $ \s -> let s' = f s in s' `seq` ((), s')
 
 -- | Warnings for labels that may make the grammar reject valid input, or
--- that cannot be checked. The grammar must have passed
--- 'Peg.Grammar.Check.check'.
+-- that cannot be checked, except labels listed in @%safe@. The grammar
+-- must have its templates expanded and must have passed
+-- 'Peg.Grammar.Check.check'. Each warning is located at the label and its
+-- message begins with @the label NAME may reject valid input@ or
+-- @the label NAME cannot be checked@.
 labelWarnings :: Grammar -> [Diagnostic]
 labelWarnings g =
   [ Diagnostic l msg
@@ -845,7 +863,8 @@ leftCalls known = go
 
 -- Removing labels -----------------------------------------------------------------
 
--- | 'stripLabels', generating another module.
+-- | 'stripLabels', generating another module: the 'Text' is the name of
+-- the module (@peg-hs gen --strip-labels MODULE@).
 stripLabelsAs :: Text -> Grammar -> Grammar
 stripLabelsAs m g = (stripLabels g) {grammarModule = Located (locOf (grammarModule g)) m}
 

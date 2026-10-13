@@ -9,6 +9,18 @@
 -- the grammar with a parser generated from @grammar/PegSyntax.peg@, the
 -- notation's grammar with a lossless syntax tree (ADR 0019), so that the
 -- comments are found where they are written.
+--
+-- 'formatGrammar' is what @peg-hs fmt@ and the formatting of the language
+-- server run:
+--
+-- @
+-- case formatGrammar src of
+--   Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"Calc.peg\") diags
+--   Right out -> when (out /= src) (TIO.writeFile \"Calc.peg\" out)
+-- @
+--
+-- 'sameGrammar' and 'grammarComments' are the comparisons the formatter's
+-- result must pass, exposed for its tests.
 module Peg.Grammar.Format
   ( formatGrammar
   , grammarComments
@@ -23,8 +35,10 @@ import Peg.Grammar.Parser (parseTops)
 import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Runtime.Syntax
 
--- | Format a grammar. A grammar with a syntax error is not formatted and
--- its error is returned. The result is parsed again and compared with the
+-- | Format a grammar. CRLF line breaks become LF. A grammar with a syntax
+-- error is not formatted and its error is returned, as by
+-- 'Peg.Grammar.Parser.parseGrammar'; other errors of the grammar do not
+-- stop formatting. The result is parsed again and compared with the
 -- grammar; if they differ, which is a bug of the formatter, an error is
 -- returned instead of the result.
 formatGrammar :: Text -> Either [Diagnostic] Text

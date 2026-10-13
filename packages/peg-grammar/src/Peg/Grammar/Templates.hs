@@ -8,6 +8,19 @@
 -- arguments, with the parameters replaced by the arguments. The grammar
 -- that results has no template, and the static checks, left recursion and
 -- code generation treat the instances as ordinary rules.
+--
+-- Expand before 'Peg.Grammar.Check.check' and
+-- 'Peg.Grammar.Labels.labelWarnings', and pass their diagnostics through
+-- 'templateNotes' so that an error inside a template names the call that
+-- expanded it:
+--
+-- @
+-- case expandTemplates g0 >>= check of
+--   Left diags -> reportErrors (templateNotes g0 diags)
+--   Right analysis -> ...
+-- @
+--
+-- "Peg.Grammar" shows the whole sequence of checks.
 module Peg.Grammar.Templates
   ( expandTemplates
   , templateNotes
@@ -241,7 +254,9 @@ plain = \case
 
 -- | Add to the diagnostics located in the body of a template the call that
 -- expanded it, and remove duplicates: an error in a template is found once
--- for each instance. The grammar is the one before expansion.
+-- for each instance. The grammar is the one before expansion. The note is
+-- appended to the message as @(in the template NAME, expanded at L:C)@,
+-- naming the first call of the template.
 templateNotes :: Grammar -> [Diagnostic] -> [Diagnostic]
 templateNotes g = nub . map note
   where
