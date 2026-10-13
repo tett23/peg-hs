@@ -267,12 +267,25 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim（未確認）
 
-ハイライトには、`editors/tree-sitter-peg` の tree-sitter の文法を nvim-treesitter に登録する。
-文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書く。
-問い合わせ（`editors/tree-sitter-peg/queries/`）は、ランタイムパスの `queries/peg/` に写す。
+ハイライトには、`editors/tree-sitter-peg` の tree-sitter の文法を nvim-treesitter（main ブランチ）に登録する。
+`User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall peg` を実行する。
+文法のビルドには tree-sitter の CLI が要る。
+nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
 
 ```lua
 vim.filetype.add({ extension = { peg = 'peg' } })
+vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
+  require('nvim-treesitter.parsers').peg = {
+    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-peg', queries = 'queries' },
+  }
+end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'peg', callback = function() vim.treesitter.start() end })
+```
+
+nvim-treesitter の旧版（master ブランチ）では、`get_parser_configs()` に登録する。
+文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書き、問い合わせをランタイムパスの `queries/peg/` に写す。
+
+```lua
 require('nvim-treesitter.parsers').get_parser_configs().peg = {
   install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c', 'src/scanner.c' } },
   filetype = 'peg',

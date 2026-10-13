@@ -263,12 +263,25 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim (unchecked)
 
-For highlighting, register the tree-sitter grammar `editors/tree-sitter-peg` with nvim-treesitter.
-The grammar has an external scanner (`src/scanner.c`), so `files` lists two files.
-Copy the queries (`editors/tree-sitter-peg/queries/`) to `queries/peg/` on the runtime path.
+For highlighting, register the tree-sitter grammar `editors/tree-sitter-peg` with nvim-treesitter (the main branch).
+A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall peg` in Neovim.
+Building the grammar needs the tree-sitter CLI.
+nvim-treesitter does not turn highlighting on by itself, so a `FileType` autocommand calls `vim.treesitter.start()`.
 
 ```lua
 vim.filetype.add({ extension = { peg = 'peg' } })
+vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
+  require('nvim-treesitter.parsers').peg = {
+    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-peg', queries = 'queries' },
+  }
+end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'peg', callback = function() vim.treesitter.start() end })
+```
+
+With the old version of nvim-treesitter (the master branch), register it with `get_parser_configs()`.
+The grammar has an external scanner (`src/scanner.c`), so `files` lists two files; copy the queries to `queries/peg/` on the runtime path.
+
+```lua
 require('nvim-treesitter.parsers').get_parser_configs().peg = {
   install_info = { url = '/path/to/peg-hs/editors/tree-sitter-peg', files = { 'src/parser.c', 'src/scanner.c' } },
   filetype = 'peg',
