@@ -1,4 +1,4 @@
-# ADR 0029: ラベルの安全性の検査の実装で ADR 0028 から外れた点
+# ADR 0029: ラベルの安全性の検査の実装で [ADR 0028](0028-label-safety-check.md) から外れた点
 
 ステータス: 採択→偽陽性を減らす改良（二文字の先読み）は [ADR 0038](0038-label-check-precision-and-strip-labels-entries.md)
 
