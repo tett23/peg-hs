@@ -16,12 +16,15 @@ Item <- w:$( [a-z]+ )  Sp   {w}   # a word
    /  &[0-9]  n:$[0-9]+ Sp {   n   }
        / ( "("  Sp  ) Item Sp ")" Sp
            { "group" }
+   / Rep<'-'>(1,2)   x:Item {x}
    / Op<'+'>   x:Item  ^item   {
        x <> "!"
      }
 
 Op<o> :: ()
 Op<o> <- o  Sp {()}
+Rep<o>(a :: Int,b :: Int) :: ()
+Rep<o> <- o  &{ a <= b }  Sp {()}
 Sp :: ()
 Sp <- [ \t\n]*   { () }   # spaces
 # the end

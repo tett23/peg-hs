@@ -43,7 +43,9 @@ Since v0.1.0-rc1:
 - The arguments of a template may use the parameters of the rule that
   calls it, as `Lines<Item(ind)>` in `B(ind :: Int)`. The instance takes
   those parameters, and an argument that uses a binding of the caller is
-  an error ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
+  an error. A template may have value parameters, as
+  `Indented<p>(n :: Int)`, called as `Indented<Item>(ind + 2)`
+  ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
 
 ### Changed
 
@@ -52,10 +54,9 @@ Since v0.1.0-rc1:
 - The notation is called the `.hpeg` notation, after the extension of its
   files ([ADR 0050](https://github.com/tett23/peg-hs/blob/main/docs/adr/0050-hpeg-extension.md)).
 - `T<a>(b)`, without a space between `>` and `(`, is a template call with
-  the value argument `b`, not a template call followed by a group. A
-  template cannot take value arguments yet, so such a call is the error
-  `the template T takes no value arguments`; write `T<a> (b)` for the
-  group. `ETemplate` has the value arguments as its last field
+  the value argument `b`, not a template call followed by a group; write
+  `T<a> (b)` for the group. `ETemplate` has the value arguments as its
+  last field
   ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
 
 ### Fixed

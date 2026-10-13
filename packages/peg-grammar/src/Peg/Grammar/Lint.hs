@@ -218,6 +218,7 @@ codesOf :: Expr -> [Text]
 codesOf = \case
   EPred _ (Located _ c) -> [c]
   ERef _ _ as -> map unLoc as
+  ETemplate _ _ as vs -> map unLoc vs ++ concatMap codesOf as
   e -> concatMap codesOf (children e)
 
 -- Expressions -----------------------------------------------------------------

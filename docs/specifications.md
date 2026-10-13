@@ -58,7 +58,7 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 
 - **単位の値**：アクションを省略した選択肢は、値を持つ要素がちょうど一つならその値を返す。このとき、束縛していない `()` の値は数えない（[ADR 0030](adr/0030-unit-values-are-not-counted.md)）
 - **使われない値**：テキストキャプチャ `$e` の中、先読みの中、アクションを書いた選択肢の束縛していない要素のように、値が使われない位置の式は、値の型が選択肢の間で食い違っていても誤りにしない（[ADR 0026](adr/0026-discard-unused-values.md)）
-- **規則の雛形** `Name<式, ...>`：規則や式を引数に取る規則。引数の組ごとに普通の規則へ生成時に展開するので、展開した規則にもメモ化と左再帰の意味論がそのまま効く（[ADR 0031](adr/0031-rule-templates.md)）
+- **規則の雛形** `Name<式, ...>`：規則や式を引数に取る規則。引数の組ごとに普通の規則へ生成時に展開するので、展開した規則にもメモ化と左再帰の意味論がそのまま効く（[ADR 0031](adr/0031-rule-templates.md)）。雛形の引数は呼び出し元の引数を使え、雛形は値の引数（`Name<p>(n :: Int)`）も持てる。展開した規則は、それらを引数に持つ引数付き規則になる（[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)）
 
 規則名と束縛名には Unicode の英字と数字を使える（[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)）。
 
@@ -325,7 +325,6 @@ ADR の連番は決定の順であり、実装の順ではない。
 
 - ラベルの自動挿入（[ADR 0021](adr/0021-error-recovery.md)、[ADR 0028](adr/0028-label-safety-check.md)）
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
-- 雛形と引数付き規則の組み合わせのうち、雛形が自分の値の引数を持つこと（`Indented<p>(n :: Int)`）。雛形の引数が呼び出し元の引数を使う組み合わせは、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md) の段階 1 で入った。値の引数を渡す呼び出しの記法（`Name<args>(vals)`）は段階 2 で入ったが、雛形はまだ値の引数を宣言できず、値の引数を渡す呼び出しは誤りになる。雛形の値の引数の意味（段階 3）が残っている（[ADR 0031](adr/0031-rule-templates.md)、却下した [ADR 0040](adr/0040-templates-with-parameterized-rules.md)）
 
 ## 参考文献
 

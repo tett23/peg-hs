@@ -246,15 +246,19 @@ runsTests =
     [ testCase "values at each depth" $ do
         Runs.parse runsInput @?= Right runsExpected
         Runs.parsePlainDoc runsInput @?= Right runsExpected
+    , testCase "values at each depth, with a template that takes the depth as a value argument" $
+        Runs.parseDeepDoc runsInput @?= Right runsExpected
     , testCase "%syntax, typed entry" $ fmap show (RunsSyntax.parse runsInput) @?= Right (show runsExpected)
     , testCase "%syntax, lossless tree" $ fmap syntaxText (RunsSyntax.parseSyntax runsInput) @?= Right runsInput
     , testProperty "the templates and the rules written out agree (values, farthest failures)" $
         withNumTests 2000 (checkCoverage (forAll runsGen runsAgree))
     , testProperty "the same with %syntax" $
-        withNumTests 500 (forAll runsGen (\t -> farthest (RunsSyntax.parse t) === farthest (RunsSyntax.parsePlainDoc t) .&&. fmap syntaxText (RunsSyntax.parseSyntax t) === fmap (const t) (RunsSyntax.parse t)))
+        withNumTests 500 (forAll runsGen (\t -> farthest (RunsSyntax.parse t) === farthest (RunsSyntax.parsePlainDoc t) .&&. farthest (RunsSyntax.parseDeepDoc t) === farthest (RunsSyntax.parsePlainDoc t) .&&. fmap syntaxText (RunsSyntax.parseSyntax t) === fmap (const t) (RunsSyntax.parse t)))
     ]
   where
-    runsAgree t = cover 20 (either (const False) (const True) (Runs.parse t)) "accepted" (farthest (Runs.parse t) === farthest (Runs.parsePlainDoc t))
+    runsAgree t =
+      cover 20 (either (const False) (const True) (Runs.parse t)) "accepted" $
+        farthest (Runs.parse t) === farthest (Runs.parsePlainDoc t) .&&. farthest (Runs.parseDeepDoc t) === farthest (Runs.parsePlainDoc t)
     farthest = either (Left . parseErrorPos) Right
 
 -- Nested lists, definitions and paragraphs separated by blank lines, and
