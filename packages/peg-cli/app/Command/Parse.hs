@@ -33,8 +33,8 @@ import System.Directory
 import System.Environment (lookupEnv)
 import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory, (</>))
-import System.IO (hPutStr, hPutStrLn, stderr)
-import System.Process (readProcessWithExitCode)
+import System.IO (hPutStrLn, stderr, stdout)
+import ProcessBytes (readProcessBytes)
 
 parseCommand :: Command
 parseCommand =
@@ -104,8 +104,8 @@ parseText grammarFile input format entry ghcArgs src =
           findExecutable "ghc" >>= \case
             Nothing -> failWith "peg-hs parse needs ghc on PATH"
             Just _ -> do
-              (_, out, _) <- readProcessWithExitCode "ghc" ["--numeric-version"] ""
-              let ghcVersion = takeWhile (not . isSpace) out
+              (_, out, _) <- readProcessBytes "ghc" ["--numeric-version"]
+              let ghcVersion = takeWhile (not . isSpace) (T.unpack (TE.decodeUtf8Lenient out))
               if not (supportedGhc ghcVersion)
                 then failWith ("peg-hs parse needs " <> supportedGhcText <> ", the versions peg-runtime supports; ghc is " <> ghcVersion)
                 else do
@@ -120,9 +120,9 @@ parseText grammarFile input format entry ghcArgs src =
                   if not ok
                     then pure (ExitFailure 1)
                     else do
-                      (code, out', err) <- readProcessWithExitCode exe [modeArg format, input] ""
-                      putStr out'
-                      hPutStr stderr err
+                      (code, out', err) <- readProcessBytes exe [modeArg format, input]
+                      BS.hPut stdout out'
+                      BS.hPut stderr err
                       pure code
   where
     failWith msg = hPutStrLn stderr ("peg-hs: " <> msg) >> pure (ExitFailure 1)
@@ -177,14 +177,15 @@ build grammarFile g dir withAst entry ghcArgs = do
       createDirectoryIfMissing True dir
       let exe = parserPath dir withAst
       (status, out, err) <-
-        readProcessWithExitCode "ghc" (["--make", "-O0", "-v0", "-i" <> srcDir, "-outputdir", work </> "build", "-o", work </> "parser", srcDir </> "Main.hs"] ++ ghcArgs) ""
+        readProcessBytes "ghc" (["--make", "-O0", "-v0", "-i" <> srcDir, "-outputdir", work </> "build", "-o", work </> "parser", srcDir </> "Main.hs"] ++ ghcArgs)
       -- Another peg-hs may be building the same parser: the executable
       -- appears in the cache at once, by a rename.
       when (status == ExitSuccess) $ renameFile (work </> "parser") exe
       removeDirectoryRecursive work
       unless (status == ExitSuccess) $ do
-        hPutStr stderr (out <> err)
-        when (withAst && "Show" `isInfixOf` err && "No instance" `isInfixOf` err) $
+        BS.hPut stderr (out <> err)
+        let errText = T.unpack (TE.decodeUtf8Lenient err)
+        when (withAst && "Show" `isInfixOf` errText && "No instance" `isInfixOf` errText) $
           hPutStrLn stderr "peg-hs: the type of the start rule has no Show instance; --format cst shows the syntax tree without it"
       pure (status == ExitSuccess)
 
