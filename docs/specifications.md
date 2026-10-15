@@ -326,6 +326,12 @@ ADR の連番は決定の順であり、実装の順ではない。
 以下は残課題として保持し、この文書では確定させない。
 
 - 回復の規則に覆われた位置へのラベルの挿入。回復の規則を持たないラベルの送出を外側のラベルの回復で受け止めるよう、実行時の意味論を変える必要がある（[ADR 0054](adr/0054-automatic-label-insertion.md)）
+- ラベルの安全性の検査が証明できない形。Golem の文法は、次の理由で 14 個のラベルに `%safe` を付けている。いずれも検査の近似が粗いための偽陽性である（[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)）
+  - 規則の引数の値を比べない。`Ind(ind)` と `Ind(ind + 2)` が読む字数の違いがわからない
+  - 確定した先頭のリテラルを、後に続く選択肢との比較にだけ使い、繰り返しの後ろでは使わない
+  - 二つのループを比べられない
+  - 一致した規則の中を見ない。一致した行が特定の文字で始まることがわからない
+  - 意味述語の値（`r == h` など）を知らない。意味述語が判定する文字の範囲の宣言も、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md) が別に回したまま残っている
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
 
 ## 参考文献
