@@ -34,12 +34,12 @@ After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enab
 adr-guard is a tool that checks that committed ADRs and benchmark records have not changed (see "ADRs and adr-guard").
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.1
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.2
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` is needed in every clone.
-Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0047](docs/adr/0047-adr-guard-v0.8.1.md)).
+Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)).
 
 The tests of the editor grammars (see "Tests of the editor grammars") need the LTS version of Node.
 
@@ -164,7 +164,7 @@ ADRs live in `docs/adr/`.
 
 ### Committed ADRs do not change
 
-- A committed ADR cannot be changed, except for its status line and the links of its references to ADRs. adr-guard checks this in the pre-commit hook and in the `adr` job of CI
+- A committed ADR cannot be changed, except for its status line and changes to links only (adding or removing a link, or changing its target). adr-guard checks this in the pre-commit hook and in the `adr` job of CI
 - An ADR has exactly one status line, a line starting with `ステータス:`. adr-guard rejects an ADR with no status line or with two or more ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md))
 - To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as 採択→(the changed part)は ADR NNNN
 - To discard an ADR, set its status to 破棄 (discarded) and write the reason in `docs/specifications.md`
@@ -260,7 +260,7 @@ In a test job (`test-*`), the suites run one at a time.
 This gives each suite all the cores of the runner ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)).
 A new test suite goes to the job that keeps the jobs about the same length, from the latest CI timings in `docs/benchmarks/`.
 
-The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs and the benchmark records with adr-guard ([ADR 0047](docs/adr/0047-adr-guard-v0.8.1.md)).
+The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs and the benchmark records with adr-guard ([ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)).
 
 `.github/workflows/release.yml` runs on a push of a tag starting with `v`, and makes a Release.
 What it does is in "Release procedure".

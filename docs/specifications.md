@@ -7,9 +7,9 @@ peg-hs は、PEG（Parsing Expression Grammar）の定義から Haskell のパ�
 この文書は、peg-hs の能力、配布の形、意図的に採用しなかったもの、設計原則、モジュール構成、開発順序を定める。
 実装の詳細は書かず、それを定めた ADR（Architecture Decision Record、設計の決定の記録）へのリンクで示す。
 ADR は `docs/adr/` に連番で置く。
-コミットした ADR は、ステータスの行と ADR の参照に付けるリンクを除いて変更しない。
+コミットした ADR は、ステータスの行の変更とリンクだけの変更を除いて変更しない。
 性能の判断の根拠にした計測の記録は `docs/benchmarks/` に置き、これもコミットした後は変更しない。
-この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.8.1 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)）。
+この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.8.2 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)）。
 
 ## 目的
 
