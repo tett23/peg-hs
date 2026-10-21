@@ -9,7 +9,7 @@ peg-hs は、PEG（Parsing Expression Grammar）の定義から Haskell のパ�
 ADR は `docs/adr/` に連番で置く。
 コミットした ADR は、ステータスの行の変更とリンクだけの変更を除いて変更しない。
 性能の判断の根拠にした計測の記録は `docs/benchmarks/` に置き、これもコミットした後は変更しない。
-この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.8.2 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)）。
+この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.8.3 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)、[ADR 0060](adr/0060-adr-guard-v0.8.3.md)）。
 
 ## 目的
 

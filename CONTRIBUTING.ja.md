@@ -34,12 +34,12 @@ clone した後に、[adr-guard](https://github.com/tett23/adr-guard) を入れ�
 adr-guard は、コミットした ADR とベンチマークの記録が変わっていないことを検査する道具である（「ADR と adr-guard」の節）。
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.2
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.3
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` は clone ごとに要る。
-adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)）。
+adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）。
 
 エディタの文法のテスト（「エディタの文法のテスト」の節）には Node の LTS が要る。
 
@@ -158,6 +158,7 @@ ADR は `docs/adr/` に置く。
 
 - 書いた ADR はコミットせず、レビューを受ける
 - 採択されたら、ステータスを「採択」にしてコミットする
+- 採択したがまだ実装していない ADR（実装を複数の pull request に分けるときなど）は、ステータスを「採択（未実装）」にしてコミットし、実装を終えたら「採択」に変える。`adr-guard unimplemented` で、ステータスが「採択（未実装）」の ADR を一覧できる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）
 - 記法を変える ADR を採択するときは、同じコミットで `docs/syntax.md` を更新し、冒頭の「反映している ADR」の一覧に加える
 - ADR で仕様が変わったら、`docs/specifications.md` と README（英語版と日本語版）も同時に更新する。この三つは main で常に最新でなければならない
 - 開発の進め方が変わったら、この文書（日本語版と英語版）も同時に更新する
@@ -260,7 +261,7 @@ pull request に続けて push すると、前の push の実行は止まる。
 各スイートが実行環境のすべてのコアを使えるようにするためである（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）。
 新しいテストスイートは、`docs/benchmarks/` の最新の CI の時間をもとに、ジョブの時間がそろうジョブに加える。
 
-`.github/workflows/adr.yml` の **adr** のジョブは、文書だけの変更も含むすべての変更で動き、adr-guard で ADR とベンチマークの記録を検査する（[ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)）。
+`.github/workflows/adr.yml` の **adr** のジョブは、文書だけの変更も含むすべての変更で動き、adr-guard で ADR とベンチマークの記録を検査する（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）。
 
 `.github/workflows/release.yml` は、`v` で始まるタグの push で動き、Release を作る。
 内容は「リリースの手順」の節に書く。

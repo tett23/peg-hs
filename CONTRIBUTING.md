@@ -34,12 +34,12 @@ After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enab
 adr-guard is a tool that checks that committed ADRs and benchmark records have not changed (see "ADRs and adr-guard").
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.2
+cargo install --git https://github.com/tett23/adr-guard --tag v0.8.3
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` is needed in every clone.
-Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)).
+Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)).
 
 The tests of the editor grammars (see "Tests of the editor grammars") need the LTS version of Node.
 
@@ -158,6 +158,7 @@ ADRs live in `docs/adr/`.
 
 - Do not commit a new ADR; it is reviewed first
 - Once adopted, set its status to 採択 (adopted) and commit it
+- An ADR that is adopted but not yet implemented (for example, when its implementation is split into several pull requests) is committed with the status 採択（未実装） (adopted, not implemented), and its status is changed to 採択 when the implementation is done. `adr-guard unimplemented` lists the ADRs whose status is 採択（未実装） ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md))
 - When adopting an ADR that changes the notation, update `docs/syntax.md` in the same commit and add the ADR to the list of reflected ADRs at its top
 - When an ADR changes the specification, update `docs/specifications.md` and the README (both the English and the Japanese version) at the same time. These three must always be up to date on main
 - When the way of development changes, update this document (both the Japanese and the English version) at the same time
@@ -260,7 +261,7 @@ In a test job (`test-*`), the suites run one at a time.
 This gives each suite all the cores of the runner ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)).
 A new test suite goes to the job that keeps the jobs about the same length, from the latest CI timings in `docs/benchmarks/`.
 
-The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs and the benchmark records with adr-guard ([ADR 0059](docs/adr/0059-adr-guard-v0.8.2.md)).
+The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs and the benchmark records with adr-guard ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)).
 
 `.github/workflows/release.yml` runs on a push of a tag starting with `v`, and makes a Release.
 What it does is in "Release procedure".
