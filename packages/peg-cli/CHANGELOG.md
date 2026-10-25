@@ -39,6 +39,12 @@ Since v0.1.0-rc1:
   safe, so that they do not change the language
   ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).
 
+Since v0.1.0-rc2:
+
+- `peg-hs gen --export NAME`: export only the names given of those the
+  generator defines, and generate only the declarations they need
+  ([ADR 0061](https://github.com/tett23/peg-hs/blob/main/docs/adr/0061-select-generated-exports.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:

@@ -8,8 +8,15 @@ the errors of GHC at the grammar. Give the paths relative to the directory of th
 that compiles the module: editors can then open them, and the module is the same on
 every machine. Files are read and written as UTF-8.
 
+The module exports the entry points (parse, and parseSyntax, parseRecover and
+parseSyntaxRecover when the grammar has them), the names of %syntax and the names of %export.
+With --export, it exports only the names given of the first two kinds, always with the names
+of %export, and leaves out the declarations that only the other names use. A type wrapper
+is given without (..). A name the generator does not define is an error.
+
 options:
   -o, --output FILE         write the module to FILE
+  --export NAME             export only NAME of the names the generator defines; can be given more than once
   --debug-entry             also export peg'parseWith (for testing the generator)
   --Werror                  fail if there are warnings
   --strip-labels MODULE     generate the grammar without its labels as MODULE (for testing that the labels are safe)
@@ -20,3 +27,5 @@ examples:
       generate src/Expr/Parser.hs from grammar/Expr.hpeg
   peg-hs gen --Werror Expr.hpeg
       generate Expr.hs, and fail if a label may reject valid input
+  peg-hs gen --export parseSyntaxRecover --export nameOfSyntaxKind Doc.hpeg
+      generate Doc.hs that exports only parseSyntaxRecover, nameOfSyntaxKind and the names of %export
