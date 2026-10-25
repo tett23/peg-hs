@@ -181,6 +181,7 @@ source-repository-package
 - `%env` を書いた文法では、どの入口も最初の引数に解析環境の値を取る（[ADR 0012](docs/adr/0012-context-sensitive-extensions.md)）
 
 詳しい一覧は、Hackage の文書（peg-codegen の `Peg.Codegen` と peg-runtime の `Peg.Runtime`）にある。
+入口と `%syntax` の名前は、`gen --export` でプログラムが使うものだけに狭められる（[ADR 0061](docs/adr/0061-select-generated-exports.md)）。
 
 ## コマンド
 
@@ -209,6 +210,16 @@ source-repository-package
 生成器は、正しい入力を拒否するかもしれないラベルを警告する（[ADR 0028](docs/adr/0028-label-safety-check.md)）。
 `--Werror` を付けると、警告があればモジュールを書かずに失敗する。
 作者が確かめたラベルは、文法に `%safe label` と書くと警告されない。
+
+`--export NAME` を付けると、モジュールは指定した名前と `%export` の名前だけを公開する（[ADR 0061](docs/adr/0061-select-generated-exports.md)）。
+`NAME` には、入口（`parse`、`parseExpr`、`parseSyntaxRecover` など）か `%syntax` の名前（`nameOfSyntaxKind`、種類の定数、`(..)` を除いたラッパーの型、`cast…Syntax`、取り出し関数）を書き、何度でも指定できる。
+ほかの名前からしか使われない規則などの宣言は出力しない。
+`%{ }%` のブロックは常に出力するので、そこから生成器の名前を参照するなら、その名前も `--export` に加える。
+生成器が定義しない名前は文法の誤りとし、1 行 1 桁の誤りとして報告する。
+
+```sh
+peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKind -o src/Doc/Parser.hs
+```
 
 ### fmt
 
