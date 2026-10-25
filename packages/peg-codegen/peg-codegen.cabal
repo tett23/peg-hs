@@ -22,6 +22,8 @@ extra-doc-files:    CHANGELOG.md
 extra-source-files:
   test/fixtures/*.hpeg
   test/golden/*.hs.golden
+  test/golden/exports/*.golden
+  test/derived/*.hpeg
 
 source-repository head
   type:     git
@@ -66,6 +68,7 @@ test-suite peg-codegen-test
     Fixture.Misc
     Fixture.NoMemo
     Fixture.Recover
+    Fixture.RecoverExports
     Fixture.RecoverNoLabels
     Fixture.RecoverShared
     Fixture.RecoverSharedNoLabels

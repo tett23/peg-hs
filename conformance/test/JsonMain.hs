@@ -123,7 +123,7 @@ regenerated :: Assertion
 regenerated = do
   src <- TIO.readFile "json/Json.hpeg"
   committed <- B.readFile "json/Conformance/Json/Parser.hs"
-  let opts = Options {optSourceName = "json/Json.hpeg", optOutputName = "json/Conformance/Json/Parser.hs", optDebugEntry = False}
+  let opts = Options {optSourceName = "json/Json.hpeg", optOutputName = "json/Conformance/Json/Parser.hs", optDebugEntry = False, optExports = Nothing}
   case generateFromSource opts src of
     Left ds -> assertFailure (show ds)
     Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
@@ -206,7 +206,7 @@ variantsDerived = do
     ( \(src, out) -> do
         grammar <- TIO.readFile src
         committed <- B.readFile out
-        case generateFromSource (Options src out True) grammar of
+        case generateFromSource (Options src out True Nothing) grammar of
           Left ds -> assertFailure (show ds)
           Right code -> assertBool ("regenerate " <> out) (TE.encodeUtf8 code == committed)
     )
@@ -263,7 +263,7 @@ labeledDerived = do
   fmap snd (insertLabels [] renamed) @?= Right committed
   assertBool "labels are inserted" (committed /= renamed)
   code <- B.readFile "bench/Conformance/Bench/JsonLabeled.hs"
-  case generateFromSource (Options "bench/JsonLabeled.hpeg" "bench/Conformance/Bench/JsonLabeled.hs" False) committed of
+  case generateFromSource (Options "bench/JsonLabeled.hpeg" "bench/Conformance/Bench/JsonLabeled.hs" False Nothing) committed of
     Left ds -> assertFailure (show ds)
     Right out -> assertBool "regenerate bench/Conformance/Bench/JsonLabeled.hs" (TE.encodeUtf8 out == code)
 

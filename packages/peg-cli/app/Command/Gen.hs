@@ -47,7 +47,7 @@ run :: Parsed -> IO ExitCode
 run p = case parsedArguments p of
   [input] -> do
     let out = maybe (replaceExtension input "hs") id (value "output" p)
-        opts = Options {optSourceName = input, optOutputName = out, optDebugEntry = flag "debug-entry" p}
+        opts = Options {optSourceName = input, optOutputName = out, optDebugEntry = flag "debug-entry" p, optExports = Nothing}
         strip = value "strip-labels" p
     readUtf8 "peg-hs gen takes a grammar file, not a directory" input >>= \case
       Left e -> reportFileError e >> pure (ExitFailure 1)

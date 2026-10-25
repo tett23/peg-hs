@@ -33,6 +33,13 @@ module.
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
 
+Since v0.1.0-rc2:
+
+- `optExports` of `Options`: export only the entry points and the names of
+  `%syntax` given, and leave out the declarations that only the other names
+  use, so that the module still compiles without warnings. A name that the
+  generator does not define is an error ([ADR 0061](https://github.com/tett23/peg-hs/blob/main/docs/adr/0061-select-generated-exports.md)).
+
 ### Fixed
 
 Since v0.1.0-rc1:

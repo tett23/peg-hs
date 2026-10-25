@@ -140,7 +140,7 @@ regenerated name = do
       out = "commonmark/Conformance/CommonMark/" <> name <> ".hs"
   grammar <- TIO.readFile src
   committed <- B.readFile out
-  pure $ case generateFromSource (Options src out False) grammar of
+  pure $ case generateFromSource (Options src out False Nothing) grammar of
     Right code -> TE.encodeUtf8 code == committed
     Left _ -> False
 

@@ -1,0 +1,6 @@
+module Fixture.Recover
+  ( parseSyntaxRecover
+  , nameOfSyntaxKind
+  , Block(..)
+  , Inline(..)
+  ) where
