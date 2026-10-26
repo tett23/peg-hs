@@ -1,6 +1,6 @@
 # ADR 0014: 生成モジュールの公開 API、名前の衛生、位置の規約
 
-ステータス: 採択→エクスポートの選択は [ADR 0061](0061-select-generated-exports.md)
+ステータス: 採択→エクスポートの選択は [ADR 0061](0061-select-generated-exports.md)、エクスポートを選んだモジュールの警告は [ADR 0062](0062-warnings-of-pruned-generated-modules.md)
 
 ## 文脈
 
