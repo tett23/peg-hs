@@ -533,14 +533,30 @@ exportTests =
     , testGroup
         "the generated modules compile without warnings"
         ( [ skippedWithout "../peg-runtime/src" name $
-              generateExports n strip debug names >>= typecheckWarnings entry ("Exports" <> name)
-          | (name, n, strip, debug, names, entry) <- exportCases
+              generateExports n strip debug names >>= typecheckWarnings ("Exports" <> name)
+          | (name, n, strip, debug, names, _) <- exportCases
           ]
             ++ [ skippedWithout "../peg-runtime/src" name $
-                   generateExports n Nothing False names >>= typecheckWarnings True ("Exports" <> name)
+                   generateExports n Nothing False names >>= typecheckWarnings ("Exports" <> name)
                | (name, n, names) <- [("Link", "Link", ["parse"]), ("NoMemo", "NoMemo", ["parse"]), ("Arith", "Arith", ["parseTerm"])]
                ]
+            ++ [ skippedWithout "../peg-runtime/src" "code used only by a rule left out (ADR 0062)" $
+                   typecheckWarnings "ExportsHelpers" (generateFromSource (helpersOptions ["parseOther"]) helpersGrammar)
+               ]
         )
+    , testGroup
+        "the warnings of left-out declarations (ADR 0062)"
+        [ testCase "a module with left-out declarations silences them" $ do
+            code <- generatedExports "Recover" Nothing False golemExports
+            assertBool "no pragma" (prunedPragma `elem` T.lines code)
+        , testCase "a module with every name selected has no pragma" $ do
+            code <- generatedExports "Sum" Nothing False ["parse"]
+            assertBool "a pragma" (not (prunedPragma `T.isInfixOf` code))
+            either (assertFailure . show) (\c -> assertBool "a pragma" (not (prunedPragma `T.isInfixOf` c))) (generateFromSource (helpersOptions ["parse", "parseOther"]) helpersGrammar)
+        , testCase "nameOfSyntaxKind alone has no syntax kind constants" $ do
+            code <- generatedExports "Syntax" Nothing False ["nameOfSyntaxKind"]
+            assertBool "a syntax kind constant" (not ("\nsyntaxKind" `T.isInfixOf` code))
+        ]
     , testProperty "the recovered trees and errors do not change" $
         withNumTests 1000 $ forAll (T.pack <$> listOf (elements "ab []\n\nx\x3042")) $ \t ->
           let (tree, errs) = Recover.parseSyntaxRecover t
@@ -566,16 +582,10 @@ exportTests =
   where
     exportErrors n names = either id (const []) <$> generateExports n Nothing False names
 
--- Type-check a generated module with -Wall -Werror (ADR 0014, ADR 0061).
---
--- Without an entry point, no rule is generated, and the imports that only
--- the actions used are redundant: those of the grammar's code, and the
--- import of Prelude that the generator restores for that code. The
--- generator does not read Haskell, so it cannot tell whether the code of
--- the grammar uses Prelude. Without an entry point, such warnings are
--- therefore allowed, and only them.
-typecheckWarnings :: Bool -> String -> Either [Diagnostic] Text -> Assertion
-typecheckWarnings entry name generated = case generated of
+-- Type-check a generated module with -Wall -Werror (ADR 0014, ADR 0061,
+-- ADR 0062): no warning at all, also when declarations are left out.
+typecheckWarnings :: String -> Either [Diagnostic] Text -> Assertion
+typecheckWarnings name generated = case generated of
   Left ds -> assertFailure (show ds)
   Right code -> do
     tmp <- getTemporaryDirectory
@@ -583,20 +593,38 @@ typecheckWarnings entry name generated = case generated of
         file = dir </> name <> ".hs"
     createDirectoryIfMissing True dir
     TIO.writeFile file code
-    (ex, out, err) <-
-      readProcessWithExitCode
-        ghc
-        (["-fno-code", "-Wall", "-Werror", "-i../peg-runtime/src", "-outputdir", dir </> "out", file] ++ ["-Wwarn=unused-imports" | not entry])
-        ""
+    (ex, out, err) <- readProcessWithExitCode ghc ["-fno-code", "-Wall", "-Werror", "-i../peg-runtime/src", "-outputdir", dir </> "out", file] ""
     assertEqual (out <> err) ExitSuccess ex
-    let ls = T.lines (T.pack err)
-        warnings = [(l, next) | (l, next) <- zip ls (drop 1 ls ++ [""]), "warning:" `T.isInfixOf` l]
-        allowed (l, next) =
-          "[-Wunused-imports]" `T.isInfixOf` l
-            && ( "test/fixtures/" `T.isPrefixOf` l
-                   || (T.pack file `T.isPrefixOf` l && "The import of " `T.isInfixOf` next && any (`T.isInfixOf` next) ["\8216Prelude\8217", "'Prelude'", "`Prelude'"])
-               )
-    assertBool err (all allowed warnings)
+    assertBool err (not ("warning:" `T.isInfixOf` T.pack err))
+
+-- A grammar whose code has an import and a function that only the action
+-- of S uses (ADR 0062).
+helpersGrammar :: Text
+helpersGrammar =
+  T.unlines
+    [ "%module Exports.Helpers"
+    , "%entry Other"
+    , "%{"
+    , "import Data.Char (isDigit)"
+    , "import Data.Text (unpack)"
+    , ""
+    , "digits :: String -> Int"
+    , "digits = length . filter isDigit"
+    , "}%"
+    , ""
+    , "S :: Int"
+    , "S <- d:$[0-9]+ { digits (unpack d) }"
+    , ""
+    , "Other :: ()"
+    , "Other <- 'x' { () }"
+    ]
+
+helpersOptions :: [Text] -> Options
+helpersOptions names = Options {optSourceName = "Helpers.hpeg", optOutputName = "Helpers.hs", optDebugEntry = False, optExports = Just names}
+
+-- The pragma that silences the warnings of left-out declarations (ADR 0062).
+prunedPragma :: Text
+prunedPragma = "{-# OPTIONS_GHC -Wno-unused-imports -Wno-unused-top-binds #-}"
 
 -- Compiling generated code with GHC ------------------------------------------
 
