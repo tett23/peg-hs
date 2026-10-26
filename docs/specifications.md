@@ -72,6 +72,7 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 - アクションに書いた Haskell の式が型の誤りを起こすと、GHC はそれを `.hpeg` ファイルの行と桁で報告する（[ADR 0014](adr/0014-generated-module-api.md)）
 - `%language` で、生成モジュールの言語拡張を有効にできる。生成コードの意味を変える `RebindableSyntax` は拒否する（[ADR 0016](adr/0016-language-extensions.md)）
 - `%nomemo` で、規則ごとにメモ化を外せる。左再帰に関与する規則には指定できない（[ADR 0006](adr/0006-memoization-control.md)、[ADR 0017](adr/0017-nomemo-implementation.md)）
+- `peg-hs gen --export NAME` で、入口と `%syntax` の名前のうち公開するものを選べる。`%export` の名前は常に公開する。選ばなかった名前からしか参照されない宣言（規則、メモ表の欄、種類の定数など）は出力しない。生成器が定義しない名前は誤りとする（[ADR 0061](adr/0061-select-generated-exports.md)）
 
 生成モジュールの先頭のコメントには、そのモジュールが要る peg-runtime の版の範囲を `peg-runtime >=0.1 && <0.2` の形で書く（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 生成コードは、peg-runtime のうち生成コードのためだけにある内部向けのモジュール（`Peg.Runtime.Internal`）を使う。

@@ -1,0 +1,3 @@
+module Fixture.RecoverSharedStripped
+  ( parse
+  ) where

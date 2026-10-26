@@ -37,6 +37,10 @@ peg=$("$cabal" list-bin exe:peg-hs)
   "$peg" gen test/fixtures/Recover.hpeg -o test/generated/Fixture/RecoverNoLabels.hs --strip-labels Fixture.RecoverNoLabels >/dev/null
   # Two labels with one recovery rule, without the labels (ADR 0038).
   "$peg" gen test/fixtures/RecoverShared.hpeg -o test/generated/Fixture/RecoverSharedNoLabels.hs --strip-labels Fixture.RecoverSharedNoLabels >/dev/null
+  # The recovery fixture with only the names that Golem uses (ADR 0061).
+  sed 's/^%module Fixture.Recover$/%module Fixture.RecoverExports/' test/fixtures/Recover.hpeg > test/derived/RecoverExports.hpeg
+  "$peg" gen test/derived/RecoverExports.hpeg -o test/generated/Fixture/RecoverExports.hs \
+    --export parseSyntaxRecover --export nameOfSyntaxKind >/dev/null
 )
 # The notation's grammar without its labels, for the label safety tests (ADR 0028).
 (

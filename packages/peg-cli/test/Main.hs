@@ -827,7 +827,39 @@ main = do
               assertBool "module N" ("module N" `isInfixOf` out)
               assertBool "no label" (not ("labeled" `isInfixOf` out))
           ]
+      , testGroup
+          "gen --export (ADR 0061)"
+          [ testCase "only the names given are exported" $ do
+              dir <- treeWith "export-two" [("G.hpeg", "%module M\n%syntax\nS :: ()\nS <- 'a' { () }\n")]
+              (code, _, err) <- pegHsIn dir ["gen", "G.hpeg", "--export", "parseSyntax", "--export", "parse"]
+              (code, err) @?= (ExitSuccess, "")
+              out <- readFile (dir </> "G.hs")
+              exportLines out @?= ["module M", "  ( parse", "  , parseSyntax", "  ) where"]
+          , testCase "a name that the generator does not define is an error of the grammar" $ do
+              dir <- treeWith "export-missing" [("G.hpeg", "%module M\nS :: ()\nS <- 'a' { () }\n")]
+              (code, out, err) <- pegHsIn dir ["gen", "G.hpeg", "--export", "parseSyntax", "--export", "parse", "--export", "parseRecover"]
+              (code, out) @?= (ExitFailure 1, "")
+              lines err @?= ["G.hpeg:1:1: error: the generator does not define parseSyntax", "G.hpeg:1:1: error: the generator does not define parseRecover"]
+              written <- doesFileExist (dir </> "G.hs")
+              assertBool "no module is written" (not written)
+          , testCase "with --strip-labels, the names are those of the grammar without labels" $ do
+              dir <- treeWith "export-strip" [("G.hpeg", unsafe <> "%safe l\n")]
+              (code, _, _) <- pegHsIn dir ["gen", "G.hpeg", "--export", "parseRecover"]
+              code @?= ExitSuccess
+              (code', _, err') <- pegHsIn dir ["gen", "G.hpeg", "-o", "N.hs", "--strip-labels", "N", "--export", "parseRecover"]
+              code' @?= ExitFailure 1
+              lines err' @?= ["G.hpeg:1:1: error: the generator does not define parseRecover"]
+          , testCase "peg-hs help gen lists --export" $ do
+              out <- BL.unpack <$> stdoutOf ["help", "gen"]
+              assertBool out ("--export NAME" `isInfixOf` out)
+          ]
       ]
+
+-- The export list of a generated module: from the module line to ") where".
+exportLines :: String -> [String]
+exportLines code = case break (== "  ) where") (dropWhile (not . isPrefixOf "module ") (lines code)) of
+  (before, end : _) -> before ++ [end]
+  (before, []) -> before
 
 catchIOAny :: IO a -> IO a -> IO a
 catchIOAny act fallback = act `catchIOError'` const fallback

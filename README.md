@@ -179,6 +179,7 @@ A generated module also exports:
 - with `%env`, every entry point takes the value of the parse environment as its first argument ([ADR 0012](docs/adr/0012-context-sensitive-extensions.md)).
 
 The Haddock of `Peg.Codegen` (peg-codegen) and `Peg.Runtime` (peg-runtime) has the full list.
+`gen --export` narrows the entry points and the names of `%syntax` to those a program uses ([ADR 0061](docs/adr/0061-select-generated-exports.md)).
 
 ## Commands
 
@@ -207,6 +208,16 @@ Without an output path, it is the grammar's path with the extension `.hs`.
 The generator warns of labels that may reject valid input ([ADR 0028](docs/adr/0028-label-safety-check.md)).
 With `--Werror`, a warning makes it fail without writing the module.
 `%safe label` in the grammar silences the warning of a label that the author checked.
+
+With `--export NAME`, the module exports only the names given, together with the names of `%export` ([ADR 0061](docs/adr/0061-select-generated-exports.md)).
+`NAME` is an entry point (`parse`, `parseExpr`, `parseSyntaxRecover` and so on) or a name of `%syntax` (`nameOfSyntaxKind`, a syntax kind, a wrapper type without `(..)`, a cast or an accessor), and the option can be given more than once.
+The module leaves out the rules and other declarations that only the other names use.
+The blocks of `%{ }%` are always kept, so a name of the generator that they refer to must be given to `--export` too.
+A name that the generator does not define is an error of the grammar, reported at line 1, column 1.
+
+```sh
+peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKind -o src/Doc/Parser.hs
+```
 
 ### fmt
 

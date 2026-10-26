@@ -26,7 +26,7 @@ main =
       [ testCase "the committed benchmark parser is up to date" $ do
           src <- TIO.readFile "bench/Pathological.hpeg"
           committed <- B.readFile "bench/Conformance/Bench/Pathological.hs"
-          let opts = Options {optSourceName = "bench/Pathological.hpeg", optOutputName = "bench/Conformance/Bench/Pathological.hs", optDebugEntry = True}
+          let opts = Options {optSourceName = "bench/Pathological.hpeg", optOutputName = "bench/Conformance/Bench/Pathological.hs", optDebugEntry = True, optExports = Nothing}
           case generateFromSource opts src of
             Left ds -> assertFailure (show ds)
             Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
@@ -44,7 +44,7 @@ main =
                     out = "bench/Conformance/Bench/NestedLR" <> show n <> ".hs"
                 grammar <- TIO.readFile src
                 committed <- B.readFile out
-                case generateFromSource (Options src out True) grammar of
+                case generateFromSource (Options src out True Nothing) grammar of
                   Left ds -> assertFailure (show ds)
                   Right code -> assertBool ("regenerate " <> out) (TE.encodeUtf8 code == committed)
             )

@@ -164,7 +164,7 @@ build grammarFile g dir withAst entry ghcArgs = do
       moduleName = T.unpack (unLoc (grammarModule g))
       modulePath = srcDir </> map (\c -> if c == '.' then '/' else c) moduleName <> ".hs"
       syntaxGrammar = g {grammarSyntax = Just (fromMaybe (Loc 1 1) (grammarSyntax g))}
-      opts = Options {optSourceName = grammarFile, optOutputName = modulePath, optDebugEntry = False}
+      opts = Options {optSourceName = grammarFile, optOutputName = modulePath, optDebugEntry = False, optExports = Nothing}
   case generate opts syntaxGrammar of
     Left diags -> reportErrors grammarFile diags >> pure False
     Right code -> do

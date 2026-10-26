@@ -1,0 +1,9 @@
+module Fixture.Recover
+  ( parse
+  , Block(..)
+  , Inline(..)
+  , peg'parseWith
+  , peg'parseSyntaxWith
+  , peg'parseRecoverWith
+  , peg'parseSyntaxRecoverWith
+  ) where

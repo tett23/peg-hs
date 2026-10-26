@@ -18,6 +18,14 @@
 --   @Peg.Runtime.Syntax@;
 -- * the names listed by @%export@.
 --
+-- 'optExports' narrows the first three kinds of names to those given, as
+-- @peg-hs gen --export NAME@ does (ADR 0061). The names of @%export@ are
+-- always exported. The module then has only the declarations that the
+-- names exported refer to, so that it compiles without warnings under
+-- @-Wall@: the rules that no exported entry point reaches, their fields in
+-- the memo tables, and the syntax kinds, wrappers and accessors that are
+-- not exported or used are left out.
+--
 -- With @%env@, every entry point first takes the environment. The types
 -- @ParseError@ and @SyntaxError@ come from the @Peg.Runtime@ module of
 -- @peg-runtime@, and @SyntaxNode@ from @Peg.Runtime.Syntax@.
@@ -36,7 +44,7 @@ module Peg.Codegen
 import Data.Char (toLower, toUpper)
 import Data.List (intersperse)
 import qualified Data.Map.Strict as M
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
@@ -61,14 +69,27 @@ data Options = Options
   -- (@peg'parseSyntaxWith@, @peg'parseRecoverWith@,
   -- @peg'parseSyntaxRecoverWith@) when the grammar has them. Only meant for
   -- testing the generator (@peg-hs gen --debug-entry@).
+  , optExports :: Maybe [Text]
+  -- ^ The names to export of those the generator defines: the entry points
+  -- (@parse@, @parseName@, @parseSyntax@, @parseRecover@,
+  -- @parseSyntaxRecover@ and their @%entry@ variants) and the names of
+  -- @%syntax@ (@nameOfSyntaxKind@, @isTriviaSyntaxKind@, the syntax kinds,
+  -- the wrapper types, named without @(..)@, their casts and accessors).
+  -- The order and repetitions of the names do not matter. A name that the
+  -- generator does not define is an error of 'generate'. The names of
+  -- @%export@ and the debugging entry points of 'optDebugEntry' are always
+  -- exported, and the code of the grammar is always generated: if it refers
+  -- to a declaration that is left out, GHC reports the name as not in
+  -- scope, and the name must be exported. 'Nothing', the default, exports
+  -- every name (ADR 0061).
   }
   deriving (Eq, Show)
 
 -- | Options for a grammar named @Grammar.hpeg@ generated into @Grammar.hs@,
--- without the debugging entry points. Override the file names with record
+-- without the debugging entry points, exporting every name. Override the file names with record
 -- update syntax.
 defaultOptions :: Options
-defaultOptions = Options "Grammar.hpeg" "Grammar.hs" False
+defaultOptions = Options "Grammar.hpeg" "Grammar.hs" False Nothing
 
 -- | Parse, check and generate: 'Peg.Grammar.Parser.parseGrammar' followed
 -- by 'generate'. The diagnostics are errors, located in the grammar.
@@ -97,27 +118,22 @@ generateFromSource opts src = parseGrammar src >>= generate opts
 -- is checked by 'Peg.Grammar.Check.check'; errors inside a template name
 -- the call that expanded it ('Peg.Grammar.Templates.templateNotes'). The
 -- grammar may be given before or after the expansion of templates.
+--
+-- With 'optExports', every name given must be one that the generator
+-- defines for the grammar; each one that is not is an error at line 1,
+-- column 1, in the order given:
+-- @the generator does not define NAME@ (ADR 0061).
 generate :: Options -> Grammar -> Either [Diagnostic] Text
 generate opts g0 = do
   g <- either (Left . templateNotes g0) Right (expandTemplates g0)
   analysis <- either (Left . templateNotes g0) Right (check g)
-  Right (finalize opts (render opts g analysis))
+  case undefinedExports opts g analysis of
+    [] -> Right (finalize opts (render opts g analysis))
+    missing -> Left [Diagnostic (Loc 1 1) ("the generator does not define " <> n) | n <- missing]
 
 -- Labels written anywhere in the grammar (ADR 0021).
 grammarLabels :: Grammar -> [Text]
-grammarLabels g = [name | r <- grammarRules g, a <- ruleAlts r, name <- concatMap (labels . itemExpr) (altItems a)]
-  where
-    labels e = case e of
-      ELabel _ x name -> name : labels x
-      EGroup alts -> concatMap (concatMap (labels . itemExpr)) alts
-      EStar x -> labels x
-      EPlus x -> labels x
-      EOpt x -> labels x
-      EAnd x -> labels x
-      ENot x -> labels x
-      ECapture x -> labels x
-      EDiscard x -> labels x
-      _ -> []
+grammarLabels g = [name | r <- grammarRules g, a <- ruleAlts r, name <- concatMap (exprLabels . itemExpr) (altItems a)]
 
 -- Fragments of user code ----------------------------------------------------
 
@@ -190,39 +206,41 @@ render opts g an =
       , "  ( " <> T.intercalate "\n  , " exports
       , "  ) where"
       , ""
-      , "import qualified Prelude as PegPrelude"
-      , "import qualified Peg.Runtime.Internal as PegRt"
       ]
+        ++ ["import qualified Prelude as PegPrelude" | usesPegPrelude]
+        ++ [ "import qualified Peg.Runtime.Internal as PegRt"
+           ]
         ++ ["import Prelude" | not (importsPrelude g)]
         ++ [""]
         ++ map verbatimBlock (grammarVerbatim g)
-        ++ entryDecls
-        ++ syntaxEntryDecls
-        ++ recoverEntryDecls
-        ++ debugDecls
-        ++ syntaxDecls env
-        ++ [configDecl, storeDecl, newStoreDecl]
-        ++ map (ruleDecl env) (grammarRules g)
+        ++ decls
     )
   where
     env = Env opts g an (M.fromList [(ruleName r, r) | r <- grammarRules g]) syntax
     syntax = isJust (grammarSyntax g)
     start = analysisStart an
-    entries = [(Nothing, start)] ++ [(Just (unLoc e), unLoc e) | e <- grammarEntries g]
-    entryName Nothing = "parse"
-    entryName (Just n) = "parse" <> n
+    entries = entryPoints g an
+    -- The declarations that are generated (ADR 0061): all of them without
+    -- 'optExports'.
+    kept = keptDecls opts g an
+    keep name = maybe True (S.member name) kept
+    decls =
+      entryDecls
+        ++ syntaxEntryDecls
+        ++ recoverEntryDecls
+        ++ debugDecls
+        ++ syntaxDecls env keep
+        ++ (if keep "peg'config" then [configDecl] else [])
+        ++ (if keep "peg'newStore" then [storeDecl, newStoreDecl] else [])
+        ++ [ruleDecl env r | r <- grammarRules g, keep (ruleVar (ruleName r))]
+    -- Without the entry points and rules, the declarations may not use the
+    -- qualified Prelude, whose import would then be redundant.
+    usesPegPrelude = isNothing kept || any ("PegPrelude." `T.isInfixOf`) decls
     exports =
-      [entryName k | (k, _) <- entries]
-        ++ ["parseSyntax" <> maybe "" id k | syntax, (k, _) <- entries]
-        ++ ["parseRecover" <> maybe "" id k | recovering, (k, _) <- entries]
-        ++ ["parseSyntaxRecover" <> maybe "" id k | recovering, syntax, (k, _) <- entries]
-        ++ syntaxExports env
+      [x | x <- generatedNames g an, maybe True (elem (selectable x)) (optExports opts)]
         ++ map unLoc (grammarExports g)
-        ++ ["peg'parseWith" | optDebugEntry opts]
-        ++ ["peg'parseSyntaxWith" | optDebugEntry opts, syntax]
-        ++ ["peg'parseRecoverWith" | optDebugEntry opts, recovering]
-        ++ ["peg'parseSyntaxRecoverWith" | optDebugEntry opts, recovering, syntax]
-    recovering = not (null (grammarLabels g))
+        ++ debugNames opts g
+    recovering = isRecovering g
     -- In syntax mode a rule returns its value with its tree children.
     valueOf = if syntax then "PegPrelude.fmap PegPrelude.fst " else ""
     wrapValue e = if syntax then valueOf <> "(" <> e <> ")" else e
@@ -245,6 +263,7 @@ render opts g an =
           , ""
           ]
         | (k, n) <- entries
+        , keep (entryName k)
         ]
     syntaxEntryDecls
       | syntax =
@@ -256,20 +275,25 @@ render opts g an =
               , ""
               ]
             | (k, n) <- entries
+            , keep ("parseSyntax" <> maybe "" id k)
             ]
       | otherwise = []
     recoverEntryDecls
       | recovering =
           concat
-            [ [ "-- | Parse the whole input with the rule @" <> n <> "@, recovering from labelled failures."
-              , "-- The value is 'PegPrelude.Nothing' only if the rule could not be recovered."
-              , "parseRecover" <> maybe "" id k <> " :: " <> envParamType <> "PegRt.Text -> (PegPrelude.Maybe (" <> resultType n <> "), [PegRt.SyntaxError])"
-              , "parseRecover" <> maybe "" id k <> envArg <> " peg'input ="
-              , "  let (peg'v, peg'e, _) = PegRt.runParserRecover peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " peg'input"
-              , "   in (" <> valueOf <> "peg'v, peg'e)"
-              , ""
-              ]
-                ++ ( if syntax
+            [ ( if keep ("parseRecover" <> maybe "" id k)
+                  then
+                    [ "-- | Parse the whole input with the rule @" <> n <> "@, recovering from labelled failures."
+                    , "-- The value is 'PegPrelude.Nothing' only if the rule could not be recovered."
+                    , "parseRecover" <> maybe "" id k <> " :: " <> envParamType <> "PegRt.Text -> (PegPrelude.Maybe (" <> resultType n <> "), [PegRt.SyntaxError])"
+                    , "parseRecover" <> maybe "" id k <> envArg <> " peg'input ="
+                    , "  let (peg'v, peg'e, _) = PegRt.runParserRecover peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " peg'input"
+                    , "   in (" <> valueOf <> "peg'v, peg'e)"
+                    , ""
+                    ]
+                  else []
+              )
+                ++ ( if syntax && keep ("parseSyntaxRecover" <> maybe "" id k)
                        then
                          [ "-- | The lossless syntax tree of the whole input, recovering from labelled failures."
                          , "-- Always returns a tree; unrecovered input becomes error nodes."
@@ -339,7 +363,7 @@ render opts g an =
         , "peg'config = PegRt.defaultConfig" <> maybe "" (\t -> " {PegRt.cfgTabstop = " <> showT (unLoc t) <> "}") (grammarTabstop g)
         , ""
         ]
-    memoised = [r | r <- grammarRules g, not (isNoMemo g r)]
+    memoised = [r | r <- grammarRules g, not (isNoMemo g r), keep (ruleVar (ruleName r))]
     storeFields =
       ["peg'env :: (" <> envType <> ")" | hasEnv]
         ++ [memoVar r <> " :: " <> tableType r | r <- memoised]
@@ -371,6 +395,144 @@ render opts g an =
         , ""
         ]
     newTable r = if null (ruleParams r) then "PegRt.newTable" else "PegRt.newArgTable"
+
+-- Selecting the exports (ADR 0061) -------------------------------------------
+
+-- The entry points: the start rule, then the rules of @%entry@.
+entryPoints :: Grammar -> Analysis -> [(Maybe Text, Text)]
+entryPoints g an = (Nothing, analysisStart an) : [(Just (unLoc e), unLoc e) | e <- grammarEntries g]
+
+entryName :: Maybe Text -> Text
+entryName = ("parse" <>) . maybe "" id
+
+isRecovering :: Grammar -> Bool
+isRecovering = not . null . grammarLabels
+
+-- The public names that the generator defines, as the export list writes
+-- them, in its order: the entry points, then the names of @%syntax@.
+generatedNames :: Grammar -> Analysis -> [Text]
+generatedNames g an =
+  [entryName k | (k, _) <- entries]
+    ++ ["parseSyntax" <> maybe "" id k | syntax, (k, _) <- entries]
+    ++ ["parseRecover" <> maybe "" id k | recovering, (k, _) <- entries]
+    ++ ["parseSyntaxRecover" <> maybe "" id k | recovering, syntax, (k, _) <- entries]
+    ++ syntaxExports g
+  where
+    entries = entryPoints g an
+    syntax = isJust (grammarSyntax g)
+    recovering = isRecovering g
+
+-- The entry points of @--debug-entry@, which are always exported with it.
+debugNames :: Options -> Grammar -> [Text]
+debugNames opts g =
+  ["peg'parseWith" | optDebugEntry opts]
+    ++ ["peg'parseSyntaxWith" | optDebugEntry opts, syntax]
+    ++ ["peg'parseRecoverWith" | optDebugEntry opts, recovering]
+    ++ ["peg'parseSyntaxRecoverWith" | optDebugEntry opts, recovering, syntax]
+  where
+    syntax = isJust (grammarSyntax g)
+    recovering = isRecovering g
+
+-- The name by which a public name is selected: a type without @(..)@.
+selectable :: Text -> Text
+selectable x = maybe x id (T.stripSuffix "(..)" x)
+
+-- The names of 'optExports' that the generator does not define, each once,
+-- in the order given.
+undefinedExports :: Options -> Grammar -> Analysis -> [Text]
+undefinedExports opts g an = case optExports opts of
+  Nothing -> []
+  Just names -> nubOrd [n | n <- names, not (S.member n defined)]
+  where
+    defined = S.fromList (map selectable (generatedNames g an))
+    nubOrd = go S.empty
+    go _ [] = []
+    go seen (x : xs)
+      | S.member x seen = go seen xs
+      | otherwise = x : go (S.insert x seen) xs
+
+-- The declarations to generate with 'optExports': those reachable from the
+-- selected names and the debugging entry points, by the references of the
+-- generated code. 'Nothing' without 'optExports': every declaration. A
+-- declaration is named by its Haskell name; @Peg'Store@ goes with
+-- @peg'newStore@, and a field of the store with its rule.
+keptDecls :: Options -> Grammar -> Analysis -> Maybe (Set Text)
+keptDecls opts g an = case optExports opts of
+  Nothing -> Nothing
+  Just names ->
+    let selected = S.fromList names
+        roots = [x | x <- map selectable (generatedNames g an), S.member x selected] ++ debugNames opts g
+     in Just (reach S.empty roots)
+  where
+    reach seen [] = seen
+    reach seen (x : xs)
+      | S.member x seen = reach seen xs
+      | otherwise = reach (S.insert x seen) (M.findWithDefault [] x refs ++ xs)
+    syntax = isJust (grammarSyntax g)
+    start = analysisStart an
+    runner n withKind = [ruleVar n, "peg'config", "peg'newStore"] ++ [kindVar n | withKind]
+    refs =
+      M.fromList $
+        concat
+          [ [ (entryName k, runner n False)
+            , ("parseSyntax" <> maybe "" id k, runner n True)
+            , ("parseRecover" <> maybe "" id k, runner n False)
+            , ("parseSyntaxRecover" <> maybe "" id k, runner n True)
+            ]
+          | (k, n) <- entryPoints g an
+          ]
+          ++ [ ("peg'parseWith", runner start False)
+             , ("peg'parseSyntaxWith", runner start True)
+             , ("peg'parseRecoverWith", runner start False)
+             , ("peg'parseSyntaxRecoverWith", runner start True)
+             ]
+          ++ [(ruleVar (ruleName r), ruleRefs r) | r <- grammarRules g]
+          ++ [("isTriviaSyntaxKind", [kindVar (unLoc t) | t <- grammarTrivia g])]
+          ++ concat
+            [ (castName n, [syntaxTypeName n, kindVar n])
+                : [(accessorName n b, syntaxTypeName n : accessRefs a) | (b, a) <- accessors g r]
+            | r <- nodeRules g
+            , let n = ruleName r
+            ]
+    ruleRefs r =
+      [ruleVar m | alt <- ruleAlts r, i <- altItems alt, m <- exprRefs (itemExpr i)]
+        ++ [ruleVar rec | alt <- ruleAlts r, i <- altItems alt, l <- exprLabels (itemExpr i), rec : _ <- [[unLoc x | (Located _ l', x) <- grammarRecovers g, l' == l]]]
+        ++ [kindVar (ruleName r) | syntax, not (isInline g (ruleName r))]
+    accessRefs a = case a of
+      OneNode x -> [syntaxTypeName x, kindVar x]
+      ManyNodes x -> [syntaxTypeName x, kindVar x]
+      OneToken x -> [kindVar x]
+      ManyTokens x -> [kindVar x]
+      Elements -> ["isTriviaSyntaxKind"]
+
+-- The rules that an expression refers to.
+exprRefs :: Expr -> [Text]
+exprRefs e = case e of
+  ERef _ n _ -> [n]
+  EGroup alts -> concatMap (concatMap (exprRefs . itemExpr)) alts
+  EStar x -> exprRefs x
+  EPlus x -> exprRefs x
+  EOpt x -> exprRefs x
+  EAnd x -> exprRefs x
+  ENot x -> exprRefs x
+  ECapture x -> exprRefs x
+  ELabel _ x _ -> exprRefs x
+  EDiscard x -> exprRefs x
+  _ -> []
+
+-- The labels written in an expression.
+exprLabels :: Expr -> [Text]
+exprLabels e = case e of
+  ELabel _ x name -> name : exprLabels x
+  EGroup alts -> concatMap (concatMap (exprLabels . itemExpr)) alts
+  EStar x -> exprLabels x
+  EPlus x -> exprLabels x
+  EOpt x -> exprLabels x
+  EAnd x -> exprLabels x
+  ENot x -> exprLabels x
+  ECapture x -> exprLabels x
+  EDiscard x -> exprLabels x
+  _ -> []
 
 -- The generated code imports Prelude qualified, which turns off the implicit
 -- import of Prelude for the user's code. Restore it unless the user's code
@@ -620,9 +782,9 @@ accessors g r =
       ERef _ n _ | not (isInline g n) -> ManyNodes n
       _ -> Elements
 
-syntaxExports :: Env -> [Text]
-syntaxExports env
-  | not (envSyntax env) = []
+syntaxExports :: Grammar -> [Text]
+syntaxExports g
+  | not (isJust (grammarSyntax g)) = []
   | otherwise =
       ["nameOfSyntaxKind", "isTriviaSyntaxKind"]
         ++ [kindVar n | (n, _) <- kindNumbers g]
@@ -631,11 +793,10 @@ syntaxExports env
               ++ [accessorName (ruleName r) b | (b, _) <- accessors g r]
           | r <- nodeRules g
           ]
-  where
-    g = envGrammar env
 
-syntaxDecls :: Env -> [Text]
-syntaxDecls env
+-- The declarations of @%syntax@ that 'keep' accepts.
+syntaxDecls :: Env -> (Text -> Bool) -> [Text]
+syntaxDecls env keep
   | not (envSyntax env) = []
   | otherwise =
       concat
@@ -645,8 +806,16 @@ syntaxDecls env
           , ""
           ]
         | (n, k) <- kinds
+        , keep (kindVar n)
         ]
-        ++ [ "-- | The name of a syntax kind."
+        ++ (if keep "nameOfSyntaxKind" then nameDecl else [])
+        ++ (if keep "isTriviaSyntaxKind" then triviaDecl else [])
+        ++ concatMap typed (nodeRules g)
+  where
+    g = envGrammar env
+    kinds = kindNumbers g
+    nameDecl =
+           [ "-- | The name of a syntax kind."
            , "nameOfSyntaxKind :: PegRt.SyntaxKind -> PegRt.Text"
            , "nameOfSyntaxKind peg'k = PegRt.labelText (case peg'k of"
            , "  { PegRt.SyntaxKind 0 -> " <> hsString "TEXT"
@@ -656,29 +825,36 @@ syntaxDecls env
         ++ [ "  ; _ -> " <> hsString "UNKNOWN"
            , "  })"
            , ""
-           , "-- | Whether a syntax kind is trivia (@%trivia@)."
-           , "isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool"
-           , "isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k [" <> T.intercalate ", " [kindVar n | n <- map unLoc (grammarTrivia g)] <> "]"
-           , ""
            ]
-        ++ concatMap typed (nodeRules g)
-  where
-    g = envGrammar env
-    kinds = kindNumbers g
+    triviaDecl =
+      [ "-- | Whether a syntax kind is trivia (@%trivia@)."
+      , "isTriviaSyntaxKind :: PegRt.SyntaxKind -> PegPrelude.Bool"
+      , "isTriviaSyntaxKind peg'k = PegPrelude.elem peg'k [" <> T.intercalate ", " [kindVar n | n <- map unLoc (grammarTrivia g)] <> "]"
+      , ""
+      ]
     typed r =
       let n = ruleName r
           ty = syntaxTypeName n
-       in [ "-- | A node of the rule @" <> n <> "@."
-          , "newtype " <> ty <> " = " <> ty <> " PegRt.SyntaxNode"
-          , "  deriving (PegPrelude.Eq, PegPrelude.Show)"
-          , ""
-          , "-- | The node, if it is a node of the rule @" <> n <> "@."
-          , castName n <> " :: PegRt.SyntaxNode -> PegPrelude.Maybe " <> ty
-          , castName n <> " peg'n ="
-          , "  if PegRt.syntaxKind peg'n PegPrelude.== " <> kindVar n <> " then PegPrelude.Just (" <> ty <> " peg'n) else PegPrelude.Nothing"
-          , ""
-          ]
-            ++ concat [accessorDecl n ty b a | (b, a) <- accessors g r]
+       in ( if keep ty
+              then
+                [ "-- | A node of the rule @" <> n <> "@."
+                , "newtype " <> ty <> " = " <> ty <> " PegRt.SyntaxNode"
+                , "  deriving (PegPrelude.Eq, PegPrelude.Show)"
+                , ""
+                ]
+              else []
+          )
+            ++ ( if keep (castName n)
+                   then
+                     [ "-- | The node, if it is a node of the rule @" <> n <> "@."
+                     , castName n <> " :: PegRt.SyntaxNode -> PegPrelude.Maybe " <> ty
+                     , castName n <> " peg'n ="
+                     , "  if PegRt.syntaxKind peg'n PegPrelude.== " <> kindVar n <> " then PegPrelude.Just (" <> ty <> " peg'n) else PegPrelude.Nothing"
+                     , ""
+                     ]
+                   else []
+               )
+            ++ concat [accessorDecl n ty b a | (b, a) <- accessors g r, keep (accessorName n b)]
     accessorDecl n ty b a =
       let name = accessorName n b
           lbl = "(PegRt.labelText " <> hsString b <> ")"
