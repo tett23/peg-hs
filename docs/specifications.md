@@ -73,6 +73,7 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 - `%language` で、生成モジュールの言語拡張を有効にできる。生成コードの意味を変える `RebindableSyntax` は拒否する（[ADR 0016](adr/0016-language-extensions.md)）
 - `%nomemo` で、規則ごとにメモ化を外せる。左再帰に関与する規則には指定できない（[ADR 0006](adr/0006-memoization-control.md)、[ADR 0017](adr/0017-nomemo-implementation.md)）
 - `peg-hs gen --export NAME` で、入口と `%syntax` の名前のうち公開するものを選べる。`%export` の名前は常に公開する。選ばなかった名前からしか参照されない宣言（規則、メモ表の欄、種類の定数など）は出力しない。生成器が定義しない名前は誤りとする（[ADR 0061](adr/0061-select-generated-exports.md)）
+- `--export` で宣言を削った生成モジュールは、使われない import とトップレベルの束縛の警告を出さない。削った規則のアクションだけが使っていた verbatim ブロックの部分が使われなくなり、生成器は Haskell を解析しないので、どれがそうかを知れないためである（[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)）
 
 生成モジュールの先頭のコメントには、そのモジュールが要る peg-runtime の版の範囲を `peg-runtime >=0.1 && <0.2` の形で書く（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 生成コードは、peg-runtime のうち生成コードのためだけにある内部向けのモジュール（`Peg.Runtime.Internal`）を使う。

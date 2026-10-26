@@ -213,6 +213,7 @@ With `--export NAME`, the module exports only the names given, together with the
 `NAME` is an entry point (`parse`, `parseExpr`, `parseSyntaxRecover` and so on) or a name of `%syntax` (`nameOfSyntaxKind`, a syntax kind, a wrapper type without `(..)`, a cast or an accessor), and the option can be given more than once.
 The module leaves out the rules and other declarations that only the other names use.
 The blocks of `%{ }%` are always kept, so a name of the generator that they refer to must be given to `--export` too.
+When declarations are left out, imports and functions of `%{ }%` that only their actions used become unused; the module then turns off the warnings of unused imports and top-level bindings. Generate without `--export` to see those warnings of the grammar's own code ([ADR 0062](docs/adr/0062-warnings-of-pruned-generated-modules.md)).
 A name that the generator does not define is an error of the grammar, reported at line 1, column 1.
 
 ```sh

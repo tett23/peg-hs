@@ -1,6 +1,6 @@
 # ADR 0061: 生成モジュールのエクスポートを gen の --export で選ぶ
 
-ステータス: 採択
+ステータス: 採択→削ったモジュールの警告と nameOfSyntaxKind の参照は [ADR 0062](0062-warnings-of-pruned-generated-modules.md)
 
 ## 文脈
 

@@ -202,6 +202,7 @@ render opts g an =
       , "-- It needs " <> runtimeVersions <> "."
       ]
         ++ ["{-# LANGUAGE " <> unLoc x <> " #-}" | x <- grammarLanguages g]
+        ++ ["{-# OPTIONS_GHC -Wno-unused-imports -Wno-unused-top-binds #-}" | pruned]
         ++ [ "module " <> unLoc (grammarModule g)
       , "  ( " <> T.intercalate "\n  , " exports
       , "  ) where"
@@ -224,6 +225,13 @@ render opts g an =
     -- 'optExports'.
     kept = keptDecls opts g an
     keep name = maybe True (S.member name) kept
+    -- Declarations are left out: the code of the grammar that only their
+    -- actions used, and the import of Prelude for that code, may then be
+    -- unused, and the generator, which does not read Haskell, cannot tell
+    -- (ADR 0062).
+    pruned = case kept of
+      Nothing -> False
+      Just names -> Just names /= keptDecls opts {optExports = Just (map selectable (generatedNames g an))} g an
     decls =
       entryDecls
         ++ syntaxEntryDecls

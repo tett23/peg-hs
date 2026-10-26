@@ -215,6 +215,7 @@ source-repository-package
 `NAME` には、入口（`parse`、`parseExpr`、`parseSyntaxRecover` など）か `%syntax` の名前（`nameOfSyntaxKind`、種類の定数、`(..)` を除いたラッパーの型、`cast…Syntax`、取り出し関数）を書き、何度でも指定できる。
 ほかの名前からしか使われない規則などの宣言は出力しない。
 `%{ }%` のブロックは常に出力するので、そこから生成器の名前を参照するなら、その名前も `--export` に加える。
+宣言を削ると、削った規則のアクションだけが使っていた `%{ }%` の import や関数が使われなくなる。そのときモジュールは、使われない import とトップレベルの束縛の警告を出さない。文法の断片のそれらの誤りは、`--export` を付けずに生成して確かめる（[ADR 0062](docs/adr/0062-warnings-of-pruned-generated-modules.md)）。
 生成器が定義しない名前は文法の誤りとし、1 行 1 桁の誤りとして報告する。
 
 ```sh

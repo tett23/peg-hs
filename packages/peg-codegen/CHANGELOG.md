@@ -39,6 +39,9 @@ Since v0.1.0-rc2:
   `%syntax` given, and leave out the declarations that only the other names
   use, so that the module still compiles without warnings. A name that the
   generator does not define is an error ([ADR 0061](https://github.com/tett23/peg-hs/blob/main/docs/adr/0061-select-generated-exports.md)).
+- A module whose declarations `--export` leaves out turns off the warnings
+  of unused imports and top-level bindings, which the code of the grammar
+  used only by the left-out actions would get ([ADR 0062](https://github.com/tett23/peg-hs/blob/main/docs/adr/0062-warnings-of-pruned-generated-modules.md)).
 
 ### Fixed
 
