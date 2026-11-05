@@ -16,7 +16,8 @@ import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 
 -- | Compared with the editor grammars: the kinds whose ranges the three
--- grammars agree on.
+-- grammars agree on (ADR 0034), with the rule names and labels in the
+-- arguments of directives (ADR 0069).
 compared :: [(HighlightKind, Text)]
 compared =
   [ (HComment, "comment")
@@ -25,6 +26,8 @@ compared =
   , (HAction, "action")
   , (HRuleName, "rule-name")
   , (HLabel, "label")
+  , (HDirectiveRule, "directive-rule")
+  , (HDirectiveLabel, "directive-label")
   ]
 
 rangeTests :: [FilePath] -> TestTree

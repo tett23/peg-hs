@@ -239,11 +239,33 @@
     "named": true,
     "fields": {
       "argument": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
           {
             "type": "directive_argument",
+            "named": true
+          },
+          {
+            "type": "extension_name",
+            "named": true
+          },
+          {
+            "type": "module_name",
+            "named": true
+          },
+          {
+            "type": "rule_name_argument",
+            "named": true
+          }
+        ]
+      },
+      "label": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "label_argument",
             "named": true
           }
         ]
@@ -259,6 +281,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "extension_name",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "group",
@@ -368,6 +395,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "label_argument",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "labeled",
@@ -596,6 +628,11 @@
         }
       ]
     }
+  },
+  {
+    "type": "rule_name_argument",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "rule_reference",
@@ -837,6 +874,10 @@
   },
   {
     "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "module_name",
     "named": true
   },
   {

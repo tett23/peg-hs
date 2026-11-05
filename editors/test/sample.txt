@@ -1,6 +1,11 @@
 # Every token of the table of ADR 0034.
 %module Example.Sample # the module
 %syntax
+%language OverloadedStrings, LambdaCase
+%entry List
+%recover term Skip # the recovery
+%safe term
+%export Expr(..)
 %{
 import Data.Text (Text)
 }%

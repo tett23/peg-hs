@@ -302,7 +302,7 @@ formatting enc _ d _ = Just $ case formatGrammar (docText d) of
 -- | The token types of the semantic tokens, in the order of their indices,
 -- as announced in the legend of the @initialize@ response.
 tokenTypes :: [Text]
-tokenTypes = ["function", "macro", "parameter", "variable", "string", "regexp", "keyword", "operator", "decorator", "comment"]
+tokenTypes = ["function", "macro", "parameter", "variable", "string", "regexp", "keyword", "operator", "decorator", "comment", "namespace"]
 
 -- | The token modifiers, in the order of their bits.
 tokenModifiers :: [Text]
@@ -347,6 +347,9 @@ classify o h = case hlKind h of
   HChoice -> Just (start, end, "operator", [])
   HDefinition -> Just (start, end, "operator", [])
   HLabel -> Just (start, end, "decorator", [])
+  HDirectiveRule -> Just (start, end, "function", [])
+  HDirectiveLabel -> Just (start, end, "decorator", [])
+  HModuleName -> Just (start, end, "namespace", [])
   HComment | locLine start == locLine end -> Just (start, end, "comment", [])
   _ -> Nothing
   where

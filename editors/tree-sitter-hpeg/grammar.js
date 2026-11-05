@@ -20,7 +20,11 @@ module.exports = grammar({
   // The text of a verbatim block, up to the first }% (src/scanner.c). A
   // regular expression cannot leave out the } of }% after other }s, as in
   // f = g {}}% (ADR 0045).
-  externals: $ => [$._verbatim_body],
+  //
+  // The spaces before an argument of a directive on its line (ADR 0069). A
+  // token of spaces in the grammar would make the lexer take the spaces
+  // before other tokens into them, as in A <- B.
+  externals: $ => [$._verbatim_body, $._directive_space],
 
   word: $ => $.identifier,
 
@@ -44,12 +48,60 @@ module.exports = grammar({
     verbatim: $ => seq('%{', optional(alias($._verbatim_body, $.haskell)), '}%'),
 
 
-    directive: $ => seq(
-      field('name', $.directive_name),
-      optional(field('argument', $.directive_argument)),
+    // The arguments of the directives that name rules, labels, the module
+    // and extensions have their own nodes (ADR 0069); the others keep the
+    // rest of the line. An argument is on the line of its directive: the
+    // spaces before it are a token of the external scanner, and its text
+    // follows them without extras.
+    directive: $ => choice(
+      seq(
+        field('name', alias('%module', $.directive_name)),
+        optional(seq($._directive_space, field('argument', $.module_name))),
+      ),
+      seq(
+        field('name', alias(choice('%start', '%entry', '%nomemo', '%token', '%trivia', '%inline'), $.directive_name)),
+        optional(seq($._directive_space, field('argument', $.rule_name_argument))),
+      ),
+      seq(
+        field('name', alias('%recover', $.directive_name)),
+        optional(seq(
+          $._directive_space,
+          field('label', $.label_argument),
+          optional(seq($._directive_space, field('argument', $.rule_name_argument))),
+        )),
+      ),
+      seq(
+        field('name', alias('%safe', $.directive_name)),
+        optional(seq($._directive_space, field('label', $.label_argument))),
+      ),
+      seq(
+        field('name', alias('%language', $.directive_name)),
+        optional(seq(
+          $._directive_space,
+          field('argument', $.extension_name),
+          repeat(seq(
+            optional($._directive_space),
+            token.immediate(','),
+            optional($._directive_space),
+            field('argument', $.extension_name),
+          )),
+        )),
+      ),
+      seq(
+        field('name', $.directive_name),
+        optional(field('argument', $.directive_argument)),
+      ),
     ),
 
     directive_name: _ => token(seq('%', IDENT)),
+
+    module_name: _ => token.immediate(/[\p{L}_][\p{L}\p{N}_'.]*/u),
+
+    rule_name_argument: _ => token.immediate(IDENT),
+
+    label_argument: _ => token.immediate(IDENT),
+
+    extension_name: _ => token.immediate(IDENT),
 
     // The rest of the line up to a comment.
     directive_argument: _ => token.immediate(/[ \t]*[^ \t\n#][^\n#]*/),

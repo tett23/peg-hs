@@ -50,3 +50,35 @@ test('the VS Code extension takes .hpeg files as the language hpeg', () => {
   assert.deepEqual(manifest.contributes.grammars.map((g) => [g.language, g.scopeName]), [['hpeg', 'source.hpeg']]);
   assert.ok(manifest.activationEvents.includes('onLanguage:hpeg'));
 });
+
+// Grammars are formatted on save by default (ADR 0069).
+test('the VS Code extension formats grammars on save by default', () => {
+  const manifest = JSON.parse(readFileSync(join(here, '../vscode/package.json'), 'utf8'));
+  assert.deepEqual(manifest.contributes.configurationDefaults, { '[hpeg]': { 'editor.formatOnSave': true } });
+});
+
+test('the arguments of directives have their own scopes (ADR 0069)', () => {
+  const scopesOf = (src) => tokenize(src).map((t) => [t.text, t.scopes.at(-1)]);
+  assert.deepEqual(scopesOf('%module A.B # c\n'), [
+    ['%module', 'keyword.other.directive.hpeg'],
+    [' ', 'source.hpeg'],
+    ['A.B', 'entity.name.namespace.hpeg'],
+    [' ', 'source.hpeg'],
+    ['# c', 'comment.line.number-sign.hpeg'],
+  ]);
+  assert.deepEqual(scopesOf('%recover l R\n%start S\n%safe m\n').filter(([, s]) => s !== 'source.hpeg'), [
+    ['%recover', 'keyword.other.directive.hpeg'],
+    ['l', 'entity.name.tag.label.directive.hpeg'],
+    ['R', 'variable.other.rule.directive.hpeg'],
+    ['%start', 'keyword.other.directive.hpeg'],
+    ['S', 'variable.other.rule.directive.hpeg'],
+    ['%safe', 'keyword.other.directive.hpeg'],
+    ['m', 'entity.name.tag.label.directive.hpeg'],
+  ]);
+  assert.deepEqual(scopesOf('%language A, B\n').filter(([, s]) => s !== 'source.hpeg'), [
+    ['%language', 'keyword.other.directive.hpeg'],
+    ['A', 'constant.language.extension.hpeg'],
+    [',', 'punctuation.separator.comma.hpeg'],
+    ['B', 'constant.language.extension.hpeg'],
+  ]);
+});
