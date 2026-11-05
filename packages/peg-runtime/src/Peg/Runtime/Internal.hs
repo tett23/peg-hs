@@ -126,6 +126,8 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Array as TA
+import Data.Text.Internal (Text (..))
 import qualified Data.Text.Unsafe as TU
 import Peg.Runtime.Position
 import Peg.Runtime.Syntax
@@ -280,9 +282,12 @@ data Stats = Stats
 emptyStats :: Stats
 emptyStats = Stats M.empty 0 M.empty
 
+-- The set is lazy: most parses succeed and never read it, so the unions
+-- of the sets of failures at the same position are left undone unless an
+-- error needs them (ADR 0070).
 data Failure
   = NoFailure
-  | Failure !Int !(Set Expected)
+  | Failure !Int (Set Expected)
   deriving (Eq, Show)
 
 mergeFailure :: Failure -> Failure -> Failure
@@ -342,6 +347,7 @@ data Ctx r s = Ctx
 newtype P r s a = P {unP :: Ctx r s -> Int -> ST s (Res a)}
 
 instance Functor (P r s) where
+  {-# INLINE fmap #-}
   fmap f (P p) =
     P $ \c i ->
       p c i >>= \case
@@ -349,10 +355,13 @@ instance Functor (P r s) where
         bad -> pure (failed bad)
 
 instance Applicative (P r s) where
+  {-# INLINE pure #-}
   pure x = P $ \_ i -> pure (Ok i x)
+  {-# INLINE (<*>) #-}
   (<*>) = ap
 
 instance Monad (P r s) where
+  {-# INLINE (>>=) #-}
   P p >>= k =
     P $ \c i ->
       p c i >>= \case
@@ -516,7 +525,13 @@ mergeFail :: Ctx r s -> Failure -> ST s ()
 mergeFail ctx f = modifySTRef' (ctxFail ctx) (`mergeFailure` f)
 
 failAt :: Ctx r s -> Int -> Expected -> ST s (Res a)
-failAt ctx i e = Fail <$ mergeFail ctx (Failure i (S.singleton e))
+failAt ctx i e = do
+  -- A failure before the farthest one changes nothing: skip building it.
+  cur <- readSTRef (ctxFail ctx)
+  case cur of
+    Failure j _ | j > i -> pure ()
+    _ -> writeSTRef (ctxFail ctx) $! mergeFailure cur (Failure i (S.singleton e))
+  pure Fail
 
 -- Terminals ------------------------------------------------------------------
 
@@ -524,13 +539,19 @@ failAt ctx i e = Fail <$ mergeFail ctx (Failure i (S.singleton e))
 -- literal as written in the grammar, used in error messages.
 lit :: String -> String -> P r s ()
 lit s orig = P $ \c i ->
-  if t `T.isPrefixOf` TU.dropWord8 i (ctxInput c)
+  if matchesAt (ctxInput c) i
     then pure (Ok (i + n) ())
     else failAt c i expected
   where
-    t = T.pack s
-    n = TU.lengthWord8 t
+    Text tarr toff n = T.pack s
     expected = ExpectedLiteral (T.pack orig)
+    -- Compare the bytes in place, without slicing the input.
+    matchesAt (Text arr off len) i = i + n <= len && go 0
+      where
+        go k
+          | k == n = True
+          | TA.unsafeIndex arr (off + i + k) == TA.unsafeIndex tarr (toff + k) = go (k + 1)
+          | otherwise = False
 
 -- | Match one character in any of the inclusive ranges. The second argument
 -- is the class as written in the grammar.

@@ -35,3 +35,13 @@ The first release. peg-runtime is the only dependency of the modules that
   reports several errors ([ADR 0021](https://github.com/tett23/peg-hs/blob/main/docs/adr/0021-error-recovery.md)).
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
+
+### Changed
+
+Since v0.1.0-rc2:
+
+- Parsing is faster: the set of terminals expected at the farthest
+  failure is merged only when a parse error or a recovered syntax error
+  needs it, a failure before the farthest one is not recorded, and a
+  literal is compared in place. The results and the errors are unchanged
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
