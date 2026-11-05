@@ -922,8 +922,10 @@ altCodeS env rule a = do
           (map snd rs)
     Nothing
       -- As in 'altCode' (ADR 0063). The bound items keep their labels, so
-      -- that the children are those of the alternative with { () }.
-      | omitsUnitAction (units env) rule items -> do
+      -- that the children are those of the alternative with { () }. A rule
+      -- without a type annotation does the same whatever the values of its
+      -- elements (ADR 0068).
+      | omitsUnitAction (units env) rule items || discardsValues (discardingRules (envGrammar env)) rule items -> do
           rs <- mapM (itemStmtS env True) items
           pure (doReturn (envStmt ++ map fst rs) "()" (map snd rs))
       | otherwise -> do

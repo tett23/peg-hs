@@ -1,0 +1,23 @@
+# ADR 0068：%syntax の文法で、型注釈のない規則は値を捨てる
+%module Fixture.UntypedSyntax
+%syntax
+%token Sp
+%trivia Sp
+
+%{
+import qualified Data.Text as T
+}%
+
+Doc <- Sp Item* !.
+
+# キャプチャだけ、型注釈のある規則の呼び出しだけ、単位でない値を持つ要素が二つ、
+# 束縛して意味述語で使う要素
+Item <- $[a-z]+ Sp
+     / Num Sp
+     / '(' Num ',' $[a-z]+ ')' Sp
+     / '#' n:Num &{ n > 0 } Sp
+
+Num :: Int
+Num <- d:$[0-9]+ { read (T.unpack d) }
+
+Sp <- ' '*

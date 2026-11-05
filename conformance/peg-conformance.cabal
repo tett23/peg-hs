@@ -25,6 +25,7 @@ library
     Conformance.Bench.JsonNomemo
     Conformance.Bench.JsonRecover
     Conformance.Bench.JsonSyntax
+    Conformance.Bench.JsonUntyped
     Conformance.Bench.NestedLR2
     Conformance.Bench.NestedLR4
     Conformance.Bench.NestedLR8

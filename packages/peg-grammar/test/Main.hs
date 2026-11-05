@@ -46,6 +46,7 @@ main = do
       , unitValueTests
       , unitActionTests
       , unitAnnotationTests
+      , untypedSyntaxTests
       , templateTests
       , templateParamTests
       , analysisTests
@@ -371,6 +372,32 @@ unitAnnotationTests =
     ]
   where
     g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+
+-- ADR 0068: in a grammar with %syntax, the alternatives without actions of
+-- the rules without type annotations have value (), whatever their elements.
+untypedSyntaxTests :: TestTree
+untypedSyntaxTests =
+  testGroup
+    "rules without type annotations discard values in %syntax grammars (ADR 0068)"
+    [ testCase "a capture alone" $ messagesOf (s "W <- $[a-z]+") @?= []
+    , testCase "a call of a rule with a type annotation alone" $ messagesOf (s "W <- N") @?= []
+    , testCase "two elements with values other than unit" $ messagesOf (s "W <- N $'x'") @?= []
+    , testCase "elements with values in groups, repetitions and options" $ messagesOf (s "W <- ($[a-z] N)* N? $'x'+") @?= []
+    , testCase "a bound element used by a predicate" $ messagesOf (s "W <- n:N &{ n > 0 } $'x'") @?= []
+    , testCase "an empty alternative is an error, as before" $
+        messagesOf (s "W <- N /") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
+    , testCase "a rule annotated :: () is treated as before" $
+        messagesOf (s "W :: ()\nW <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "a binding of an expression without a value is an error, as before" $
+        messagesOf (s "W <- x:'a' N") @?= ["cannot bind x: the expression has no value (capture the text with $)"]
+    , testCase "without %syntax, two values are an error, as before" $
+        messagesOf (g "W <- N $'x'") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "without %syntax, one value passes the check, and GHC reports the type" $
+        messagesOf (g "W <- $[a-z]+") @?= []
+    ]
+  where
+    g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+    s body = "%syntax\n" <> g body
 
 -- ADR 0063: alternatives without values in rules of type () may omit their
 -- actions.

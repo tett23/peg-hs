@@ -21,9 +21,11 @@
 -- 'check' checks that labels named in @%recover@ and @%safe@ exist, but
 -- not whether a label is safe; 'Peg.Grammar.Labels.labelWarnings' warns
 -- about the labels that may not be (ADR 0028). 'hasValue', 'countedItems' and 'unitRules' decide
--- which expressions have values (ADR 0030), and 'omitsUnitAction' which
--- alternatives of rules of type @()@ may omit their actions (ADR 0063).
--- They are shared with the code generator and the linter.
+-- which expressions have values (ADR 0030), 'omitsUnitAction' which
+-- alternatives of rules of type @()@ may omit their actions (ADR 0063), and
+-- 'discardingRules' and 'discardsValues' which alternatives have value @()@
+-- whatever their elements (ADR 0068). They are shared with the code
+-- generator and the linter.
 module Peg.Grammar.Check
   ( Analysis (..)
   , check
@@ -31,6 +33,8 @@ module Peg.Grammar.Check
   , countedItems
   , unitRules
   , omitsUnitAction
+  , discardingRules
+  , discardsValues
   ) where
 
 import Data.Char (isSpace)
@@ -109,6 +113,21 @@ omitsUnitAction :: Set Text -> Text -> [Item] -> Bool
 omitsUnitAction units rule items =
   S.member rule units && not (null items) && all (isUnit units . itemExpr) (countedItems units items)
 
+-- | The rules whose alternatives without an action have value @()@
+-- whatever their elements (ADR 0068): in a grammar with @%syntax@, the
+-- rules without a type annotation. Empty in a grammar without @%syntax@.
+discardingRules :: Grammar -> Set Text
+discardingRules g = case grammarSyntax g of
+  Nothing -> S.empty
+  Just _ -> S.fromList [ruleName r | r <- grammarRules g, ruleAnnotation r == Nothing]
+
+-- | Whether an alternative without an action of a rule has value @()@
+-- whatever its elements, given the 'discardingRules' (ADR 0068): the rule
+-- is one of them and the alternative has an element. Its elements discard
+-- their values, and the bound ones stay bound.
+discardsValues :: Set Text -> Text -> [Item] -> Bool
+discardsValues discarding rule items = S.member rule discarding && not (null items)
+
 -- | Check a grammar whose templates have been expanded. The errors are
 -- sorted by location.
 check :: Grammar -> Either [Diagnostic] Analysis
@@ -134,7 +153,7 @@ checkRules g firstRule =
         ++ entryErrors
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
-        ++ concatMap (altErrors units) rules
+        ++ concatMap (altErrors units (discardingRules g)) rules
         ++ paramLrErrors
         ++ syntaxNameErrors g
         ++ concatMap hygieneErrors (grammarVerbatim g)
@@ -389,8 +408,8 @@ leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
 
 -- Alternatives -------------------------------------------------------------------
 
-altErrors :: Set Text -> Rule -> [Diagnostic]
-altErrors units r = concatMap alt (ruleAlts r)
+altErrors :: Set Text -> Set Text -> Rule -> [Diagnostic]
+altErrors units discarding r = concatMap alt (ruleAlts r)
   where
     alt a =
       bindingErrors (altItems a)
@@ -418,6 +437,7 @@ altErrors units r = concatMap alt (ruleAlts r)
       Nothing -> case length (countedItems units (altItems a)) of
         1 -> []
         _ | omitsUnitAction units (ruleName r) (altItems a) -> []
+        _ | discardsValues discarding (ruleName r) (altItems a) -> []
         0 -> [Diagnostic (altLoc a) "an alternative without an action must have exactly one element with a value, but it has none"]
         k -> [Diagnostic (altLoc a) ("an alternative without an action must have exactly one element with a value, but it has " <> showT k)]
     groupErrors i = exprGroupErrors (itemExpr i)

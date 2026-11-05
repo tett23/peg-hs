@@ -48,6 +48,7 @@ import qualified Fixture.UnitRepeatsExplicitSyntax as UnitRepeatsExplicitSyntax
 import qualified Fixture.UnitRepeatsSyntax as UnitRepeatsSyntax
 import qualified Fixture.Units as Units
 import qualified Fixture.UnitsSyntax as UnitsSyntax
+import qualified Fixture.UntypedSyntax as UntypedSyntax
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.LabelInsertion (insertLabels)
@@ -130,6 +131,7 @@ main =
       , unitRepeatTests
       , identityActionTests
       , unitAnnotationTests
+      , untypedSyntaxTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -143,7 +145,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -273,6 +275,38 @@ unitAnnotationTests =
     input = " ab, #12 cd"
     farthest = either (Left . parseErrorPos) Right
     gen = T.concat <$> listOf (elements ["#", "a", "bc", "1", "23", " ", ","])
+
+-- ADR 0068: in a grammar with %syntax, the alternatives without actions of
+-- the rules without type annotations have value (), whatever their elements.
+untypedSyntaxTests :: TestTree
+untypedSyntaxTests =
+  testGroup
+    "rules without type annotations discard values in %syntax grammars (ADR 0068)"
+    [ testCase "the value of the entry is ()" $ UntypedSyntax.parse input @?= Right ()
+    , testCase "a predicate reads a bound element" $
+        (either (const False) (const True) (UntypedSyntax.parse "#1"), either (const False) (const True) (UntypedSyntax.parse "#0")) @?= (True, False)
+    , testCase "the tree is lossless, and the bound element has its accessor" $ do
+        tree <- either (assertFailure . show) pure (UntypedSyntax.parseSyntax input)
+        syntaxText tree @?= input
+        let items = [i | n <- descendants tree, Just i <- [UntypedSyntax.castItemSyntax n]]
+        length items @?= 5
+        [syntaxText n | i <- items, Just (UntypedSyntax.NumSyntax n) <- [UntypedSyntax.itemN i]] @?= ["5"]
+    , skippedWithout "../peg-runtime/src" "the generated module compiles without warnings" $ do
+        src <- TIO.readFile "test/fixtures/UntypedSyntax.hpeg"
+        (ex, err) <- typecheckWith ["-Wall", "-Werror"] "UntypedSyntax" (T.replace "Fixture.UntypedSyntax" "UntypedSyntax" src)
+        assertEqual err ExitSuccess ex
+    , skippedWithout "../peg-runtime/src" "without %syntax, a capture alone is a type error, as before" $ do
+        (ex, err) <- typecheck "UntypedTyped" (T.unlines ["%module UntypedTyped", "", "A <- $'a'"])
+        ex @?= ExitFailure 1
+        assertBool ("expected a type error of PegRt.Text\n" <> err) ("PegRt.Text" `T.isInfixOf` T.pack err)
+    , skippedWithout "../peg-runtime/src" "with %syntax, a rule annotated :: () returning a capture is a type error, as before" $ do
+        (ex, err) <- typecheck "UntypedAnnotated" (T.unlines ["%module UntypedAnnotated", "%syntax", "", "A :: ()", "A <- $'a'"])
+        ex @?= ExitFailure 1
+        assertBool ("expected a type error of PegRt.Text\n" <> err) ("PegRt.Text" `T.isInfixOf` T.pack err)
+    ]
+  where
+    input = "ab 12 (3,cd) #5 ef"
+    descendants n = n : concatMap descendants (syntaxChildren n)
 
 -- ADR 0064: in rules of type (), alternatives without actions return ()
 -- even when their only counted element is a repetition or an option of a
@@ -767,7 +801,11 @@ ghc = "ghc-" <> showVersion fullCompilerVersion
 -- runtime sources directly so that no package database is needed. A source
 -- archive has no runtime sources, and the tests are skipped.
 typecheck :: String -> Text -> IO (ExitCode, String)
-typecheck name src = do
+typecheck = typecheckWith []
+
+-- 'typecheck' with more options of GHC, such as warnings.
+typecheckWith :: [String] -> String -> Text -> IO (ExitCode, String)
+typecheckWith flags name src = do
   tmp <- getTemporaryDirectory
   let dir = tmp </> "peg-codegen-test"
       opts = Options {optSourceName = name <> ".hpeg", optOutputName = name <> ".hs", optDebugEntry = False, optExports = Nothing}
@@ -779,7 +817,7 @@ typecheck name src = do
       (ex, _, err) <-
         readProcessWithExitCode
           ghc
-          ["-fno-code", "-i../peg-runtime/src", "-outputdir", dir </> "out", dir </> name <> ".hs"]
+          (flags ++ ["-fno-code", "-i../peg-runtime/src", "-outputdir", dir </> "out", dir </> name <> ".hs"])
           ""
       pure (ex, err)
 
