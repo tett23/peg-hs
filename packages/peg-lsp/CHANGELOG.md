@@ -27,5 +27,6 @@ Since v0.1.0-rc1:
 
 Since v0.1.0-rc2:
 
-- The severity `Information` of a diagnostic, for the notices of the
-  linter ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md)).
+- The severity `Hint` of a diagnostic, for the infos of the linter
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
+  [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
