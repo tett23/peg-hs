@@ -116,6 +116,37 @@ peg-hs parse grammar/Calc.hpeg input.txt
 Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))
 ```
 
+### 構文木を使う書き方と、型付きの値を返す書き方
+
+文法の書き方は二つある（[ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)）。
+上の文法は型付きの値を返す書き方で、規則に型注釈とアクションを書く。
+もう一つは、`%syntax` を付けて型注釈もアクションも書かず、`parseSyntax` が返すロスレスな構文木から結果を読む書き方である。
+
+```hpeg
+%module Calc.Syntax
+%syntax
+%token Num
+
+Expr <- Expr '+' Sp Term
+     / Term
+
+Term <- Term '*' Sp Atom
+     / Atom
+
+Atom <- Num Sp
+     / '(' Sp Expr ')' Sp
+
+Num <- $[0-9]+
+
+Sp <- ' '*
+```
+
+`%syntax` の文法では、型注釈のない規則の、アクションを省略した選択肢の値は、要素の値（キャプチャ `$[0-9]+` の `Text` など）によらず `()` になる。
+型付きの値が要る規則にだけ、型注釈とアクションを書けばよい。
+構文木には時間とメモリの費用がかかる。
+80 万文字の JSON の文書では、構文木を使う書き方は、`%syntax` のない型付きの文法に比べて、時間が約 1.6 倍、メモリが約 1.1 倍だった（[docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)）。
+速さが要るときは、型注釈とアクションを書き、`%syntax` を付けない。
+
 ## 生成したモジュールを使う
 
 生成したモジュールは、開始規則の入口 `parse :: Text -> Either ParseError a` を公開する。

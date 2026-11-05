@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -583,7 +583,7 @@ Spaces <- Sp+             # 要素の値は [()] だが、選択肢の値は ()
 この例外には三つの限りがある。
 
 - 要素のない選択肢（`S <- 'a' / { () }` の後ろの選択肢）は、アクションを省略できない。空の選択肢には `{ () }` を書く
-- `()` 以外の値を持つ要素がちょうど一つの選択肢は、これまでどおりその値を返す。型が `()` と合わなければ、GHC が型の誤りを報告する
+- `()` 以外の値を持つ要素がちょうど一つの選択肢は、これまでどおりその値を返す。型が `()` と合わなければ、GHC が型の誤りを報告する。ただし、`%syntax` の文法の型注釈のない規則は別に扱う（[型を書かない文法](#型を書かない文法)）
 - 型注釈が `()` でない規則は、例外の対象にならない。`type Unit = ()` のような別名も `()` とみなさない
 
 省略できる `{ () }` を書いても誤りではない。
@@ -1105,6 +1105,57 @@ Haskell の型名は大文字で始まらなければならないので、漢字
 このほか、規則ごとの種類の定数（`syntaxKindExpr` など）、種類の名前を返す `nameOfSyntaxKind`、トリビアの種類かどうかを返す `isTriviaSyntaxKind` が生成される。
 構文木の移動と表示の関数は peg-runtime の `Peg.Runtime.Syntax` にある。
 `debugTree nameOfSyntaxKind` は、木を一要素一行の字下げで表した文字列にする。
+
+### 型を書かない文法
+
+構文木だけを使うなら、規則の値は要らない。
+`%syntax` を付けた文法では、型注釈もアクションも書かずに済む（[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)）。
+
+```hpeg
+%module Example.CalcTree
+%syntax
+%token Num
+%token Ws
+%trivia Ws
+
+Expr <- Expr Ws? '+' Ws? Term
+     / Term
+
+Term <- Term Ws? '*' Ws? Atom
+     / Atom
+
+Atom <- Num
+     / '(' Ws? Expr Ws? ')'
+
+Num <- $[0-9]+
+
+Ws <- [ \t]+
+```
+
+`Num <- $[0-9]+` は、キャプチャの値（`Text`）を一つだけ持つ選択肢である。
+`%syntax` のない文法なら、この選択肢はその `Text` を返し、型 `()` の規則と合わずに GHC の型の誤りになる。
+`%syntax` の文法では、型注釈のない規則の、アクションを省略した選択肢の値は、要素によらず `()` になる。
+キャプチャ、型注釈のある規則の呼び出し、`()` でない値を持つ要素が、いくつあってもよい。
+要素の値は捨てられ、数字の文字列は構文木の `Num` のトークンとして残る。
+値は `parseSyntax` の返す木から、取り出し関数と `syntaxText` で読む。
+
+束縛は、これまでどおり束縛する。
+`n:Num &{ n > 0 }` の `n` は意味述語から読めるので、型付きの値が要る規則（`Num :: Int` など）を呼んで束縛すれば、値で入力を選り分けられる。
+束縛は取り出し関数の名前にもなる。
+
+次の規則は、これまでどおり扱う。
+
+- `%syntax` のない文法。型付きの値を返す文法では、型注釈の書き忘れが GHC の型の誤りとして見つかるほうを選んだ
+- 型注釈のある規則。`:: ()` と書いた規則も含む。型注釈を書くのは、型付きの値を返すつもりだからである
+- アクションを書いた選択肢と、要素のない選択肢
+
+型付きの値も使うつもりで型注釈を書き忘れた規則は、値を失っても誤りにならない。
+ただし、その規則の値は `()` なので、型付きの値を使う側のコード（呼び出し元のアクションや入口の利用者）がコンパイルできず、そこで気付ける。
+
+構文木を作る費用は、この書き方でも変わらない。
+80 万文字の JSON の文書では、この書き方の `parseSyntax` は、`%syntax` のない型付きの文法の `parse` に比べて、時間が約 1.6 倍、最大の常駐メモリが約 1.1 倍だった（[docs/benchmarks/2026-11-06-json-untyped-syntax.md](benchmarks/2026-11-06-json-untyped-syntax.md)）。
+値を組み立てない分、型注釈とアクションを書いた `%syntax` の文法の `parseSyntax` よりは速い。
+速さが要るときは、`%syntax` を付けずに型注釈とアクションを書く。
 
 ## 構文エラーからの回復
 

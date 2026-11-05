@@ -1,0 +1,63 @@
+# JSON (RFC 8259) の文法から、型注釈、アクション、束縛を除いたもの（ADR 0068）。
+# 値はすべて () で、利用者は構文木を読む。json/Json.hpeg と同じ規則を同じ順に並べる
+%module Conformance.Bench.JsonUntyped
+%syntax
+%token Ws
+%trivia Ws
+
+Json <- Ws Value Ws
+
+Value <- 'null'
+      / 'true'
+      / 'false'
+      / Number
+      / String
+      / Array
+      / Object
+
+Object <- '{' Ws Members '}'
+       / '{' Ws '}'
+
+Members <- Member MoreMember*
+
+MoreMember <- ',' Ws Member
+
+Member <- String Ws ':' Ws Value Ws
+
+Array <- '[' Ws Elements ']'
+      / '[' Ws ']'
+
+Elements <- Element MoreElement*
+
+MoreElement <- ',' Ws Element
+
+Element <- Value Ws
+
+Number <- $('-'? IntPart Frac? Exp?)
+
+IntPart <- '0'
+        / [1-9] [0-9]*
+
+Frac <- '.' [0-9]+
+
+Exp <- [eE] [+\-]? [0-9]+
+
+String <- '"' Unit* '"'
+
+# 文字列の一要素
+Unit <- '\\' Escape
+     / $[\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}]
+
+Escape <- '"'
+       / '\\'
+       / '/'
+       / 'b'
+       / 'f'
+       / 'n'
+       / 'r'
+       / 't'
+       / 'u' $(Hex Hex Hex Hex)
+
+Hex <- [0-9a-fA-F]
+
+Ws <- [ \t\n\r]*

@@ -5,7 +5,8 @@ import qualified Conformance.Bench.JsonLabeled as JsonLabeled
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonRecover as JsonRecover
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
-import Peg.Runtime.Syntax (syntaxText)
+import qualified Conformance.Bench.JsonUntyped as JsonUntyped
+import Peg.Runtime.Syntax (debugTree, syntaxText)
 import qualified Conformance.Json.Encode as Encode
 import Conformance.Json.Parser (Value (..))
 import qualified Conformance.Json.Parser as Json
@@ -62,6 +63,15 @@ main = do
           , testProperty "lossless on generated documents" $
               forAll (sized genValue) $ \v ->
                 let t = Encode.encode v in fmap syntaxText (JsonSyntax.parseSyntax t) === Right t
+          ]
+      , testGroup
+          "the grammar without type annotations, actions and bindings (ADR 0068)"
+          [ testProperty "the same tree as the typed %syntax grammar on generated documents" $
+              forAll (sized genValue) $ \v ->
+                let t = Encode.encode v in untypedTree t === typedTree t
+          , testCase "the same tree as the typed %syntax grammar, or the same rejection, on every file" $ do
+              rs <- mapM (\f -> (,) f <$> untypedAgrees f) files
+              assertBool ("different trees: " <> show [f | (f, False) <- rs]) (all snd rs)
           ]
       , testGroup
           "recovery (ADR 0021)"
@@ -213,6 +223,7 @@ variantsDerived = do
     [ ("bench/JsonCounted.hpeg", "bench/Conformance/Bench/JsonCounted.hs")
     , ("bench/JsonNomemo.hpeg", "bench/Conformance/Bench/JsonNomemo.hs")
     , ("bench/JsonSyntax.hpeg", "bench/Conformance/Bench/JsonSyntax.hs")
+    , ("bench/JsonUntyped.hpeg", "bench/Conformance/Bench/JsonUntyped.hs")
     ]
 
 -- Accept or reject the same way, with the same error.
@@ -239,6 +250,35 @@ syntaxAgrees name = do
   pure $ case TE.decodeUtf8' bytes of
     Left _ -> True
     Right t -> either (Left . show) (const (Right ())) (Json.parse t) == either (Left . show) (const (Right ())) (JsonSyntax.parseSyntax t)
+
+-- The trees of the grammar without type annotations, actions and bindings
+-- (ADR 0068), and of the typed %syntax grammar, as debugTree writes them,
+-- without the labels: the bindings of the typed grammar label children,
+-- and the untyped grammar has no bindings.
+untypedTree, typedTree :: Text -> Either String Text
+untypedTree = either (Left . show) (Right . withoutLabels . debugTree JsonUntyped.nameOfSyntaxKind) . JsonUntyped.parseSyntax
+typedTree = either (Left . show) (Right . withoutLabels . debugTree JsonSyntax.nameOfSyntaxKind) . JsonSyntax.parseSyntax
+
+-- Remove the labels that debugTree writes before the kinds, as in
+-- "  n: Number@1..2". Kinds start with an upper-case letter, labels here
+-- with a lower-case one.
+withoutLabels :: Text -> Text
+withoutLabels = T.unlines . map line . T.lines
+  where
+    line l =
+      let (indent, rest) = T.span (== ' ') l
+          (name, kind) = T.breakOn (T.pack ": ") rest
+       in case T.uncons name of
+            Just (c, _) | c >= 'a' && c <= 'z' && T.all isIdent name && not (T.null kind) -> indent <> T.drop 2 kind
+            _ -> l
+    isIdent c = c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
+
+untypedAgrees :: FilePath -> IO Bool
+untypedAgrees name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> untypedTree t == typedTree t
 
 -- The labelled grammar differs from the base grammar only by its header,
 -- its labels and its recovery rules.

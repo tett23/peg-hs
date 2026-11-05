@@ -1,6 +1,6 @@
 # ADR 0066: 型注釈のない規則の型を () とする
 
-ステータス: 採択
+ステータス: 採択→%syntax の文法の扱いは [ADR 0068](0068-untyped-rules-in-syntax-grammars.md)
 
 ## 文脈
 
