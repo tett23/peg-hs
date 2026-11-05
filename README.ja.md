@@ -83,7 +83,7 @@ Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
      / '(' Sp e:Expr ')' Sp { e }
 
 Sp :: ()
-Sp <- ' '* { () }
+Sp <- ' '*
 ```
 
 `%module` は生成するモジュールの名前である。
@@ -194,7 +194,7 @@ source-repository-package
 |---|---|
 | `peg-hs gen GRAMMAR.hpeg [-o FILE]` | 文法から Haskell のモジュールを生成する |
 | `peg-hs fmt [FILE\|DIR...]` | 文法を一つの流儀で整形する |
-| `peg-hs lint [FILE\|DIR...]` | 誤りである書き方を警告する |
+| `peg-hs lint [FILE\|DIR...]` | 誤りである書き方を警告し、簡潔にできる書き方を知らせる |
 | `peg-hs label GRAMMAR.hpeg [--write]` | 安全と示せる位置にラベルを挿入する |
 | `peg-hs parse GRAMMAR.hpeg INPUT` | 入力を解析して、AST か構文木を表示する |
 | `peg-hs lsp` | 言語サーバーを標準入出力で動かす |
@@ -238,6 +238,9 @@ peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKin
 `lint` は、静的検査を通った文法のうち、誤りである書き方を警告する（[ADR 0033](docs/adr/0033-grammar-linter.md)）。
 対象は、試されない選択肢と成功しない選択肢、前の選択肢と同じ選択肢、先読みの中の効果のないラベル、使われない束縛である。
 規則は固定で、警告を抑える手段はない。どの警告も文法を直せば消え、警告が一つでもあれば失敗する。
+警告とは別に、誤りではないが簡潔にできる書き方を notice として知らせる。notice は `warning:` の代わりに `notice:` と書き、`lint` を失敗させない。
+notice の規則は `omittable-unit-action` だけで、省略できる `{ () }` を指す。型注釈が `()` の規則では、`()` 以外の値を持つ要素がない選択肢はアクションを省略でき、値は `()` になる（[ADR 0063](docs/adr/0063-omit-unit-actions.md)、[ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)）。
+言語サーバーは notice を重大度 Information で報告する。
 対象のファイルの選び方は `fmt` と同じである。
 
 ### label

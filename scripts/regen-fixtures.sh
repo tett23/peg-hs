@@ -31,6 +31,12 @@ peg=$("$cabal" list-bin exe:peg-hs)
     name=$(basename "$src" .hpeg)
     "$peg" gen "$src" -o "test/generated/Fixture/$name.hs" --debug-entry >/dev/null
   done
+  # The fixtures with the { () } that the linter would omit, outside the
+  # walk of peg-hs lint and fmt (ADR 0063, ADR 0064).
+  for src in test/explicit/*.txt; do
+    name=$(basename "$src" .txt)
+    "$peg" gen "$src" -o "test/generated/Fixture/$name.hs" --debug-entry >/dev/null
+  done
   # Golden output of the default options.
   "$peg" gen test/fixtures/Sum.hpeg -o test/golden/Sum.hs.golden >/dev/null
   # The recovery fixture without its labels, for the label safety tests (ADR 0028).

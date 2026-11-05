@@ -44,6 +44,7 @@ main = do
       [ notationTests
       , checkTests
       , unitValueTests
+      , unitActionTests
       , templateTests
       , templateParamTests
       , analysisTests
@@ -330,8 +331,8 @@ unitValueTests =
         errorsOf (g "A :: Int\nA <- Sp N Sp") @?= []
     , testCase "a single unit value is still passed through" $
         errorsOf (g "A :: ()\nA <- Sp") @?= []
-    , testCase "two unit values without other values are two values" $
-        messagesOf (g "A :: ()\nA <- Sp Sp") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "two unit values without other values are two values in a rule not of type ()" $
+        messagesOf (g "A :: Int\nA <- Sp Sp") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
     , testCase "a bound unit value is counted" $
         messagesOf (g "A :: Int\nA <- u:Sp N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
     , testCase "two values other than unit are an error" $
@@ -343,6 +344,40 @@ unitValueTests =
     ]
   where
     g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+ { () }\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+
+-- ADR 0063: alternatives without values in rules of type () may omit their
+-- actions.
+unitActionTests :: TestTree
+unitActionTests =
+  testGroup
+    "actions omitted in rules of type () (ADR 0063)"
+    [ testCase "literals only" $ messagesOf (g "A :: ()\nA <- ' '*") @?= []
+    , testCase "a literal and a lookahead" $ messagesOf (g "A :: ()\nA <- 'if' ![a-z]") @?= []
+    , testCase "two unit elements" $ messagesOf (g "A :: ()\nA <- Sp Sp") @?= []
+    , testCase "a semantic predicate" $ messagesOf (g "A :: ()\nA <- 'a' &{ True } Sp Sp") @?= []
+    , testCase "two bound unit elements" $ messagesOf (g "A :: ()\nA <- u:Sp v:Sp &{ u == v }") @?= []
+    , testCase "spaces in the type ()" $ messagesOf (g "A :: ( )\nA <- 'a' 'b'") @?= []
+    , testCase "an alternative of a rule not of type () is an error, as before" $ do
+        messagesOf (g "A :: Int\nA <- ' '*") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
+        messagesOf (g "A :: Int\nA <- Sp Sp") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "a value other than unit is passed through, and GHC reports the type" $
+        messagesOf (g "A :: ()\nA <- Sp N") @?= []
+    , testCase "two values other than unit are an error" $
+        messagesOf (g "A :: ()\nA <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "an empty alternative is an error, as before" $
+        messagesOf (g "A :: ()\nA <- 'a' /") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
+    , testCase "a type synonym of () is not unit" $
+        messagesOf (g "%{\ntype Unit = ()\n}%\nA :: Unit\nA <- ' '*") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
+    , testCase "an instance of a template whose type becomes ()" $ do
+        let t call = expandedMessages (g ("A :: ()\nA <- " <> call <> " { () }\nO<p :: t> :: t\nO<p> <- '(' p ')'\n     / '-'"))
+        t "O<Sp>" @?= []
+        t "O<N>" @?= ["an alternative without an action must have exactly one element with a value, but it has none (in the template O, expanded at 3:6)"]
+    ]
+  where
+    g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+ { () }\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+    expandedMessages src = case parseGrammar src of
+      Left ds -> map diagMessage ds
+      Right g0 -> either (map diagMessage . templateNotes g0) (const []) (expandTemplates g0 >>= check)
 
 -- ADR 0031: rule templates.
 templateTests :: TestTree
@@ -416,7 +451,7 @@ checkTests =
     , testCase "duplicate binding" $
         errorsOf "%module M\nA :: ()\nA <- x:$'a' x:$'b' { () }\n" @?= [(3, 13)]
     , testCase "reserved binding name" $ errorsOf "%module M\nA :: ()\nA <- _x:$'a' { () }\n" @?= [(3, 6)]
-    , testCase "omitted action with no value" $ errorsOf "%module M\nA :: ()\nA <- 'unit'\n" @?= [(3, 6)]
+    , testCase "omitted action with no value" $ errorsOf "%module M\nA :: Int\nA <- 'unit'\n" @?= [(3, 6)]
     , testCase "omitted action with two values" $
         errorsOf "%module M\nA :: ()\nA <- $'a' $'b'\n" @?= [(3, 6)]
     , testCase "rule without a type annotation" $ errorsOf "%module M\nA <- 'a'\n" @?= [(2, 1)]

@@ -84,7 +84,7 @@ Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
      / '(' Sp e:Expr ')' Sp { e }
 
 Sp :: ()
-Sp <- ' '* { () }
+Sp <- ' '*
 ```
 
 `%module` is the name of the generated module.
@@ -192,7 +192,7 @@ Files are read and written as UTF-8, whatever the locale ([ADR 0045](docs/adr/00
 |---|---|
 | `peg-hs gen GRAMMAR.hpeg [-o FILE]` | generate a Haskell module from a grammar |
 | `peg-hs fmt [FILE\|DIR...]` | format grammars in one style |
-| `peg-hs lint [FILE\|DIR...]` | warn of what is a mistake in grammars |
+| `peg-hs lint [FILE\|DIR...]` | warn of what is a mistake in grammars, and note what can be simpler |
 | `peg-hs label GRAMMAR.hpeg [--write]` | insert labels where they are shown to be safe |
 | `peg-hs parse GRAMMAR.hpeg INPUT` | parse an input and show its AST or syntax tree |
 | `peg-hs lsp` | run the language server on standard input and output |
@@ -236,6 +236,9 @@ Either way, directories whose name starts with `.` and `dist-newstyle` are skipp
 `lint` warns of what is a mistake in grammars that pass the static checks ([ADR 0033](docs/adr/0033-grammar-linter.md)):
 alternatives that are never tried or never succeed, alternatives that are the same as an earlier one, labels without effect inside a lookahead, and bindings that are not used.
 The rules are fixed, and no warning can be silenced: every warning goes away by fixing the grammar, and any warning makes `lint` fail.
+Besides warnings, `lint` gives notices, written with `notice:` in place of `warning:`, of what is not a mistake but can be simpler; notices do not make `lint` fail.
+The only notice, `omittable-unit-action`, points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
+The language server reports notices with the severity Information.
 It chooses files as `fmt` does.
 
 ### label

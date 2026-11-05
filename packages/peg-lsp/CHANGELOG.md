@@ -24,3 +24,8 @@ Since v0.1.0-rc1:
 - Code actions that insert the labels of `peg-hs label`, and that add
   `%recover` with a skeleton of a recovery rule to a label without one
   ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).
+
+Since v0.1.0-rc2:
+
+- The severity `Information` of a diagnostic, for the notices of the
+  linter ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md)).

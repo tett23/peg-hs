@@ -53,7 +53,7 @@ import Peg.Grammar.Format (formatGrammar)
 import Peg.Grammar.Highlight
 import Peg.Grammar.LabelInsertion (Edit (..), Insertion (..), RecoverProposal (..), insertLabels, recoverProposals)
 import Peg.Grammar.Labels (labelWarnings)
-import Peg.Grammar.Lint (LintWarning (..), lintGrammar)
+import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar)
 import Peg.Grammar.Outline
 import Peg.Grammar.Parser (parseGrammar, parseTops)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
@@ -218,13 +218,16 @@ data Severity
     Error
   | -- | A warning of the label check or of @peg-hs lint@.
     Warning
+  | -- | A notice of @peg-hs lint@ (ADR 0063).
+    Information
   deriving (Eq, Show)
 
 -- | The diagnostics of a grammar with the messages and locations of
 -- @peg-hs gen@ and @peg-hs lint@, and the code of a lint rule
 -- ('Peg.Grammar.Lint.lintRule'). An error stops the checks as in
--- @peg-hs gen@: a grammar with an error has no warnings. A grammar
--- with a syntax error has only its syntax errors: the first is the one of
+-- @peg-hs gen@: a grammar with an error has no warnings. The warnings of
+-- the linter have the severity 'Warning', and its notices 'Information'.
+-- A grammar with a syntax error has only its syntax errors: the first is the one of
 -- @peg-hs gen@, followed by those that recovery finds on later lines.
 diagnose :: Text -> [(Severity, Diagnostic, Maybe Text)]
 diagnose src = case parseTops src of
@@ -236,15 +239,18 @@ diagnose src = case parseTops src of
     Left ds -> map (\x -> (Error, x, Nothing)) ds
     Right (g0, g) ->
       [(Warning, w, Nothing) | w <- templateNotes g0 (labelWarnings g)]
-        ++ [ (Warning, Diagnostic (lintLoc w) (lintMessage w <> " [" <> lintRule w <> "]; " <> lintHint w), Just (lintRule w))
+        ++ [ (severity (lintLevel w), Diagnostic (lintLoc w) (lintMessage w <> " [" <> lintRule w <> "]; " <> lintHint w), Just (lintRule w))
            | w <- lintGrammar g0
            ]
+  where
+    severity LevelWarning = Warning
+    severity LevelNotice = Information
 
 diagnosticValue :: Encoding -> Document -> (Severity, Diagnostic, Maybe Text) -> Value
 diagnosticValue enc d (sev, Diagnostic l@(Loc line col) msg, code) =
   object $
     [ ("range", rangeValue enc d l (Loc line (col + max 1 (T.length (T.takeWhile isIdentChar (T.drop (col - 1) (lineAt d line)))))))
-    , ("severity", int (if sev == Error then 1 else 2))
+    , ("severity", int (case sev of Error -> 1; Warning -> 2; Information -> 3))
     , ("source", String "peg-hs")
     , ("message", String msg)
     ]

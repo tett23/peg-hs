@@ -2,16 +2,16 @@
 %module Conformance.Bench.NestedLR2
 
 E0 :: ()
-E0 <- E1 { () }
+E0 <- E1
 
 E1 :: ()
-E1 <- E1 'o1' E2 { () }
+E1 <- E1 'o1' E2
    / E2
 
 E2 :: ()
-E2 <- E2 'o2' Atom { () }
+E2 <- E2 'o2' Atom
    / Atom
 
 Atom :: ()
-Atom <- 'x' { () }
-     / '(' E0 ')' { () }
+Atom <- 'x'
+     / '(' E0 ')'

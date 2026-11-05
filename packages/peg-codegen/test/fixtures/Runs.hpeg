@@ -23,7 +23,7 @@ Run<p, more> <- x:p xs:(BlankLines? more p)* { x : xs }
 
 # 引数を本体で使わない雛形。取り込んだ引数は、展開した規則の中で使われない
 Gap<p> :: ()
-Gap<p> <- ' '+ { () }
+Gap<p> <- ' '+
 
 Blocks(ind :: Int) :: [Block]
 Blocks <- Run<Block(ind), &(Ind(ind) !BlankLine .)>
@@ -92,12 +92,12 @@ Line :: Text
 Line <- t:$(![\n] .)+ ('\n' / !.) { t }
 
 BlankLine :: ()
-BlankLine <- [ ]* '\n' { () }
+BlankLine <- [ ]* '\n'
 
 BlankLines :: ()
-BlankLines <- BlankLine+ { () }
+BlankLines <- BlankLine+
 
 # ちょうど n 個の空白
 Ind(n :: Int) :: ()
-Ind <- &{ n == 0 } { () }
-    / &{ n > 0 } ' ' Ind(n - 1) { () }
+Ind <- &{ n == 0 }
+    / &{ n > 0 } ' ' Ind(n - 1)

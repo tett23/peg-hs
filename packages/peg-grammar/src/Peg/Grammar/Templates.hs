@@ -38,7 +38,7 @@ module Peg.Grammar.Templates
   , templateNotes
   ) where
 
-import Data.Char (isAlpha, isAlphaNum, isDigit, isUpper)
+import Data.Char (isAlpha, isAlphaNum, isDigit, isSpace, isUpper)
 import Data.List (nub)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, mapMaybe)
@@ -243,11 +243,16 @@ expandTemplates g
     maxSize = 10000
 
 -- The type of an instance: the type variables of the template's type
--- replaced by the types of the arguments.
+-- replaced by the types of the arguments. The type () is put without
+-- parentheses, so that an instance whose type becomes () is a rule of type
+-- () (ADR 0063).
 instanceType :: Rule -> [Maybe Text] -> Text
 instanceType t tys = foldl replaceVar (unLoc (ruleType t)) [(v, ty) | (TemplateParam _ (Just v), Just ty) <- zip (ruleTemplateParams t) tys]
   where
-    replaceVar ty (v, with) = T.concat (map (\w -> if w == v then "(" <> with <> ")" else w) (identifierSplit ty))
+    replaceVar ty (v, with) = T.concat (map (\w -> if w == v then paren with else w) (identifierSplit ty))
+    paren with
+      | T.filter (not . isSpace) with == "()" = "()"
+      | otherwise = "(" <> with <> ")"
 
 -- Split a type into identifiers and the text between them.
 identifierSplit :: Text -> [Text]

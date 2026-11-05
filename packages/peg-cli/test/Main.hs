@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 -- | Tests of the peg-hs executable: the commands (ADR 0037), and the
 -- warnings, --Werror and --strip-labels of gen (ADR 0028).
 module Main (main) where
@@ -5,7 +6,7 @@ module Main (main) where
 import Control.Monad (forM, when)
 import qualified Data.ByteString.Char8 as BC
 import Data.Char (isDigit)
-import Data.List (nub, sort)
+import Data.List (nub, sort, stripPrefix)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Peg.Grammar (Diagnostic (..), Loc (..))
@@ -68,8 +69,8 @@ testDir = do
   pure dir
 
 unformatted, formatted :: String
-unformatted = "%module M\nS::()\nS<-'a'   {()}\n   /'b' { () }\n"
-formatted = "%module M\n\nS :: ()\nS <- 'a' { () }\n  / 'b' { () }\n"
+unformatted = "%module M\nS::Int\nS<-'a'   {1}\n   /'b' { 2 }\n"
+formatted = "%module M\n\nS :: Int\nS <- 'a' { 1 }\n  / 'b' { 2 }\n"
 
 exprGrammar :: String
 exprGrammar =
@@ -174,7 +175,7 @@ genShown = oneof [show <$> (arbitrary :: Gen [(Int, Maybe String)]), show <$> (a
 
 -- A diagnostic written by peg-hs: line, column, whether it is an error,
 -- and the message.
-cliDiagnostic :: FilePath -> String -> [(Int, Int, Bool, String)]
+cliDiagnostic :: FilePath -> String -> [(Int, Int, String, String)]
 cliDiagnostic file l
   | (file <> ":") `isPrefixOf` l =
       let rest = drop (length file + 1) l
@@ -182,8 +183,9 @@ cliDiagnostic file l
           (col, rest'') = span isDigit (drop 1 rest')
        in case (line, col, drop 2 rest'') of
             (_ : _, _ : _, r)
-              | "error: " `isPrefixOf` r -> [(read line, read col, True, drop 7 r)]
-              | "warning: " `isPrefixOf` r -> [(read line, read col, False, drop 9 r)]
+              | Just m <- stripPrefix "error: " r -> [(read line, read col, "error", m)]
+              | Just m <- stripPrefix "warning: " r -> [(read line, read col, "warning", m)]
+              | Just m <- stripPrefix "notice: " r -> [(read line, read col, "notice", m)]
             _ -> []
   | otherwise = []
 
@@ -212,7 +214,11 @@ labelledGrammar = replace "'[' v:Num vs:(',' Num)* ']' !." "'[' v:Num ^List_Num 
 
 -- A grammar with one warning of the linter.
 linted :: String
-linted = "%module M\nS :: ()\nS <- 'a'? { () } / 'b' { () }\n"
+linted = "%module M\nS :: Int\nS <- 'a'? { 1 } / 'b' { 2 }\n"
+
+-- A grammar with one notice of the linter (ADR 0063).
+noticed :: String
+noticed = "%module M\nS :: ()\nS <- 'a' { () }\n"
 
 -- A fresh directory with the given files.
 treeWith :: String -> [(FilePath, String)] -> IO FilePath
@@ -264,7 +270,7 @@ cLocale = [("LANG", "C"), ("LC_ALL", "C"), ("LC_CTYPE", "C")]
 
 -- A grammar in Japanese: a comment, a character class and a literal.
 japaneseGrammar :: String
-japaneseGrammar = "%module M\n\n# ひらがなの並び\nS :: ()\nS <- [あ-ん]+ '。' { () }\n"
+japaneseGrammar = "%module M\n\n# ひらがなの並び\nS :: ()\nS <- [あ-ん]+ '。'\n"
 
 -- The standard error of peg-hs in a directory, with the directory in place
 -- of the current directory, for the golden test of the errors.
@@ -454,14 +460,23 @@ main = do
           "lint (ADR 0033)"
           [ goldenVsString "peg-hs help lint" "test/golden/help-lint.txt" (stdoutOf ["help", "lint"])
           , testCase "a grammar without warnings succeeds" $ do
-              dir <- treeWith "lint-ok" [("G.hpeg", formatted)]
+              dir <- treeWith "lint-ok" [("G.hpeg", "%module M\n\nS :: ()\nS <- 'a'\n  / 'b'\n")]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out, err) @?= (ExitSuccess, "", "")
+          , testCase "a grammar with only notices succeeds, with the notices on stderr (ADR 0063)" $ do
+              dir <- treeWith "lint-notice" [("G.hpeg", noticed)]
+              (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
+              (code, out, err) @?= (ExitSuccess, "", "G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n")
+          , testCase "a grammar with a warning and a notice fails with 1 (ADR 0063)" $ do
+              dir <- treeWith "lint-warning-notice" [("G.hpeg", "%module M\nS :: ()\nS <- 'a'? { () } / 'b' { () }\n")]
+              (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
+              (code, out) @?= (ExitFailure 1, "")
+              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["notice", "warning", "notice"]
           , testCase "a warning fails with 1, on stderr" $ do
               dir <- treeWith "lint-ng" [("G.hpeg", linted)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out) @?= (ExitFailure 1, "")
-              err @?= "G.hpeg:3:20: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds\n"
+              err @?= "G.hpeg:3:19: warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]; remove it, or move it before the one that always succeeds\n"
           , testCase "an error in the grammar fails with 1" $ do
               dir <- treeWith "lint-broken" [("G.hpeg", "%module M\nS :: ()\nS <- Missing { () }\n")]
               (code, _, err) <- pegHsIn dir ["lint", "G.hpeg"]
@@ -560,9 +575,13 @@ main = do
                   (_, _, genErr) <- pegHs ["gen", file, "-o", dir </> "out.hs"]
                   (_, _, lintErr) <- pegHs ["lint", file]
                   let cli = nub (sort (concatMap (cliDiagnostic file) (lines genErr ++ lines lintErr)))
-                      lsp = [(locLine l, locColumn l, sev == Error, T.unpack msg) | (sev, Diagnostic l msg, _) <- diagnose m]
+                      level = \case
+                        Error -> "error"
+                        Warning -> "warning"
+                        Information -> "notice"
+                      lsp = [(locLine l, locColumn l, level sev, T.unpack msg) | (sev, Diagnostic l msg, _) <- diagnose m]
                       syntaxError = case cli of
-                        [(_, _, True, _)] -> True
+                        [(_, _, "error", _)] -> True
                         _ -> False
                       agree = if syntaxError && not (null lsp) then take 1 lsp == cli else sort lsp == cli
                   pure [(file, cli, lsp) | not agree]

@@ -31,10 +31,26 @@ lintTests files =
     "linter (ADR 0033)"
     ( [ testGroup "warns" [testCase (T.unpack n) (rulesOf src @?= Right [r]) | (n, r, src) <- warned]
     , testGroup "does not warn" [testCase (T.unpack n) (rulesOf src @?= Right []) | (n, src) <- notWarned]
+    , testGroup "notices (ADR 0063)" [testCase (T.unpack n) (noticesOf src @?= Right [l]) | (n, l, src) <- noticed]
+    , testGroup "no notice (ADR 0063)" [testCase (T.unpack n) (noticesOf src @?= Right []) | (n, src) <- notNoticed]
+    , testGroup
+        "omitted actions in rules of type () (ADR 0064)"
+        [ testCase "nothing for a unit repetition" $
+            lintOf (grammar ["S :: ()", "S <- Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right []
+        , testCase "only the unused binding for a bound unit repetition" $
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding"]
+        , testCase "the unused bindings, as with { () }" $ do
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding"]
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp { () }", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding", "omittable-unit-action"]
+        ]
+    , testCase "a notice is rendered with notice: (ADR 0063)" $
+        map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: ()", "S <- ' '* { () }"])))
+          @?= ["G.hpeg:3:11: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }"]
     , goldenVsString "the warnings" "test/golden/lint-warnings.txt" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
-          concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- warned]
-    , testCase "the grammars of the repository have no warnings" $ do
+          concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) warnings (lintOf src)) | (n, _, src) <- warned]
+            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- noticed]
+    , testCase "the grammars of the repository have no warnings and no notices" $ do
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
     ]
@@ -50,7 +66,7 @@ lintTests files =
          ]
       ++ chunkedProperty "removing what a warning names keeps the results and the failure reports (ADR 0049)" 3000 (\part ->
           forAll (variant part genGrammar) $ \src -> case parseGrammar src of
-            Right g | Right _ <- check g -> case [w | w <- lintGrammar g, lintRule w /= "unused-binding"] of
+            Right g | Right _ <- check g -> case [w | w <- warnings (lintGrammar g), lintRule w /= "unused-binding"] of
               [] -> label "no warnings" True
               ws ->
                 label "warned" $
@@ -79,7 +95,44 @@ lintOf src = do
   pure (lintGrammar g)
 
 rulesOf :: Text -> Either [Diagnostic] [Text]
-rulesOf src = map lintRule <$> lintOf src
+rulesOf src = map lintRule . warnings <$> lintOf src
+
+warnings :: [LintWarning] -> [LintWarning]
+warnings = filter ((== LevelWarning) . lintLevel)
+
+-- The locations of the notices of omittable actions (ADR 0063).
+noticesOf :: Text -> Either [Diagnostic] [(Int, Int)]
+noticesOf src = do
+  ws <- lintOf src
+  pure [(locLine (lintLoc w), locColumn (lintLoc w)) | w <- ws, lintLevel w == LevelNotice, lintRule w == "omittable-unit-action"]
+
+-- Grammars with an omittable { () }, and where the notice is.
+noticed :: [(Text, (Int, Int), Text)]
+noticed =
+  [ ("literals only", (3, 11), grammar ["S :: ()", "S <- ' '* { () }"])
+  , ("a literal and a lookahead", (3, 18), grammar ["S :: ()", "S <- 'if' ![a-z] { () }"])
+  , ("two unit elements", (3, 12), grammar ["S :: ()", "S <- Sp Sp { () }", "Sp :: ()", "Sp <- ' '+"])
+  , ("bound unit elements read by a predicate", (3, 28), grammar ["S :: ()", "S <- u:Sp v:Sp &{ u == v } { () }", "Sp :: ()", "Sp <- ' '+"])
+  , ("a single unit element", (3, 9), grammar ["S :: ()", "S <- Sp { () }", "Sp :: ()", "Sp <- ' '+"])
+  , ("spaces in the code ()", (3, 10), grammar ["S :: ()", "S <- 'a' { ( ) }"])
+  , ("spaces in the type ()", (3, 10), grammar ["S :: ( )", "S <- 'a' { () }"])
+  , ("a grammar with a syntax tree", (4, 10), "%module M\n%syntax\nS :: ()\nS <- 'a' { () }\n")
+  , ("calls of a template of type ()", (3, 20), grammar ["S :: ()", "S <- K<'a'> K<'b'> { () }", "K<w> :: ()", "K<w> <- w ![a-z]"])
+  , ("a unit repetition (ADR 0064)", (3, 10), grammar ["S :: ()", "S <- Sp* { () }", "Sp :: ()", "Sp <- ' '"])
+  , ("a bound unit repetition (ADR 0064)", (3, 24), grammar ["S :: ()", "S <- x:Sp* &{ null x } { () }", "Sp :: ()", "Sp <- ' '"])
+  , ("the definition of a template whose instances have type ()", (5, 18), grammar ["S :: ()", "S <- K<'a'> K<'b'>", "K<w> :: ()", "K<w> <- w ![a-z] { () }"])
+  ]
+
+-- Grammars whose actions cannot be omitted, or are not { () }.
+notNoticed :: [(Text, Text)]
+notNoticed =
+  [ ("a rule not of type ()", grammar ["S :: Int", "S <- 'a' { () }"])
+  , ("an element with a value other than unit", grammar ["S :: ()", "S <- $'a' { () }"])
+  , ("an empty alternative", grammar ["S :: ()", "S <- 'a' / { () }"])
+  , ("code other than ()", grammar ["S :: ()", "S <- 'a' { id () }"])
+  , ("a type synonym of ()", "%module M\n%{\ntype Unit = ()\n}%\nS :: Unit\nS <- 'a' { () }\n")
+  , ("a template with an instance not of type ()", grammar ["S :: ()", "S <- O<Sp> n:O<N> &{ n > 0 } { () }", "O<p :: t> :: t", "O<p> <- '(' p ')' / '-' { () }", "Sp :: ()", "Sp <- ' '+", "N :: Int", "N <- [0-9] { 0 }"])
+  ]
 
 warned :: [(Text, Text, Text)]
 warned =
@@ -119,7 +172,7 @@ notWarned =
   , ("a binding in an argument", grammar ["S :: ()", "S <- x:B C(x) { () }", "B :: Int", "B <- 'b' { 1 }", "C(n :: Int) :: ()", "C <- 'c' { () }"])
   , ("a binding in a string", grammar ["S :: String", "S <- x:B { \"x\" }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding of a grammar with a syntax tree", "%module M\n%syntax\nS :: ()\nS <- x:B { () }\nB :: Int\nB <- 'b' { 1 }\n")
-  , ("a binding that chooses the value", grammar ["S :: ()", "S <- Sp x:U Sp", "U :: ()", "U <- 'u' { () }", "Sp :: ()", "Sp <- ' '? { () }"])
+  , ("a binding that chooses the value", grammar ["S :: Maybe ()", "S <- Sp x:U? Sp", "U :: ()", "U <- 'u'", "Sp :: ()", "Sp <- ' '?"])
   ]
 
 -- The grammar without the alternative or the label a warning names.

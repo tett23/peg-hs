@@ -21,14 +21,16 @@
 -- 'check' checks that labels named in @%recover@ and @%safe@ exist, but
 -- not whether a label is safe; 'Peg.Grammar.Labels.labelWarnings' warns
 -- about the labels that may not be (ADR 0028). 'hasValue', 'countedItems' and 'unitRules' decide
--- which expressions have values (ADR 0030), and are shared with the code
--- generator and the linter.
+-- which expressions have values (ADR 0030), and 'omitsUnitAction' which
+-- alternatives of rules of type @()@ may omit their actions (ADR 0063).
+-- They are shared with the code generator and the linter.
 module Peg.Grammar.Check
   ( Analysis (..)
   , check
   , hasValue
   , countedItems
   , unitRules
+  , omitsUnitAction
   ) where
 
 import Data.Char (isSpace)
@@ -94,6 +96,17 @@ isUnit units = \case
 -- | The rules whose type annotation is @()@, ignoring spaces (ADR 0030).
 unitRules :: [Rule] -> Set Text
 unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) (unLoc (ruleType r)) == "()"]
+
+-- | Whether an alternative of a rule may omit its action because the rule
+-- has type @()@ (ADR 0063): the rule is one of the given rules of type
+-- @()@, the alternative has an element, and no element it counts has a
+-- value other than unit. The value of such an alternative is always @()@,
+-- even when it counts one element, whose value may be @[()]@ or
+-- @Maybe ()@ (ADR 0064). The action of the alternative, if any, is not
+-- looked at.
+omitsUnitAction :: Set Text -> Text -> [Item] -> Bool
+omitsUnitAction units rule items =
+  S.member rule units && not (null items) && all (isUnit units . itemExpr) (countedItems units items)
 
 -- | Check a grammar whose templates have been expanded. The errors are
 -- sorted by location.
@@ -403,6 +416,7 @@ altErrors units r = concatMap alt (ruleAlts r)
       Just _ -> []
       Nothing -> case length (countedItems units (altItems a)) of
         1 -> []
+        _ | omitsUnitAction units (ruleName r) (altItems a) -> []
         0 -> [Diagnostic (altLoc a) "an alternative without an action must have exactly one element with a value, but it has none"]
         k -> [Diagnostic (altLoc a) ("an alternative without an action must have exactly one element with a value, but it has " <> showT k)]
     groupErrors i = exprGroupErrors (itemExpr i)

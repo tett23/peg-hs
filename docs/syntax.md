@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -57,6 +57,10 @@ Sum.hpeg:3:6: error: undefined rule Num
 - **ラベルの安全性の警告**：`peg-hs gen` が出す。生成は続ける。`--Werror` を付けると、警告があれば失敗する（[ラベルの安全性の検査](#ラベルの安全性の検査)）
 - **lint の警告**：`peg-hs lint` が出す。警告が一つでもあれば終了状態 1 で終わる（[lint](#lint)）
 
+`peg-hs lint` は、警告とは別に notice も出す。
+notice は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
+`warning:` の代わりに `notice:` と書き、終了状態を変えない。
+
 以下の各節の「よくある誤り」の表は、書き方と、そのとき peg-hs が出す文言の組である。
 文言はファイル名と位置を除いて示す。
 
@@ -75,7 +79,7 @@ Sum.hpeg:3:6: error: undefined rule Num
 
 # この行はコメント
 Hash :: ()
-Hash <- '#' { () }    # リテラルの '#' はコメントではない
+Hash <- '#' # リテラルの '#' はコメントではない
 ```
 
 ディレクティブの引数の後ろにもコメントを書ける。
@@ -398,12 +402,12 @@ Name :: Text
 Name <- n:$[a-z]+ Sp { n }
 
 Sp :: ()
-Sp <- [ \t]* { () }
+Sp <- [ \t]*
 ```
 
 この規則には三つの但し書きがある。
 
-- `()` 以外の値を持つ要素が一つもない場合は、`()` の値も数える。`Spaces <- Ws` のように `()` の規則をそのまま返す選択肢は書ける
+- `()` 以外の値を持つ要素が一つもない場合は、`()` の値も数える。型注釈が `()` でない規則で `Spaces <- Ws` と書くと、選択肢は `Ws` の値を返す。型注釈が `()` の規則では、この場合の値は常に `()` になる（[アクションの省略](#アクションの省略)）
 - 束縛した要素（`u:Sp`）は、`()` でも常に数える
 - 型注釈の判定は、空白を除いた文字列が `()` かどうかで行う。`type Unit = ()` のような別名は `()` とみなされない
 
@@ -525,14 +529,47 @@ Signed <- '-' n:Num { negate n }
 値を持つ要素が 0 個、または 2 個以上の選択肢でアクションを省略すると、誤りになる。
 数え方は、[`()` の値は数えない](#-の値は数えない)で述べたとおりである。
 
+ただし、型注釈が `()` の規則には例外がある（[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)）。
+`()` 以外の値を持つ要素が一つもない選択肢は、アクションを省略でき、値は `()` になる。
+型が `()` の規則の値は `()` しかないので、`{ () }` を書いても情報は増えないからである。
+
+```hpeg
+# 断片
+Sp :: ()
+Sp <- ' '*                # 値を持つ要素が 0 個
+
+Kw :: ()
+Kw <- 'if' ![a-z] Sp      # () の要素が一つ
+
+Gap :: ()
+Gap <- Sp ',' Sp          # () の要素が二つ
+
+Spaces :: ()
+Spaces <- Sp+             # 要素の値は [()] だが、選択肢の値は ()
+```
+
+`()` の要素がいくつあってもよく、束縛した要素（`u:Sp`）を含んでもよい。
+数える要素が `Sp+` や `Sp?` のように `[()]` や `Maybe ()` の値を持つ一つだけでも、選択肢の値は `()` である。
+型注釈の判定は、[`()` の値は数えない](#-の値は数えない)と同じく、空白を除いた文字列で行う。
+雛形の展開した規則では、型の変数を置き換えた後の型注釈で判定する。
+
+この例外には三つの限りがある。
+
+- 要素のない選択肢（`S <- 'a' / { () }` の後ろの選択肢）は、アクションを省略できない。空の選択肢には `{ () }` を書く
+- `()` 以外の値を持つ要素がちょうど一つの選択肢は、これまでどおりその値を返す。型が `()` と合わなければ、GHC が型の誤りを報告する
+- 型注釈が `()` でない規則は、例外の対象にならない。`type Unit = ()` のような別名も `()` とみなさない
+
+省略できる `{ () }` を書いても誤りではない。
+`peg-hs lint` は、それに `omittable-unit-action` の notice を出す（[lint](#lint)）。
+
 よくある誤り：
 
 | 書き方 | 報告 |
 |---|---|
-| `Unit <- 'unit'`（値を持つ要素が 0 個） | `error: an alternative without an action must have exactly one element with a value, but it has none` |
+| `Flag <- 'on'`（型注釈が `Bool` の規則で、値を持つ要素が 0 個） | `error: an alternative without an action must have exactly one element with a value, but it has none` |
 | `Pair <- Num Num`（値を持つ要素が 2 個） | `error: an alternative without an action must have exactly one element with a value, but it has 2` |
 
-一つめは `Unit <- 'unit' { () }` と書く。
+一つめは `Flag <- 'on' { True }` と書く。
 二つめは、二つの値を束縛してアクションで組み立てる。
 
 ### 位置を持つ構文木
@@ -594,11 +631,11 @@ Name :: Text
 Name <- n:$[a-z]+ Sp { n }
 
 Sp :: ()
-Sp <- [ \t]* { () }
+Sp <- [ \t]*
 
 # 予約語：リテラルの後に識別子の文字が続かず、空白を読む
 K<w> :: ()
-K<w> <- w ![a-zA-Z0-9_] Sp { () }
+K<w> <- w ![a-zA-Z0-9_] Sp
 
 # 区切りのある一つ以上の列
 List<p :: a, sep> :: [a]
@@ -630,18 +667,18 @@ List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 %module Example.Items
 
 Doc :: ()
-Doc <- Items(0) { () }
+Doc <- Items(0)
 
 Items(ind :: Int) :: ()
-Items <- Lines<Item(ind)> { () }
+Items <- Lines<Item(ind)>
 
 # 改行を挟んで p が続く
 Lines<p> :: ()
-Lines<p> <- p ('\n' p)* { () }
+Lines<p> <- p ('\n' p)*
 
 # ちょうど ind 個の空白の後の項目
 Item(ind :: Int) :: ()
-Item <- ' '* &{ _col == ind } '-' { () }
+Item <- ' '* &{ _col == ind } '-'
 ```
 
 展開した規則は、引数が使った呼び出し元の引数を、同じ名前と型で受け取る。
@@ -671,18 +708,18 @@ Item <- ' '* &{ _col == ind } '-' { () }
 %module Example.Indented
 
 Doc :: ()
-Doc <- Indented<Item(0)>(0) { () }
+Doc <- Indented<Item(0)>(0)
 
 # 深さ n に字下げした p が、改行を挟んで続く
 Indented<p>(n :: Int) :: ()
-Indented<p> <- Ind(n) p ('\n' Ind(n) p)* { () }
+Indented<p> <- Ind(n) p ('\n' Ind(n) p)*
 
 Item(ind :: Int) :: ()
-Item <- '-' (' ' Indented<Item(ind + 2)>(ind + 2))? { () }
+Item <- '-' (' ' Indented<Item(ind + 2)>(ind + 2))?
 
 # ちょうど n 個の空白
 Ind(n :: Int) :: ()
-Ind <- ' '* &{ _col == n } { () }
+Ind <- ' '* &{ _col == n }
 ```
 
 呼び出しでは、雛形の引数の `>` の直後に値の引数を書く（`Indented<Item(ind + 2)>(ind + 2)`）。
@@ -805,7 +842,7 @@ Byte <- n:Num &{ n < 256 } { n }
 ```hpeg
 # 断片
 Indent(w :: Int) :: ()
-Indent <- &{ _col >= w } { () }
+Indent <- &{ _col >= w }
         / ' ' Indent(w)
 ```
 
@@ -985,10 +1022,10 @@ Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
 Sp :: ()
-Sp <- Ws? { () }
+Sp <- Ws?
 
 Ws :: ()
-Ws <- [ \t]+ { () }
+Ws <- [ \t]+
 ```
 
 この文法から生成されるモジュールは、`parse` に加えて次の入口を公開する。
@@ -1077,7 +1114,7 @@ Inline <- '[' name:$[a-z]+ (']' ^close) { Command name }
 
 # 何も読まない。行の終わりで閉じたとみなす
 CloseAtLineEnd :: ()
-CloseAtLineEnd <- &('\n' / !.) { () }
+CloseAtLineEnd <- &('\n' / !.)
 ```
 
 この文法は、閉じていない `[name` を行の終わりで閉じたものとみなして解析を続ける。
@@ -1236,6 +1273,23 @@ Op.hpeg:4:7: warning: the alternative never succeeds: the alternative at 3:7 mat
 | `duplicate-alternative` | 前の選択肢と同じ選択肢 | [演算子](#演算子) |
 | `ineffective-label` | 先読みの中で効果を持たないラベル | [構文エラーからの回復](#構文エラーからの回復) |
 | `unused-binding` | アクション、意味述語、規則の引数のどれにも現れない束縛 | [束縛](#束縛) |
+
+lint は、警告とは別に notice を出す。
+notice は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
+出力の形は警告と同じで、`warning:` の代わりに `notice:` と書く。
+notice だけなら、`peg-hs lint` の終了状態は 0 である。
+警告と同じく、notice も選ぶことや止めることはできない。
+
+```
+$ peg-hs lint Sp.hpeg
+Sp.hpeg:4:12: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+```
+
+notice の規則は次の一つである。
+
+| 規則 | 知らせる書き方 | 節 |
+|---|---|---|
+| `omittable-unit-action` | 型注釈が `()` の規則の、省略できる `{ () }`。位置はアクションの `{` を指す。雛形の中のアクションは、すべての展開で省略できるときに限る | [アクションの省略](#アクションの省略) |
 
 警告に従って直しても、文法が受理する入力と、誤りの位置は変わらない。
 変わりうるのは、リテラルの接頭辞の警告に従って選択肢を消したときの、誤りの文言の「期待したもの」だけである。

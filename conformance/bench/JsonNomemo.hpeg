@@ -81,14 +81,14 @@ Number :: Text
 Number <- n:$('-'? IntPart Frac? Exp?) { n }
 
 IntPart :: ()
-IntPart <- '0' { () }
-        / [1-9] [0-9]* { () }
+IntPart <- '0'
+        / [1-9] [0-9]*
 
 Frac :: ()
-Frac <- '.' [0-9]+ { () }
+Frac <- '.' [0-9]+
 
 Exp :: ()
-Exp <- [eE] [+\-]? [0-9]+ { () }
+Exp <- [eE] [+\-]? [0-9]+
 
 String :: Text
 String <- '"' us:Unit* '"' { T.pack (decodeUnits us) }
@@ -110,7 +110,7 @@ Escape <- '"' { 0x22 }
        / 'u' h:$(Hex Hex Hex Hex) { hexValue h }
 
 Hex :: ()
-Hex <- [0-9a-fA-F] { () }
+Hex <- [0-9a-fA-F]
 
 Ws :: ()
-Ws <- [ \t\n\r]* { () }
+Ws <- [ \t\n\r]*

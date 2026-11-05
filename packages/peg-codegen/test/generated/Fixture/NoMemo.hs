@@ -204,13 +204,7 @@ peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Spaces =
   PegRt.nomemo "Spaces"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 32 "test/fixtures/NoMemo.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 214 "test/generated/Fixture/NoMemo.hs" #-}
-    )
+      [ do { PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]")
+          ; PegPrelude.pure ()
           }
       ])

@@ -156,28 +156,28 @@ QSp <- [ \t] { c + 1 }
 
 # 桁 w まで空白を読む
 ToCol(w :: Int) :: ()
-ToCol <- &{ _col >= w } { () }
+ToCol <- &{ _col >= w }
       / [ \t] ToCol(w)
 
 # 高々 3 桁の字下げ
 Sp3(b :: Int) :: ()
-Sp3 <- [ \t]* &{ _col - b <= 3 } { () }
+Sp3 <- [ \t]* &{ _col - b <= 3 }
 
 Col(c :: Int) :: Int
 Col <- { c }
 
 # 行 -------------------------------------------------------------------------
 Newline :: ()
-Newline <- '\r\n' { () }
-        / '\n' { () }
-        / '\r' { () }
+Newline <- '\r\n'
+        / '\n'
+        / '\r'
 
 EOL :: ()
 EOL <- Newline
-    / !. { () }
+    / !.
 
 BlankRest :: ()
-BlankRest <- [ \t]* EOL { () }
+BlankRest <- [ \t]* EOL
 
 LineRest1 :: Text
 LineRest1 <- t:$(!Newline .)+ EOL { t }
@@ -228,7 +228,7 @@ FenceContent <- StripUpTo(b + fenceIndent fi) c:Col(_col) t:$(!Newline .)+ EOL {
              / StripUpTo(b + fenceIndent fi) Newline { "\n" }
 
 StripUpTo(w :: Int) :: ()
-StripUpTo <- &{ _col >= w } { () }
+StripUpTo <- &{ _col >= w }
           / ' ' StripUpTo(w)
           / { () }
 
@@ -259,18 +259,18 @@ HtmlStart6 <- Sp3(b) '<' '/'? n:$[A-Za-z0-9]+ &{ lowerIn blockTags n } ([ \t] / 
 
 HtmlStart7(b :: Int) :: ()
 HtmlStart7 <- Sp3(b) '<' n:$TagName &{ not (lowerIn type1Tags n) } Attr* [ \t]* '/'? '>' [ \t]* &EOL { () }
-           / Sp3(b) '</' TagName [ \t]* '>' [ \t]* &EOL { () }
+           / Sp3(b) '</' TagName [ \t]* '>' [ \t]* &EOL
 
 TagName :: ()
-TagName <- [A-Za-z] [A-Za-z0-9\-]* { () }
+TagName <- [A-Za-z] [A-Za-z0-9\-]*
 
 Attr :: ()
-Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
+Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue?
 
 AttrValue :: ()
-AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+ { () }
-          / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\'' { () }
-          / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"' { () }
+AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+
+          / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\''
+          / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"'
 
 HtmlEndLines(cs :: [Container], b :: Int, es :: [Text]) :: [Text]
 HtmlEndLines <- c:Col(_col) l:LineRest1 &{ hasEnd es l } { [virt (c - b) <> l] }
@@ -324,22 +324,22 @@ RefDef(cs :: [Container], b :: Int) :: Block
 RefDef <- Sp3(b) '[' l:$LabelBody &{ validLabel l } ']' ':' DefWs(cs) d:Dest t:DefTitle(cs) { RefDef l d t }
 
 LabelBody :: ()
-LabelBody <- ('\\' . / ![\[\]] .)+ { () }
+LabelBody <- ('\\' . / ![\[\]] .)+
 
 DefWs(cs :: [Container]) :: ()
 DefWs <- [ \t]* Newline Prefix(cs, _col) [ \t]* { () }
-      / [ \t]* { () }
+      / [ \t]*
 
 DefWs1(cs :: [Container]) :: ()
 DefWs1 <- [ \t]* Newline Prefix(cs, _col) [ \t]* { () }
-       / [ \t]+ { () }
+       / [ \t]+
 
 Dest :: Text
 Dest <- '<' d:$('\\' . / ![<>\n\r] .)* '>' { d }
      / !'<' d:$DestRaw { d }
 
 DestRaw :: ()
-DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+ { () }
+DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+
 
 DefTitle(cs :: [Container]) :: Maybe Text
 DefTitle <- DefWs1(cs) t:Title(cs) [ \t]* EOL { Just t }
@@ -378,21 +378,21 @@ SetextLine <- Sp3(b) '='+ [ \t]* EOL { 1 }
 # 段落を中断する場合の制限（空の項目、1 以外で始まる番号、HTML の第 7 種）はない
 AnyStart(b :: Int) :: ()
 AnyStart <- Interrupt(b)
-         / Sp3(b) [\-+*] &BlankRest { () }
-         / Sp3(b) [0-9]+ [.)] ([ \t] / &BlankRest) { () }
-         / &HtmlStart7(b) { () }
+         / Sp3(b) [\-+*] &BlankRest
+         / Sp3(b) [0-9]+ [.)] ([ \t] / &BlankRest)
+         / &HtmlStart7(b)
 
 # 段落を中断できるブロックの開始
 Interrupt(b :: Int) :: ()
-Interrupt <- &ThematicBreak(b) { () }
-          / &AtxHeading(b) { () }
-          / &FenceOpen(b) { () }
-          / Sp3(b) '>' { () }
-          / Sp3(b) [\-+*] [ \t]+ !EOL { () }
-          / Sp3(b) '1' [.)] [ \t]+ !EOL { () }
-          / &HtmlStart1(b) { () }
-          / Sp3(b) '<!--' { () }
-          / Sp3(b) '<?' { () }
-          / Sp3(b) '<!' [A-Za-z] { () }
-          / Sp3(b) '<![CDATA[' { () }
-          / &HtmlStart6(b) { () }
+Interrupt <- &ThematicBreak(b)
+          / &AtxHeading(b)
+          / &FenceOpen(b)
+          / Sp3(b) '>'
+          / Sp3(b) [\-+*] [ \t]+ !EOL
+          / Sp3(b) '1' [.)] [ \t]+ !EOL
+          / &HtmlStart1(b)
+          / Sp3(b) '<!--'
+          / Sp3(b) '<?'
+          / Sp3(b) '<!' [A-Za-z]
+          / Sp3(b) '<![CDATA['
+          / &HtmlStart6(b)

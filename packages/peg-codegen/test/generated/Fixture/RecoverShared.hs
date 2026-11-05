@@ -79,41 +79,29 @@ peg'rule'S :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'S =
   PegRt.memo peg'memo'S "S"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "(" "'('"
+      [ do { PegRt.lit "(" "'('"
           ; PegRt.labeled "a" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.choice [do { PegRt.lit "x" "'x'"
           ; PegPrelude.pure ()
           }])
           ; PegRt.labeled "b" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.choice [do { PegRt.lit ")" "')'"
           ; PegPrelude.pure ()
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 8 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 29 #-} () 
-{-# LINE 95 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'Skip :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 103 "test/generated/Fixture/RecoverShared.hs" #-}
+{-# LINE 97 "test/generated/Fixture/RecoverShared.hs" #-}
     )
 peg'rule'Skip =
   PegRt.memo peg'memo'Skip "Skip"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.cls [(')', ')')] "[)]")
+      [ do { PegRt.skipMany (PegRt.choice [do { PegRt.notP (PegRt.cls [(')', ')')] "[)]")
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 11 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 20 #-} () 
-{-# LINE 117 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])

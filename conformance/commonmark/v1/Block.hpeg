@@ -51,16 +51,16 @@ Block <- BlankLine
       / Paragraph
 
 Newline :: ()
-Newline <- '\r\n' { () }
-        / '\n' { () }
-        / '\r' { () }
+Newline <- '\r\n'
+        / '\n'
+        / '\r'
 
 EOL :: ()
 EOL <- Newline
-    / !. { () }
+    / !.
 
 BlankRest :: ()
-BlankRest <- [ \t]* EOL { () }
+BlankRest <- [ \t]* EOL
 
 LineNL :: Text
 LineNL <- t:$(!Newline .)* Newline { t }
@@ -71,11 +71,11 @@ BlankLine <- [ \t]* Newline { BlankLine }
           / [ \t]+ !. { BlankLine }
 
 Sp3 :: ()
-Sp3 <- ' '? ' '? ' '? { () }
+Sp3 <- ' '? ' '? ' '?
 
 Indent4 :: ()
-Indent4 <- '    ' { () }
-        / ' '? ' '? ' '? '\t' { () }
+Indent4 <- '    '
+        / ' '? ' '? ' '? '\t'
 
 # 字下げされたコードブロック
 IndentedCode :: Block
@@ -97,10 +97,10 @@ FencedCode <- Sp3 '```' '`'* info:$(![`\n\r] .)* EOL ls:BacktickLine* BacktickCl
            / Sp3 '~~~' '~'* info:$(!Newline .)* EOL ls:TildeLine* TildeClose? { CodeBlock (infoOf info) (T.concat ls) }
 
 BacktickClose :: ()
-BacktickClose <- Sp3 '```' '`'* [ \t]* EOL { () }
+BacktickClose <- Sp3 '```' '`'* [ \t]* EOL
 
 TildeClose :: ()
-TildeClose <- Sp3 '~~~' '~'* [ \t]* EOL { () }
+TildeClose <- Sp3 '~~~' '~'* [ \t]* EOL
 
 BacktickLine :: Text
 BacktickLine <- !BacktickClose l:LineNL { l <> T.pack "\n" }
@@ -127,80 +127,80 @@ HtmlBlock <- &(Sp3 '<' Type1Name ([ \t] / '>' / &EOL)) ls:Until1 { HtmlBlock (T.
           / &(Sp3 !('<' Type1Name) (OpenTag / CloseTag) [ \t]* EOL) ls:UntilBlank { HtmlBlock (T.intercalate (T.pack "\n") ls) }
 
 Type1Name :: ()
-Type1Name <- [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] { () }
-          / [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] { () }
-          / [Ss] [Tt] [Yy] [Ll] [Ee] { () }
-          / [Pp] [Rr] [Ee] { () }
+Type1Name <- [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa]
+          / [Ss] [Cc] [Rr] [Ii] [Pp] [Tt]
+          / [Ss] [Tt] [Yy] [Ll] [Ee]
+          / [Pp] [Rr] [Ee]
 
 BlockTag :: ()
-BlockTag <- [Bb] [Ll] [Oo] [Cc] [Kk] [Qq] [Uu] [Oo] [Tt] [Ee] { () }
-         / [Ff] [Ii] [Gg] [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
-         / [Bb] [Aa] [Ss] [Ee] [Ff] [Oo] [Nn] [Tt] { () }
-         / [Cc] [Oo] [Ll] [Gg] [Rr] [Oo] [Uu] [Pp] { () }
-         / [Ff] [Ii] [Ee] [Ll] [Dd] [Ss] [Ee] [Tt] { () }
-         / [Ff] [Rr] [Aa] [Mm] [Ee] [Ss] [Ee] [Tt] { () }
-         / [Mm] [Ee] [Nn] [Uu] [Ii] [Tt] [Ee] [Mm] { () }
-         / [Nn] [Oo] [Ff] [Rr] [Aa] [Mm] [Ee] [Ss] { () }
-         / [Oo] [Pp] [Tt] [Gg] [Rr] [Oo] [Uu] [Pp] { () }
-         / [Aa] [Dd] [Dd] [Rr] [Ee] [Ss] [Ss] { () }
-         / [Aa] [Rr] [Tt] [Ii] [Cc] [Ll] [Ee] { () }
-         / [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
-         / [Dd] [Ee] [Tt] [Aa] [Ii] [Ll] [Ss] { () }
-         / [Ss] [Ee] [Cc] [Tt] [Ii] [Oo] [Nn] { () }
-         / [Ss] [Uu] [Mm] [Mm] [Aa] [Rr] [Yy] { () }
-         / [Cc] [Ee] [Nn] [Tt] [Ee] [Rr] { () }
-         / [Dd] [Ii] [Aa] [Ll] [Oo] [Gg] { () }
-         / [Ff] [Ii] [Gg] [Uu] [Rr] [Ee] { () }
-         / [Ff] [Oo] [Oo] [Tt] [Ee] [Rr] { () }
-         / [Hh] [Ee] [Aa] [Dd] [Ee] [Rr] { () }
-         / [Ii] [Ff] [Rr] [Aa] [Mm] [Ee] { () }
-         / [Ll] [Ee] [Gg] [Ee] [Nn] [Dd] { () }
-         / [Oo] [Pp] [Tt] [Ii] [Oo] [Nn] { () }
-         / [Ss] [Ee] [Aa] [Rr] [Cc] [Hh] { () }
-         / [Aa] [Ss] [Ii] [Dd] [Ee] { () }
-         / [Ff] [Rr] [Aa] [Mm] [Ee] { () }
-         / [Pp] [Aa] [Rr] [Aa] [Mm] { () }
-         / [Tt] [Aa] [Bb] [Ll] [Ee] { () }
-         / [Tt] [Bb] [Oo] [Dd] [Yy] { () }
-         / [Tt] [Ff] [Oo] [Oo] [Tt] { () }
-         / [Tt] [Hh] [Ee] [Aa] [Dd] { () }
-         / [Tt] [Ii] [Tt] [Ll] [Ee] { () }
-         / [Tt] [Rr] [Aa] [Cc] [Kk] { () }
-         / [Bb] [Aa] [Ss] [Ee] { () }
-         / [Bb] [Oo] [Dd] [Yy] { () }
-         / [Ff] [Oo] [Rr] [Mm] { () }
-         / [Hh] [Ee] [Aa] [Dd] { () }
-         / [Hh] [Tt] [Mm] [Ll] { () }
-         / [Ll] [Ii] [Nn] [Kk] { () }
-         / [Mm] [Aa] [Ii] [Nn] { () }
-         / [Mm] [Ee] [Nn] [Uu] { () }
-         / [Cc] [Oo] [Ll] { () }
-         / [Dd] [Ii] [Rr] { () }
-         / [Dd] [Ii] [Vv] { () }
-         / [Nn] [Aa] [Vv] { () }
-         / [Dd] [Dd] { () }
-         / [Dd] [Ll] { () }
-         / [Dd] [Tt] { () }
-         / [Hh] '1' { () }
-         / [Hh] '2' { () }
-         / [Hh] '3' { () }
-         / [Hh] '4' { () }
-         / [Hh] '5' { () }
-         / [Hh] '6' { () }
-         / [Hh] [Rr] { () }
-         / [Ll] [Ii] { () }
-         / [Oo] [Ll] { () }
-         / [Tt] [Dd] { () }
-         / [Tt] [Hh] { () }
-         / [Tt] [Rr] { () }
-         / [Uu] [Ll] { () }
-         / [Pp] { () }
+BlockTag <- [Bb] [Ll] [Oo] [Cc] [Kk] [Qq] [Uu] [Oo] [Tt] [Ee]
+         / [Ff] [Ii] [Gg] [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn]
+         / [Bb] [Aa] [Ss] [Ee] [Ff] [Oo] [Nn] [Tt]
+         / [Cc] [Oo] [Ll] [Gg] [Rr] [Oo] [Uu] [Pp]
+         / [Ff] [Ii] [Ee] [Ll] [Dd] [Ss] [Ee] [Tt]
+         / [Ff] [Rr] [Aa] [Mm] [Ee] [Ss] [Ee] [Tt]
+         / [Mm] [Ee] [Nn] [Uu] [Ii] [Tt] [Ee] [Mm]
+         / [Nn] [Oo] [Ff] [Rr] [Aa] [Mm] [Ee] [Ss]
+         / [Oo] [Pp] [Tt] [Gg] [Rr] [Oo] [Uu] [Pp]
+         / [Aa] [Dd] [Dd] [Rr] [Ee] [Ss] [Ss]
+         / [Aa] [Rr] [Tt] [Ii] [Cc] [Ll] [Ee]
+         / [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn]
+         / [Dd] [Ee] [Tt] [Aa] [Ii] [Ll] [Ss]
+         / [Ss] [Ee] [Cc] [Tt] [Ii] [Oo] [Nn]
+         / [Ss] [Uu] [Mm] [Mm] [Aa] [Rr] [Yy]
+         / [Cc] [Ee] [Nn] [Tt] [Ee] [Rr]
+         / [Dd] [Ii] [Aa] [Ll] [Oo] [Gg]
+         / [Ff] [Ii] [Gg] [Uu] [Rr] [Ee]
+         / [Ff] [Oo] [Oo] [Tt] [Ee] [Rr]
+         / [Hh] [Ee] [Aa] [Dd] [Ee] [Rr]
+         / [Ii] [Ff] [Rr] [Aa] [Mm] [Ee]
+         / [Ll] [Ee] [Gg] [Ee] [Nn] [Dd]
+         / [Oo] [Pp] [Tt] [Ii] [Oo] [Nn]
+         / [Ss] [Ee] [Aa] [Rr] [Cc] [Hh]
+         / [Aa] [Ss] [Ii] [Dd] [Ee]
+         / [Ff] [Rr] [Aa] [Mm] [Ee]
+         / [Pp] [Aa] [Rr] [Aa] [Mm]
+         / [Tt] [Aa] [Bb] [Ll] [Ee]
+         / [Tt] [Bb] [Oo] [Dd] [Yy]
+         / [Tt] [Ff] [Oo] [Oo] [Tt]
+         / [Tt] [Hh] [Ee] [Aa] [Dd]
+         / [Tt] [Ii] [Tt] [Ll] [Ee]
+         / [Tt] [Rr] [Aa] [Cc] [Kk]
+         / [Bb] [Aa] [Ss] [Ee]
+         / [Bb] [Oo] [Dd] [Yy]
+         / [Ff] [Oo] [Rr] [Mm]
+         / [Hh] [Ee] [Aa] [Dd]
+         / [Hh] [Tt] [Mm] [Ll]
+         / [Ll] [Ii] [Nn] [Kk]
+         / [Mm] [Aa] [Ii] [Nn]
+         / [Mm] [Ee] [Nn] [Uu]
+         / [Cc] [Oo] [Ll]
+         / [Dd] [Ii] [Rr]
+         / [Dd] [Ii] [Vv]
+         / [Nn] [Aa] [Vv]
+         / [Dd] [Dd]
+         / [Dd] [Ll]
+         / [Dd] [Tt]
+         / [Hh] '1'
+         / [Hh] '2'
+         / [Hh] '3'
+         / [Hh] '4'
+         / [Hh] '5'
+         / [Hh] '6'
+         / [Hh] [Rr]
+         / [Ll] [Ii]
+         / [Oo] [Ll]
+         / [Tt] [Dd]
+         / [Tt] [Hh]
+         / [Tt] [Rr]
+         / [Uu] [Ll]
+         / [Pp]
 
 End1 :: ()
-End1 <- '</' [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] '>' { () }
-     / '</' [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] '>' { () }
-     / '</' [Ss] [Tt] [Yy] [Ll] [Ee] '>' { () }
-     / '</' [Pp] [Rr] [Ee] '>' { () }
+End1 <- '</' [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] '>'
+     / '</' [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] '>'
+     / '</' [Ss] [Tt] [Yy] [Ll] [Ee] '>'
+     / '</' [Pp] [Rr] [Ee] '>'
 
 Until1 :: [Text]
 Until1 <- l:$((!End1 !Newline .)* End1 (!Newline .)*) EOL { [l] }
@@ -250,21 +250,21 @@ UntilBlankRest <- UntilBlank
                / { [] }
 
 OpenTag :: ()
-OpenTag <- '<' TagName Attr* [ \t]* '/'? '>' { () }
+OpenTag <- '<' TagName Attr* [ \t]* '/'? '>'
 
 CloseTag :: ()
-CloseTag <- '</' TagName [ \t]* '>' { () }
+CloseTag <- '</' TagName [ \t]* '>'
 
 TagName :: ()
-TagName <- [A-Za-z] [A-Za-z0-9\-]* { () }
+TagName <- [A-Za-z] [A-Za-z0-9\-]*
 
 Attr :: ()
-Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue? { () }
+Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue?
 
 AttrValue :: ()
-AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+ { () }
-          / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\'' { () }
-          / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"' { () }
+AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+
+          / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\''
+          / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"'
 
 # 入れ子にできない引用とリスト（近似）
 Quote :: Block
@@ -285,14 +285,14 @@ RefDef :: Block
 RefDef <- Sp3 '[' l:$LabelBody ']' ':' [ \t]* Newline? [ \t]* d:Dest t:DefTitle { RefDef l d t }
 
 LabelBody :: ()
-LabelBody <- ('\\' . / ![\[\]] .)+ { () }
+LabelBody <- ('\\' . / ![\[\]] .)+
 
 Dest :: Text
 Dest <- '<' d:$('\\' . / ![<>\n\r] .)* '>' { d }
      / !'<' d:$DestRaw { d }
 
 DestRaw :: ()
-DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+ { () }
+DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+
 
 DefTitle :: Maybe Text
 DefTitle <- ([ \t]+ / [ \t]* Newline [ \t]*) t:Title [ \t]* EOL { Just t }
@@ -319,13 +319,13 @@ SetextLine <- Sp3 '='+ [ \t]* EOL { 1 }
            / Sp3 '-'+ [ \t]* EOL { 2 }
 
 Interrupt :: ()
-Interrupt <- &ThematicBreak { () }
-          / &AtxHeading { () }
-          / Sp3 ('```' / '~~~') { () }
-          / Sp3 '>' { () }
-          / Sp3 [\-+*] [ \t]+ !EOL { () }
-          / Sp3 '1' [.)] [ \t]+ !EOL { () }
-          / Sp3 '<' Type1Name { () }
-          / Sp3 '<!' { () }
-          / Sp3 '<?' { () }
-          / Sp3 '<' '/'? BlockTag ([ \t] / '>' / '/>' / &EOL) { () }
+Interrupt <- &ThematicBreak
+          / &AtxHeading
+          / Sp3 ('```' / '~~~')
+          / Sp3 '>'
+          / Sp3 [\-+*] [ \t]+ !EOL
+          / Sp3 '1' [.)] [ \t]+ !EOL
+          / Sp3 '<' Type1Name
+          / Sp3 '<!'
+          / Sp3 '<?'
+          / Sp3 '<' '/'? BlockTag ([ \t] / '>' / '/>' / &EOL)

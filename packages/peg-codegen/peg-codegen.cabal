@@ -21,6 +21,7 @@ tested-with:        GHC == 9.10.3
 extra-doc-files:    CHANGELOG.md
 extra-source-files:
   test/fixtures/*.hpeg
+  test/explicit/*.txt
   test/golden/*.hs.golden
   test/golden/exports/*.golden
   test/derived/*.hpeg
@@ -82,6 +83,14 @@ test-suite peg-codegen-test
     Fixture.TemplatesSyntax
     Fixture.Units
     Fixture.UnitsSyntax
+    Fixture.UnitActions
+    Fixture.UnitActionsExplicit
+    Fixture.UnitActionsSyntax
+    Fixture.UnitActionsExplicitSyntax
+    Fixture.UnitRepeats
+    Fixture.UnitRepeatsExplicit
+    Fixture.UnitRepeatsSyntax
+    Fixture.UnitRepeatsExplicitSyntax
   build-depends:
     , base
     , bytestring

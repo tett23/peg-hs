@@ -138,31 +138,25 @@ peg'rule'Exactly :: (
 peg'rule'Exactly w =
   PegRt.memoArg peg'memo'Exactly "Exactly" w
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.predicate (\_col -> 
+      [ do { PegRt.predicate (\_col -> 
 {-# LINE 20 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 14 #-} _col == w 
-{-# LINE 146 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 145 "test/generated/Fixture/Indent.hs" #-}
     )
           ; PegRt.notP (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 20 "test/fixtures/Indent.hpeg" #-}
- {-# COLUMN 35 #-} () 
-{-# LINE 153 "test/generated/Fixture/Indent.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       , do { PegRt.predicate (\_col -> 
 {-# LINE 21 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 13 #-} _col < w 
-{-# LINE 159 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 153 "test/generated/Fixture/Indent.hs" #-}
     )
           ; PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"
-          ; peg'v0 <- PegRt.withCol (\_col -> peg'rule'Exactly (
+          ; _ <- PegRt.withCol (\_col -> peg'rule'Exactly (
 {-# LINE 21 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 39 #-}w
-{-# LINE 165 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 159 "test/generated/Fixture/Indent.hs" #-}
     ))
-          ; PegPrelude.pure peg'v0
+          ; PegPrelude.pure ()
           }
       ])

@@ -168,8 +168,8 @@ peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
     (PegRt.choice
-      [ do { peg'v0 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v0
+      [ do { _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       ])
 
@@ -181,21 +181,15 @@ peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.skipMany1 (PegRt.lit " " "' '")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 30 "test/fixtures/Units.hpeg" #-}
- {-# COLUMN 13 #-} () 
-{-# LINE 191 "test/generated/Fixture/Units.hs" #-}
-    )
+      [ do { PegRt.skipMany1 (PegRt.lit " " "' '")
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'N :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 32 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 6 #-}Int
-{-# LINE 199 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 193 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'N =
   PegRt.memo peg'memo'N "N"
@@ -206,7 +200,7 @@ peg'rule'N =
           ; PegPrelude.pure (
 {-# LINE 33 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 16 #-} fromEnum (T.head d) - 48 
-{-# LINE 210 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 204 "test/generated/Fixture/Units.hs" #-}
     )
           }
       ])

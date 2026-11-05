@@ -28,7 +28,7 @@ Spaces :: ()
 Spaces <- Sp
 
 Sp :: ()
-Sp <- ' '+ { () }
+Sp <- ' '+
 
 N :: Int
 N <- d:$[0-9] { fromEnum (T.head d) - 48 }
