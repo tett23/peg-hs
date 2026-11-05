@@ -47,8 +47,10 @@ Since v0.1.0-rc2:
 - `peg-hs lint --verbose` also writes infos, with `info:` in place of
   `warning:`, for what can be simpler, such as a `{ () }` that can be
   omitted. Without `--verbose`, infos are not shown; they never make
-  `lint` fail
-  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
+  `lint` fail. `omittable-identity-action` notes an action that only
+  returns a binding, as `e:Expr { e }`
+  ([ADR 0065](https://github.com/tett23/peg-hs/blob/main/docs/adr/0065-omittable-identity-actions.md),
+  [ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 
 ### Changed

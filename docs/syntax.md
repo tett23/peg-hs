@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -297,7 +297,7 @@ import Data.Text (Text)
 
 # ' で囲まれた、改行を含まない文字列
 Quoted :: Text
-Quoted <- '\'' s:$(!['\n] .)* '\'' { s }
+Quoted <- '\'' $(!['\n] .)* '\''
 ```
 
 よくある誤り：
@@ -399,7 +399,7 @@ Names :: [Text]
 Names <- n:Name ns:(',' Sp Name)* { n : ns }   # グループの値は Name の値
 
 Name :: Text
-Name <- n:$[a-z]+ Sp { n }
+Name <- $[a-z]+ Sp
 
 Sp :: ()
 Sp <- [ \t]*
@@ -425,13 +425,13 @@ import Data.Text (Text, unpack)
 
 # Num は Int、Name は Text だが、キャプチャの中なのでグループの値は使われない
 Word :: Text
-Word <- w:$(Num / Name) { w }
+Word <- $(Num / Name)
 
 Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
 Name :: Text
-Name <- n:$[a-z]+ { n }
+Name <- $[a-z]+
 ```
 
 逆に、グループの値が使われる位置（束縛した要素や、アクションを省略した選択肢の値になる要素）では、どの選択肢の値も同じ型でなければならない。
@@ -525,6 +525,17 @@ Signed :: Int
 Signed <- '-' n:Num { negate n }
         / Num
 ```
+
+同じ理由で、束縛した値をそのまま返すアクションは、束縛ごと省ける。
+`Paren <- '(' Sp e:Expr ')' Sp { e }` は、`()` の値を数えないので、値を持つ要素は `Expr` だけである。
+束縛とアクションを消した `Paren <- '(' Sp Expr ')' Sp` も、`Expr` の値を返す。
+`peg-hs lint --verbose` は、このように消せる束縛とアクションに `omittable-identity-action` の info を出す（[ADR 0065](adr/0065-omittable-identity-actions.md)、[lint](#lint)）。
+ただし、束縛を消すと値が変わるか、束縛がほかの役目を持つ場合には出さない。
+
+- アクションのコードが、空白を除いて束縛の名前だけでない（`{ negate n }`、`{ (n) }`）
+- 名前を同じ選択肢の意味述語や規則の引数でも使っている（`n:Num &{ n > 0 } { n }`）
+- ほかにも束縛した要素がある。または、束縛を消すと、値を持つ要素として数えるものが二つ以上になる
+- 文法が `%syntax` を持つ。束縛は構文木の取り出し関数の名前にもなるので、消すと生成モジュールの関数が減る
 
 値を持つ要素が 0 個、または 2 個以上の選択肢でアクションを省略すると、誤りになる。
 数え方は、[`()` の値は数えない](#-の値は数えない)で述べたとおりである。
@@ -628,7 +639,7 @@ Stat :: Stat
 Stat <- K<'print'> xs:List<Name, ','> { SPrint xs }
 
 Name :: Text
-Name <- n:$[a-z]+ Sp { n }
+Name <- $[a-z]+ Sp
 
 Sp :: ()
 Sp <- [ \t]*
@@ -789,7 +800,7 @@ Term <- l:Term '*' r:Factor { l * r }
       / Factor
 
 Factor :: Int
-Factor <- '(' e:Expr ')' { e }
+Factor <- '(' Expr ')'
         / Num
 
 Num :: Int
@@ -906,7 +917,7 @@ Link <- '[' l:$[a-z]+ ']' &{ member l _env } { l }
 %module Example.Column
 
 Item :: Int
-Item <- ' '* c:Col(_col) 'a' { c }
+Item <- ' '* Col(_col) 'a'
 
 # 何も読まず、受け取った桁を値として返す
 Col(c :: Int) :: Int
@@ -1106,7 +1117,7 @@ data Inline = Command Text | Words Text
 }%
 
 Line :: [Inline]
-Line <- is:Inline* { is }
+Line <- Inline*
 
 Inline :: Inline
 Inline <- '[' name:$[a-z]+ (']' ^close) { Command name }
@@ -1291,11 +1302,12 @@ Sp.hpeg:4:12: info: the action can be omitted: the rule has type () and the alte
 言語サーバーは、info を重大度 Hint の診断として報告する。
 多くのエディタは、Hint に下線を引かずに淡く示す。
 
-info の規則は次の一つである。
+info の規則は次の二つである。
 
 | 規則 | 知らせる書き方 | 節 |
 |---|---|---|
 | `omittable-unit-action` | 型注釈が `()` の規則の、省略できる `{ () }`。位置はアクションの `{` を指す。雛形の中のアクションは、すべての展開で省略できるときに限る | [アクションの省略](#アクションの省略) |
+| `omittable-identity-action` | 束縛した値をそのまま返す、束縛ごと省けるアクション（`e:Expr { e }`）。位置はアクションの `{` を指す。`%syntax` の文法には出さない。雛形の中のアクションは、すべての展開で省けるときに限る | [アクションの省略](#アクションの省略) |
 
 警告に従って直しても、文法が受理する入力と、誤りの位置は変わらない。
 変わりうるのは、リテラルの接頭辞の警告に従って選択肢を消したときの、誤りの文言の「期待したもの」だけである。
