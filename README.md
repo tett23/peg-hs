@@ -296,13 +296,64 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim (unchecked)
 
+Put `peg-hs` on `PATH` first ([Installation](#installation)); the language server and the linter run it.
+Then register the file type:
+
+```lua
+vim.filetype.add({ extension = { hpeg = 'hpeg' } })
+```
+
+#### Language server
+
+The language server is set up with `vim.lsp.config` of Neovim 0.11 or later; no plugin is needed.
+
+```lua
+vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
+vim.lsp.enable('peg_hs')
+```
+
+As a grammar is edited, it reports the errors of `gen` as errors, the warnings of `lint` as warnings, and the infos of `lint` as hints, which Neovim shows faintly.
+It also formats with `fmt`: `vim.lsp.buf.format()`, or on every save:
+
+```lua
+vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
+```
+
+#### Lint without the language server
+
+To run `peg-hs lint` without the language server, register it with [nvim-lint](https://github.com/mfussenegger/nvim-lint).
+`peg-hs lint` reads the file from disk, so it runs on opening and saving the file, and on leaving insert mode.
+It is given `--verbose` so that the infos are shown too; leave it out to see only errors and warnings.
+
+```lua
+local lint = require('lint')
+lint.linters.peg_hs = {
+  cmd = 'peg-hs',
+  args = { 'lint', '--verbose' },
+  stdin = false,
+  append_fname = true,
+  stream = 'stderr',
+  ignore_exitcode = true,
+  parser = require('lint.parser').from_errorformat(
+    '%f:%l:%c: %trror: %m,%f:%l:%c: %tarning: %m,%f:%l:%c: %tnfo: %m',
+    { source = 'peg-hs' }
+  ),
+}
+lint.linters_by_ft.hpeg = { 'peg_hs' }
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() lint.try_lint() end })
+vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave' }, { pattern = '*.hpeg', callback = function() lint.try_lint() end })
+```
+
+Use either the language server or nvim-lint: both report the same warnings, so with both they appear twice.
+
+#### Highlighting
+
 For highlighting, register the tree-sitter grammar `editors/tree-sitter-hpeg` with nvim-treesitter (the main branch).
 A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall hpeg` in Neovim.
 Building the grammar needs the tree-sitter CLI.
 nvim-treesitter does not turn highlighting on by itself, so a `FileType` autocommand calls `vim.treesitter.start()`.
 
 ```lua
-vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
   require('nvim-treesitter.parsers').hpeg = {
     install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
@@ -319,13 +370,6 @@ require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
   install_info = { url = '/path/to/peg-hs/editors/tree-sitter-hpeg', files = { 'src/parser.c', 'src/scanner.c' } },
   filetype = 'hpeg',
 }
-```
-
-The language server is set up with `vim.lsp.config` of Neovim 0.11 or later.
-
-```lua
-vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
-vim.lsp.enable('peg_hs')
 ```
 
 ### Helix (unchecked)

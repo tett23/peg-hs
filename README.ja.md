@@ -299,13 +299,64 @@ ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 
 ### Neovim（未確認）
 
+先に `peg-hs` を `PATH` に置く（[導入](#導入)）。言語サーバーと lint は、これを実行する。
+次に、ファイルの種類を登録する。
+
+```lua
+vim.filetype.add({ extension = { hpeg = 'hpeg' } })
+```
+
+#### 言語サーバー
+
+言語サーバーは、Neovim 0.11 以降の `vim.lsp.config` で設定する。プラグインは要らない。
+
+```lua
+vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
+vim.lsp.enable('peg_hs')
+```
+
+編集のたびに、`gen` の誤りを誤りとして、`lint` の警告を警告として、`lint` の info をヒントとして報告する。ヒントは Neovim が淡く示す。
+`fmt` での整形もできる。`vim.lsp.buf.format()` を呼ぶか、保存のたびに整形するなら次のようにする。
+
+```lua
+vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
+```
+
+#### 言語サーバーを使わない lint
+
+言語サーバーを使わずに `peg-hs lint` を動かすには、[nvim-lint](https://github.com/mfussenegger/nvim-lint) に登録する。
+`peg-hs lint` はディスクのファイルを読むので、ファイルを開いたとき、保存したとき、挿入モードを抜けたときに動かす。
+info も示すために `--verbose` を付けている。誤りと警告だけでよければ外す。
+
+```lua
+local lint = require('lint')
+lint.linters.peg_hs = {
+  cmd = 'peg-hs',
+  args = { 'lint', '--verbose' },
+  stdin = false,
+  append_fname = true,
+  stream = 'stderr',
+  ignore_exitcode = true,
+  parser = require('lint.parser').from_errorformat(
+    '%f:%l:%c: %trror: %m,%f:%l:%c: %tarning: %m,%f:%l:%c: %tnfo: %m',
+    { source = 'peg-hs' }
+  ),
+}
+lint.linters_by_ft.hpeg = { 'peg_hs' }
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() lint.try_lint() end })
+vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave' }, { pattern = '*.hpeg', callback = function() lint.try_lint() end })
+```
+
+言語サーバーと nvim-lint は、どちらか一方を使う。両方を使うと、同じ警告が二重に出る。
+
+#### ハイライト
+
 ハイライトには、`editors/tree-sitter-hpeg` の tree-sitter の文法を nvim-treesitter（main ブランチ）に登録する。
 `User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall hpeg` を実行する。
 文法のビルドには tree-sitter の CLI が要る。
 nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
 
 ```lua
-vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
   require('nvim-treesitter.parsers').hpeg = {
     install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
@@ -322,13 +373,6 @@ require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
   install_info = { url = '/path/to/peg-hs/editors/tree-sitter-hpeg', files = { 'src/parser.c', 'src/scanner.c' } },
   filetype = 'hpeg',
 }
-```
-
-言語サーバーは、Neovim 0.11 以降の `vim.lsp.config` で設定する。
-
-```lua
-vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
-vim.lsp.enable('peg_hs')
 ```
 
 ### Helix（未確認）
