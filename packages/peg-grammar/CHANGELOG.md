@@ -83,6 +83,11 @@ Since v0.1.0-rc2:
   its value is `()`. `discardingRules` and `discardsValues` of
   `Peg.Grammar.Check` tell which rules and alternatives these are
   ([ADR 0068](https://github.com/tett23/peg-hs/blob/main/docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
+- The highlight kinds `HDirectiveRule`, `HDirectiveLabel` and
+  `HModuleName` of `Peg.Grammar.Highlight` split the arguments of
+  directives into the rule names, the labels and the module they name;
+  the other arguments stay `HDirectiveArgument`
+  ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).
 
 ### Changed
 
