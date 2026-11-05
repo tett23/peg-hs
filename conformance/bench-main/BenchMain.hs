@@ -5,6 +5,7 @@ module Main (main) where
 import qualified Conformance.Bench.JsonCounted as JsonCounted
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
+import qualified Conformance.Bench.JsonUntyped as JsonUntyped
 import qualified Conformance.Bench.NestedLR8 as NestedLR8
 import qualified Conformance.CommonMark as CommonMark
 import qualified Conformance.Lua.Parser as Lua
@@ -104,6 +105,7 @@ benchmarks = do
         , bench ("parse " <> show (T.length json) <> " characters with %nomemo") (whnf (either (const 0) (size . convertNomemo) . JsonNomemo.parse) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, typed entry") (whnf (either (const 0) (size . convertSyntax) . JsonSyntax.parse) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax) json)
+        , bench ("parse " <> show (T.length json) <> " characters with %syntax, untyped, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonUntyped.parseSyntax) json)
         ]
     , bgroup
         "commonmark"
@@ -146,7 +148,8 @@ memoReport = withArgs [] $ do
         <> ", memo entries at the end " <> show (statsMemoEntries pst)
 
 -- The peak live memory of one parse. The peak is per process, so each
--- variant runs in its own process: --memory memoised|nomemo RECORDS.
+-- variant runs in its own process: --memory
+-- memoised|nomemo|syntax|syntax-tree|untyped-tree RECORDS.
 memory :: String -> Int -> IO ()
 memory "commonmark" _ = withArgs [] $ do
   input <- TIO.readFile specPath
@@ -178,6 +181,8 @@ memory variant n = withArgs [] $ do
         "nomemo" -> either (const 0) (size . convertNomemo) . JsonNomemo.parse
         "syntax" -> either (const 0) (size . convertSyntax) . JsonSyntax.parse
         "syntax-tree" -> either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax
+        -- The grammar without type annotations and actions (ADR 0068).
+        "untyped-tree" -> either (const 0) (snd . syntaxRange) . JsonUntyped.parseSyntax
         _ -> either (const 0) size . Json.parse
   _ <- evaluate (T.length input)
   performMajorGC
