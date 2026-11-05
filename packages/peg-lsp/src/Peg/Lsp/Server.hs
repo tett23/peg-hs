@@ -11,8 +11,7 @@
 -- Start from 'initialState' and pass each message to 'handleFrame' (for
 -- the output of 'Peg.Lsp.Rpc.decodeFrames') or 'handleMessage' (for a
 -- parsed message); send the messages of the t'Step' and stop when
--- 'stepExit' is set. "Peg.Lsp" does this over handles; a test can do it
--- with values:
+-- 'stepExit' is set. A test can do it with values:
 --
 -- @
 -- let open = object
@@ -24,6 +23,13 @@
 -- in stepOutput s2  -- [the textDocument\/publishDiagnostics notification]
 -- @
 --
+-- A server reading a stream can coalesce the diagnostics of changes that
+-- arrive faster than it checks them (ADR 0070): 'receiveFrame' and
+-- 'receiveMessage' handle a message without computing the diagnostics of
+-- a change, and 'publishPending' sends those of the latest version of each
+-- changed document once no more input is waiting. "Peg.Lsp" does this over
+-- handles. Requests are answered for the latest version either way.
+--
 -- 'diagnose' is the analysis behind the diagnostics, usable on its own.
 module Peg.Lsp.Server
   ( State
@@ -31,6 +37,9 @@ module Peg.Lsp.Server
   , Step (..)
   , handleFrame
   , handleMessage
+  , receiveFrame
+  , receiveMessage
+  , publishPending
   , Severity (..)
   , diagnose
   , tokenTypes
@@ -42,6 +51,7 @@ import qualified Data.ByteString as BS
 import Data.Char (isSpace, ord)
 import Data.List (find, nub, sortOn)
 import qualified Data.Map.Strict as M
+import qualified Data.Set as Set
 import Data.Maybe (fromMaybe, isJust, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -68,6 +78,9 @@ data Document = Document
   , docLines :: [Text]
   , docOutline :: Outline
   -- ^ Computed when first used, and kept until the document changes.
+  , docChecks :: [(Severity, Diagnostic, Maybe Text)]
+  -- ^ The diagnostics ('diagnose'), computed when first used, sharing the
+  -- outline.
   , docLabels :: [Insertion]
   -- ^ The labels that can be inserted (ADR 0054), computed when first used.
   , docRecovers :: [RecoverProposal]
@@ -79,6 +92,8 @@ data Document = Document
 -- been received. Opaque; start from 'initialState'.
 data State = State
   { stDocuments :: M.Map Text Document
+  , stPending :: Set.Set Text
+  -- ^ The documents changed since their diagnostics were last sent.
   , stEncoding :: Encoding
   , stInitialized :: Bool
   , stShutdown :: Bool
@@ -87,7 +102,7 @@ data State = State
 -- | The state before @initialize@: no document is open. Requests other
 -- than @initialize@ are answered with an error until it arrives.
 initialState :: State
-initialState = State M.empty Utf16 False False
+initialState = State M.empty Set.empty Utf16 False False
 
 -- | The result of handling a message: the new state, the messages to send,
 -- and the exit status when the server must stop.
@@ -101,16 +116,38 @@ data Step = Step
 -- 'Peg.Lsp.Rpc.decodeFrames'). A framing error or a body that is not JSON
 -- is answered with a parse error (-32700).
 handleFrame :: State -> Either Text Text -> Step
-handleFrame st = \case
-  Left err -> Step st [errorResponse Null (-32700) err] Nothing
-  Right body -> case parseJson body of
-    Nothing -> Step st [errorResponse Null (-32700) "the message is not JSON"] Nothing
-    Just v -> handleMessage st v
+handleFrame st = withPublish . receiveFrame st
 
 -- | Handle a parsed message: a request (with an @id@), which gets a
 -- response, or a notification. A message without a method is ignored.
+-- The diagnostics of a document that the message opens or changes are
+-- sent with it.
 handleMessage :: State -> Value -> Step
-handleMessage st msg =
+handleMessage st = withPublish . receiveMessage st
+
+-- Send the pending diagnostics after the messages of a step, unless the
+-- server stops.
+withPublish :: Step -> Step
+withPublish step = case stepExit step of
+  Just _ -> step
+  Nothing ->
+    let p = publishPending (stepState step)
+     in p {stepOutput = stepOutput step ++ stepOutput p}
+
+-- | 'handleFrame' without the diagnostics of the document that the message
+-- opens or changes: they wait for 'publishPending' (ADR 0070).
+receiveFrame :: State -> Either Text Text -> Step
+receiveFrame st = \case
+  Left err -> Step st [errorResponse Null (-32700) err] Nothing
+  Right body -> case parseJson body of
+    Nothing -> Step st [errorResponse Null (-32700) "the message is not JSON"] Nothing
+    Just v -> receiveMessage st v
+
+-- | 'handleMessage' without the diagnostics of the document that the
+-- message opens or changes: they wait for 'publishPending' (ADR 0070).
+-- Requests are answered for the latest version of the document.
+receiveMessage :: State -> Value -> Step
+receiveMessage st msg =
   case (member "method" msg >>= asText, member "id" msg) of
     (Nothing, _) -> Step st [] Nothing
     (Just m, Just i) -> request st m i params
@@ -158,19 +195,32 @@ notification st method params = case method of
         open uri text
   "textDocument/didClose"
     | Just uri <- path ["textDocument", "uri"] params >>= asText ->
-        Step st {stDocuments = M.delete uri (stDocuments st)} [publish uri []] Nothing
+        Step st {stDocuments = M.delete uri (stDocuments st), stPending = Set.delete uri (stPending st)} [publish uri []] Nothing
   _ -> Step st [] Nothing
   where
     open uri text =
-      let d = newDocument text
-       in Step st {stDocuments = M.insert uri d (stDocuments st)} [publish uri (map (diagnosticValue (stEncoding st) d) (diagnose text))] Nothing
+      Step st {stDocuments = M.insert uri (newDocument text) (stDocuments st), stPending = Set.insert uri (stPending st)} [] Nothing
+
+-- | Send the diagnostics of the latest version of each document opened or
+-- changed since they were last sent, in the order of their URIs.
+publishPending :: State -> Step
+publishPending st =
+  Step
+    st {stPending = Set.empty}
+    [ publish uri (map (diagnosticValue (stEncoding st) d) (docChecks d))
+    | uri <- Set.toAscList (stPending st)
+    , Just d <- [M.lookup uri (stDocuments st)]
+    ]
+    Nothing
 
 newDocument :: Text -> Document
 newDocument text =
-  Document
+  let o = outline text
+   in Document
     { docText = text
     , docLines = T.splitOn "\n" text
-    , docOutline = outline text
+    , docOutline = o
+    , docChecks = diagnoseWith o text
     , docLabels = either (const []) fst (insertLabels [] text)
     , docRecovers = either (const []) id (recoverProposals text)
     }
@@ -231,10 +281,15 @@ data Severity
 -- A grammar with a syntax error has only its syntax errors: the first is the one of
 -- @peg-hs gen@, followed by those that recovery finds on later lines.
 diagnose :: Text -> [(Severity, Diagnostic, Maybe Text)]
-diagnose src = case parseTops src of
+diagnose src = diagnoseWith (outline src) src
+
+-- 'diagnose' with the outline of the text, which only a grammar with a
+-- syntax error needs.
+diagnoseWith :: Outline -> Text -> [(Severity, Diagnostic, Maybe Text)]
+diagnoseWith o src = case parseTops src of
   Left ds@(d : _) ->
     map (\x -> (Error, x, Nothing)) ds
-      ++ [(Error, e, Nothing) | e <- outlineSyntaxErrors (outline src), locLine (diagLoc e) > locLine (diagLoc d)]
+      ++ [(Error, e, Nothing) | e <- outlineSyntaxErrors o, locLine (diagLoc e) > locLine (diagLoc d)]
   Left [] -> []
   Right _ -> case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (Right . (,) g0) (expandTemplates g0 >>= \g -> g <$ check g) of
     Left ds -> map (\x -> (Error, x, Nothing)) ds
