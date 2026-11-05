@@ -2,12 +2,14 @@ usage: peg-hs lint [options] [FILE|DIR...]
 
 Check grammars against the fixed rules of peg-hs, and fail if there is a warning.
 The rules cannot be chosen or silenced; every warning goes away by changing the grammar.
-Notices, such as an action { () } that can be omitted, are reported but do not fail.
+Infos, such as an action { () } that can be omitted, are shown only with --verbose,
+and do not fail.
 A directory stands for the .hpeg files under it. Without arguments, lint every .hpeg
 file under the current directory. Directories whose name starts with . and
 dist-newstyle are skipped. Files are read as UTF-8.
 
 options:
+  --verbose                 also show the infos: what can be simpler, but is not wrong
   -h, --help                show this help
 
 examples:
@@ -15,3 +17,5 @@ examples:
       lint every grammar under the current directory
   peg-hs lint Expr.hpeg
       lint Expr.hpeg
+  peg-hs lint --verbose Expr.hpeg
+      lint Expr.hpeg, and show the infos too

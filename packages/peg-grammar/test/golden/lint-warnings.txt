@@ -27,26 +27,26 @@ a binding without an action
 a binding in a group
   G.hpeg:3:7: warning: the binding x is not used [unused-binding]; remove x:
 literals only
-  G.hpeg:3:11: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:11: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a literal and a lookahead
-  G.hpeg:3:18: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:18: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 two unit elements
-  G.hpeg:3:12: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:12: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 bound unit elements read by a predicate
-  G.hpeg:3:28: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:28: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a single unit element
-  G.hpeg:3:9: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:9: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 spaces in the code ()
-  G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 spaces in the type ()
-  G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a grammar with a syntax tree
-  G.hpeg:4:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:4:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 calls of a template of type ()
-  G.hpeg:3:20: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:20: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a unit repetition (ADR 0064)
-  G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a bound unit repetition (ADR 0064)
-  G.hpeg:3:24: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:3:24: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 the definition of a template whose instances have type ()
-  G.hpeg:5:18: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+  G.hpeg:5:18: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }

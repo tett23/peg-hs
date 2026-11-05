@@ -185,7 +185,7 @@ cliDiagnostic file l
             (_ : _, _ : _, r)
               | Just m <- stripPrefix "error: " r -> [(read line, read col, "error", m)]
               | Just m <- stripPrefix "warning: " r -> [(read line, read col, "warning", m)]
-              | Just m <- stripPrefix "notice: " r -> [(read line, read col, "notice", m)]
+              | Just m <- stripPrefix "info: " r -> [(read line, read col, "info", m)]
             _ -> []
   | otherwise = []
 
@@ -216,9 +216,13 @@ labelledGrammar = replace "'[' v:Num vs:(',' Num)* ']' !." "'[' v:Num ^List_Num 
 linted :: String
 linted = "%module M\nS :: Int\nS <- 'a'? { 1 } / 'b' { 2 }\n"
 
--- A grammar with one notice of the linter (ADR 0063).
-noticed :: String
-noticed = "%module M\nS :: ()\nS <- 'a' { () }\n"
+-- A grammar with two infos of the linter (ADR 0063, ADR 0067).
+informed :: String
+informed = "%module M\nS :: ()\nS <- 'a' { () }\n  / 'b' { () }\n"
+
+-- A grammar with a warning between two infos of the linter (ADR 0067).
+warnedAndInformed :: String
+warnedAndInformed = "%module M\nS :: ()\nS <- 'a'? { () } / 'b' { () }\n"
 
 -- A fresh directory with the given files.
 treeWith :: String -> [(FilePath, String)] -> IO FilePath
@@ -463,15 +467,29 @@ main = do
               dir <- treeWith "lint-ok" [("G.hpeg", "%module M\n\nS :: ()\nS <- 'a'\n  / 'b'\n")]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out, err) @?= (ExitSuccess, "", "")
-          , testCase "a grammar with only notices succeeds, with the notices on stderr (ADR 0063)" $ do
-              dir <- treeWith "lint-notice" [("G.hpeg", noticed)]
+          , testCase "without --verbose, a grammar with only infos succeeds and writes nothing (ADR 0067)" $ do
+              dir <- treeWith "lint-info" [("G.hpeg", informed)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
-              (code, out, err) @?= (ExitSuccess, "", "G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n")
-          , testCase "a grammar with a warning and a notice fails with 1 (ADR 0063)" $ do
-              dir <- treeWith "lint-warning-notice" [("G.hpeg", "%module M\nS :: ()\nS <- 'a'? { () } / 'b' { () }\n")]
+              (code, out, err) @?= (ExitSuccess, "", "")
+          , testCase "with --verbose, the infos are on stderr in source order, and it succeeds (ADR 0067)" $ do
+              dir <- treeWith "lint-info-verbose" [("G.hpeg", informed)]
+              (code, out, err) <- pegHsIn dir ["lint", "--verbose", "G.hpeg"]
+              (code, out, err)
+                @?= ( ExitSuccess
+                    , ""
+                    , "G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
+                        <> "G.hpeg:4:9: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
+                    )
+          , testCase "without --verbose, a grammar with a warning and infos writes only the warning, and fails with 1 (ADR 0067)" $ do
+              dir <- treeWith "lint-warning-info" [("G.hpeg", warnedAndInformed)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
               (code, out) @?= (ExitFailure 1, "")
-              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["notice", "warning", "notice"]
+              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["warning"]
+          , testCase "with --verbose, a grammar with a warning and infos writes both, and fails with 1 (ADR 0067)" $ do
+              dir <- treeWith "lint-warning-info-verbose" [("G.hpeg", warnedAndInformed)]
+              (code, out, err) <- pegHsIn dir ["lint", "--verbose", "G.hpeg"]
+              (code, out) @?= (ExitFailure 1, "")
+              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["info", "warning", "info"]
           , testCase "a warning fails with 1, on stderr" $ do
               dir <- treeWith "lint-ng" [("G.hpeg", linted)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]
@@ -573,12 +591,12 @@ main = do
                   let file = dir </> (show k <> "-" <> takeFileName f)
                   TIO.writeFile file m
                   (_, _, genErr) <- pegHs ["gen", file, "-o", dir </> "out.hs"]
-                  (_, _, lintErr) <- pegHs ["lint", file]
+                  (_, _, lintErr) <- pegHs ["lint", "--verbose", file]
                   let cli = nub (sort (concatMap (cliDiagnostic file) (lines genErr ++ lines lintErr)))
                       level = \case
                         Error -> "error"
                         Warning -> "warning"
-                        Information -> "notice"
+                        Hint -> "info"
                       lsp = [(locLine l, locColumn l, level sev, T.unpack msg) | (sev, Diagnostic l msg, _) <- diagnose m]
                       syntaxError = case cli of
                         [(_, _, "error", _)] -> True

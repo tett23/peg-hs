@@ -236,9 +236,10 @@ Either way, directories whose name starts with `.` and `dist-newstyle` are skipp
 `lint` warns of what is a mistake in grammars that pass the static checks ([ADR 0033](docs/adr/0033-grammar-linter.md)):
 alternatives that are never tried or never succeed, alternatives that are the same as an earlier one, labels without effect inside a lookahead, and bindings that are not used.
 The rules are fixed, and no warning can be silenced: every warning goes away by fixing the grammar, and any warning makes `lint` fail.
-Besides warnings, `lint` gives notices, written with `notice:` in place of `warning:`, of what is not a mistake but can be simpler; notices do not make `lint` fail.
-The only notice, `omittable-unit-action`, points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
-The language server reports notices with the severity Information.
+Besides warnings, `lint` gives infos of what is not a mistake but can be simpler.
+Infos are shown only with `--verbose`, written with `info:` in place of `warning:`, and never make `lint` fail ([ADR 0067](docs/adr/0067-lint-info-with-verbose.md)).
+The only info, `omittable-unit-action`, points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
+The language server reports infos with the severity Hint, which most editors show faintly.
 It chooses files as `fmt` does.
 
 ### label

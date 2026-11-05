@@ -60,10 +60,11 @@ Since v0.1.0-rc2:
   ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0064](https://github.com/tett23/peg-hs/blob/main/docs/adr/0064-unit-rules-always-return-unit.md)).
   `omitsUnitAction` in `Peg.Grammar.Check` tells such alternatives.
-- The linter gives notices besides warnings (`LintLevel`, `lintLevel`):
+- The linter gives infos besides warnings (`LintLevel`, `lintLevel`):
   `omittable-unit-action` notes a `{ () }` that can be omitted, and
-  `renderLintWarning` writes a notice with `notice:`
-  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md)).
+  `renderLintWarning` writes an info with `info:`
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
+  [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 
 ### Changed
 

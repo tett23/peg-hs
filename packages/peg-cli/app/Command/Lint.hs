@@ -23,15 +23,19 @@ lintCommand =
     , cmdDescription =
         [ "Check grammars against the fixed rules of peg-hs, and fail if there is a warning."
         , "The rules cannot be chosen or silenced; every warning goes away by changing the grammar."
-        , "Notices, such as an action { () } that can be omitted, are reported but do not fail."
+        , "Infos, such as an action { () } that can be omitted, are shown only with --verbose,"
+        , "and do not fail."
         , "A directory stands for the .hpeg files under it. Without arguments, lint every .hpeg"
         , "file under the current directory. Directories whose name starts with . and"
         , "dist-newstyle are skipped. Files are read as UTF-8."
         ]
-    , cmdOptions = []
+    , cmdOptions =
+        [ Opt "verbose" Nothing Nothing "also show the infos: what can be simpler, but is not wrong"
+        ]
     , cmdExamples =
         [ ("peg-hs lint", "lint every grammar under the current directory")
         , ("peg-hs lint Expr.hpeg", "lint Expr.hpeg")
+        , ("peg-hs lint --verbose Expr.hpeg", "lint Expr.hpeg, and show the infos too")
         ]
     , cmdRun = run
     }
@@ -39,22 +43,23 @@ lintCommand =
 run :: Parsed -> IO ExitCode
 run p = do
   files <- grammarFiles (parsedArguments p)
-  results <- mapM lint files
+  results <- mapM (lint (flag "verbose" p)) files
   pure (if and results then ExitSuccess else ExitFailure 1)
 
--- Lint one file; whether it has neither errors nor warnings. Notices are
--- reported, and do not count (ADR 0063).
-lint :: FilePath -> IO Bool
-lint file =
+-- Lint one file; whether it has neither errors nor warnings. Infos do not
+-- count, and are written only when verbose (ADR 0063, ADR 0067).
+lint :: Bool -> FilePath -> IO Bool
+lint verbose file =
   readUtf8 "" file >>= \case
     Left e -> reportFileError e >> pure False
-    Right src -> lintText file src
+    Right src -> lintText verbose file src
 
-lintText :: FilePath -> Text -> IO Bool
-lintText file src =
+lintText :: Bool -> FilePath -> Text -> IO Bool
+lintText verbose file src =
   case parseGrammar src >>= \g -> either (Left . templateNotes g) (const (Right g)) (expandTemplates g >>= check) of
     Left diags -> reportErrors file diags >> pure False
     Right g -> do
       let ws = lintGrammar g
-      mapM_ (TIO.hPutStrLn stderr . renderLintWarning file) ws
-      pure (all ((== LevelNotice) . lintLevel) ws)
+          shown = if verbose then ws else filter ((/= LevelInfo) . lintLevel) ws
+      mapM_ (TIO.hPutStrLn stderr . renderLintWarning file) shown
+      pure (all ((== LevelInfo) . lintLevel) ws)

@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -57,9 +57,9 @@ Sum.hpeg:3:6: error: undefined rule Num
 - **ラベルの安全性の警告**：`peg-hs gen` が出す。生成は続ける。`--Werror` を付けると、警告があれば失敗する（[ラベルの安全性の検査](#ラベルの安全性の検査)）
 - **lint の警告**：`peg-hs lint` が出す。警告が一つでもあれば終了状態 1 で終わる（[lint](#lint)）
 
-`peg-hs lint` は、警告とは別に notice も出す。
-notice は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
-`warning:` の代わりに `notice:` と書き、終了状態を変えない。
+`peg-hs lint` は、警告とは別に info も出す。
+info は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
+`--verbose` を付けたときだけ、`warning:` の代わりに `info:` と書いて表示し、終了状態は変えない。
 
 以下の各節の「よくある誤り」の表は、書き方と、そのとき peg-hs が出す文言の組である。
 文言はファイル名と位置を除いて示す。
@@ -560,7 +560,7 @@ Spaces <- Sp+             # 要素の値は [()] だが、選択肢の値は ()
 - 型注釈が `()` でない規則は、例外の対象にならない。`type Unit = ()` のような別名も `()` とみなさない
 
 省略できる `{ () }` を書いても誤りではない。
-`peg-hs lint` は、それに `omittable-unit-action` の notice を出す（[lint](#lint)）。
+`peg-hs lint --verbose` は、それに `omittable-unit-action` の info を出す（[lint](#lint)）。
 
 よくある誤り：
 
@@ -1274,18 +1274,24 @@ Op.hpeg:4:7: warning: the alternative never succeeds: the alternative at 3:7 mat
 | `ineffective-label` | 先読みの中で効果を持たないラベル | [構文エラーからの回復](#構文エラーからの回復) |
 | `unused-binding` | アクション、意味述語、規則の引数のどれにも現れない束縛 | [束縛](#束縛) |
 
-lint は、警告とは別に notice を出す。
-notice は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
-出力の形は警告と同じで、`warning:` の代わりに `notice:` と書く。
-notice だけなら、`peg-hs lint` の終了状態は 0 である。
-警告と同じく、notice も選ぶことや止めることはできない。
+lint は、警告とは別に info を出す。
+info は、直せば文法が簡潔になるが、直さなくても誤りではない書き方を知らせる。
+直すかどうかは文法の作者が決めることなので、`peg-hs lint` は既定では info を表示しない（[ADR 0067](adr/0067-lint-info-with-verbose.md)）。
+`--verbose` を付けると、警告と同じ形で、`warning:` の代わりに `info:` と書いて表示する。
+表示の順は、警告と合わせた位置の順である。
+`--verbose` の有無によらず、info は終了状態を変えない。
+警告と同じく、info も選ぶことや止めることはできない。
 
 ```
 $ peg-hs lint Sp.hpeg
-Sp.hpeg:4:12: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+$ peg-hs lint --verbose Sp.hpeg
+Sp.hpeg:4:12: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 ```
 
-notice の規則は次の一つである。
+言語サーバーは、info を重大度 Hint の診断として報告する。
+多くのエディタは、Hint に下線を引かずに淡く示す。
+
+info の規則は次の一つである。
 
 | 規則 | 知らせる書き方 | 節 |
 |---|---|---|
