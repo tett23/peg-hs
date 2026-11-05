@@ -49,6 +49,12 @@ Since v0.1.0-rc2:
   has no value other than unit returns `()`
   ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0064](https://github.com/tett23/peg-hs/blob/main/docs/adr/0064-unit-rules-always-return-unit.md)).
+- In a grammar with `%syntax`, an alternative without an action of a rule
+  without a type annotation returns `()` whatever its elements, such as a
+  capture or a call of a rule with a type annotation. Its elements discard
+  their values, and the bound ones stay bound for predicates and
+  arguments. Grammars without `%syntax` are generated as before
+  ([ADR 0068](https://github.com/tett23/peg-hs/blob/main/docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
 
 ### Fixed
 

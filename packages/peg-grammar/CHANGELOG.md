@@ -78,6 +78,11 @@ Since v0.1.0-rc2:
   `omittable-unit-annotation` of the linter notes a type annotation `()`
   of a rule without parameters
   ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).
+- In a grammar with `%syntax`, an alternative without an action of a rule
+  without a type annotation may have any number of elements with values;
+  its value is `()`. `discardingRules` and `discardsValues` of
+  `Peg.Grammar.Check` tell which rules and alternatives these are
+  ([ADR 0068](https://github.com/tett23/peg-hs/blob/main/docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
 
 ### Changed
 

@@ -115,6 +115,36 @@ peg-hs parse grammar/Calc.hpeg input.txt
 Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))
 ```
 
+### Two styles: a syntax tree, or typed values
+
+A grammar is written in one of two styles ([ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
+The grammar above returns typed values: its rules have type annotations and actions.
+The other style writes `%syntax` and neither type annotations nor actions, and reads the results from the lossless syntax tree that `parseSyntax` returns.
+
+```hpeg
+%module Calc.Syntax
+%syntax
+%token Num
+
+Expr <- Expr '+' Sp Term
+     / Term
+
+Term <- Term '*' Sp Atom
+     / Atom
+
+Atom <- Num Sp
+     / '(' Sp Expr ')' Sp
+
+Num <- $[0-9]+
+
+Sp <- ' '*
+```
+
+In a grammar with `%syntax`, an alternative without an action of a rule without a type annotation has the value `()`, whatever the values of its elements, such as the capture `$[0-9]+`.
+Write type annotations and actions only where typed values are needed.
+The syntax tree costs time and memory: on a JSON document of 800,000 characters, the style with the tree took about 1.6 times the time and 1.1 times the memory of the typed grammar without `%syntax` ([docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)).
+When speed matters, write type annotations and actions, and leave out `%syntax`.
+
 ## Using a generated module
 
 A generated module exports the entry point of the start rule, `parse :: Text -> Either ParseError a`.
