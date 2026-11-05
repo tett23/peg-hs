@@ -2,10 +2,14 @@
 module Main (main) where
 
 import Control.Exception (SomeException, evaluate, try)
+import Data.Bits (xor)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
+import Data.Char (isAlphaNum)
 import Data.List (sort, sortOn)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Word (Word64)
+import Numeric (showHex)
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -13,21 +17,26 @@ import qualified Data.Text.IO as TIO
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Highlight
 import Peg.Grammar.LabelInsertion (insertLabels)
+import Peg.Lsp (runServer)
 import Peg.Lsp.Json
 import Peg.Lsp.Rpc
 import Peg.Lsp.Server
-import System.Directory (doesPathExist)
+import System.Directory (doesDirectoryExist, doesPathExist, getTemporaryDirectory, listDirectory, removeFile)
+import System.FilePath (takeExtension, (</>))
+import System.IO (IOMode (..), withBinaryFile)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 main :: IO ()
-main =
+main = do
+  grammars <- grammarFiles
   defaultMain $
     testGroup
       "peg-lsp"
-      [ testGroup
+      [ fasterChecksTests grammars
+      , testGroup
           "framing and JSON"
           [ testProperty "framed messages read back in any chunks" $
               forAll (listOf genValue) $ \vs -> forAll (genSplits (BS.concat (map encodeMessage vs))) $ \chunks ->
@@ -322,3 +331,112 @@ skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
 skippedWithout file name act = testCaseInfo name $ do
   exists <- doesPathExist file
   if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")
+
+-- Tests of ADR 0070 ------------------------------------------------------------
+
+fasterChecksTests :: [FilePath] -> TestTree
+fasterChecksTests grammars =
+  testGroup
+    "faster checks (ADR 0070)"
+    [ skippedWithout memoGrammar "10 didChange in a row get the diagnostics of the last version only" $ do
+        src <- TIO.readFile memoGrammar
+        let versions = [src <> "\nExtra" <> T.pack (show k) <> " <- 'x'\n" | k <- [1 .. 10 :: Int]]
+            msgs = [initialize False, notify "initialized" (object []), open src] ++ map change versions
+        out <- serveFile "coalesce" msgs
+        let published = filter isPublish out
+        length published @?= 1
+        published @?= take 1 (reverse (filter isPublish (session msgs)))
+        -- The last version has an error for its unreachable rule.
+        assertBool "the diagnostics of the last version" ("Extra10" `T.isInfixOf` T.concat (map renderJson published))
+    , testCase "requests after changes answer for the latest version" $ do
+        let renamed = T.replace "Term" "Factor" good
+            msgs =
+              [ initialize False
+              , open good
+              , change unformatted
+              , change renamed
+              , request 2 "textDocument/hover" (docAt 3 25)
+              , request 3 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])])
+              , request 4 "textDocument/documentSymbol" (object [("textDocument", object [("uri", String uri)])])
+              ]
+            responses = filter (\m -> (member "id" m >>= asInt) `notElem` [Nothing, Just 1])
+        out <- serveFile "requests" msgs
+        responses out @?= responses (session msgs)
+        map (\m -> member "id" m >>= asInt) (responses out) @?= map Just [2, 3, 4]
+        (lastResultOf 2 out >>= path ["contents", "value"]) @?= Just (String "```peg\nFactor :: Int\n```")
+    , testGroup
+        "the diagnostics of every grammar of the repository and its mutants are unchanged"
+        [ goldenVsString f ("test/golden/diagnostics" </> goldenName f) (BL.fromStrict . TE.encodeUtf8 <$> diagnosticsRecord f)
+        | f <- grammars
+        ]
+    ]
+  where
+    memoGrammar = "../../conformance/bench/Memo.hpeg"
+    isPublish m = member "method" m == Just (String "textDocument/publishDiagnostics")
+    lastResultOf i out = listToMaybe [r | m <- out, (member "id" m >>= asInt) == Just i, Just r <- [member "result" m]]
+
+-- Run the server over a file of messages, as peg-hs lsp does over standard
+-- input, and read back what it wrote. The input ends without exit, so the
+-- server stops at the end of its input.
+serveFile :: String -> [Value] -> IO [Value]
+serveFile name msgs = do
+  tmp <- getTemporaryDirectory
+  let input = tmp </> ("peg-lsp-test-" <> name <> ".in")
+      output = tmp </> ("peg-lsp-test-" <> name <> ".out")
+  BS.writeFile input (BS.concat (map encodeMessage msgs))
+  _ <- withBinaryFile input ReadMode $ \i -> withBinaryFile output WriteMode $ \o -> runServer i o
+  bytes <- BS.readFile output
+  removeFile input
+  removeFile output
+  pure [v | Right body <- fst (decodeFrames bytes), Just v <- [parseJson body]]
+
+-- The diagnostics that the server publishes for a grammar and for each of
+-- its mutants: those of the grammar in full, and a digest of those of each
+-- mutant.
+diagnosticsRecord :: FilePath -> IO Text
+diagnosticsRecord f = do
+  src <- TIO.readFile f
+  let diagnosticsOf t = T.concat [renderJson m | m <- session [initialize False, open t], member "method" m == Just (String "textDocument/publishDiagnostics")]
+  pure . T.unlines $
+    diagnosticsOf src
+      : [T.pack (show i) <> " " <> T.pack (showHex (fnv1a (TE.encodeUtf8 (diagnosticsOf m))) "") | (i, m) <- zip [0 :: Int ..] (mutants src)]
+
+-- One character deleted or duplicated, at about 50 positions of a file: the
+-- mutants of the test of the syntax tree with recovery (ADR 0035).
+mutants :: Text -> [Text]
+mutants src =
+  concat
+    [ [T.take i src <> T.drop (i + 1) src, T.take (i + 1) src <> T.drop i src]
+    | i <- [0, step .. T.length src - 1]
+    ]
+  where
+    step = max 1 (T.length src `div` 50)
+
+-- The 64-bit FNV-1a hash.
+fnv1a :: BS.ByteString -> Word64
+fnv1a = BS.foldl' (\h b -> (h `xor` fromIntegral b) * 1099511628211) 14695981039346656037
+
+goldenName :: FilePath -> FilePath
+goldenName f = map (\c -> if isAlphaNum c then c else '-') (dropWhile (\c -> c == '.' || c == '/') f) <> ".txt"
+
+-- Every grammar of the repository. Directories outside this package are
+-- missing in a source archive, and are skipped.
+grammarFiles :: IO [FilePath]
+grammarFiles = concat <$> mapM pegsIn dirs
+  where
+    dirs =
+      [ "grammar"
+      , "../peg-grammar/grammar"
+      , "../peg-codegen/test/fixtures"
+      , "../../conformance/json"
+      , "../../conformance/bench"
+      , "../../conformance/commonmark"
+      , "../../conformance/commonmark/v1"
+      , "../../conformance/lua"
+      , "../../conformance/toml"
+      ]
+    pegsIn d = do
+      exists <- doesDirectoryExist d
+      if exists
+        then map (d </>) . sort . filter ((== ".hpeg") . takeExtension) <$> listDirectory d
+        else pure []

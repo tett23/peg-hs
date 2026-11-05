@@ -22,6 +22,7 @@ extra-doc-files:    CHANGELOG.md
 extra-source-files:
   grammar/Json.hpeg
   test/golden/*.txt
+  test/golden/diagnostics/*.txt
 
 source-repository head
   type:     git
