@@ -50,3 +50,15 @@ a bound unit repetition (ADR 0064)
   G.hpeg:3:24: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 the definition of a template whose instances have type ()
   G.hpeg:5:18: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+a repetition
+  G.hpeg:3:17: info: the action can be omitted: it returns the value of the binding is, which the alternative returns without the action [omittable-identity-action]; remove is: and { is }
+unit elements around the binding
+  G.hpeg:3:24: info: the action can be omitted: it returns the value of the binding e, which the alternative returns without the action [omittable-identity-action]; remove e: and { e }
+a capture
+  G.hpeg:3:16: info: the action can be omitted: it returns the value of the binding d, which the alternative returns without the action [omittable-identity-action]; remove d: and { d }
+spaces in the code
+  G.hpeg:3:12: info: the action can be omitted: it returns the value of the binding is, which the alternative returns without the action [omittable-identity-action]; remove is: and { is }
+a template whose instances count only the binding
+  G.hpeg:5:21: info: the action can be omitted: it returns the value of the binding x, which the alternative returns without the action [omittable-identity-action]; remove x: and { x }
+a binding of a rule of type ()
+  G.hpeg:3:11: info: the action can be omitted: it returns the value of the binding u, which the alternative returns without the action [omittable-identity-action]; remove u: and { u }

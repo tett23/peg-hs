@@ -1,0 +1,29 @@
+# ADR 0065：束縛した値をそのまま返すアクションを省く
+# ../explicit/IdentityActionsExplicit.txt は、同じ文法の省いた束縛とアクションを書いた版
+%module Fixture.IdentityActions
+
+%{
+import qualified Data.Text as T
+}%
+
+# 繰り返し
+Start :: [T.Text]
+Start <- Sp Item* !.
+
+Item :: T.Text
+Item <- '(' Sp Item ')' Sp
+     / n:$[0-9]+ &{ T.length n > 1 } '!' Sp { n }
+     / $[0-9]+ Sp
+     / Word
+     / Bracket<Item>
+
+# キャプチャ
+Word :: T.Text
+Word <- $[a-z]+ Sp
+
+# 雛形
+Bracket<p :: t> :: t
+Bracket<p> <- '[' Sp p ']' Sp
+
+Sp :: ()
+Sp <- ' '*

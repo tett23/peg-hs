@@ -24,12 +24,20 @@
 -- Besides the warnings, the linter gives infos (ADR 0063, ADR 0067): ways
 -- to make the grammar simpler that are not wrong to leave. An info does not
 -- make @peg-hs lint@ fail, and is shown only with @--verbose@. Like the
--- warnings, infos cannot be chosen or silenced. The rule of infos is:
+-- warnings, infos cannot be chosen or silenced. The rules of infos are:
 --
 -- [@omittable-unit-action@] An action @{ () }@ that can be omitted: the
 --   rule has type @()@ and the alternative has no value other than unit
 --   ('Peg.Grammar.Check.omitsUnitAction'). In a template, every instance
 --   must allow the omission.
+-- [@omittable-identity-action@] An action whose code is only the name of
+--   a binding of its alternative, such as @e:Expr { e }@, where the
+--   alternative without the binding and the action returns the same value
+--   (ADR 0065): no predicate or argument of the alternative uses the
+--   name, and without the binding the alternative counts that element
+--   alone ('Peg.Grammar.Check.countedItems'). Not reported in a grammar
+--   with @%syntax@, where removing a binding removes an accessor. In a
+--   template, every instance must count that element alone.
 --
 -- 'lintGrammar' takes a grammar that passed the checks of "Peg.Grammar"
 -- (see the example there), before template expansion, and
@@ -104,6 +112,7 @@ lintGrammar g =
       ++ concatMap (concatMap labelWarnings . ruleAlts) rules
       ++ (if isJust (grammarSyntax g) then [] else concatMap (\r -> concatMap (bindingWarnings units (ruleName r)) (ruleAlts r)) rules)
       ++ unitActionInfos g
+      ++ (if isJust (grammarSyntax g) then [] else identityActionInfos g)
   where
     rules = grammarRules g
     units = unitRules rules
@@ -133,6 +142,44 @@ unitActionInfos g = case expandTemplates g of
      in [ LintWarning l "omittable-unit-action" "the action can be omitted: the rule has type () and the alternative has no value" "remove { () }" LevelInfo
         | (l, True) <- M.toList found
         ]
+
+-- The actions that return the value of a binding that the alternative
+-- returns without the binding and the action (ADR 0065). As with
+-- 'unitActionInfos', templates are looked at in every instance. The info is
+-- at the opening brace of the action.
+identityActionInfos :: Grammar -> [LintWarning]
+identityActionInfos g = case expandTemplates g of
+  Left _ -> []
+  Right expanded ->
+    let rules = grammarRules expanded
+        units = unitRules rules
+        found =
+          M.fromListWith
+            (\(n, a) (_, b) -> (n, a && b))
+            [ (Loc line (col - 1), (name, identity units name (altItems a)))
+            | r <- rules
+            , a <- ruleAlts r
+            , Just (Located (Loc line col) code) <- [altAction a]
+            , let name = T.filter (not . isSpace) code
+            , any ((== Just name) . itemBind) (altItems a)
+            ]
+     in [ LintWarning
+            l
+            "omittable-identity-action"
+            ("the action can be omitted: it returns the value of the binding " <> n <> ", which the alternative returns without the action")
+            ("remove " <> n <> ": and { " <> n <> " }")
+            LevelInfo
+        | (l, (n, True)) <- M.toList found
+        ]
+  where
+    identity units name items =
+      case [i | i <- items, itemBind i == Just name] of
+        [bound] ->
+          let unbound = [if itemLoc i == itemLoc bound then i {itemBind = Nothing} else i | i <- items]
+           in all (\i -> itemBind i == Nothing || itemLoc i == itemLoc bound) items
+                && name `notElem` concatMap identifiers (concatMap (codesOf . itemExpr) items)
+                && map itemLoc (countedItems units unbound) == [itemLoc bound]
+        _ -> False
 
 -- Unreachable alternatives --------------------------------------------------------
 
