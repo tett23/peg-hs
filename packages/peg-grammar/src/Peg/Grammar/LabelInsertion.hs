@@ -501,7 +501,7 @@ eraseGrammar g =
   where
     z = Loc 0 0
     erase (Located _ x) = Located z x
-    rule r = r {ruleLoc = z, ruleParams = [p {paramType = erase (paramType p)} | p <- ruleParams r], ruleType = erase (ruleType r), ruleAlts = map alt (ruleAlts r)}
+    rule r = r {ruleLoc = z, ruleParams = [p {paramType = erase (paramType p)} | p <- ruleParams r], ruleType = erase (ruleType r), ruleAnnotation = z <$ ruleAnnotation r, ruleAlts = map alt (ruleAlts r)}
     alt (Alt _ is a) = Alt z (map item is) (fmap erase a)
     item (Item _ b e) = Item z b (expr e)
     expr = \case

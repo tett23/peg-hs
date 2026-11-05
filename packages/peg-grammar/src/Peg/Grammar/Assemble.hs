@@ -140,11 +140,14 @@ assemble items =
     defs = [(l, n, alts) | TDef l n _ alts <- items]
     defTemplateNames = M.fromList [(n, (l, tns)) | TDef l n tns _ <- items]
     defCounts = M.fromListWith (+) [(n, 1 :: Int) | (_, n, _) <- defs]
+    -- A rule without a type annotation has type () (ADR 0066).
     rules =
-      [ Rule n l ps tps ty alts
+      [ case M.lookup n annots of
+          Just ((al, ps, tps, ty) : _) -> Rule n l ps tps ty (Just al) alts
+          _ -> Rule n l [] [] (Located l "()") Nothing alts
       | (l, n, alts) <- defs
-      , Just ((_, ps, tps, ty) : _) <- [M.lookup n annots]
       ]
+    templateNamesOf n = maybe [] snd (M.lookup n defTemplateNames)
     errors =
       [Diagnostic l ("unknown directive %" <> n) | (l, n, _) <- directives, n `notElem` known]
         ++ [ Diagnostic l ("duplicate %" <> n <> " directive")
@@ -180,9 +183,10 @@ assemble items =
            | Just (Located l a) <- [single "tabstop"]
            , not (T.all isDigit a) || T.null a || T.all (== '0') a
            ]
-        ++ [ Diagnostic l ("rule " <> n <> " has no type annotation")
+        ++ [ Diagnostic l ("rule " <> n <> " has parameters, so it needs a type annotation")
            | (l, n, _) <- defs
            , not (M.member n annots)
+           , not (null (templateNamesOf n))
            ]
         ++ [ Diagnostic l ("rule " <> n <> " has a type annotation but no definition")
            | (n, (l, _, _, _) : _) <- M.toList annots

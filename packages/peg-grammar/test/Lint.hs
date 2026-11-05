@@ -38,24 +38,30 @@ lintTests files =
     , testCase "an identity action is rendered with info:, its binding and its action (ADR 0065)" $
         map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: [Int]", "S <- is:N* { is }", "N :: Int", "N <- '1' { 1 }"])))
           @?= ["G.hpeg:3:12: info: the action can be omitted: it returns the value of the binding is, which the alternative returns without the action [omittable-identity-action]; remove is: and { is }"]
+    , testGroup "unit annotations (ADR 0066)" [testCase (T.unpack n) (annotationsOf src @?= Right [l]) | (n, l, src) <- unitAnnotations]
+    , testGroup "no unit annotation (ADR 0066)" [testCase (T.unpack n) (annotationsOf src @?= Right []) | (n, src) <- notUnitAnnotations]
+    , testCase "a unit annotation is rendered with info: and the line to remove (ADR 0066)" $
+        map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: ()", "S <- 'a'"])))
+          @?= ["G.hpeg:2:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line S :: ()"]
     , testGroup
         "omitted actions in rules of type () (ADR 0064)"
         [ testCase "nothing for a unit repetition" $
-            lintOf (grammar ["S :: ()", "S <- Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right []
+            lintOf (grammar ["S <- Sp*", "Sp <- ' '"]) @?= Right []
         , testCase "only the unused binding for a bound unit repetition" $
-            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding"]
+            map lintRule <$> lintOf (grammar ["S <- x:Sp*", "Sp <- ' '"]) @?= Right ["unused-binding"]
         , testCase "the unused bindings, as with { () }" $ do
-            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding"]
-            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp { () }", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding", "omittable-unit-action"]
+            map lintRule <$> lintOf (grammar ["S <- x:Sp y:Sp", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding"]
+            map lintRule <$> lintOf (grammar ["S <- x:Sp y:Sp { () }", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding", "omittable-unit-action"]
         ]
     , testCase "an info is rendered with info: (ADR 0067)" $
-        map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: ()", "S <- ' '* { () }"])))
-          @?= ["G.hpeg:3:11: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }"]
+        map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S <- ' '* { () }"])))
+          @?= ["G.hpeg:2:11: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }"]
     , goldenVsString "the warnings" "test/golden/lint-warnings.txt" $
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
           concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) warnings (lintOf src)) | (n, _, src) <- warned]
-            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- informed]
-            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- identities]
+            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) (only "omittable-unit-action") (lintOf src)) | (n, _, src) <- informed]
+            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) (only "omittable-identity-action") (lintOf src)) | (n, _, src) <- identities]
+            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) (only "omittable-unit-annotation") (lintOf src)) | (n, _, src) <- unitAnnotations]
     , testCase "the grammars of the repository have no warnings and no infos" $ do
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
@@ -111,6 +117,36 @@ infosOf :: Text -> Either [Diagnostic] [(Int, Int)]
 infosOf src = do
   ws <- lintOf src
   pure [(locLine (lintLoc w), locColumn (lintLoc w)) | w <- ws, lintLevel w == LevelInfo, lintRule w == "omittable-unit-action"]
+
+-- The results of one rule of the linter.
+only :: Text -> [LintWarning] -> [LintWarning]
+only rule = filter ((== rule) . lintRule)
+
+-- The locations of the infos of unit annotations (ADR 0066).
+annotationsOf :: Text -> Either [Diagnostic] [(Int, Int)]
+annotationsOf src = do
+  ws <- lintOf src
+  pure [(locLine (lintLoc w), locColumn (lintLoc w)) | w <- ws, lintLevel w == LevelInfo, lintRule w == "omittable-unit-annotation"]
+
+-- Grammars with a type annotation () that can be removed, and where the
+-- info is (ADR 0066).
+unitAnnotations :: [(Text, (Int, Int), Text)]
+unitAnnotations =
+  [ ("a rule of type ()", (2, 1), grammar ["S :: ()", "S <- 'a'"])
+  , ("spaces in the type ()", (2, 1), grammar ["S :: ( )", "S <- 'a'"])
+  , ("an annotation after the definition", (3, 1), grammar ["S <- 'a'", "S :: ()"])
+  , ("a rule of type () called by others", (5, 1), grammar ["S :: Int", "S <- Sp N", "", "Sp :: ()", "Sp <- ' '*", "N :: Int", "N <- '1' { 1 }"])
+  ]
+
+-- Grammars whose type annotations are needed (ADR 0066).
+notUnitAnnotations :: [(Text, Text)]
+notUnitAnnotations =
+  [ ("a type other than ()", grammar ["S :: Int", "S <- 'a' { 1 }"])
+  , ("a type synonym of ()", "%module M\n%{\ntype Unit = ()\n}%\nS :: Unit\nS <- 'a' { () }\n")
+  , ("a rule with parameters", grammar ["S <- C(1)", "C(k :: Int) :: ()", "C <- &{ k > 0 } 'c'"])
+  , ("a template", grammar ["S <- K<'a'>", "K<w> :: ()", "K<w> <- w ![a-z]"])
+  , ("a rule without a type annotation", grammar ["S <- 'a'"])
+  ]
 
 -- The locations of the infos of identity actions (ADR 0065).
 identitiesOf :: Text -> Either [Diagnostic] [(Int, Int)]

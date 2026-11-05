@@ -62,3 +62,11 @@ a template whose instances count only the binding
   G.hpeg:5:21: info: the action can be omitted: it returns the value of the binding x, which the alternative returns without the action [omittable-identity-action]; remove x: and { x }
 a binding of a rule of type ()
   G.hpeg:3:11: info: the action can be omitted: it returns the value of the binding u, which the alternative returns without the action [omittable-identity-action]; remove u: and { u }
+a rule of type ()
+  G.hpeg:2:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line S :: ()
+spaces in the type ()
+  G.hpeg:2:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line S :: ()
+an annotation after the definition
+  G.hpeg:3:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line S :: ()
+a rule of type () called by others
+  G.hpeg:5:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line Sp :: ()

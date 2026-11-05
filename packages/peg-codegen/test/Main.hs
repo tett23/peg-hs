@@ -37,6 +37,8 @@ import qualified Fixture.UnicodeSyntax as UnicodeSyntax
 import qualified Fixture.IdentityActions as IdentityActions
 import qualified Fixture.IdentityActionsExplicit as IdentityActionsExplicit
 import qualified Fixture.UnitActions as UnitActions
+import qualified Fixture.UnitAnnotations as UnitAnnotations
+import qualified Fixture.UnitAnnotationsExplicit as UnitAnnotationsExplicit
 import qualified Fixture.UnitActionsExplicit as UnitActionsExplicit
 import qualified Fixture.UnitActionsExplicitSyntax as UnitActionsExplicitSyntax
 import qualified Fixture.UnitActionsSyntax as UnitActionsSyntax
@@ -127,6 +129,7 @@ main =
       , unitActionTests
       , unitRepeatTests
       , identityActionTests
+      , unitAnnotationTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -140,7 +143,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -251,6 +254,25 @@ identityActionTests =
     input = " ab (12!) [ 345 ] ([c]) 6"
     farthest = either (Left . parseErrorPos) Right
     gen = T.concat <$> listOf (elements ["(", ")", "[", "]", " ", "1", "23", "ab", "!", "c"])
+
+-- ADR 0066: the rules without type annotations have type (), as the same
+-- rules with :: () written.
+unitAnnotationTests :: TestTree
+unitAnnotationTests =
+  testGroup
+    "rules without type annotations have type () (ADR 0066)"
+    [ testCase "values" $ do
+        UnitAnnotations.parse input @?= Right ["ab", "12", "cd"]
+        UnitAnnotationsExplicit.parse input @?= Right ["ab", "12", "cd"]
+    , testProperty "the same results and farthest failures as with :: ()" $
+        withNumTests 3000 . checkCoverage $ forAll gen $ \t ->
+          cover 5 (either (const False) (const True) (UnitAnnotations.parse t)) "accepted" $
+            farthest (UnitAnnotations.parse t) === farthest (UnitAnnotationsExplicit.parse t)
+    ]
+  where
+    input = " ab, #12 cd"
+    farthest = either (Left . parseErrorPos) Right
+    gen = T.concat <$> listOf (elements ["#", "a", "bc", "1", "23", " ", ","])
 
 -- ADR 0064: in rules of type (), alternatives without actions return ()
 -- even when their only counted element is a repetition or an option of a
@@ -777,6 +799,12 @@ compileTests =
               ]
         ex @?= ExitFailure 1
         assertBool ("error not reported at Bad.hpeg:5:15\n" <> err) ("Bad.hpeg:5:15" `T.isInfixOf` T.pack err)
+    , skippedWithout "../peg-runtime/src" "an action of a rule without a type annotation that returns Int is a type error at the action (ADR 0066)" $ do
+        (ex, err) <-
+          typecheck "Forgot" $
+            T.unlines ["%module Forgot", "", "A <- 'a' { 1 }"]
+        ex @?= ExitFailure 1
+        assertBool ("error not reported at Forgot.hpeg:3:12\n" <> err) ("Forgot.hpeg:3:12" `T.isInfixOf` T.pack err)
     , skippedWithout "../peg-runtime/src" "type errors in rule types point at the grammar" $ do
         (_, err) <-
           typecheck "BadType" $

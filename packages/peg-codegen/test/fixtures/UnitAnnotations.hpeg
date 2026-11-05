@@ -1,0 +1,21 @@
+# ADR 0066：型注釈のない規則の型は ()
+# ../explicit/UnitAnnotationsExplicit.txt は、同じ文法に :: () を書いた版
+%module Fixture.UnitAnnotations
+
+%{
+import qualified Data.Text as T
+}%
+
+Start :: [T.Text]
+Start <- Sp Word* !.
+
+Word :: T.Text
+Word <- $[a-z]+ Gap
+     / Kw $[0-9]+ Gap
+
+# 型注釈のない規則の値は数えない
+Gap <- Sp (',' Sp)?
+
+Kw <- '#' ![a-z]
+
+Sp <- ' '*

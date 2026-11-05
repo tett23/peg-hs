@@ -257,7 +257,7 @@ render opts g an =
     -- it, so that the import is never reported as redundant.
     fstName = if importsPrelude g then "PegPrelude.fst" else "Prelude.fst"
     envType = maybe "()" (fragment opts) (grammarEnv g)
-    resultType n = maybe "()" (fragment opts . ruleType) (M.lookup n (envRules env))
+    resultType n = maybe "()" (ruleTypeFragment opts) (M.lookup n (envRules env))
     verbatimBlock (Located (Loc l _) t) =
       T.concat ["{-# LINE ", showT l, " ", T.pack (show (optSourceName opts)), " #-}\n", t, "\n", restoreMarker, "\n"]
     envArg = if hasEnv then " peg'env" else ""
@@ -572,7 +572,15 @@ resultTypeText env r
   | envSyntax env = "((" <> ty <> "), [PegRt.Child])"
   | otherwise = "(" <> ty <> ")"
   where
-    ty = fragment (envOpts env) (ruleType r)
+    ty = ruleTypeFragment (envOpts env) r
+
+-- The type of a rule as written, pointing at the grammar. A rule without a
+-- type annotation has type () (ADR 0066), which no line of the grammar
+-- states.
+ruleTypeFragment :: Options -> Rule -> Text
+ruleTypeFragment opts r = case ruleAnnotation r of
+  Just _ -> fragment opts (ruleType r)
+  Nothing -> "()"
 
 ruleDecl :: Env -> Rule -> Text
 ruleDecl env r =

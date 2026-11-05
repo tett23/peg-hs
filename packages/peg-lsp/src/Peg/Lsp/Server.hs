@@ -392,10 +392,15 @@ hover :: Handler
 hover enc _ d params = do
   p <- member "position" params >>= locOf enc d
   (name, a, b) <- nameAt d p
-  x <- find (\x -> declName x == name && declKind x == Annotation) (outlineDeclarations (docOutline d))
+  let decls = [x | x <- outlineDeclarations (docOutline d), declName x == name]
+  -- A rule without a type annotation has type () (ADR 0066).
+  ty <- case (find ((== Annotation) . declKind) decls, find ((== Definition) . declKind) decls) of
+    (Just x, _) -> Just (T.dropWhileEnd isSpace (declText x))
+    (Nothing, Just _) -> Just (name <> " :: ()")
+    _ -> Nothing
   pure $
     object
-      [ ("contents", object [("kind", String "markdown"), ("value", String ("```peg\n" <> T.dropWhileEnd isSpace (declText x) <> "\n```"))])
+      [ ("contents", object [("kind", String "markdown"), ("value", String ("```peg\n" <> ty <> "\n```"))])
       , ("range", rangeValue enc d a b)
       ]
 

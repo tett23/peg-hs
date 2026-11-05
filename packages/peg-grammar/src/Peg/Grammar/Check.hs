@@ -93,7 +93,8 @@ isUnit units = \case
   EGroup alts -> not (null alts) && all (\is -> all (isUnit units . itemExpr) (countedItems units is)) alts && hasValue units (EGroup alts)
   _ -> False
 
--- | The rules whose type annotation is @()@, ignoring spaces (ADR 0030).
+-- | The rules of type @()@: their type annotation is @()@, ignoring spaces
+-- (ADR 0030), or they have none (ADR 0066).
 unitRules :: [Rule] -> Set Text
 unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) (unLoc (ruleType r)) == "()"]
 
