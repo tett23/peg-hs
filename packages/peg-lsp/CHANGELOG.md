@@ -30,3 +30,5 @@ Since v0.1.0-rc2:
 - The severity `Hint` of a diagnostic, for the infos of the linter
   ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
+- The hover of a rule without a type annotation shows its type `()`
+  ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).

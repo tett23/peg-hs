@@ -82,13 +82,13 @@ Atom :: Expr
 Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
      / '(' Sp Expr ')' Sp
 
-Sp :: ()
 Sp <- ' '*
 ```
 
 `%module` は生成するモジュールの名前である。
 `%{` と `}%` の間（verbatim ブロック）には、生成したモジュールにそのまま入る Haskell を書く。
 `Expr :: Expr` は規則 `Expr` の結果の型で、`Expr <- ...` が規則の定義である。
+`Sp` のように型注釈のない規則の型は `()` である。引数付き規則と雛形には型注釈が要る（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 `l:Expr` は結果に名前を付け（束縛）、`{ Add l r }` はアクションである。
 `$[0-9]+` は、読んだ範囲の文字列（`Text`）を値にする。
 記法の詳しい解説は [docs/syntax.md](docs/syntax.md) にある。
@@ -241,6 +241,7 @@ peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKin
 警告とは別に、誤りではないが簡潔にできる書き方を info として知らせる。info は `--verbose` を付けたときだけ `warning:` の代わりに `info:` と書いて表示し、付けても付けなくても `lint` を失敗させない（[ADR 0067](docs/adr/0067-lint-info-with-verbose.md)）。
 `omittable-unit-action` は、省略できる `{ () }` を指す。型注釈が `()` の規則では、`()` 以外の値を持つ要素がない選択肢はアクションを省略でき、値は `()` になる（[ADR 0063](docs/adr/0063-omit-unit-actions.md)、[ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)）。
 `omittable-identity-action` は、`'(' e:Expr ')' { e }` のように束縛した値をそのまま返すアクションを指す。束縛とアクションを消しても、選択肢は同じ値を返す。`%syntax` の文法では、束縛が構文木の取り出し関数の名前にもなるので出さない（[ADR 0065](docs/adr/0065-omittable-identity-actions.md)）。
+`omittable-unit-annotation` は、型注釈 `A :: ()` を指す。型注釈のない規則の型も `()` なので、行ごと省ける。引数付き規則と雛形の型注釈には出さない（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 言語サーバーは info を重大度 Hint で報告する。多くのエディタは Hint を淡く示す。
 対象のファイルの選び方は `fmt` と同じである。
 

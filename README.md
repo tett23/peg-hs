@@ -83,13 +83,13 @@ Atom :: Expr
 Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
      / '(' Sp Expr ')' Sp
 
-Sp :: ()
 Sp <- ' '*
 ```
 
 `%module` is the name of the generated module.
 Between `%{` and `}%` (a verbatim block) is Haskell that goes into the generated module as it is.
 `Expr :: Expr` is the result type of the rule `Expr`, and `Expr <- ...` defines the rule.
+A rule without a type annotation, such as `Sp`, has type `()`; rules with parameters and templates need one ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 `l:Expr` names a result (a binding), and `{ Add l r }` is an action.
 `$[0-9]+` takes the text it read (a `Text`) as its value.
 [docs/syntax.md](docs/syntax.md) explains the notation in detail (in Japanese).
@@ -240,6 +240,7 @@ Besides warnings, `lint` gives infos of what is not a mistake but can be simpler
 Infos are shown only with `--verbose`, written with `info:` in place of `warning:`, and never make `lint` fail ([ADR 0067](docs/adr/0067-lint-info-with-verbose.md)).
 `omittable-unit-action` points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
 `omittable-identity-action` points at an action that only returns a binding, as in `'(' e:Expr ')' { e }`, where the alternative returns the same value without the binding and the action; it is not given in grammars with `%syntax`, where a binding also names an accessor of the syntax tree ([ADR 0065](docs/adr/0065-omittable-identity-actions.md)).
+`omittable-unit-annotation` points at a type annotation `A :: ()`, which a rule without a type annotation has anyway; it is not given for rules with parameters and templates ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 The language server reports infos with the severity Hint, which most editors show faintly.
 It chooses files as `fmt` does.
 

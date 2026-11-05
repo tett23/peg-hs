@@ -70,6 +70,14 @@ Since v0.1.0-rc2:
   the same value without the binding and the action. It is not given in
   grammars with `%syntax`
   ([ADR 0065](https://github.com/tett23/peg-hs/blob/main/docs/adr/0065-omittable-identity-actions.md)).
+- A rule without a type annotation has type `()`, which
+  `rule A has no type annotation` used to reject. A rule with template
+  parameters still needs one: `rule T has parameters, so it needs a type
+  annotation`. `ruleAnnotation` of `Rule` is where the annotation starts,
+  and `Nothing` for a rule without one. The info
+  `omittable-unit-annotation` of the linter notes a type annotation `()`
+  of a rule without parameters
+  ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).
 
 ### Changed
 
