@@ -21,6 +21,16 @@
 --   grammar with @%syntax@, where a binding labels the children of the
 --   syntax tree.
 --
+-- Besides the warnings, the linter gives notices (ADR 0063): ways to make
+-- the grammar simpler that are not wrong to leave. A notice does not make
+-- @peg-hs lint@ fail, and, like the warnings, cannot be chosen or
+-- silenced. The rule of notices is:
+--
+-- [@omittable-unit-action@] An action @{ () }@ that can be omitted: the
+--   rule has type @()@ and the alternative has no value other than unit
+--   ('Peg.Grammar.Check.omitsUnitAction'). In a template, every instance
+--   must allow the omission.
+--
 -- 'lintGrammar' takes a grammar that passed the checks of "Peg.Grammar"
 -- (see the example there), before template expansion, and
 -- 'renderLintWarning' writes the warnings in the form of @peg-hs lint@:
@@ -30,22 +40,25 @@
 -- @
 module Peg.Grammar.Lint
   ( LintWarning (..)
+  , LintLevel (..)
   , lintGrammar
   , renderLintWarning
   ) where
 
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isSpace)
 import Data.List (sortOn)
+import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
-import Peg.Grammar.Check (countedItems, unitRules)
+import Peg.Grammar.Check (countedItems, omitsUnitAction, unitRules)
+import Peg.Grammar.Templates (expandTemplates)
 
--- | A warning of the linter, located at the alternative, label or binding
--- it is about.
+-- | A warning or a notice of the linter, located at the alternative, label,
+-- binding or action it is about.
 data LintWarning = LintWarning
   { lintLoc :: Loc
   , lintRule :: Text
@@ -53,30 +66,72 @@ data LintWarning = LintWarning
   , lintMessage :: Text
   , lintHint :: Text
   -- ^ How to change the grammar.
+  , lintLevel :: LintLevel
+  -- ^ Whether it is a warning or a notice.
   }
   deriving (Eq, Show)
 
+-- | The level of a result of the linter (ADR 0063).
+data LintLevel
+  = -- | Something wrong with the grammar. @peg-hs lint@ fails if there is
+    -- a warning.
+    LevelWarning
+  | -- | Something that is not wrong, but that a change makes simpler.
+    -- Notices do not make @peg-hs lint@ fail.
+    LevelNotice
+  deriving (Eq, Ord, Show)
+
 -- | Render as @file:line:column: warning: message [rule]; hint@, the form
--- @peg-hs lint@ uses.
+-- @peg-hs lint@ uses. A notice has @notice:@ in place of @warning:@.
 renderLintWarning :: FilePath -> LintWarning -> Text
 renderLintWarning file w =
   T.concat
     [ T.pack file, ":", T.pack (show (locLine (lintLoc w))), ":", T.pack (show (locColumn (lintLoc w)))
-    , ": warning: ", lintMessage w, " [", lintRule w, "]; ", lintHint w
+    , level, lintMessage w, " [", lintRule w, "]; ", lintHint w
     ]
+  where
+    level = case lintLevel w of
+      LevelWarning -> ": warning: "
+      LevelNotice -> ": notice: "
 
--- | The warnings of a grammar that passed the checks, in source order. The
--- grammar is the one parsed, before the expansion of templates.
+-- | The warnings and notices of a grammar that passed the checks, in source
+-- order. The grammar is the one parsed, before the expansion of templates.
 lintGrammar :: Grammar -> [LintWarning]
 lintGrammar g =
   sortOn (\w -> (lintLoc w, lintRule w)) $
     concatMap (alternativeWarnings throwing) rules
       ++ concatMap (concatMap labelWarnings . ruleAlts) rules
       ++ (if isJust (grammarSyntax g) then [] else concatMap (concatMap (bindingWarnings units) . ruleAlts) rules)
+      ++ unitActionNotices g
   where
     rules = grammarRules g
     units = unitRules rules
     throwing = throwingRules rules
+
+-- Omittable actions -----------------------------------------------------------------
+
+-- The actions @{ () }@ that the rule of ADR 0063 allows to omit. The rules
+-- are looked at after the expansion of templates, where the types of the
+-- instances are known; an action of a template is omittable when it is in
+-- every instance. The notice is at the opening brace of the action.
+unitActionNotices :: Grammar -> [LintWarning]
+unitActionNotices g = case expandTemplates g of
+  Left _ -> []
+  Right expanded ->
+    let rules = grammarRules expanded
+        units = unitRules rules
+        found =
+          M.fromListWith
+            (&&)
+            [ (Loc line (col - 1), omitsUnitAction units (ruleName r) (altItems a))
+            | r <- rules
+            , a <- ruleAlts r
+            , Just (Located (Loc line col) code) <- [altAction a]
+            , T.filter (not . isSpace) code == "()"
+            ]
+     in [ LintWarning l "omittable-unit-action" "the action can be omitted: the rule has type () and the alternative has no value" "remove { () }" LevelNotice
+        | (l, True) <- M.toList found
+        ]
 
 -- Unreachable alternatives --------------------------------------------------------
 
@@ -99,7 +154,7 @@ alternativeWarnings throwing r = concat (zipWith later [0 :: Int ..] alts)
       | sameAlternative a b =
           Just (warning b "duplicate-alternative" ("the alternative never succeeds: it is the same as the alternative at " <> showLoc (altLoc a)) "remove it")
       | otherwise = Nothing
-    warning b = LintWarning (altLoc b)
+    warning b rule m h = LintWarning (altLoc b) rule m h LevelWarning
     quote p = "'" <> p <> "'"
 
 -- Whether a sequence succeeds on every input: it consists of options and
@@ -165,7 +220,7 @@ labelWarnings a = concatMap (expr False . itemExpr) (altItems a)
   where
     expr transparent = \case
       ELabel l x n ->
-        [ LintWarning l "ineffective-label" ("the label " <> n <> " has no effect: its throw inside the lookahead is a failure of the lookahead") ("remove ^" <> n)
+        [ LintWarning l "ineffective-label" ("the label " <> n <> " has no effect: its throw inside the lookahead is a failure of the lookahead") ("remove ^" <> n) LevelWarning
         | transparent
         ]
           ++ expr transparent x
@@ -190,7 +245,7 @@ bindingWarnings units a = concatMap (sequenceWarnings True) [altItems a]
   where
     used = S.fromList (concatMap identifiers (maybe [] (pure . unLoc) (altAction a) ++ concatMap (codesOf . itemExpr) (altItems a)))
     sequenceWarnings top items =
-      [ LintWarning l "unused-binding" ("the binding " <> n <> " is not used") ("remove " <> n <> ":")
+      [ LintWarning l "unused-binding" ("the binding " <> n <> " is not used") ("remove " <> n <> ":") LevelWarning
       | (k, Item l (Just n) _) <- zip [0 :: Int ..] items
       , S.notMember n used
       , (top && isJust (altAction a)) || choosesNothing k items

@@ -10,7 +10,7 @@ import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Highlight
-import Peg.Grammar.Lint (LintWarning (..), lintGrammar)
+import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Test.Tasty
@@ -172,7 +172,7 @@ stage3Tests =
           @?= [(17, 1, "rule Rec'0 takes parameters and cannot take part in left recursion (in the template Rec, expanded at 15:6)")]
     , testCase "a binding used only in a value argument is used" $ do
         g <- either (\ds -> assertFailure (show ds) >> error "unreachable") pure (parseGrammar (base3 "B(ind :: Int) :: ()\nB <- x:N Indented<Item(ind)>(x) { () }"))
-        [lintMessage w | w <- lintGrammar g] @?= []
+        [lintMessage w | w <- lintGrammar g, lintLevel w == LevelWarning] @?= []
     ]
   where
     base3 body = base ("Indented<p>(n :: Int) :: ()\nIndented<p> <- &{ n >= 0 } p { () }\n" <> body)

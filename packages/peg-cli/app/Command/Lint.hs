@@ -7,7 +7,7 @@ import FileIO (readUtf8, reportFileError)
 import Files (grammarFiles)
 import Options
 import Peg.Grammar.Check (check)
-import Peg.Grammar.Lint (lintGrammar, renderLintWarning)
+import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar, renderLintWarning)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import System.Exit (ExitCode (..))
@@ -23,6 +23,7 @@ lintCommand =
     , cmdDescription =
         [ "Check grammars against the fixed rules of peg-hs, and fail if there is a warning."
         , "The rules cannot be chosen or silenced; every warning goes away by changing the grammar."
+        , "Notices, such as an action { () } that can be omitted, are reported but do not fail."
         , "A directory stands for the .hpeg files under it. Without arguments, lint every .hpeg"
         , "file under the current directory. Directories whose name starts with . and"
         , "dist-newstyle are skipped. Files are read as UTF-8."
@@ -41,7 +42,8 @@ run p = do
   results <- mapM lint files
   pure (if and results then ExitSuccess else ExitFailure 1)
 
--- Lint one file; whether it has neither errors nor warnings.
+-- Lint one file; whether it has neither errors nor warnings. Notices are
+-- reported, and do not count (ADR 0063).
 lint :: FilePath -> IO Bool
 lint file =
   readUtf8 "" file >>= \case
@@ -52,6 +54,7 @@ lintText :: FilePath -> Text -> IO Bool
 lintText file src =
   case parseGrammar src >>= \g -> either (Left . templateNotes g) (const (Right g)) (expandTemplates g >>= check) of
     Left diags -> reportErrors file diags >> pure False
-    Right g -> case lintGrammar g of
-      [] -> pure True
-      ws -> mapM_ (TIO.hPutStrLn stderr . renderLintWarning file) ws >> pure False
+    Right g -> do
+      let ws = lintGrammar g
+      mapM_ (TIO.hPutStrLn stderr . renderLintWarning file) ws
+      pure (all ((== LevelNotice) . lintLevel) ws)

@@ -1,0 +1,42 @@
+# ADR 0063：型が () の規則で、値のない選択肢のアクションを省略する
+# UnitActionsExplicit.hpeg は、同じ文法の省略したアクションを { () } と書いた版
+%module Fixture.UnitActions
+
+%{
+import qualified Data.Text as T
+}%
+
+Start :: [T.Text]
+Start <- Sp ws:Item* !. { ws }
+
+Item :: T.Text
+Item <- Kw w:Name End { w }
+      / Op<Sep> w:Name End { w }
+
+Name :: T.Text
+Name <- !Kw w:$[a-z]+ { w }
+
+# リテラルと先読み
+Kw :: ()
+Kw <- 'if' ![a-z] Sp
+    / 'do' ![a-z] Sp
+
+# 単位の要素が二つ、束縛した単位の要素が二つと意味述語、単位の要素が一つ
+End :: ()
+End <- Sp ';' Sp
+     / a:Sp b:Sp &{ a == b } ','
+     / Sp
+
+# 雛形の展開した規則の型が () になる
+Op<p :: t> :: t
+Op<p> <- '(' p ')'
+       / '-' Sp
+
+# リテラルと意味述語
+Sep :: ()
+Sep <- '|' Sp
+     / '&' &{ True }
+
+# リテラルだけ
+Sp :: ()
+Sp <- ' '*

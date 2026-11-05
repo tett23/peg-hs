@@ -33,6 +33,10 @@ import qualified Fixture.Templates as Templates
 import qualified Fixture.TemplatesSyntax as TemplatesSyntax
 import qualified Fixture.Unicode as Unicode
 import qualified Fixture.UnicodeSyntax as UnicodeSyntax
+import qualified Fixture.UnitActions as UnitActions
+import qualified Fixture.UnitActionsExplicit as UnitActionsExplicit
+import qualified Fixture.UnitActionsExplicitSyntax as UnitActionsExplicitSyntax
+import qualified Fixture.UnitActionsSyntax as UnitActionsSyntax
 import qualified Fixture.Units as Units
 import qualified Fixture.UnitsSyntax as UnitsSyntax
 import Peg.Codegen
@@ -113,6 +117,7 @@ main =
           , testCase "%syntax, typed entry" $ fmap show (UnitsSyntax.parse "1, 2,3;4; 5;  ") @?= Right (show (UnitsSyntax.Result [1, 2, 3] 4 (Just 5) ()))
           , testCase "%syntax, lossless tree" $ fmap syntaxText (UnitsSyntax.parseSyntax "1;2;; ") @?= Right "1;2;; "
           ]
+      , unitActionTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -126,7 +131,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax"]
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
@@ -180,6 +185,39 @@ discardTests =
       testProperty name $
         forAll (T.pack <$> listOf (elements alphabet)) $ \t ->
           run defaultConfig t === run defaultConfig {cfgDiscardAll = True} t
+
+-- ADR 0063: the alternatives without values of rules of type () that omit
+-- their actions, and the same grammar with { () } written.
+unitActionTests :: TestTree
+unitActionTests =
+  testGroup
+    "actions omitted in rules of type () (ADR 0063)"
+    [ testCase "values" $ do
+        UnitActions.parse unitActionInput @?= Right ["ab", "cd", "ef", "gh"]
+        UnitActionsExplicit.parse unitActionInput @?= Right ["ab", "cd", "ef", "gh"]
+    , testCase "%syntax, typed entry" $ UnitActionsSyntax.parse unitActionInput @?= Right ["ab", "cd", "ef", "gh"]
+    , testCase "%syntax, the same tree as with { () }" $ do
+        tree UnitActionsSyntax.parseSyntax UnitActionsSyntax.nameOfSyntaxKind unitActionInput
+          @?= tree UnitActionsExplicitSyntax.parseSyntax UnitActionsExplicitSyntax.nameOfSyntaxKind unitActionInput
+        fmap syntaxText (UnitActionsSyntax.parseSyntax unitActionInput) @?= Right unitActionInput
+    , testProperty "the same results and farthest failures as with { () }" $
+        withNumTests 3000 . checkCoverage $ forAll gen $ \t ->
+          cover 5 (either (const False) (const True) (UnitActions.parse t)) "accepted" $
+            farthest (UnitActions.parse t) === farthest (UnitActionsExplicit.parse t)
+    , testProperty "%syntax: the same trees as with { () }, and lossless" $
+        withNumTests 1000 $ forAll gen $ \t ->
+          tree UnitActionsSyntax.parseSyntax UnitActionsSyntax.nameOfSyntaxKind t === tree UnitActionsExplicitSyntax.parseSyntax UnitActionsExplicitSyntax.nameOfSyntaxKind t
+            .&&. fmap syntaxText (UnitActionsSyntax.parseSyntax t) === fmap (const t) (UnitActionsSyntax.parse t)
+            .&&. farthest (UnitActionsSyntax.parse t) === farthest (UnitActions.parse t)
+    ]
+  where
+    farthest = either (Left . parseErrorPos) Right
+    tree p name t = either (Left . parseErrorPos) (Right . debugTree name) (p t)
+    -- Words, keywords, separators and the punctuation of the grammar.
+    gen = T.concat <$> listOf (elements ["if ", "do ", "ab", "c", " ", ";", ",", "(|)", "(&)", "-", "(", "|"])
+
+unitActionInput :: Text
+unitActionInput = " if ab ; (|)cd,- ef do gh"
 
 unusedInput :: Text
 unusedInput = "$12;$ab;&x1;!.;*1a2;?z;?;^42;"

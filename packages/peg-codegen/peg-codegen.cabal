@@ -82,6 +82,10 @@ test-suite peg-codegen-test
     Fixture.TemplatesSyntax
     Fixture.Units
     Fixture.UnitsSyntax
+    Fixture.UnitActions
+    Fixture.UnitActionsExplicit
+    Fixture.UnitActionsSyntax
+    Fixture.UnitActionsExplicitSyntax
   build-depends:
     , base
     , bytestring

@@ -639,9 +639,17 @@ altCode env a = do
               ++ stmts
               ++ ["_span <- PegRt.spanFrom peg'start", "PegPrelude.pure (" <> fragment (envOpts env) act <> ")"]
           )
-    Nothing -> do
-      (stmts, result) <- passThrough env True items
-      pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
+    Nothing
+      -- An alternative of a rule of type () whose action is omitted, because
+      -- it has no value but unit (ADR 0063): it is generated as with the
+      -- action (), so the unbound items discard their values and the bound
+      -- ones stay for the predicates.
+      | Nothing <- passedItem env items -> do
+          stmts <- mapM (itemStmt env True) items
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
+      | otherwise -> do
+          (stmts, result) <- passThrough env True items
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
 
 -- The item whose value a sequence without an action returns (ADR 0030).
 passedItem :: Env -> [Item] -> Maybe Item
@@ -901,6 +909,9 @@ altCodeS env a = do
           (envStmt ++ ["peg'start <- PegRt.getOffset"] ++ map fst rs ++ ["_span <- PegRt.spanFrom peg'start"])
           ("(" <> fragment (envOpts env) act <> ")")
           (map snd rs)
+    -- Without an item to pass through (ADR 0063), the value is (), and the
+    -- bound items keep their labels, so that the children are those of the
+    -- alternative with { () }.
     Nothing -> do
       (stmts, value, kids) <- passThroughS env True items
       pure (doReturn (envStmt ++ stmts) value kids)
