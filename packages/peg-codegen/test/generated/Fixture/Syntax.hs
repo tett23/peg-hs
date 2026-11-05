@@ -359,59 +359,41 @@ peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's ((
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k2) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'Ws
+      [ do { (_, peg'k2) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k0) <- peg'rule'Ws
           ; PegPrelude.pure ((), peg'k0)
           }, do { (_, peg'k1) <- peg'rule'Comment
           ; PegPrelude.pure ((), peg'k1)
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 33 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 24 #-} () 
-{-# LINE 373 "test/generated/Fixture/Syntax.hs" #-}
-    ), peg'k2)
+          ; PegPrelude.pure ((), peg'k2)
           }
       ])
 
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 35 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 381 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 375 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.token syntaxKindWs (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 36 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 392 "test/generated/Fixture/Syntax.hs" #-}
-    ), peg'k0)
+      [ do { (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]"))
+          ; PegPrelude.pure ((), peg'k0)
           }
       ]))
 
 peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 38 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 400 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 388 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Comment =
   PegRt.memo peg'memo'Comment "Comment"
     (PegRt.token syntaxKindComment (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "#" "'#'")
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "#" "'#'")
           ; (_, peg'k3) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "\n" "'\\n'"))
           ; (_, peg'k2) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 39 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 415 "test/generated/Fixture/Syntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k3])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k3])
           }
       ]))

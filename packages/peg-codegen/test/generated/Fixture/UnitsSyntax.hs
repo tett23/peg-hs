@@ -356,8 +356,8 @@ peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's ((
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
     (PegRt.node syntaxKindSpaces (PegRt.choice
-      [ do { (peg'v1, peg'k0) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v1, peg'k0)
+      [ do { (_, peg'k0) <- peg'rule'Sp
+          ; PegPrelude.pure ((), peg'k0)
           }
       ]))
 
@@ -369,21 +369,15 @@ peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's ((
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.node syntaxKindSp (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.lit " " "' '"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 31 "test/fixtures/UnitsSyntax.hpeg" #-}
- {-# COLUMN 13 #-} () 
-{-# LINE 379 "test/generated/Fixture/UnitsSyntax.hs" #-}
-    ), peg'k0)
+      [ do { (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.lit " " "' '"))
+          ; PegPrelude.pure ((), peg'k0)
           }
       ]))
 
 peg'rule'N :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 33 "test/fixtures/UnitsSyntax.hpeg" #-}
  {-# COLUMN 6 #-}Int
-{-# LINE 387 "test/generated/Fixture/UnitsSyntax.hs" #-}
+{-# LINE 381 "test/generated/Fixture/UnitsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'N =
   PegRt.memo peg'memo'N "N"
@@ -395,7 +389,7 @@ peg'rule'N =
           ; PegPrelude.pure ((
 {-# LINE 34 "test/fixtures/UnitsSyntax.hpeg" #-}
  {-# COLUMN 16 #-} fromEnum (T.head d) - 48 
-{-# LINE 399 "test/generated/Fixture/UnitsSyntax.hs" #-}
+{-# LINE 393 "test/generated/Fixture/UnitsSyntax.hs" #-}
     ), peg'k0)
           }
       ]))

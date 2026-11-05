@@ -460,72 +460,48 @@ peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'IntPart =
   PegRt.memo peg'memo'IntPart "IntPart"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "0" "'0'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 78 "grammar/Json.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 470 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+      [ do { PegRt.lit "0" "'0'"
+          ; PegPrelude.pure ()
           }
-      , do { peg'start <- PegRt.getOffset
-          ; PegRt.cls [('1', '9')] "[1-9]"
+      , do { PegRt.cls [('1', '9')] "[1-9]"
           ; PegRt.skipMany (PegRt.cls [('0', '9')] "[0-9]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 79 "grammar/Json.hpeg" #-}
- {-# COLUMN 25 #-} () 
-{-# LINE 480 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 81 "grammar/Json.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 488 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 476 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Frac =
   PegRt.memo peg'memo'Frac "Frac"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "." "'.'"
+      [ do { PegRt.lit "." "'.'"
           ; PegRt.skipMany1 (PegRt.cls [('0', '9')] "[0-9]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 82 "grammar/Json.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 500 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 84 "grammar/Json.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 508 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 490 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Exp =
   PegRt.memo peg'memo'Exp "Exp"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.cls [('e', 'e'), ('E', 'E')] "[eE]"
+      [ do { PegRt.cls [('e', 'e'), ('E', 'E')] "[eE]"
           ; PegRt.skipOptional (PegRt.cls [('+', '+'), ('-', '-')] "[+\\-]")
           ; PegRt.skipMany1 (PegRt.cls [('0', '9')] "[0-9]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 85 "grammar/Json.hpeg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 521 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 87 "grammar/Json.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 529 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 505 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -538,7 +514,7 @@ peg'rule'String =
           ; PegPrelude.pure (
 {-# LINE 88 "grammar/Json.hpeg" #-}
  {-# COLUMN 29 #-} T.pack (decodeUnits us) 
-{-# LINE 542 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 518 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       ])
@@ -546,7 +522,7 @@ peg'rule'String =
 peg'rule'Unit :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 91 "grammar/Json.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 550 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 526 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Unit =
   PegRt.memo peg'memo'Unit "Unit"
@@ -558,7 +534,7 @@ peg'rule'Unit =
           ; PegPrelude.pure (
 {-# LINE 92 "grammar/Json.hpeg" #-}
  {-# COLUMN 24 #-} e 
-{-# LINE 562 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 538 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -567,7 +543,7 @@ peg'rule'Unit =
           ; PegPrelude.pure (
 {-# LINE 93 "grammar/Json.hpeg" #-}
  {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
-{-# LINE 571 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 547 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       ])
@@ -575,7 +551,7 @@ peg'rule'Unit =
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 95 "grammar/Json.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 579 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 555 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -586,7 +562,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 96 "grammar/Json.hpeg" #-}
  {-# COLUMN 16 #-} 0x22 
-{-# LINE 590 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 566 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -595,7 +571,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 97 "grammar/Json.hpeg" #-}
  {-# COLUMN 16 #-} 0x5C 
-{-# LINE 599 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 575 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -604,7 +580,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 98 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x2F 
-{-# LINE 608 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 584 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -613,7 +589,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 99 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x08 
-{-# LINE 617 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 593 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -622,7 +598,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 100 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x0C 
-{-# LINE 626 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 602 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -631,7 +607,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 101 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x0A 
-{-# LINE 635 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 611 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -640,7 +616,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 102 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x0D 
-{-# LINE 644 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 620 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -649,7 +625,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 103 "grammar/Json.hpeg" #-}
  {-# COLUMN 15 #-} 0x09 
-{-# LINE 653 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 629 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -664,7 +640,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 104 "grammar/Json.hpeg" #-}
  {-# COLUMN 36 #-} hexValue h 
-{-# LINE 668 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 644 "src/Peg/Lsp/JsonParser.hs" #-}
     )
           }
       ])
@@ -672,37 +648,25 @@ peg'rule'Escape =
 peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 106 "grammar/Json.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 676 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 652 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Hex =
   PegRt.memo peg'memo'Hex "Hex"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.cls [('0', '9'), ('a', 'f'), ('A', 'F')] "[0-9a-fA-F]"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 107 "grammar/Json.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 687 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+      [ do { PegRt.cls [('0', '9'), ('a', 'f'), ('A', 'F')] "[0-9a-fA-F]"
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 109 "grammar/Json.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 695 "src/Peg/Lsp/JsonParser.hs" #-}
+{-# LINE 665 "src/Peg/Lsp/JsonParser.hs" #-}
     )
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('\r', '\r')] "[ \\t\\n\\r]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 110 "grammar/Json.hpeg" #-}
- {-# COLUMN 19 #-} () 
-{-# LINE 706 "src/Peg/Lsp/JsonParser.hs" #-}
-    )
+      [ do { PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n'), ('\r', '\r')] "[ \\t\\n\\r]")
+          ; PegPrelude.pure ()
           }
       ])

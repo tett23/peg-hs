@@ -27,4 +27,4 @@ Key :: Text
 Key <- k:([a-z]+ $[0-9]+ / $'_') { k }
 
 Spaces :: ()
-Spaces <- [ \t\n]* { () }
+Spaces <- [ \t\n]*

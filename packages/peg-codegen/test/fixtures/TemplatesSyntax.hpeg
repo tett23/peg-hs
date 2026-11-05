@@ -15,7 +15,7 @@ Start <- K<'lists'> ls:List<List<N, ','>, ';'> K<'expr'> e:E K<'vars'> v:Vars { 
 
 # 予約語：リテラルの後に識別子の文字が続かず、空白を読む
 K<w> :: ()
-K<w> <- w ![a-z] Sp { () }
+K<w> <- w ![a-z] Sp
 
 # 区切りのある一つ以上の列
 List<p :: a, sep> :: [a]
@@ -30,7 +30,7 @@ T :: Expr
 T <- n:N { Num n }
 
 Op<o> :: ()
-Op<o> <- o Sp { () }
+Op<o> <- o Sp
 
 Vars :: Expr
 Vars <- vs:List<$[a-z]+, ','> { Vars vs }
@@ -39,4 +39,4 @@ N :: Int
 N <- d:$[0-9]+ Sp { read (T.unpack d) }
 
 Sp :: ()
-Sp <- ' '* { () }
+Sp <- ' '*

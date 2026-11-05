@@ -76,139 +76,97 @@ peg'rule'E0 :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'E0 =
   PegRt.memo peg'memo'E0 "E0"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'E1
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 5 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 11 #-} () 
-{-# LINE 86 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+      [ do { _ <- peg'rule'E1
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'E1 :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 7 "bench/NestedLR4.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 94 "bench/Conformance/Bench/NestedLR4.hs" #-}
+{-# LINE 88 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
 peg'rule'E1 =
   PegRt.memoLR peg'memo'E1 "E1"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'E1
+      [ do { _ <- peg'rule'E1
           ; PegRt.lit "o1" "'o1'"
           ; _ <- peg'rule'E2
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 8 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 19 #-} () 
-{-# LINE 107 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
-      , do { peg'v0 <- peg'rule'E2
-          ; PegPrelude.pure peg'v0
+      , do { _ <- peg'rule'E2
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'E2 :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 11 "bench/NestedLR4.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 118 "bench/Conformance/Bench/NestedLR4.hs" #-}
+{-# LINE 106 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
 peg'rule'E2 =
   PegRt.memoLR peg'memo'E2 "E2"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'E2
+      [ do { _ <- peg'rule'E2
           ; PegRt.lit "o2" "'o2'"
           ; _ <- peg'rule'E3
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 12 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 19 #-} () 
-{-# LINE 131 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
-      , do { peg'v0 <- peg'rule'E3
-          ; PegPrelude.pure peg'v0
+      , do { _ <- peg'rule'E3
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'E3 :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 15 "bench/NestedLR4.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 142 "bench/Conformance/Bench/NestedLR4.hs" #-}
+{-# LINE 124 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
 peg'rule'E3 =
   PegRt.memoLR peg'memo'E3 "E3"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'E3
+      [ do { _ <- peg'rule'E3
           ; PegRt.lit "o3" "'o3'"
           ; _ <- peg'rule'E4
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 16 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 19 #-} () 
-{-# LINE 155 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
-      , do { peg'v0 <- peg'rule'E4
-          ; PegPrelude.pure peg'v0
+      , do { _ <- peg'rule'E4
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'E4 :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 19 "bench/NestedLR4.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 166 "bench/Conformance/Bench/NestedLR4.hs" #-}
+{-# LINE 142 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
 peg'rule'E4 =
   PegRt.memoLR peg'memo'E4 "E4"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'E4
+      [ do { _ <- peg'rule'E4
           ; PegRt.lit "o4" "'o4'"
           ; _ <- peg'rule'Atom
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 20 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 179 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
-      , do { peg'v0 <- peg'rule'Atom
-          ; PegPrelude.pure peg'v0
+      , do { _ <- peg'rule'Atom
+          ; PegPrelude.pure ()
           }
       ])
 
 peg'rule'Atom :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 23 "bench/NestedLR4.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 190 "bench/Conformance/Bench/NestedLR4.hs" #-}
+{-# LINE 160 "bench/Conformance/Bench/NestedLR4.hs" #-}
     )
 peg'rule'Atom =
   PegRt.memo peg'memo'Atom "Atom"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "x" "'x'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 24 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 14 #-} () 
-{-# LINE 201 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+      [ do { PegRt.lit "x" "'x'"
+          ; PegPrelude.pure ()
           }
-      , do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "(" "'('"
+      , do { PegRt.lit "(" "'('"
           ; _ <- peg'rule'E0
           ; PegRt.lit ")" "')'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 25 "bench/NestedLR4.hpeg" #-}
- {-# COLUMN 20 #-} () 
-{-# LINE 212 "bench/Conformance/Bench/NestedLR4.hs" #-}
-    )
+          ; PegPrelude.pure ()
           }
       ])

@@ -208,7 +208,7 @@ MoreField :: Field
 MoreField <- FieldSep f:Field { f }
 
 FieldSep :: ()
-FieldSep <- [,;] Sp { () }
+FieldSep <- [,;] Sp
 
 Field :: Field
 Field <- '[' !('='* '[') Sp k:Exp ']' Sp '=' !'=' Sp v:Exp { FKey k v }
@@ -225,28 +225,28 @@ Numeral :: Text
 Numeral <- n:$(HexRaw / DecRaw) ![a-zA-Z_] &{ validNumeral n } { n }
 
 HexRaw :: ()
-HexRaw <- '0' [xX] ([pP] [+\-]? / [0-9a-fA-F.])* { () }
+HexRaw <- '0' [xX] ([pP] [+\-]? / [0-9a-fA-F.])*
 
 DecRaw :: ()
-DecRaw <- &([0-9] / '.' [0-9]) ([eE] [+\-]? / [0-9a-fA-F.])* { () }
+DecRaw <- &([0-9] / '.' [0-9]) ([eE] [+\-]? / [0-9a-fA-F.])*
 
 LiteralString :: Text
 LiteralString <- s:$('"' DqChar* '"' / '\'' SqChar* '\'' / LongBracket) { s }
 
 DqChar :: ()
-DqChar <- '\\' Escape { () }
-       / ![\n\r\\"] . { () }
+DqChar <- '\\' Escape
+       / ![\n\r\\"] .
 
 SqChar :: ()
-SqChar <- '\\' Escape { () }
-       / ![\n\r\\'] . { () }
+SqChar <- '\\' Escape
+       / ![\n\r\\'] .
 
 Escape :: ()
-Escape <- [abfnrtv\\"'] { () }
-       / '\n' '\r'? { () }
-       / '\r' '\n'? { () }
-       / 'x' [0-9a-fA-F] [0-9a-fA-F] { () }
-       / 'z' [ \t\n\r\u{0B}\u{0C}]* { () }
+Escape <- [abfnrtv\\"']
+       / '\n' '\r'?
+       / '\r' '\n'?
+       / 'x' [0-9a-fA-F] [0-9a-fA-F]
+       / 'z' [ \t\n\r\u{0B}\u{0C}]*
        / 'u{' h:$[0-9a-fA-F]+ '}' &{ hexValue h < 2 ^ (31 :: Int) } { () }
        / d:$([0-9] [0-9]? [0-9]?) &{ read (T.unpack d) <= (255 :: Int) } { () }
 
@@ -258,16 +258,16 @@ LongClose(n :: Int) :: ()
 LongClose <- ']' e:$'='* &{ T.length e == n } ']' { () }
 
 Comment :: ()
-Comment <- '--' &('[' '='* '[') LongBracket { () }
-        / '--' !('[' '='* '[') (![\n\r] .)* { () }
+Comment <- '--' &('[' '='* '[') LongBracket
+        / '--' !('[' '='* '[') (![\n\r] .)*
 
 Ws :: ()
-Ws <- [ \t\n\r\u{0B}\u{0C}]+ { () }
+Ws <- [ \t\n\r\u{0B}\u{0C}]+
 
 Sp :: ()
-Sp <- (Ws / Comment)* { () }
+Sp <- (Ws / Comment)*
 
 # 予約語 ----------------------------------------------------------------------------
 # 予約語の後に識別子の文字が続かない。global は予約語ではないが、宣言の始まりを同じ形で読む
 K<w> :: ()
-K<w> <- w ![a-zA-Z0-9_] Sp { () }
+K<w> <- w ![a-zA-Z0-9_] Sp

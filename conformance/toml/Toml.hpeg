@@ -61,8 +61,8 @@ Expression <- Ws? l:KeyVal Ws? Comment? (EndOfLine ^eol) { l }
            / Ws? Comment? (EndOfLine ^eol) { LBlank }
 
 EndOfLine :: ()
-EndOfLine <- &Newline { () }
-          / !. { () }
+EndOfLine <- &Newline
+          / !.
 
 # キーを読んだ後は、キーと値の組のほかに成り立つ形がない
 KeyVal :: Line
@@ -94,7 +94,7 @@ UnquotedKey :: Text
 UnquotedKey <- k:$[A-Za-z0-9_\-]+ { k }
 
 KeyValSep :: ()
-KeyValSep <- Ws? '=' Ws? { () }
+KeyValSep <- Ws? '=' Ws?
 
 # 値 --------------------------------------------------------------------------------
 # 日時は数より先に、浮動小数点数は整数より先に試す。どれも数字で始まりうるため
@@ -157,7 +157,7 @@ LiteralString :: Text
 LiteralString <- '\'' cs:$LiteralChar* '\'' { cs }
 
 LiteralChar :: ()
-LiteralChar <- [\t\u{20}-\u{26}\u{28}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}] { () }
+LiteralChar <- [\t\u{20}-\u{26}\u{28}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]
 
 MlLiteralString :: Text
 MlLiteralString <- '\'\'\'' Newline? cs:MllItem* q:$('\'\'' &'\'\'\'' / '\'' &'\'\'\'')? '\'\'\'' { T.concat cs <> q }
@@ -240,23 +240,23 @@ InlineKeyVal <- k:Key KeyValSep v:Val { (k, v) }
 
 # 空白、コメント、改行 --------------------------------------------------------------
 Wcn :: ()
-Wcn <- (Ws / Comment? Newline)* { () }
+Wcn <- (Ws / Comment? Newline)*
 
 Ws :: ()
-Ws <- [ \t]+ { () }
+Ws <- [ \t]+
 
 Comment :: ()
-Comment <- '#' [\t\u{20}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]* { () }
+Comment <- '#' [\t\u{20}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]*
 
 Newline :: ()
-Newline <- '\n' { () }
-        / '\r\n' { () }
+Newline <- '\n'
+        / '\r\n'
 
 # 回復の規則 ------------------------------------------------------------------------
 
 # = がなければ、空白だけを読んで = があったものとみなす
 MissingEq :: ()
-MissingEq <- [ \t]* { () }
+MissingEq <- [ \t]*
 
 # 壊れた値を読み飛ばす。複数行の文字列と括弧は閉じまで、それ以外は行の終わりまで。
 # 文法と同じところで閉じるように、文字列のエスケープと括弧の中のコメントを読む
@@ -267,23 +267,23 @@ SkipValue <- '"""' SkipString { VInvalid }
           / (!Newline .)* { VInvalid }
 
 SkipString :: ()
-SkipString <- (!'"""' ('\\' . / .))* '"""'? { () }
+SkipString <- (!'"""' ('\\' . / .))* '"""'?
 
 SkipBracket :: ()
-SkipBracket <- '[' SkipInBracket* (']' / !.) { () }
-            / '{' SkipInBracket* ('}' / !.) { () }
+SkipBracket <- '[' SkipInBracket* (']' / !.)
+            / '{' SkipInBracket* ('}' / !.)
 
 SkipInBracket :: ()
 SkipInBracket <- SkipBracket
-              / '"""' SkipString { () }
-              / '\'\'\'' (!'\'\'\'' .)* '\'\'\''? { () }
-              / '"' (![\n"] ('\\' . / .))* '"'? { () }
-              / '\'' (![\n'] .)* '\''? { () }
-              / '#' (!Newline .)* { () }
-              / ![\]}] . { () }
+              / '"""' SkipString
+              / '\'\'\'' (!'\'\'\'' .)* '\'\'\''?
+              / '"' (![\n"] ('\\' . / .))* '"'?
+              / '\'' (![\n'] .)* '\''?
+              / '#' (!Newline .)*
+              / ![\]}] .
 
 SkipHeader :: Key
 SkipHeader <- (!Newline .)* { [] }
 
 SkipLine :: ()
-SkipLine <- (!Newline .)* { () }
+SkipLine <- (!Newline .)*

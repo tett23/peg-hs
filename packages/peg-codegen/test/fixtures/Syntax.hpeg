@@ -30,10 +30,10 @@ Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
 Sp :: ()
-Sp <- (Ws / Comment)* { () }
+Sp <- (Ws / Comment)*
 
 Ws :: ()
-Ws <- [ \t\n]+ { () }
+Ws <- [ \t\n]+
 
 Comment :: ()
-Comment <- '#' (!'\n' .)* { () }
+Comment <- '#' (!'\n' .)*

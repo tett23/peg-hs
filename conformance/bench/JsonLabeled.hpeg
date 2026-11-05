@@ -75,14 +75,14 @@ Number :: Text
 Number <- n:$('-'? IntPart Frac? Exp?) { n }
 
 IntPart :: ()
-IntPart <- '0' { () }
-        / [1-9] [0-9]* { () }
+IntPart <- '0'
+        / [1-9] [0-9]*
 
 Frac :: ()
-Frac <- '.' [0-9]+ ^Frac_class { () }
+Frac <- '.' [0-9]+ ^Frac_class
 
 Exp :: ()
-Exp <- [eE] [+\-]? [0-9]+ ^Exp_class { () }
+Exp <- [eE] [+\-]? [0-9]+ ^Exp_class
 
 String :: Text
 String <- '"' us:Unit* '"' ^String_dquote { T.pack (decodeUnits us) }
@@ -104,7 +104,7 @@ Escape <- '"' { 0x22 }
        / 'u' h:$(Hex Hex ^Escape_Hex Hex ^Escape_Hex_2 Hex ^Escape_Hex_3) ^Escape_group { hexValue h }
 
 Hex :: ()
-Hex <- [0-9a-fA-F] { () }
+Hex <- [0-9a-fA-F]
 
 Ws :: ()
-Ws <- [ \t\n\r]* { () }
+Ws <- [ \t\n\r]*

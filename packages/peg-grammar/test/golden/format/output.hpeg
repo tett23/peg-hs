@@ -20,11 +20,11 @@ Item <- w:$([a-z]+) Sp { w } # a word
      }
 
 Op<o> :: ()
-Op<o> <- o Sp { () }
+Op<o> <- o Sp { id () }
 
 Rep<o>(a :: Int, b :: Int) :: ()
-Rep<o> <- o &{ a <= b } Sp { () }
+Rep<o> <- o &{ a <= b } Sp { id () }
 
 Sp :: ()
-Sp <- [ \t\n]* { () } # spaces
+Sp <- [ \t\n]* { id () } # spaces
 # the end

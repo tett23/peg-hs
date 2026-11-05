@@ -1701,91 +1701,67 @@ peg'rule'BlankLine :: PegRt.P (Peg'Store peg's) peg's ((
 peg'rule'BlankLine =
   PegRt.memo peg'memo'BlankLine "BlankLine"
     (PegRt.node syntaxKindBlankLine (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' ')] "[ ]"))
+      [ do { (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' ')] "[ ]"))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "\n" "'\\n'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 96 "test/fixtures/RunsSyntax.hpeg" #-}
- {-# COLUMN 25 #-} () 
-{-# LINE 1712 "test/generated/Fixture/RunsSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'BlankLines :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 98 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 1720 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1714 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'BlankLines =
   PegRt.memo peg'memo'BlankLines "BlankLines"
     (PegRt.node syntaxKindBlankLines (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.many1S) (peg'rule'BlankLine)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 99 "test/fixtures/RunsSyntax.hpeg" #-}
- {-# COLUMN 27 #-} () 
-{-# LINE 1731 "test/generated/Fixture/RunsSyntax.hs" #-}
-    ), peg'k0)
+      [ do { (_, peg'k0) <- (PegRt.many1S) (peg'rule'BlankLine)
+          ; PegPrelude.pure ((), peg'k0)
           }
       ]))
 
 peg'rule'Ind :: (
 {-# LINE 102 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 10 #-}Int
-{-# LINE 1739 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1727 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 102 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 18 #-}()
-{-# LINE 1743 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1731 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Ind n =
   PegRt.memoArg peg'memo'Ind "Ind" n
     (PegRt.node syntaxKindInd (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 103 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 10 #-} n == 0 
-{-# LINE 1752 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1739 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 103 "test/fixtures/RunsSyntax.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 1758 "test/generated/Fixture/RunsSyntax.hs" #-}
-    ), peg'k0)
+          ; PegPrelude.pure ((), peg'k0)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k1) <- PegRt.plain (PegRt.predicate (\_col -> 
+      , do { (_, peg'k1) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 104 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 9 #-} n > 0 
-{-# LINE 1765 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1746 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit " " "' '")
           ; (_, peg'k3) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 104 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 26 #-}n - 1
-{-# LINE 1771 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1752 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 104 "test/fixtures/RunsSyntax.hpeg" #-}
- {-# COLUMN 34 #-} () 
-{-# LINE 1777 "test/generated/Fixture/RunsSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k1, peg'k2, peg'k3])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'Run'0 :: (
 {-# LINE 29 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 15 #-}Int
-{-# LINE 1785 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1761 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[(Block)]
-{-# LINE 1789 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1765 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'0 ind =
   PegRt.memoArg peg'memo'Run'0 "Run'0" ind
@@ -1794,14 +1770,14 @@ peg'rule'Run'0 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'Block (
 {-# LINE 30 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 21 #-}ind
-{-# LINE 1798 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1774 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 30 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 33 #-}ind
-{-# LINE 1805 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1781 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankLine)
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
@@ -1810,7 +1786,7 @@ peg'rule'Run'0 ind =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'Block (
 {-# LINE 30 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 21 #-}ind
-{-# LINE 1814 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1790 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -1819,7 +1795,7 @@ peg'rule'Run'0 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 1823 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1799 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -1827,11 +1803,11 @@ peg'rule'Run'0 ind =
 peg'rule'Run'1 :: (
 {-# LINE 32 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 14 #-}Int
-{-# LINE 1831 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1807 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[((Text, [Block]))]
-{-# LINE 1835 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1811 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'1 ind =
   PegRt.memoArg peg'memo'Run'1 "Run'1" ind
@@ -1840,14 +1816,14 @@ peg'rule'Run'1 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'ListItem (
 {-# LINE 33 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 26 #-}ind
-{-# LINE 1844 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1820 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 33 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 38 #-}ind
-{-# LINE 1851 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1827 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "-" "'-'")
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit " " "' '")
@@ -1856,7 +1832,7 @@ peg'rule'Run'1 ind =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'ListItem (
 {-# LINE 33 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 26 #-}ind
-{-# LINE 1860 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1836 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -1865,7 +1841,7 @@ peg'rule'Run'1 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 1869 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1845 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -1873,11 +1849,11 @@ peg'rule'Run'1 ind =
 peg'rule'Run'2 :: (
 {-# LINE 32 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 14 #-}Int
-{-# LINE 1877 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1853 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[((Text, [Block]))]
-{-# LINE 1881 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1857 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'2 ind =
   PegRt.memoArg peg'memo'Run'2 "Run'2" ind
@@ -1886,14 +1862,14 @@ peg'rule'Run'2 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'DefGroup (
 {-# LINE 34 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 25 #-}ind
-{-# LINE 1890 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1866 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 34 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 37 #-}ind
-{-# LINE 1897 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1873 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "=" "'='")
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit " " "' '")
@@ -1902,7 +1878,7 @@ peg'rule'Run'2 ind =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'DefGroup (
 {-# LINE 34 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 25 #-}ind
-{-# LINE 1906 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1882 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -1911,7 +1887,7 @@ peg'rule'Run'2 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 1915 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1891 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -1919,34 +1895,28 @@ peg'rule'Run'2 ind =
 peg'rule'Gap'3 :: (
 {-# LINE 37 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 1923 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1899 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 26 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 1927 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1903 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Gap'3 _ind' =
   PegRt.memoArg peg'memo'Gap'3 "Gap'3" _ind'
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.lit " " "' '"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 27 "test/fixtures/RunsSyntax.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 1938 "test/generated/Fixture/RunsSyntax.hs" #-}
-    ), peg'k0)
+      [ do { (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.lit " " "' '"))
+          ; PegPrelude.pure ((), peg'k0)
           }
       ])
 
 peg'rule'Run'4 :: (
 {-# LINE 46 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 16 #-}Int
-{-# LINE 1946 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1916 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[(Block)]
-{-# LINE 1950 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1920 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'4 ind =
   PegRt.memoArg peg'memo'Run'4 "Run'4" ind
@@ -1955,14 +1925,14 @@ peg'rule'Run'4 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'Block (
 {-# LINE 47 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 71 #-}ind + 2
-{-# LINE 1959 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1929 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k9) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k6) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 47 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 87 #-}ind + 2
-{-# LINE 1966 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1936 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [(' ', ' ')] "[ ]"))
           ; (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankLine)
@@ -1972,7 +1942,7 @@ peg'rule'Run'4 ind =
           ; (peg'v8, peg'k7) <- PegRt.withCol (\_col -> peg'rule'Block (
 {-# LINE 47 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 71 #-}ind + 2
-{-# LINE 1976 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1946 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v8, PegPrelude.concat [peg'k1, peg'k6, peg'k7])
           }]))
@@ -1981,7 +1951,7 @@ peg'rule'Run'4 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 1985 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1955 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k9])
           }
       ])
@@ -1989,7 +1959,7 @@ peg'rule'Run'4 ind =
 peg'rule'Run'5 :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[(Block)]
-{-# LINE 1993 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1963 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'5 =
   PegRt.memo peg'memo'Run'5 "Run'5"
@@ -1998,14 +1968,14 @@ peg'rule'Run'5 =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'DeepBlock (
 {-# LINE 54 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 41 #-}0
-{-# LINE 2002 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1972 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 54 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 51 #-}0
-{-# LINE 2009 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1979 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankLine)
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
@@ -2014,7 +1984,7 @@ peg'rule'Run'5 =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'DeepBlock (
 {-# LINE 54 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 41 #-}0
-{-# LINE 2018 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1988 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -2023,7 +1993,7 @@ peg'rule'Run'5 =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 2027 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 1997 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -2031,11 +2001,11 @@ peg'rule'Run'5 =
 peg'rule'Run'6 :: (
 {-# LINE 56 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 18 #-}Int
-{-# LINE 2035 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2005 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[((Text, [Block]))]
-{-# LINE 2039 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2009 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'6 ind =
   PegRt.memoArg peg'memo'Run'6 "Run'6" ind
@@ -2044,14 +2014,14 @@ peg'rule'Run'6 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'DeepListItem (
 {-# LINE 57 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 34 #-}ind
-{-# LINE 2048 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2018 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 57 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 46 #-}ind
-{-# LINE 2055 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2025 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "-" "'-'")
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit " " "' '")
@@ -2060,7 +2030,7 @@ peg'rule'Run'6 ind =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'DeepListItem (
 {-# LINE 57 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 34 #-}ind
-{-# LINE 2064 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2034 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -2069,7 +2039,7 @@ peg'rule'Run'6 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 2073 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2043 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -2077,11 +2047,11 @@ peg'rule'Run'6 ind =
 peg'rule'Run'7 :: (
 {-# LINE 56 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 18 #-}Int
-{-# LINE 2081 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2051 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 22 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 22 #-}[((Text, [Block]))]
-{-# LINE 2085 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2055 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Run'7 ind =
   PegRt.memoArg peg'memo'Run'7 "Run'7" ind
@@ -2090,14 +2060,14 @@ peg'rule'Run'7 ind =
           ; (x, peg'k0) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'DeepDefGroup (
 {-# LINE 58 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 33 #-}ind
-{-# LINE 2094 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2064 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k8) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k5) <- (PegRt.voidS) ((PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 58 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 45 #-}ind
-{-# LINE 2101 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2071 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "=" "'='")
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit " " "' '")
@@ -2106,7 +2076,7 @@ peg'rule'Run'7 ind =
           ; (peg'v7, peg'k6) <- PegRt.withCol (\_col -> peg'rule'DeepDefGroup (
 {-# LINE 58 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 33 #-}ind
-{-# LINE 2110 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2080 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k1, peg'k5, peg'k6])
           }]))
@@ -2115,7 +2085,7 @@ peg'rule'Run'7 ind =
           ; PegPrelude.pure ((
 {-# LINE 23 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 47 #-} x : xs 
-{-# LINE 2119 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2089 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k8])
           }
       ])
@@ -2123,15 +2093,15 @@ peg'rule'Run'7 ind =
 peg'rule'Indented'8 :: (
 {-# LINE 50 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 23 #-}Int
-{-# LINE 2127 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2097 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> (
 {-# LINE 61 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 21 #-}Int
-{-# LINE 2131 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2101 "test/generated/Fixture/RunsSyntax.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 50 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 31 #-}[(Block)]
-{-# LINE 2135 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2105 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Indented'8 n ind =
   PegRt.memoArg peg'memo'Indented'8 "Indented'8" (n, ind)
@@ -2141,7 +2111,7 @@ peg'rule'Indented'8 n ind =
           ; (_, peg'k5) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k1) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 51 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 34 #-}n
-{-# LINE 2145 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2115 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [(' ', ' ')] "[ ]"))
           ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankLine)
@@ -2151,14 +2121,14 @@ peg'rule'Indented'8 n ind =
           ; (x, peg'k6) <- PegRt.label "x" (PegRt.withCol (\_col -> peg'rule'DeepBlock (
 {-# LINE 62 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 64 #-}ind + 2
-{-# LINE 2155 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2125 "test/generated/Fixture/RunsSyntax.hs" #-}
     )))
           ; PegRt.touch x
           ; (xs, peg'k15) <- PegRt.label "xs" ((PegRt.manyS) (PegRt.choice [do { (_, peg'k7) <- (PegRt.optionalS) (peg'rule'BlankLines)
           ; (_, peg'k12) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k8) <- PegRt.withCol (\_col -> peg'rule'Ind (
 {-# LINE 51 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 82 #-}n
-{-# LINE 2162 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2132 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [(' ', ' ')] "[ ]"))
           ; (_, peg'k10) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankLine)
@@ -2168,7 +2138,7 @@ peg'rule'Indented'8 n ind =
           ; (peg'v14, peg'k13) <- PegRt.withCol (\_col -> peg'rule'DeepBlock (
 {-# LINE 62 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 64 #-}ind + 2
-{-# LINE 2172 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2142 "test/generated/Fixture/RunsSyntax.hs" #-}
     ))
           ; PegPrelude.pure (peg'v14, PegPrelude.concat [peg'k7, peg'k12, peg'k13])
           }]))
@@ -2177,7 +2147,7 @@ peg'rule'Indented'8 n ind =
           ; PegPrelude.pure ((
 {-# LINE 51 "test/fixtures/RunsSyntax.hpeg" #-}
  {-# COLUMN 109 #-} x : xs 
-{-# LINE 2181 "test/generated/Fixture/RunsSyntax.hs" #-}
+{-# LINE 2151 "test/generated/Fixture/RunsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k5, peg'k6, peg'k15])
           }
       ])

@@ -2847,65 +2847,53 @@ peg'rule'ToCol :: (
 peg'rule'ToCol w =
   PegRt.memoArg peg'memo'ToCol "ToCol" w
     (PegRt.node syntaxKindToCol (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 159 "commonmark/Block.hpeg" #-}
  {-# COLUMN 12 #-} _col >= w 
-{-# LINE 2855 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2854 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 159 "commonmark/Block.hpeg" #-}
- {-# COLUMN 26 #-} () 
-{-# LINE 2861 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k0)
+          ; PegPrelude.pure ((), peg'k0)
           }
       , do { (_, peg'k1) <- PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
-          ; (peg'v3, peg'k2) <- PegRt.withCol (\_col -> peg'rule'ToCol (
+          ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'ToCol (
 {-# LINE 160 "commonmark/Block.hpeg" #-}
  {-# COLUMN 21 #-}w
-{-# LINE 2868 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2862 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k1, peg'k2])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }
       ]))
 
 peg'rule'Sp3 :: (
 {-# LINE 163 "commonmark/Block.hpeg" #-}
  {-# COLUMN 10 #-}Int
-{-# LINE 2877 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2871 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 163 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}()
-{-# LINE 2881 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2875 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Sp3 b =
   PegRt.memoArg peg'memo'Sp3 "Sp3" b
     (PegRt.node syntaxKindSp3 (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      [ do { (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k1) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 164 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-} _col - b <= 3 
-{-# LINE 2891 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2884 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 164 "commonmark/Block.hpeg" #-}
- {-# COLUMN 35 #-} () 
-{-# LINE 2897 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'Col :: (
 {-# LINE 166 "commonmark/Block.hpeg" #-}
  {-# COLUMN 10 #-}Int
-{-# LINE 2905 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2893 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 166 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}Int
-{-# LINE 2909 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2897 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Col c =
   PegRt.memoArg peg'memo'Col "Col" c
@@ -2915,7 +2903,7 @@ peg'rule'Col c =
           ; PegPrelude.pure ((
 {-# LINE 167 "commonmark/Block.hpeg" #-}
  {-# COLUMN 9 #-} c 
-{-# LINE 2919 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2907 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -2923,86 +2911,56 @@ peg'rule'Col c =
 peg'rule'Newline :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 170 "commonmark/Block.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 2927 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2915 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Newline =
   PegRt.memo peg'memo'Newline "Newline"
     (PegRt.node syntaxKindNewline (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\r\n" "'\\r\\n'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 171 "commonmark/Block.hpeg" #-}
- {-# COLUMN 20 #-} () 
-{-# LINE 2938 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k0)
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\r\n" "'\\r\\n'")
+          ; PegPrelude.pure ((), peg'k0)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k1) <- PegRt.plain (PegRt.lit "\n" "'\\n'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 172 "commonmark/Block.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 2947 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k1)
+      , do { (_, peg'k1) <- PegRt.plain (PegRt.lit "\n" "'\\n'")
+          ; PegPrelude.pure ((), peg'k1)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k2) <- PegRt.plain (PegRt.lit "\r" "'\\r'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 173 "commonmark/Block.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 2956 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k2)
+      , do { (_, peg'k2) <- PegRt.plain (PegRt.lit "\r" "'\\r'")
+          ; PegPrelude.pure ((), peg'k2)
           }
       ]))
 
 peg'rule'EOL :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 175 "commonmark/Block.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 2964 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2934 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'EOL =
   PegRt.memo peg'memo'EOL "EOL"
     (PegRt.node syntaxKindEOL (PegRt.choice
-      [ do { (peg'v1, peg'k0) <- peg'rule'Newline
-          ; PegPrelude.pure (peg'v1, peg'k0)
+      [ do { (_, peg'k0) <- peg'rule'Newline
+          ; PegPrelude.pure ((), peg'k0)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 177 "commonmark/Block.hpeg" #-}
- {-# COLUMN 11 #-} () 
-{-# LINE 2978 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k2)
+      , do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
+          ; PegPrelude.pure ((), peg'k1)
           }
       ]))
 
 peg'rule'BlankRest :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 179 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 2986 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2950 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'BlankRest =
   PegRt.memo peg'memo'BlankRest "BlankRest"
     (PegRt.node syntaxKindBlankRest (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      [ do { (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k1) <- peg'rule'EOL
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 180 "commonmark/Block.hpeg" #-}
- {-# COLUMN 26 #-} () 
-{-# LINE 2998 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'LineRest1 :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 182 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 3006 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2964 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'LineRest1 =
   PegRt.memo peg'memo'LineRest1 "LineRest1"
@@ -3018,7 +2976,7 @@ peg'rule'LineRest1 =
           ; PegPrelude.pure ((
 {-# LINE 183 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-} t 
-{-# LINE 3022 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2980 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
@@ -3026,7 +2984,7 @@ peg'rule'LineRest1 =
 peg'rule'LineNL :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 186 "commonmark/Block.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 3030 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 2988 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'LineNL =
   PegRt.memo peg'memo'LineNL "LineNL"
@@ -3042,7 +3000,7 @@ peg'rule'LineNL =
           ; PegPrelude.pure ((
 {-# LINE 187 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-} t 
-{-# LINE 3046 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3004 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3056,7 +3014,7 @@ peg'rule'LineNL =
           ; PegPrelude.pure ((
 {-# LINE 188 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-} t 
-{-# LINE 3060 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3018 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7])
           }
       ]))
@@ -3064,7 +3022,7 @@ peg'rule'LineNL =
 peg'rule'BlankLine :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 190 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}Block
-{-# LINE 3068 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3026 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'BlankLine =
   PegRt.memo peg'memo'BlankLine "BlankLine"
@@ -3076,7 +3034,7 @@ peg'rule'BlankLine =
           ; PegPrelude.pure ((
 {-# LINE 191 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-} BlankLine 
-{-# LINE 3080 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3038 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3086,7 +3044,7 @@ peg'rule'BlankLine =
           ; PegPrelude.pure ((
 {-# LINE 192 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-} BlankLine 
-{-# LINE 3090 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3048 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
@@ -3094,15 +3052,15 @@ peg'rule'BlankLine =
 peg'rule'IndentedCode :: (
 {-# LINE 195 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}[Container]
-{-# LINE 3098 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3056 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 195 "commonmark/Block.hpeg" #-}
  {-# COLUMN 38 #-}Int
-{-# LINE 3102 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3060 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 195 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}Block
-{-# LINE 3106 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3064 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'IndentedCode cs b =
   PegRt.memoArg peg'memo'IndentedCode "IndentedCode" (cs, b)
@@ -3111,20 +3069,20 @@ peg'rule'IndentedCode cs b =
           ; (f, peg'k0) <- PegRt.label "f" (PegRt.withCol (\_col -> peg'rule'CodeLine (
 {-# LINE 196 "commonmark/Block.hpeg" #-}
  {-# COLUMN 28 #-}b
-{-# LINE 3115 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3073 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch f
           ; (ms, peg'k1) <- PegRt.label "ms" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'CodeMore (
 {-# LINE 196 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}cs
-{-# LINE 3121 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3079 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ms
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 196 "commonmark/Block.hpeg" #-}
  {-# COLUMN 49 #-} CodeBlock Nothing (T.concat (f : concat ms)) 
-{-# LINE 3128 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3086 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -3132,11 +3090,11 @@ peg'rule'IndentedCode cs b =
 peg'rule'CodeLine :: (
 {-# LINE 198 "commonmark/Block.hpeg" #-}
  {-# COLUMN 15 #-}Int
-{-# LINE 3136 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3094 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 198 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-}Text
-{-# LINE 3140 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3098 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'CodeLine b =
   PegRt.memoArg peg'memo'CodeLine "CodeLine" b
@@ -3145,12 +3103,12 @@ peg'rule'CodeLine b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'ToCol (
 {-# LINE 199 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b + 4
-{-# LINE 3149 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3107 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (c, peg'k1) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 199 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}_col
-{-# LINE 3154 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3112 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankRest)
@@ -3164,7 +3122,7 @@ peg'rule'CodeLine b =
           ; PegPrelude.pure ((
 {-# LINE 199 "commonmark/Block.hpeg" #-}
  {-# COLUMN 71 #-} virt (c - b - 4) <> t <> "\n" 
-{-# LINE 3168 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3126 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5, peg'k6])
           }
       ]))
@@ -3172,11 +3130,11 @@ peg'rule'CodeLine b =
 peg'rule'CodeMore :: (
 {-# LINE 201 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}[Container]
-{-# LINE 3176 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3134 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 201 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}[Text]
-{-# LINE 3180 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3138 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'CodeMore cs =
   PegRt.memoArg peg'memo'CodeMore "CodeMore" cs
@@ -3185,31 +3143,31 @@ peg'rule'CodeMore cs =
           ; (bl, peg'k0) <- PegRt.label "bl" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'CodeBlank (
 {-# LINE 202 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}cs
-{-# LINE 3189 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3147 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch bl
           ; (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.anyChar))
           ; (p, peg'k2) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 202 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}cs
-{-# LINE 3196 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3154 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 202 "commonmark/Block.hpeg" #-}
  {-# COLUMN 47 #-}_col
-{-# LINE 3200 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3158 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (l, peg'k3) <- PegRt.label "l" (PegRt.withCol (\_col -> peg'rule'CodeLine (
 {-# LINE 202 "commonmark/Block.hpeg" #-}
  {-# COLUMN 64 #-}p
-{-# LINE 3206 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3164 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch l
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 202 "commonmark/Block.hpeg" #-}
  {-# COLUMN 68 #-} bl ++ [l] 
-{-# LINE 3213 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3171 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -3217,11 +3175,11 @@ peg'rule'CodeMore cs =
 peg'rule'CodeBlank :: (
 {-# LINE 204 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}[Container]
-{-# LINE 3221 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3179 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 204 "commonmark/Block.hpeg" #-}
  {-# COLUMN 33 #-}Text
-{-# LINE 3225 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3183 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'CodeBlank cs =
   PegRt.memoArg peg'memo'CodeBlank "CodeBlank" cs
@@ -3231,24 +3189,24 @@ peg'rule'CodeBlank cs =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 205 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}cs
-{-# LINE 3235 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3193 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 205 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-}_col
-{-# LINE 3239 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3197 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (t, peg'k2) <- PegRt.label "t" (PegRt.withCol (\_col -> peg'rule'BlankIn (
 {-# LINE 205 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}p
-{-# LINE 3245 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3203 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 205 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-} t 
-{-# LINE 3252 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3210 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -3256,11 +3214,11 @@ peg'rule'CodeBlank cs =
 peg'rule'BlankIn :: (
 {-# LINE 207 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}Int
-{-# LINE 3260 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3218 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 207 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-}Text
-{-# LINE 3264 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3222 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'BlankIn b =
   PegRt.memoArg peg'memo'BlankIn "BlankIn" b
@@ -3269,12 +3227,12 @@ peg'rule'BlankIn b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'ToCol (
 {-# LINE 208 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b + 4
-{-# LINE 3273 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3231 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (c, peg'k1) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 208 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}_col
-{-# LINE 3278 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3236 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (t, peg'k2) <- PegRt.label "t" ((PegRt.captureS) ((PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))))
@@ -3284,7 +3242,7 @@ peg'rule'BlankIn b =
           ; PegPrelude.pure ((
 {-# LINE 208 "commonmark/Block.hpeg" #-}
  {-# COLUMN 56 #-} virt (c - b - 4) <> t <> "\n" 
-{-# LINE 3288 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3246 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3294,7 +3252,7 @@ peg'rule'BlankIn b =
           ; PegPrelude.pure ((
 {-# LINE 209 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-} "\n" 
-{-# LINE 3298 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3256 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5])
           }
       ]))
@@ -3302,11 +3260,11 @@ peg'rule'BlankIn b =
 peg'rule'FenceOpen :: (
 {-# LINE 212 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}Int
-{-# LINE 3306 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3264 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 212 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}(FenceInfo, Text)
-{-# LINE 3310 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3268 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'FenceOpen b =
   PegRt.memoArg peg'memo'FenceOpen "FenceOpen" b
@@ -3315,12 +3273,12 @@ peg'rule'FenceOpen b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 213 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b
-{-# LINE 3319 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3277 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (i, peg'k1) <- PegRt.label "i" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 213 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}_col
-{-# LINE 3324 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3282 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch i
           ; (f, peg'k4) <- PegRt.label "f" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k2) <- (PegRt.many1S) (PegRt.plain (PegRt.lit "`" "'`'"))
@@ -3332,7 +3290,7 @@ peg'rule'FenceOpen b =
           ; (_, peg'k5) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 213 "commonmark/Block.hpeg" #-}
  {-# COLUMN 52 #-} T.length f >= 3 
-{-# LINE 3336 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3294 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k6) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (info, peg'k9) <- PegRt.label "info" ((PegRt.captureS) ((PegRt.manyS) (PegRt.choice [do { (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'Newline)
@@ -3343,14 +3301,14 @@ peg'rule'FenceOpen b =
           ; (_, peg'k10) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 213 "commonmark/Block.hpeg" #-}
  {-# COLUMN 100 #-} validInfo f info 
-{-# LINE 3347 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3305 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k11) <- peg'rule'EOL
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 213 "commonmark/Block.hpeg" #-}
  {-# COLUMN 125 #-} (FenceInfo (firstChar f) (T.length f) (i - b), info) 
-{-# LINE 3354 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3312 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k4, peg'k5, peg'k6, peg'k9, peg'k10, peg'k11])
           }
       ]))
@@ -3358,15 +3316,15 @@ peg'rule'FenceOpen b =
 peg'rule'FencedCode :: (
 {-# LINE 215 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}[Container]
-{-# LINE 3362 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3320 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 215 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}Int
-{-# LINE 3366 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3324 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 215 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}Block
-{-# LINE 3370 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3328 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'FencedCode cs b =
   PegRt.memoArg peg'memo'FencedCode "FencedCode" (cs, b)
@@ -3375,24 +3333,24 @@ peg'rule'FencedCode cs b =
           ; (o, peg'k0) <- PegRt.label "o" (PegRt.withCol (\_col -> peg'rule'FenceOpen (
 {-# LINE 216 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}b
-{-# LINE 3379 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3337 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch o
           ; (ls, peg'k1) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'FenceLines (
 {-# LINE 216 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}cs
-{-# LINE 3385 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3343 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 216 "commonmark/Block.hpeg" #-}
  {-# COLUMN 48 #-}fst o
-{-# LINE 3389 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3347 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 216 "commonmark/Block.hpeg" #-}
  {-# COLUMN 56 #-} CodeBlock (infoOf (snd o)) (T.concat ls) 
-{-# LINE 3396 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3354 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -3400,15 +3358,15 @@ peg'rule'FencedCode cs b =
 peg'rule'FenceLines :: (
 {-# LINE 218 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}[Container]
-{-# LINE 3404 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3362 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 218 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-}FenceInfo
-{-# LINE 3408 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3366 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 218 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-}[Text]
-{-# LINE 3412 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3370 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'FenceLines cs fi =
   PegRt.memoArg peg'memo'FenceLines "FenceLines" (cs, fi)
@@ -3418,27 +3376,27 @@ peg'rule'FenceLines cs fi =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 219 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}cs
-{-# LINE 3422 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3380 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 219 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}_col
-{-# LINE 3426 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3384 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'ClosingFence (
 {-# LINE 219 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}fi
-{-# LINE 3432 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3390 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 219 "commonmark/Block.hpeg" #-}
  {-# COLUMN 54 #-}p
-{-# LINE 3436 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3394 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 219 "commonmark/Block.hpeg" #-}
  {-# COLUMN 58 #-} [] 
-{-# LINE 3442 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3400 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3446,38 +3404,38 @@ peg'rule'FenceLines cs fi =
           ; (p, peg'k4) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}cs
-{-# LINE 3450 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3408 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-}_col
-{-# LINE 3454 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3412 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (l, peg'k5) <- PegRt.label "l" (PegRt.withCol (\_col -> peg'rule'FenceContent (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-}fi
-{-# LINE 3460 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3418 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-}p
-{-# LINE 3464 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3422 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch l
           ; (ls, peg'k6) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'FenceLines (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 72 #-}cs
-{-# LINE 3470 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3428 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 76 #-}fi
-{-# LINE 3474 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3432 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 220 "commonmark/Block.hpeg" #-}
  {-# COLUMN 81 #-} l : ls 
-{-# LINE 3481 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3439 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4, peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
@@ -3485,7 +3443,7 @@ peg'rule'FenceLines cs fi =
           ; PegPrelude.pure ((
 {-# LINE 221 "commonmark/Block.hpeg" #-}
  {-# COLUMN 15 #-} [] 
-{-# LINE 3489 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3447 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -3493,15 +3451,15 @@ peg'rule'FenceLines cs fi =
 peg'rule'ClosingFence :: (
 {-# LINE 223 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}FenceInfo
-{-# LINE 3497 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3455 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 223 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}Int
-{-# LINE 3501 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3459 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 223 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}()
-{-# LINE 3505 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3463 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ClosingFence fi b =
   PegRt.memoArg peg'memo'ClosingFence "ClosingFence" (fi, b)
@@ -3510,7 +3468,7 @@ peg'rule'ClosingFence fi b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 224 "commonmark/Block.hpeg" #-}
  {-# COLUMN 21 #-}b
-{-# LINE 3514 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3472 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (f, peg'k3) <- PegRt.label "f" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k1) <- (PegRt.many1S) (PegRt.plain (PegRt.lit "`" "'`'"))
           ; PegPrelude.pure ((), peg'k1)
@@ -3521,7 +3479,7 @@ peg'rule'ClosingFence fi b =
           ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 224 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-} closes fi f 
-{-# LINE 3525 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3483 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k5) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k6) <- peg'rule'EOL
@@ -3529,7 +3487,7 @@ peg'rule'ClosingFence fi b =
           ; PegPrelude.pure ((
 {-# LINE 224 "commonmark/Block.hpeg" #-}
  {-# COLUMN 70 #-} () 
-{-# LINE 3533 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3491 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -3537,15 +3495,15 @@ peg'rule'ClosingFence fi b =
 peg'rule'FenceContent :: (
 {-# LINE 226 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}FenceInfo
-{-# LINE 3541 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3499 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 226 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}Int
-{-# LINE 3545 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3503 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 226 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}Text
-{-# LINE 3549 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3507 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'FenceContent fi b =
   PegRt.memoArg peg'memo'FenceContent "FenceContent" (fi, b)
@@ -3554,12 +3512,12 @@ peg'rule'FenceContent fi b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'StripUpTo (
 {-# LINE 227 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}b + fenceIndent fi
-{-# LINE 3558 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3516 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (c, peg'k1) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 227 "commonmark/Block.hpeg" #-}
  {-# COLUMN 53 #-}_col
-{-# LINE 3563 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3521 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (t, peg'k4) <- PegRt.label "t" ((PegRt.captureS) ((PegRt.many1S) (PegRt.choice [do { (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'Newline)
@@ -3572,21 +3530,21 @@ peg'rule'FenceContent fi b =
           ; PegPrelude.pure ((
 {-# LINE 227 "commonmark/Block.hpeg" #-}
  {-# COLUMN 81 #-} virt (c - b - fenceIndent fi) <> t <> "\n" 
-{-# LINE 3576 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3534 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k6) <- PegRt.withCol (\_col -> peg'rule'StripUpTo (
 {-# LINE 228 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}b + fenceIndent fi
-{-# LINE 3583 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3541 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k7) <- peg'rule'Newline
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 228 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-} "\n" 
-{-# LINE 3590 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3548 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7])
           }
       ]))
@@ -3594,42 +3552,36 @@ peg'rule'FenceContent fi b =
 peg'rule'StripUpTo :: (
 {-# LINE 230 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}Int
-{-# LINE 3598 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3556 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 230 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}()
-{-# LINE 3602 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3560 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'StripUpTo w =
   PegRt.memoArg peg'memo'StripUpTo "StripUpTo" w
     (PegRt.node syntaxKindStripUpTo (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 231 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-} _col >= w 
-{-# LINE 3611 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3568 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 231 "commonmark/Block.hpeg" #-}
- {-# COLUMN 30 #-} () 
-{-# LINE 3617 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k0)
+          ; PegPrelude.pure ((), peg'k0)
           }
       , do { (_, peg'k1) <- PegRt.plain (PegRt.lit " " "' '")
-          ; (peg'v3, peg'k2) <- PegRt.withCol (\_col -> peg'rule'StripUpTo (
+          ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'StripUpTo (
 {-# LINE 232 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}w
-{-# LINE 3624 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3576 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k1, peg'k2])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 233 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-} () 
-{-# LINE 3633 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3585 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -3637,11 +3589,11 @@ peg'rule'StripUpTo w =
 peg'rule'ThematicBreak :: (
 {-# LINE 236 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}Int
-{-# LINE 3641 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3593 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 236 "commonmark/Block.hpeg" #-}
  {-# COLUMN 28 #-}Block
-{-# LINE 3645 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3597 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ThematicBreak b =
   PegRt.memoArg peg'memo'ThematicBreak "ThematicBreak" b
@@ -3650,7 +3602,7 @@ peg'rule'ThematicBreak b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 237 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-}b
-{-# LINE 3654 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3606 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (s, peg'k3) <- PegRt.label "s" ((PegRt.captureS) ((PegRt.many1S) (PegRt.choice [do { (_, peg'k1) <- PegRt.plain (PegRt.lit "*" "'*'")
           ; (_, peg'k2) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -3660,21 +3612,21 @@ peg'rule'ThematicBreak b =
           ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 237 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-} T.count "*" s >= 3 
-{-# LINE 3664 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3616 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k5) <- peg'rule'EOL
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 237 "commonmark/Block.hpeg" #-}
  {-# COLUMN 71 #-} ThematicBreak 
-{-# LINE 3671 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3623 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k6) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 238 "commonmark/Block.hpeg" #-}
  {-# COLUMN 21 #-}b
-{-# LINE 3678 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3630 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (s, peg'k9) <- PegRt.label "s" ((PegRt.captureS) ((PegRt.many1S) (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.lit "-" "'-'")
           ; (_, peg'k8) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -3684,21 +3636,21 @@ peg'rule'ThematicBreak b =
           ; (_, peg'k10) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 238 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-} T.count "-" s >= 3 
-{-# LINE 3688 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3640 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k11) <- peg'rule'EOL
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 238 "commonmark/Block.hpeg" #-}
  {-# COLUMN 70 #-} ThematicBreak 
-{-# LINE 3695 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3647 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k9, peg'k10, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k12) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 239 "commonmark/Block.hpeg" #-}
  {-# COLUMN 21 #-}b
-{-# LINE 3702 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3654 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (s, peg'k15) <- PegRt.label "s" ((PegRt.captureS) ((PegRt.many1S) (PegRt.choice [do { (_, peg'k13) <- PegRt.plain (PegRt.lit "_" "'_'")
           ; (_, peg'k14) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -3708,14 +3660,14 @@ peg'rule'ThematicBreak b =
           ; (_, peg'k16) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 239 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-} T.count "_" s >= 3 
-{-# LINE 3712 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3664 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k17) <- peg'rule'EOL
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 239 "commonmark/Block.hpeg" #-}
  {-# COLUMN 70 #-} ThematicBreak 
-{-# LINE 3719 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3671 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k15, peg'k16, peg'k17])
           }
       ]))
@@ -3723,11 +3675,11 @@ peg'rule'ThematicBreak b =
 peg'rule'AtxHeading :: (
 {-# LINE 241 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 3727 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3679 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 241 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}Block
-{-# LINE 3731 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3683 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'AtxHeading b =
   PegRt.memoArg peg'memo'AtxHeading "AtxHeading" b
@@ -3736,14 +3688,14 @@ peg'rule'AtxHeading b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 242 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3740 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3692 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (h, peg'k1) <- PegRt.label "h" ((PegRt.captureS) ((PegRt.many1S) (PegRt.plain (PegRt.lit "#" "'#'"))))
           ; PegRt.touch h
           ; (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 242 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-} T.length h <= 6 
-{-# LINE 3747 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3699 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'BlankRest)
           ; PegPrelude.pure ((), peg'k3)
@@ -3760,7 +3712,7 @@ peg'rule'AtxHeading b =
           ; PegPrelude.pure ((
 {-# LINE 242 "commonmark/Block.hpeg" #-}
  {-# COLUMN 95 #-} Heading (T.length h) (stripAtx t) 
-{-# LINE 3764 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3716 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5, peg'k8, peg'k9])
           }
       ]))
@@ -3768,15 +3720,15 @@ peg'rule'AtxHeading b =
 peg'rule'HtmlBlock :: (
 {-# LINE 245 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}[Container]
-{-# LINE 3772 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3724 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 245 "commonmark/Block.hpeg" #-}
  {-# COLUMN 35 #-}Int
-{-# LINE 3776 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3728 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 245 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}Block
-{-# LINE 3780 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3732 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlBlock cs b =
   PegRt.memoArg peg'memo'HtmlBlock "HtmlBlock" (cs, b)
@@ -3785,34 +3737,34 @@ peg'rule'HtmlBlock cs b =
           ; (_, peg'k0) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart1 (
 {-# LINE 246 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}b
-{-# LINE 3789 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3741 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (ls, peg'k1) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndLines (
 {-# LINE 246 "commonmark/Block.hpeg" #-}
  {-# COLUMN 45 #-}cs
-{-# LINE 3794 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3746 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 246 "commonmark/Block.hpeg" #-}
  {-# COLUMN 49 #-}b
-{-# LINE 3798 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3750 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 246 "commonmark/Block.hpeg" #-}
  {-# COLUMN 52 #-}["</pre>", "</script>", "</style>", "</textarea>"]
-{-# LINE 3802 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3754 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 246 "commonmark/Block.hpeg" #-}
  {-# COLUMN 105 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3809 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3761 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 247 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3816 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3768 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "<!--" "'<!--'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
@@ -3820,29 +3772,29 @@ peg'rule'HtmlBlock cs b =
           ; (ls, peg'k5) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndLines (
 {-# LINE 247 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}cs
-{-# LINE 3824 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3776 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 247 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}b
-{-# LINE 3828 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3780 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 247 "commonmark/Block.hpeg" #-}
  {-# COLUMN 53 #-}["-->"]
-{-# LINE 3832 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3784 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 247 "commonmark/Block.hpeg" #-}
  {-# COLUMN 63 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3839 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3791 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k8) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k6) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 248 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3846 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3798 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "<?" "'<?'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7])
@@ -3850,29 +3802,29 @@ peg'rule'HtmlBlock cs b =
           ; (ls, peg'k9) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndLines (
 {-# LINE 248 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}cs
-{-# LINE 3854 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3806 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 248 "commonmark/Block.hpeg" #-}
  {-# COLUMN 48 #-}b
-{-# LINE 3858 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3810 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 248 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-}["?>"]
-{-# LINE 3862 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3814 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 248 "commonmark/Block.hpeg" #-}
  {-# COLUMN 60 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3869 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3821 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k9])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k13) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k10) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 249 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3876 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3828 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k11) <- PegRt.plain (PegRt.lit "<!" "'<!'")
           ; (_, peg'k12) <- PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]")
@@ -3881,29 +3833,29 @@ peg'rule'HtmlBlock cs b =
           ; (ls, peg'k14) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndLines (
 {-# LINE 249 "commonmark/Block.hpeg" #-}
  {-# COLUMN 53 #-}cs
-{-# LINE 3885 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3837 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 249 "commonmark/Block.hpeg" #-}
  {-# COLUMN 57 #-}b
-{-# LINE 3889 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3841 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 249 "commonmark/Block.hpeg" #-}
  {-# COLUMN 60 #-}[">"]
-{-# LINE 3893 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3845 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 249 "commonmark/Block.hpeg" #-}
  {-# COLUMN 68 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3900 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3852 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k13, peg'k14])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k17) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k15) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 250 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3907 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3859 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k16) <- PegRt.plain (PegRt.lit "<![CDATA[" "'<![CDATA['")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16])
@@ -3911,68 +3863,68 @@ peg'rule'HtmlBlock cs b =
           ; (ls, peg'k18) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndLines (
 {-# LINE 250 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-}cs
-{-# LINE 3915 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3867 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 250 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-}b
-{-# LINE 3919 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3871 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 250 "commonmark/Block.hpeg" #-}
  {-# COLUMN 58 #-}["]]>"]
-{-# LINE 3923 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3875 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 250 "commonmark/Block.hpeg" #-}
  {-# COLUMN 68 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3930 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3882 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k17, peg'k18])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k19) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart6 (
 {-# LINE 251 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}b
-{-# LINE 3937 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3889 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (ls, peg'k20) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlBlankLines (
 {-# LINE 251 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}cs
-{-# LINE 3942 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3894 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 251 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}b
-{-# LINE 3946 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3898 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 251 "commonmark/Block.hpeg" #-}
  {-# COLUMN 54 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3953 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3905 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k19, peg'k20])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k21) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart7 (
 {-# LINE 252 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}b
-{-# LINE 3960 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3912 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (ls, peg'k22) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlBlankLines (
 {-# LINE 252 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}cs
-{-# LINE 3965 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3917 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 252 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}b
-{-# LINE 3969 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3921 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 252 "commonmark/Block.hpeg" #-}
  {-# COLUMN 54 #-} HtmlBlock (T.intercalate "\n" ls) 
-{-# LINE 3976 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3928 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k21, peg'k22])
           }
       ]))
@@ -3980,11 +3932,11 @@ peg'rule'HtmlBlock cs b =
 peg'rule'HtmlStart1 :: (
 {-# LINE 254 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 3984 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3936 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 254 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}()
-{-# LINE 3988 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3940 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlStart1 b =
   PegRt.memoArg peg'memo'HtmlStart1 "HtmlStart1" b
@@ -3993,7 +3945,7 @@ peg'rule'HtmlStart1 b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 255 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 3997 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3949 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "<" "'<'")
           ; (n, peg'k2) <- PegRt.label "n" ((PegRt.captureS) ((PegRt.many1S) (PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]"))))
@@ -4001,7 +3953,7 @@ peg'rule'HtmlStart1 b =
           ; (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 255 "commonmark/Block.hpeg" #-}
  {-# COLUMN 41 #-} lowerIn type1Tags n 
-{-# LINE 4005 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3957 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k7) <- PegRt.choice [do { (_, peg'k4) <- PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; PegPrelude.pure ((), peg'k4)
@@ -4014,7 +3966,7 @@ peg'rule'HtmlStart1 b =
           ; PegPrelude.pure ((
 {-# LINE 255 "commonmark/Block.hpeg" #-}
  {-# COLUMN 86 #-} () 
-{-# LINE 4018 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3970 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k7])
           }
       ]))
@@ -4022,11 +3974,11 @@ peg'rule'HtmlStart1 b =
 peg'rule'HtmlStart6 :: (
 {-# LINE 257 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 4026 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3978 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 257 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}()
-{-# LINE 4030 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3982 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlStart6 b =
   PegRt.memoArg peg'memo'HtmlStart6 "HtmlStart6" b
@@ -4035,7 +3987,7 @@ peg'rule'HtmlStart6 b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 258 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 4039 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 3991 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "<" "'<'")
           ; (_, peg'k2) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "/" "'/'"))
@@ -4044,7 +3996,7 @@ peg'rule'HtmlStart6 b =
           ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 258 "commonmark/Block.hpeg" #-}
  {-# COLUMN 49 #-} lowerIn blockTags n 
-{-# LINE 4048 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4000 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k9) <- PegRt.choice [do { (_, peg'k5) <- PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; PegPrelude.pure ((), peg'k5)
@@ -4059,7 +4011,7 @@ peg'rule'HtmlStart6 b =
           ; PegPrelude.pure ((
 {-# LINE 258 "commonmark/Block.hpeg" #-}
  {-# COLUMN 101 #-} () 
-{-# LINE 4063 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4015 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k9])
           }
       ]))
@@ -4067,11 +4019,11 @@ peg'rule'HtmlStart6 b =
 peg'rule'HtmlStart7 :: (
 {-# LINE 260 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 4071 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4023 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 260 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}()
-{-# LINE 4075 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4027 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlStart7 b =
   PegRt.memoArg peg'memo'HtmlStart7 "HtmlStart7" b
@@ -4080,7 +4032,7 @@ peg'rule'HtmlStart7 b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 261 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 4084 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4036 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "<" "'<'")
           ; (n, peg'k2) <- PegRt.label "n" ((PegRt.captureS) (peg'rule'TagName))
@@ -4088,7 +4040,7 @@ peg'rule'HtmlStart7 b =
           ; (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 261 "commonmark/Block.hpeg" #-}
  {-# COLUMN 39 #-} not (lowerIn type1Tags n) 
-{-# LINE 4092 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4044 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k4) <- (PegRt.manyS) (peg'rule'Attr)
           ; (_, peg'k5) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -4100,14 +4052,13 @@ peg'rule'HtmlStart7 b =
           ; PegPrelude.pure ((
 {-# LINE 261 "commonmark/Block.hpeg" #-}
  {-# COLUMN 103 #-} () 
-{-# LINE 4104 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4056 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7, peg'k8, peg'k9])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k10) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k10) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 262 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b
-{-# LINE 4111 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4062 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k11) <- PegRt.plain (PegRt.lit "</" "'</'")
           ; (_, peg'k12) <- peg'rule'TagName
@@ -4115,82 +4066,58 @@ peg'rule'HtmlStart7 b =
           ; (_, peg'k14) <- PegRt.plain (PegRt.lit ">" "'>'")
           ; (_, peg'k15) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k16) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'EOL)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 262 "commonmark/Block.hpeg" #-}
- {-# COLUMN 58 #-} () 
-{-# LINE 4123 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k10, peg'k11, peg'k12, peg'k13, peg'k14, peg'k15, peg'k16])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k10, peg'k11, peg'k12, peg'k13, peg'k14, peg'k15, peg'k16])
           }
       ]))
 
 peg'rule'TagName :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 264 "commonmark/Block.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 4131 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4077 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'TagName =
   PegRt.memo peg'memo'TagName "TagName"
     (PegRt.node syntaxKindTagName (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]")
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]")
           ; (_, peg'k1) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('-', '-')] "[A-Za-z0-9\\-]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 265 "commonmark/Block.hpeg" #-}
- {-# COLUMN 37 #-} () 
-{-# LINE 4143 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'Attr :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 267 "commonmark/Block.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 4151 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4091 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Attr =
   PegRt.memo peg'memo'Attr "Attr"
     (PegRt.node syntaxKindAttr (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      [ do { (_, peg'k0) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k1) <- PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z'), ('_', '_'), (':', ':')] "[A-Za-z_:]")
           ; (_, peg'k2) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z'), ('0', '9'), ('_', '_'), ('.', '.'), (':', ':'), ('-', '-')] "[A-Za-z0-9_.:\\-]"))
           ; (_, peg'k3) <- (PegRt.optionalS) (peg'rule'AttrValue)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 268 "commonmark/Block.hpeg" #-}
- {-# COLUMN 57 #-} () 
-{-# LINE 4165 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'AttrValue :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 270 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 4173 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4107 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'AttrValue =
   PegRt.memo peg'memo'AttrValue "AttrValue"
     (PegRt.node syntaxKindAttrValue (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      [ do { (_, peg'k0) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "=" "'='")
           ; (_, peg'k2) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k5) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\r', '\r'), ('\n', '\n'), ('"', '"'), ('\'', '\''), ('=', '='), ('<', '<'), ('>', '>'), ('`', '`')] "[ \\t\\r\\n\"'=<>`]"))
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 271 "commonmark/Block.hpeg" #-}
- {-# COLUMN 55 #-} () 
-{-# LINE 4190 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k6) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      , do { (_, peg'k6) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "=" "'='")
           ; (_, peg'k8) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k9) <- PegRt.plain (PegRt.lit "'" "'\\''")
@@ -4200,15 +4127,9 @@ peg'rule'AttrValue =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k10, peg'k11, peg'k12])
           }])
           ; (_, peg'k14) <- PegRt.plain (PegRt.lit "'" "'\\''")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 272 "commonmark/Block.hpeg" #-}
- {-# COLUMN 62 #-} () 
-{-# LINE 4208 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k6, peg'k7, peg'k8, peg'k9, peg'k13, peg'k14])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7, peg'k8, peg'k9, peg'k13, peg'k14])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k15) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+      , do { (_, peg'k15) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k16) <- PegRt.plain (PegRt.lit "=" "'='")
           ; (_, peg'k17) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k18) <- PegRt.plain (PegRt.lit "\"" "'\"'")
@@ -4218,31 +4139,26 @@ peg'rule'AttrValue =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k20, peg'k21])
           }])
           ; (_, peg'k23) <- PegRt.plain (PegRt.lit "\"" "'\"'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 273 "commonmark/Block.hpeg" #-}
- {-# COLUMN 59 #-} () 
-{-# LINE 4226 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k15, peg'k16, peg'k17, peg'k18, peg'k22, peg'k23])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16, peg'k17, peg'k18, peg'k22, peg'k23])
           }
       ]))
 
 peg'rule'HtmlEndLines :: (
 {-# LINE 275 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}[Container]
-{-# LINE 4234 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4150 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 275 "commonmark/Block.hpeg" #-}
  {-# COLUMN 38 #-}Int
-{-# LINE 4238 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4154 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 275 "commonmark/Block.hpeg" #-}
  {-# COLUMN 49 #-}[Text]
-{-# LINE 4242 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4158 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 275 "commonmark/Block.hpeg" #-}
  {-# COLUMN 60 #-}[Text]
-{-# LINE 4246 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4162 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlEndLines cs b es =
   PegRt.memoArg peg'memo'HtmlEndLines "HtmlEndLines" (cs, b, es)
@@ -4251,7 +4167,7 @@ peg'rule'HtmlEndLines cs b es =
           ; (c, peg'k0) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 276 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-}_col
-{-# LINE 4255 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4171 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k1) <- PegRt.label "l" (peg'rule'LineRest1)
@@ -4259,20 +4175,20 @@ peg'rule'HtmlEndLines cs b es =
           ; (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 276 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-} hasEnd es l 
-{-# LINE 4263 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4179 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 276 "commonmark/Block.hpeg" #-}
  {-# COLUMN 59 #-} [virt (c - b) <> l] 
-{-# LINE 4269 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4185 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
           ; (c, peg'k3) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 277 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-}_col
-{-# LINE 4276 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4192 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k4) <- PegRt.label "l" (peg'rule'LineRest1)
@@ -4280,18 +4196,18 @@ peg'rule'HtmlEndLines cs b es =
           ; (ls, peg'k5) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndMore (
 {-# LINE 277 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-}cs
-{-# LINE 4284 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4200 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 277 "commonmark/Block.hpeg" #-}
  {-# COLUMN 59 #-}es
-{-# LINE 4288 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4204 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 277 "commonmark/Block.hpeg" #-}
  {-# COLUMN 64 #-} (virt (c - b) <> l) : ls 
-{-# LINE 4295 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4211 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
           }
       ]))
@@ -4299,15 +4215,15 @@ peg'rule'HtmlEndLines cs b es =
 peg'rule'HtmlEndMore :: (
 {-# LINE 279 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}[Container]
-{-# LINE 4303 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4219 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 279 "commonmark/Block.hpeg" #-}
  {-# COLUMN 38 #-}[Text]
-{-# LINE 4307 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4223 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 279 "commonmark/Block.hpeg" #-}
  {-# COLUMN 49 #-}[Text]
-{-# LINE 4311 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4227 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlEndMore cs es =
   PegRt.memoArg peg'memo'HtmlEndMore "HtmlEndMore" (cs, es)
@@ -4317,17 +4233,17 @@ peg'rule'HtmlEndMore cs es =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 280 "commonmark/Block.hpeg" #-}
  {-# COLUMN 28 #-}cs
-{-# LINE 4321 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4237 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 280 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}_col
-{-# LINE 4325 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4241 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (c, peg'k2) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 280 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}_col
-{-# LINE 4331 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4247 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k3) <- PegRt.label "l" (peg'rule'LineNL)
@@ -4335,13 +4251,13 @@ peg'rule'HtmlEndMore cs es =
           ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 280 "commonmark/Block.hpeg" #-}
  {-# COLUMN 61 #-} hasEnd es l 
-{-# LINE 4339 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4255 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 280 "commonmark/Block.hpeg" #-}
  {-# COLUMN 77 #-} [virt (c - p) <> l] 
-{-# LINE 4345 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4261 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4349,17 +4265,17 @@ peg'rule'HtmlEndMore cs es =
           ; (p, peg'k6) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}cs
-{-# LINE 4353 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4269 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}_col
-{-# LINE 4357 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4273 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (c, peg'k7) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}_col
-{-# LINE 4363 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4279 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k8) <- PegRt.label "l" (peg'rule'LineNL)
@@ -4367,18 +4283,18 @@ peg'rule'HtmlEndMore cs es =
           ; (ls, peg'k9) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlEndMore (
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 73 #-}cs
-{-# LINE 4371 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4287 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 77 #-}es
-{-# LINE 4375 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4291 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 281 "commonmark/Block.hpeg" #-}
  {-# COLUMN 82 #-} (virt (c - p) <> l) : ls 
-{-# LINE 4382 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4298 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k8, peg'k9])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4386,7 +4302,7 @@ peg'rule'HtmlEndMore cs es =
           ; PegPrelude.pure ((
 {-# LINE 282 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-} [] 
-{-# LINE 4390 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4306 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -4394,15 +4310,15 @@ peg'rule'HtmlEndMore cs es =
 peg'rule'HtmlBlankLines :: (
 {-# LINE 284 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-}[Container]
-{-# LINE 4398 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4314 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 284 "commonmark/Block.hpeg" #-}
  {-# COLUMN 40 #-}Int
-{-# LINE 4402 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4318 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 284 "commonmark/Block.hpeg" #-}
  {-# COLUMN 48 #-}[Text]
-{-# LINE 4406 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4322 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlBlankLines cs b =
   PegRt.memoArg peg'memo'HtmlBlankLines "HtmlBlankLines" (cs, b)
@@ -4411,7 +4327,7 @@ peg'rule'HtmlBlankLines cs b =
           ; (c, peg'k0) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 285 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}_col
-{-# LINE 4415 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4331 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k1) <- PegRt.label "l" (peg'rule'LineRest1)
@@ -4419,14 +4335,14 @@ peg'rule'HtmlBlankLines cs b =
           ; (ls, peg'k2) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlBlankMore (
 {-# LINE 285 "commonmark/Block.hpeg" #-}
  {-# COLUMN 60 #-}cs
-{-# LINE 4423 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4339 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 285 "commonmark/Block.hpeg" #-}
  {-# COLUMN 65 #-} (virt (c - b) <> l) : ls 
-{-# LINE 4430 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4346 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -4434,11 +4350,11 @@ peg'rule'HtmlBlankLines cs b =
 peg'rule'HtmlBlankMore :: (
 {-# LINE 287 "commonmark/Block.hpeg" #-}
  {-# COLUMN 21 #-}[Container]
-{-# LINE 4438 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4354 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 287 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-}[Text]
-{-# LINE 4442 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4358 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'HtmlBlankMore cs =
   PegRt.memoArg peg'memo'HtmlBlankMore "HtmlBlankMore" cs
@@ -4448,18 +4364,18 @@ peg'rule'HtmlBlankMore cs =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 288 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-}cs
-{-# LINE 4452 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4368 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 288 "commonmark/Block.hpeg" #-}
  {-# COLUMN 34 #-}_col
-{-# LINE 4456 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4372 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankRest)
           ; (c, peg'k3) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 288 "commonmark/Block.hpeg" #-}
  {-# COLUMN 57 #-}_col
-{-# LINE 4463 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4379 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k4) <- PegRt.label "l" (peg'rule'LineNL)
@@ -4467,14 +4383,14 @@ peg'rule'HtmlBlankMore cs =
           ; (ls, peg'k5) <- PegRt.label "ls" (PegRt.withCol (\_col -> peg'rule'HtmlBlankMore (
 {-# LINE 288 "commonmark/Block.hpeg" #-}
  {-# COLUMN 89 #-}cs
-{-# LINE 4471 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4387 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 288 "commonmark/Block.hpeg" #-}
  {-# COLUMN 94 #-} (virt (c - p) <> l) : ls 
-{-# LINE 4478 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4394 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4482,7 +4398,7 @@ peg'rule'HtmlBlankMore cs =
           ; PegPrelude.pure ((
 {-# LINE 289 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-} [] 
-{-# LINE 4486 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4402 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -4490,15 +4406,15 @@ peg'rule'HtmlBlankMore cs =
 peg'rule'BlockQuoteB :: (
 {-# LINE 292 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}[Container]
-{-# LINE 4494 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4410 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 292 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-}Int
-{-# LINE 4498 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4414 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 292 "commonmark/Block.hpeg" #-}
  {-# COLUMN 45 #-}Block
-{-# LINE 4502 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4418 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'BlockQuoteB cs b =
   PegRt.memoArg peg'memo'BlockQuoteB "BlockQuoteB" (cs, b)
@@ -4507,36 +4423,36 @@ peg'rule'BlockQuoteB cs b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}b
-{-# LINE 4511 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4427 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit ">" "'>'")
           ; (c, peg'k2) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 33 #-}_col
-{-# LINE 4517 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4433 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (l, peg'k3) <- PegRt.label "l" (PegRt.withCol (\_col -> peg'rule'QSp (
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 45 #-}c
-{-# LINE 4523 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4439 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch l
           ; (bs, peg'k4) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'QuoteBody (
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 61 #-}cs
-{-# LINE 4529 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4445 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 65 #-}l
-{-# LINE 4533 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4449 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 293 "commonmark/Block.hpeg" #-}
  {-# COLUMN 69 #-} BlockQuote bs 
-{-# LINE 4540 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4456 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
@@ -4544,15 +4460,15 @@ peg'rule'BlockQuoteB cs b =
 peg'rule'QuoteBody :: (
 {-# LINE 295 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}[Container]
-{-# LINE 4548 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4464 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 295 "commonmark/Block.hpeg" #-}
  {-# COLUMN 35 #-}Int
-{-# LINE 4552 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4468 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 295 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}[Block]
-{-# LINE 4556 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4472 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'QuoteBody cs l =
   PegRt.memoArg peg'memo'QuoteBody "QuoteBody" (cs, l)
@@ -4561,18 +4477,18 @@ peg'rule'QuoteBody cs l =
           ; (bs, peg'k0) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'Blocks (
 {-# LINE 296 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}cs ++ [Quote]
-{-# LINE 4565 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4481 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 296 "commonmark/Block.hpeg" #-}
  {-# COLUMN 39 #-}l
-{-# LINE 4569 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4485 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 296 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-} bs 
-{-# LINE 4576 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4492 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -4581,7 +4497,7 @@ peg'rule'QuoteBody cs l =
           ; PegPrelude.pure ((
 {-# LINE 297 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-} [] 
-{-# LINE 4585 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4501 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), peg'k1)
           }
       ]))
@@ -4589,15 +4505,15 @@ peg'rule'QuoteBody cs l =
 peg'rule'ListItemB :: (
 {-# LINE 299 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}[Container]
-{-# LINE 4593 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4509 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 299 "commonmark/Block.hpeg" #-}
  {-# COLUMN 35 #-}Int
-{-# LINE 4597 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4513 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 299 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}Block
-{-# LINE 4601 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4517 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ListItemB cs b =
   PegRt.memoArg peg'memo'ListItemB "ListItemB" (cs, b)
@@ -4606,35 +4522,35 @@ peg'rule'ListItemB cs b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b
-{-# LINE 4610 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4526 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (m, peg'k1) <- PegRt.label "m" (peg'rule'Marker)
           ; PegRt.touch m
           ; (c, peg'k2) <- PegRt.label "c" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}_col
-{-# LINE 4617 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4533 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch c
           ; (bs, peg'k3) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'ItemBody (
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 54 #-}cs
-{-# LINE 4623 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4539 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 58 #-}b
-{-# LINE 4627 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4543 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 61 #-}c
-{-# LINE 4631 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4547 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 300 "commonmark/Block.hpeg" #-}
  {-# COLUMN 65 #-} Item m bs 
-{-# LINE 4638 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4554 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -4642,7 +4558,7 @@ peg'rule'ListItemB cs b =
 peg'rule'Marker :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 302 "commonmark/Block.hpeg" #-}
  {-# COLUMN 11 #-}ListType
-{-# LINE 4646 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4562 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Marker =
   PegRt.memo peg'memo'Marker "Marker"
@@ -4654,7 +4570,7 @@ peg'rule'Marker =
           ; PegPrelude.pure ((
 {-# LINE 303 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-} Bullet (firstChar c) 
-{-# LINE 4658 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4574 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -4663,7 +4579,7 @@ peg'rule'Marker =
           ; (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 304 "commonmark/Block.hpeg" #-}
  {-# COLUMN 22 #-} T.length n <= 9 
-{-# LINE 4667 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4583 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (d, peg'k3) <- PegRt.label "d" ((PegRt.captureS) (PegRt.plain (PegRt.cls [('.', '.'), (')', ')')] "[.)]")))
           ; PegRt.touch d
@@ -4671,7 +4587,7 @@ peg'rule'Marker =
           ; PegPrelude.pure ((
 {-# LINE 304 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-} Ordered (read (T.unpack n)) (firstChar d) 
-{-# LINE 4675 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4591 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k1, peg'k2, peg'k3])
           }
       ]))
@@ -4679,19 +4595,19 @@ peg'rule'Marker =
 peg'rule'ItemBody :: (
 {-# LINE 307 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}[Container]
-{-# LINE 4683 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4599 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 307 "commonmark/Block.hpeg" #-}
  {-# COLUMN 34 #-}Int
-{-# LINE 4687 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4603 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 307 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}Int
-{-# LINE 4691 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4607 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 307 "commonmark/Block.hpeg" #-}
  {-# COLUMN 52 #-}[Block]
-{-# LINE 4695 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4611 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ItemBody cs b c =
   PegRt.memoArg peg'memo'ItemBody "ItemBody" (cs, b, c)
@@ -4702,14 +4618,14 @@ peg'rule'ItemBody cs b c =
           ; (bs, peg'k2) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'EmptyStart (
 {-# LINE 308 "commonmark/Block.hpeg" #-}
  {-# COLUMN 42 #-}cs ++ [ItemAt (c + 1 - b)]
-{-# LINE 4706 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4622 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 308 "commonmark/Block.hpeg" #-}
  {-# COLUMN 71 #-} bs 
-{-# LINE 4713 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4629 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4719,14 +4635,14 @@ peg'rule'ItemBody cs b c =
           ; PegPrelude.pure ((
 {-# LINE 309 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-} [] 
-{-# LINE 4723 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4639 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k5) <- PegRt.withCol (\_col -> peg'rule'ToCol (
 {-# LINE 310 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}c + 5
-{-# LINE 4730 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4646 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k6) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankRest)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6])
@@ -4735,18 +4651,18 @@ peg'rule'ItemBody cs b c =
           ; (bs, peg'k9) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'Blocks (
 {-# LINE 310 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-}cs ++ [ItemAt (c + 1 - b)]
-{-# LINE 4739 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4655 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 310 "commonmark/Block.hpeg" #-}
  {-# COLUMN 83 #-}c + 1
-{-# LINE 4743 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4659 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 310 "commonmark/Block.hpeg" #-}
  {-# COLUMN 91 #-} bs 
-{-# LINE 4750 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4666 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k7, peg'k8, peg'k9])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4754,28 +4670,28 @@ peg'rule'ItemBody cs b c =
           ; (w, peg'k11) <- PegRt.label "w" (PegRt.withCol (\_col -> peg'rule'Col (
 {-# LINE 311 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}_col
-{-# LINE 4758 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4674 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch w
           ; (bs, peg'k12) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'ItemContent (
 {-# LINE 311 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-}cs
-{-# LINE 4764 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4680 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 311 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}b
-{-# LINE 4768 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4684 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 311 "commonmark/Block.hpeg" #-}
  {-# COLUMN 53 #-}w
-{-# LINE 4772 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4688 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 311 "commonmark/Block.hpeg" #-}
  {-# COLUMN 57 #-} bs 
-{-# LINE 4779 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4695 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k10, peg'k11, peg'k12])
           }
       ]))
@@ -4783,19 +4699,19 @@ peg'rule'ItemBody cs b c =
 peg'rule'ItemContent :: (
 {-# LINE 314 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}[Container]
-{-# LINE 4787 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4703 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 314 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-}Int
-{-# LINE 4791 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4707 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 314 "commonmark/Block.hpeg" #-}
  {-# COLUMN 47 #-}Int
-{-# LINE 4795 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4711 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 314 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-}[Block]
-{-# LINE 4799 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4715 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ItemContent cs b w =
   PegRt.memoArg peg'memo'ItemContent "ItemContent" (cs, b, w)
@@ -4804,18 +4720,18 @@ peg'rule'ItemContent cs b w =
           ; (bs, peg'k0) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'Blocks (
 {-# LINE 315 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}cs ++ [ItemAt (w - b)]
-{-# LINE 4808 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4724 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 315 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-}w
-{-# LINE 4812 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4728 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 315 "commonmark/Block.hpeg" #-}
  {-# COLUMN 54 #-} bs 
-{-# LINE 4819 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4735 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), peg'k0)
           }
       ]))
@@ -4823,11 +4739,11 @@ peg'rule'ItemContent cs b w =
 peg'rule'EmptyStart :: (
 {-# LINE 318 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}[Container]
-{-# LINE 4827 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4743 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 318 "commonmark/Block.hpeg" #-}
  {-# COLUMN 34 #-}[Block]
-{-# LINE 4831 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4747 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'EmptyStart cs =
   PegRt.memoArg peg'memo'EmptyStart "EmptyStart" cs
@@ -4837,29 +4753,29 @@ peg'rule'EmptyStart cs =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 319 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}cs
-{-# LINE 4841 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4757 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 319 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}_col
-{-# LINE 4845 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4761 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'BlankRest)
           ; (bs, peg'k3) <- PegRt.label "bs" (PegRt.withCol (\_col -> peg'rule'Blocks (
 {-# LINE 319 "commonmark/Block.hpeg" #-}
  {-# COLUMN 58 #-}cs
-{-# LINE 4852 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4768 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 319 "commonmark/Block.hpeg" #-}
  {-# COLUMN 62 #-}p
-{-# LINE 4856 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4772 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch bs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 319 "commonmark/Block.hpeg" #-}
  {-# COLUMN 66 #-} bs 
-{-# LINE 4863 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4779 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -4867,7 +4783,7 @@ peg'rule'EmptyStart cs =
           ; PegPrelude.pure ((
 {-# LINE 320 "commonmark/Block.hpeg" #-}
  {-# COLUMN 15 #-} [] 
-{-# LINE 4871 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4787 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [])
           }
       ]))
@@ -4875,15 +4791,15 @@ peg'rule'EmptyStart cs =
 peg'rule'RefDef :: (
 {-# LINE 323 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}[Container]
-{-# LINE 4879 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4795 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 323 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}Int
-{-# LINE 4883 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4799 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 323 "commonmark/Block.hpeg" #-}
  {-# COLUMN 40 #-}Block
-{-# LINE 4887 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4803 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'RefDef cs b =
   PegRt.memoArg peg'memo'RefDef "RefDef" (cs, b)
@@ -4892,7 +4808,7 @@ peg'rule'RefDef cs b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 324 "commonmark/Block.hpeg" #-}
  {-# COLUMN 15 #-}b
-{-# LINE 4896 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4812 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "[" "'['")
           ; (l, peg'k2) <- PegRt.label "l" ((PegRt.captureS) (peg'rule'LabelBody))
@@ -4900,28 +4816,28 @@ peg'rule'RefDef cs b =
           ; (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 324 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-} validLabel l 
-{-# LINE 4904 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4820 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "]" "']'")
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit ":" "':'")
           ; (_, peg'k6) <- PegRt.withCol (\_col -> peg'rule'DefWs (
 {-# LINE 324 "commonmark/Block.hpeg" #-}
  {-# COLUMN 67 #-}cs
-{-# LINE 4911 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4827 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (d, peg'k7) <- PegRt.label "d" (peg'rule'Dest)
           ; PegRt.touch d
           ; (t, peg'k8) <- PegRt.label "t" (PegRt.withCol (\_col -> peg'rule'DefTitle (
 {-# LINE 324 "commonmark/Block.hpeg" #-}
  {-# COLUMN 89 #-}cs
-{-# LINE 4918 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4834 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 324 "commonmark/Block.hpeg" #-}
  {-# COLUMN 94 #-} RefDef l d t 
-{-# LINE 4925 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4841 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5, peg'k6, peg'k7, peg'k8])
           }
       ]))
@@ -4929,36 +4845,30 @@ peg'rule'RefDef cs b =
 peg'rule'LabelBody :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 326 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}()
-{-# LINE 4933 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4849 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'LabelBody =
   PegRt.memo peg'memo'LabelBody "LabelBody"
     (PegRt.node syntaxKindLabelBody (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k4) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
+      [ do { (_, peg'k4) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
           ; (_, peg'k1) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }, do { (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('[', '['), (']', ']')] "[\\[\\]]"))
           ; (_, peg'k3) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 327 "commonmark/Block.hpeg" #-}
- {-# COLUMN 37 #-} () 
-{-# LINE 4950 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k4)
+          ; PegPrelude.pure ((), peg'k4)
           }
       ]))
 
 peg'rule'DefWs :: (
 {-# LINE 329 "commonmark/Block.hpeg" #-}
  {-# COLUMN 13 #-}[Container]
-{-# LINE 4958 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4868 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 329 "commonmark/Block.hpeg" #-}
  {-# COLUMN 29 #-}()
-{-# LINE 4962 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4872 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'DefWs cs =
   PegRt.memoArg peg'memo'DefWs "DefWs" cs
@@ -4969,39 +4879,33 @@ peg'rule'DefWs cs =
           ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 330 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}cs
-{-# LINE 4973 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4883 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 330 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}_col
-{-# LINE 4977 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4887 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k3) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 330 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-} () 
-{-# LINE 4984 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4894 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k4) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 331 "commonmark/Block.hpeg" #-}
- {-# COLUMN 17 #-} () 
-{-# LINE 4993 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k4)
+      , do { (_, peg'k4) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+          ; PegPrelude.pure ((), peg'k4)
           }
       ]))
 
 peg'rule'DefWs1 :: (
 {-# LINE 333 "commonmark/Block.hpeg" #-}
  {-# COLUMN 14 #-}[Container]
-{-# LINE 5001 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4905 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 333 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-}()
-{-# LINE 5005 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4909 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'DefWs1 cs =
   PegRt.memoArg peg'memo'DefWs1 "DefWs1" cs
@@ -5012,35 +4916,29 @@ peg'rule'DefWs1 cs =
           ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 334 "commonmark/Block.hpeg" #-}
  {-# COLUMN 33 #-}cs
-{-# LINE 5016 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4920 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 334 "commonmark/Block.hpeg" #-}
  {-# COLUMN 37 #-}_col
-{-# LINE 5020 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4924 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k3) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 334 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-} () 
-{-# LINE 5027 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4931 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k4) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 335 "commonmark/Block.hpeg" #-}
- {-# COLUMN 18 #-} () 
-{-# LINE 5036 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k4)
+      , do { (_, peg'k4) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
+          ; PegPrelude.pure ((), peg'k4)
           }
       ]))
 
 peg'rule'Dest :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 337 "commonmark/Block.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 5044 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4942 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Dest =
   PegRt.memo peg'memo'Dest "Dest"
@@ -5060,7 +4958,7 @@ peg'rule'Dest =
           ; PegPrelude.pure ((
 {-# LINE 338 "commonmark/Block.hpeg" #-}
  {-# COLUMN 45 #-} d 
-{-# LINE 5064 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4962 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5071,7 +4969,7 @@ peg'rule'Dest =
           ; PegPrelude.pure ((
 {-# LINE 339 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-} d 
-{-# LINE 5075 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4973 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k7, peg'k8])
           }
       ]))
@@ -5079,13 +4977,12 @@ peg'rule'Dest =
 peg'rule'DestRaw :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 341 "commonmark/Block.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 5083 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 4981 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'DestRaw =
   PegRt.memo peg'memo'DestRaw "DestRaw"
     (PegRt.node syntaxKindDestRaw (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k7) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
+      [ do { (_, peg'k7) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
           ; (_, peg'k1) <- PegRt.plain (PegRt.cls [('!', '/'), (':', '@'), ('[', '`'), ('{', '~')] "[!-/:-@\\[-`{-~]")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }, do { (_, peg'k2) <- PegRt.plain (PegRt.lit "(" "'('")
@@ -5096,23 +4993,18 @@ peg'rule'DestRaw =
           ; (_, peg'k6) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6])
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 342 "commonmark/Block.hpeg" #-}
- {-# COLUMN 85 #-} () 
-{-# LINE 5104 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k7)
+          ; PegPrelude.pure ((), peg'k7)
           }
       ]))
 
 peg'rule'DefTitle :: (
 {-# LINE 344 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}[Container]
-{-# LINE 5112 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5004 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 344 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}Maybe Text
-{-# LINE 5116 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5008 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'DefTitle cs =
   PegRt.memoArg peg'memo'DefTitle "DefTitle" cs
@@ -5121,12 +5013,12 @@ peg'rule'DefTitle cs =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'DefWs1 (
 {-# LINE 345 "commonmark/Block.hpeg" #-}
  {-# COLUMN 20 #-}cs
-{-# LINE 5125 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5017 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (t, peg'k1) <- PegRt.label "t" (PegRt.withCol (\_col -> peg'rule'Title (
 {-# LINE 345 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}cs
-{-# LINE 5130 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5022 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch t
           ; (_, peg'k2) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -5135,7 +5027,7 @@ peg'rule'DefTitle cs =
           ; PegPrelude.pure ((
 {-# LINE 345 "commonmark/Block.hpeg" #-}
  {-# COLUMN 48 #-} Just t 
-{-# LINE 5139 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5031 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5145,7 +5037,7 @@ peg'rule'DefTitle cs =
           ; PegPrelude.pure ((
 {-# LINE 346 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-} Nothing 
-{-# LINE 5149 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5041 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5])
           }
       ]))
@@ -5153,11 +5045,11 @@ peg'rule'DefTitle cs =
 peg'rule'Title :: (
 {-# LINE 348 "commonmark/Block.hpeg" #-}
  {-# COLUMN 13 #-}[Container]
-{-# LINE 5157 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5049 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 348 "commonmark/Block.hpeg" #-}
  {-# COLUMN 29 #-}Text
-{-# LINE 5161 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5053 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Title cs =
   PegRt.memoArg peg'memo'Title "Title" cs
@@ -5167,11 +5059,11 @@ peg'rule'Title cs =
           ; (ts, peg'k1) <- PegRt.label "ts" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'TitleChar (
 {-# LINE 349 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}cs
-{-# LINE 5171 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5063 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 349 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}'"'
-{-# LINE 5175 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5067 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ts
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "\"" "'\"'")
@@ -5179,7 +5071,7 @@ peg'rule'Title cs =
           ; PegPrelude.pure ((
 {-# LINE 349 "commonmark/Block.hpeg" #-}
  {-# COLUMN 42 #-} T.concat ts 
-{-# LINE 5183 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5075 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5187,11 +5079,11 @@ peg'rule'Title cs =
           ; (ts, peg'k4) <- PegRt.label "ts" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'TitleChar (
 {-# LINE 350 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}cs
-{-# LINE 5191 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5083 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 350 "commonmark/Block.hpeg" #-}
  {-# COLUMN 31 #-}'\''
-{-# LINE 5195 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5087 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ts
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "'" "'\\''")
@@ -5199,7 +5091,7 @@ peg'rule'Title cs =
           ; PegPrelude.pure ((
 {-# LINE 350 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-} T.concat ts 
-{-# LINE 5203 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5095 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5207,11 +5099,11 @@ peg'rule'Title cs =
           ; (ts, peg'k7) <- PegRt.label "ts" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'TitleChar (
 {-# LINE 351 "commonmark/Block.hpeg" #-}
  {-# COLUMN 26 #-}cs
-{-# LINE 5211 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5103 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 351 "commonmark/Block.hpeg" #-}
  {-# COLUMN 30 #-}')'
-{-# LINE 5215 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5107 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ts
           ; (_, peg'k8) <- PegRt.plain (PegRt.lit ")" "')'")
@@ -5219,7 +5111,7 @@ peg'rule'Title cs =
           ; PegPrelude.pure ((
 {-# LINE 351 "commonmark/Block.hpeg" #-}
  {-# COLUMN 41 #-} T.concat ts 
-{-# LINE 5223 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5115 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7, peg'k8])
           }
       ]))
@@ -5227,15 +5119,15 @@ peg'rule'Title cs =
 peg'rule'TitleChar :: (
 {-# LINE 353 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}[Container]
-{-# LINE 5231 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5123 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 353 "commonmark/Block.hpeg" #-}
  {-# COLUMN 35 #-}Char
-{-# LINE 5235 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5127 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 353 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}Text
-{-# LINE 5239 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5131 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'TitleChar cs q =
   PegRt.memoArg peg'memo'TitleChar "TitleChar" (cs, q)
@@ -5248,7 +5140,7 @@ peg'rule'TitleChar cs q =
           ; PegPrelude.pure ((
 {-# LINE 354 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-} T.cons '\\' c 
-{-# LINE 5252 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5144 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5257,17 +5149,17 @@ peg'rule'TitleChar cs q =
           ; (_, peg'k4) <- PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 355 "commonmark/Block.hpeg" #-}
  {-# COLUMN 39 #-}cs
-{-# LINE 5261 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5153 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 355 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}_col
-{-# LINE 5265 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5157 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 355 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-} "\n" 
-{-# LINE 5271 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5163 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5277,13 +5169,13 @@ peg'rule'TitleChar cs q =
           ; (_, peg'k7) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 356 "commonmark/Block.hpeg" #-}
  {-# COLUMN 29 #-} firstChar c /= q && not (q == ')' && firstChar c == '(') 
-{-# LINE 5281 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5173 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 356 "commonmark/Block.hpeg" #-}
  {-# COLUMN 90 #-} c 
-{-# LINE 5287 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5179 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6, peg'k7])
           }
       ]))
@@ -5291,15 +5183,15 @@ peg'rule'TitleChar cs q =
 peg'rule'ParagraphB :: (
 {-# LINE 359 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}[Container]
-{-# LINE 5295 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5187 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> (
 {-# LINE 359 "commonmark/Block.hpeg" #-}
  {-# COLUMN 36 #-}Int
-{-# LINE 5299 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5191 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 359 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}Block
-{-# LINE 5303 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5195 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ParagraphB cs b =
   PegRt.memoArg peg'memo'ParagraphB "ParagraphB" (cs, b)
@@ -5308,48 +5200,48 @@ peg'rule'ParagraphB cs b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 360 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 5312 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5204 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (f, peg'k1) <- PegRt.label "f" (peg'rule'ParaLine)
           ; PegRt.touch f
           ; (ls, peg'k2) <- PegRt.label "ls" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'ParaCont (
 {-# LINE 360 "commonmark/Block.hpeg" #-}
  {-# COLUMN 45 #-}cs
-{-# LINE 5319 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5211 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ls
           ; (u, peg'k3) <- PegRt.label "u" (PegRt.withCol (\_col -> peg'rule'SetextUnder (
 {-# LINE 360 "commonmark/Block.hpeg" #-}
  {-# COLUMN 64 #-}cs
-{-# LINE 5325 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5217 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch u
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 360 "commonmark/Block.hpeg" #-}
  {-# COLUMN 69 #-} Heading u (joinPara (f : ls)) 
-{-# LINE 5332 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5224 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k4) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 361 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b
-{-# LINE 5339 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5231 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (f, peg'k5) <- PegRt.label "f" (peg'rule'ParaLine)
           ; PegRt.touch f
           ; (ls, peg'k6) <- PegRt.label "ls" ((PegRt.manyS) (PegRt.withCol (\_col -> peg'rule'ParaCont (
 {-# LINE 361 "commonmark/Block.hpeg" #-}
  {-# COLUMN 44 #-}cs
-{-# LINE 5346 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5238 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))))
           ; PegRt.touch ls
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 361 "commonmark/Block.hpeg" #-}
  {-# COLUMN 50 #-} Paragraph (joinPara (f : ls)) 
-{-# LINE 5353 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5245 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -5357,7 +5249,7 @@ peg'rule'ParagraphB cs b =
 peg'rule'ParaLine :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 363 "commonmark/Block.hpeg" #-}
  {-# COLUMN 13 #-}Text
-{-# LINE 5361 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5253 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ParaLine =
   PegRt.memo peg'memo'ParaLine "ParaLine"
@@ -5374,7 +5266,7 @@ peg'rule'ParaLine =
           ; PegPrelude.pure ((
 {-# LINE 364 "commonmark/Block.hpeg" #-}
  {-# COLUMN 46 #-} t 
-{-# LINE 5378 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5270 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4])
           }
       ]))
@@ -5382,11 +5274,11 @@ peg'rule'ParaLine =
 peg'rule'ParaCont :: (
 {-# LINE 366 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}[Container]
-{-# LINE 5386 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5278 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 366 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}Text
-{-# LINE 5390 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5282 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'ParaCont cs =
   PegRt.memoArg peg'memo'ParaCont "ParaCont" cs
@@ -5396,22 +5288,22 @@ peg'rule'ParaCont cs =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 367 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}cs
-{-# LINE 5400 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5292 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 367 "commonmark/Block.hpeg" #-}
  {-# COLUMN 29 #-}_col
-{-# LINE 5404 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5296 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.withCol (\_col -> peg'rule'SetextLine (
 {-# LINE 367 "commonmark/Block.hpeg" #-}
  {-# COLUMN 47 #-}p
-{-# LINE 5410 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5302 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.withCol (\_col -> peg'rule'Interrupt (
 {-# LINE 367 "commonmark/Block.hpeg" #-}
  {-# COLUMN 61 #-}p
-{-# LINE 5415 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5307 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (_, peg'k4) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (l, peg'k5) <- PegRt.label "l" (peg'rule'ParaLine)
@@ -5420,7 +5312,7 @@ peg'rule'ParaCont cs =
           ; PegPrelude.pure ((
 {-# LINE 367 "commonmark/Block.hpeg" #-}
  {-# COLUMN 83 #-} l 
-{-# LINE 5424 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5316 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -5428,26 +5320,26 @@ peg'rule'ParaCont cs =
           ; (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-}cs
-{-# LINE 5432 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5324 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 27 #-}_col
-{-# LINE 5436 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5328 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (p, peg'k8) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Partial (
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 43 #-}cs
-{-# LINE 5441 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5333 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 47 #-}_col
-{-# LINE 5445 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5337 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.withCol (\_col -> peg'rule'AnyStart (
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 63 #-}p
-{-# LINE 5451 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5343 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; (_, peg'k10) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (l, peg'k11) <- PegRt.label "l" (peg'rule'ParaLine)
@@ -5456,7 +5348,7 @@ peg'rule'ParaCont cs =
           ; PegPrelude.pure ((
 {-# LINE 368 "commonmark/Block.hpeg" #-}
  {-# COLUMN 85 #-} l 
-{-# LINE 5460 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5352 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7, peg'k8, peg'k9, peg'k10, peg'k11])
           }
       ]))
@@ -5464,11 +5356,11 @@ peg'rule'ParaCont cs =
 peg'rule'SetextUnder :: (
 {-# LINE 370 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}[Container]
-{-# LINE 5468 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5360 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 370 "commonmark/Block.hpeg" #-}
  {-# COLUMN 35 #-}Int
-{-# LINE 5472 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5364 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'SetextUnder cs =
   PegRt.memoArg peg'memo'SetextUnder "SetextUnder" cs
@@ -5478,24 +5370,24 @@ peg'rule'SetextUnder cs =
           ; (p, peg'k1) <- PegRt.label "p" (PegRt.withCol (\_col -> peg'rule'Prefix (
 {-# LINE 371 "commonmark/Block.hpeg" #-}
  {-# COLUMN 28 #-}cs
-{-# LINE 5482 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5374 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) (
 {-# LINE 371 "commonmark/Block.hpeg" #-}
  {-# COLUMN 32 #-}_col
-{-# LINE 5486 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5378 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch p
           ; (l, peg'k2) <- PegRt.label "l" (PegRt.withCol (\_col -> peg'rule'SetextLine (
 {-# LINE 371 "commonmark/Block.hpeg" #-}
  {-# COLUMN 51 #-}p
-{-# LINE 5492 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5384 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
           ; PegRt.touch l
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 371 "commonmark/Block.hpeg" #-}
  {-# COLUMN 55 #-} l 
-{-# LINE 5499 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5391 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -5503,11 +5395,11 @@ peg'rule'SetextUnder cs =
 peg'rule'SetextLine :: (
 {-# LINE 373 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}Int
-{-# LINE 5507 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5399 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 373 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}Int
-{-# LINE 5511 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5403 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'SetextLine b =
   PegRt.memoArg peg'memo'SetextLine "SetextLine" b
@@ -5516,7 +5408,7 @@ peg'rule'SetextLine b =
           ; (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 374 "commonmark/Block.hpeg" #-}
  {-# COLUMN 19 #-}b
-{-# LINE 5520 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5412 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k1) <- (PegRt.many1S) (PegRt.plain (PegRt.lit "=" "'='"))
           ; (_, peg'k2) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -5525,14 +5417,14 @@ peg'rule'SetextLine b =
           ; PegPrelude.pure ((
 {-# LINE 374 "commonmark/Block.hpeg" #-}
  {-# COLUMN 39 #-} 1 
-{-# LINE 5529 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5421 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k4) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 375 "commonmark/Block.hpeg" #-}
  {-# COLUMN 18 #-}b
-{-# LINE 5536 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5428 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k5) <- (PegRt.many1S) (PegRt.plain (PegRt.lit "-" "'-'"))
           ; (_, peg'k6) <- (PegRt.manyS) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
@@ -5541,7 +5433,7 @@ peg'rule'SetextLine b =
           ; PegPrelude.pure ((
 {-# LINE 375 "commonmark/Block.hpeg" #-}
  {-# COLUMN 38 #-} 2 
-{-# LINE 5545 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5437 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6, peg'k7])
           }
       ]))
@@ -5549,251 +5441,161 @@ peg'rule'SetextLine b =
 peg'rule'AnyStart :: (
 {-# LINE 379 "commonmark/Block.hpeg" #-}
  {-# COLUMN 15 #-}Int
-{-# LINE 5553 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5445 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 379 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-}()
-{-# LINE 5557 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5449 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'AnyStart b =
   PegRt.memoArg peg'memo'AnyStart "AnyStart" b
     (PegRt.node syntaxKindAnyStart (PegRt.choice
-      [ do { (peg'v1, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Interrupt (
+      [ do { (_, peg'k0) <- PegRt.withCol (\_col -> peg'rule'Interrupt (
 {-# LINE 380 "commonmark/Block.hpeg" #-}
  {-# COLUMN 23 #-}b
-{-# LINE 5565 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5457 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; PegPrelude.pure (peg'v1, peg'k0)
+          ; PegPrelude.pure ((), peg'k0)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k2) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k1) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 381 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}b
-{-# LINE 5573 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5464 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; (_, peg'k3) <- PegRt.plain (PegRt.cls [('-', '-'), ('+', '+'), ('*', '*')] "[\\-+*]")
-          ; (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'BlankRest)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 381 "commonmark/Block.hpeg" #-}
- {-# COLUMN 38 #-} () 
-{-# LINE 5581 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
+          ; (_, peg'k2) <- PegRt.plain (PegRt.cls [('-', '-'), ('+', '+'), ('*', '*')] "[\\-+*]")
+          ; (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'BlankRest)
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2, peg'k3])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k5) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k4) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 382 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}b
-{-# LINE 5588 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5473 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
-          ; (_, peg'k6) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [('0', '9')] "[0-9]"))
-          ; (_, peg'k7) <- PegRt.plain (PegRt.cls [('.', '.'), (')', ')')] "[.)]")
-          ; (_, peg'k10) <- PegRt.choice [do { (_, peg'k8) <- PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
+          ; (_, peg'k5) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [('0', '9')] "[0-9]"))
+          ; (_, peg'k6) <- PegRt.plain (PegRt.cls [('.', '.'), (')', ')')] "[.)]")
+          ; (_, peg'k9) <- PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
+          ; PegPrelude.pure ((), peg'k7)
+          }, do { (_, peg'k8) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'BlankRest)
           ; PegPrelude.pure ((), peg'k8)
-          }, do { (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.andP) (peg'rule'BlankRest)
-          ; PegPrelude.pure ((), peg'k9)
           }]
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 382 "commonmark/Block.hpeg" #-}
- {-# COLUMN 53 #-} () 
-{-# LINE 5601 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k10])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5, peg'k6, peg'k9])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k11) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart7 (
+      , do { (_, peg'k10) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart7 (
 {-# LINE 383 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}b
-{-# LINE 5608 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5487 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 383 "commonmark/Block.hpeg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 5614 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k11)
+          ; PegPrelude.pure ((), peg'k10)
           }
       ]))
 
 peg'rule'Interrupt :: (
 {-# LINE 386 "commonmark/Block.hpeg" #-}
  {-# COLUMN 16 #-}Int
-{-# LINE 5622 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5496 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 386 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}()
-{-# LINE 5626 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5500 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ), [PegRt.Child])
 peg'rule'Interrupt b =
   PegRt.memoArg peg'memo'Interrupt "Interrupt" b
     (PegRt.node syntaxKindInterrupt (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'ThematicBreak (
+      [ do { (_, peg'k0) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'ThematicBreak (
 {-# LINE 387 "commonmark/Block.hpeg" #-}
  {-# COLUMN 29 #-}b
-{-# LINE 5635 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5508 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 387 "commonmark/Block.hpeg" #-}
- {-# COLUMN 33 #-} () 
-{-# LINE 5641 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k0)
+          ; PegPrelude.pure ((), peg'k0)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'AtxHeading (
+      , do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'AtxHeading (
 {-# LINE 388 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}b
-{-# LINE 5648 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5515 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 388 "commonmark/Block.hpeg" #-}
- {-# COLUMN 29 #-} () 
-{-# LINE 5654 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k1)
+          ; PegPrelude.pure ((), peg'k1)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'FenceOpen (
+      , do { (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'FenceOpen (
 {-# LINE 389 "commonmark/Block.hpeg" #-}
  {-# COLUMN 24 #-}b
-{-# LINE 5661 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5522 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 389 "commonmark/Block.hpeg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 5667 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k2)
+          ; PegPrelude.pure ((), peg'k2)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k3) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k3) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 390 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5674 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5529 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit ">" "'>'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 390 "commonmark/Block.hpeg" #-}
- {-# COLUMN 25 #-} () 
-{-# LINE 5681 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k3, peg'k4])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k5) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k5) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 391 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5688 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5537 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k6) <- PegRt.plain (PegRt.cls [('-', '-'), ('+', '+'), ('*', '*')] "[\\-+*]")
           ; (_, peg'k7) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k8) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'EOL)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 391 "commonmark/Block.hpeg" #-}
- {-# COLUMN 40 #-} () 
-{-# LINE 5697 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k8])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k8])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k9) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k9) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 392 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5704 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5547 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k10) <- PegRt.plain (PegRt.lit "1" "'1'")
           ; (_, peg'k11) <- PegRt.plain (PegRt.cls [('.', '.'), (')', ')')] "[.)]")
           ; (_, peg'k12) <- (PegRt.many1S) (PegRt.plain (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"))
           ; (_, peg'k13) <- (PegRt.plain PegPrelude.. PegRt.notP) (peg'rule'EOL)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 392 "commonmark/Block.hpeg" #-}
- {-# COLUMN 42 #-} () 
-{-# LINE 5714 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k9, peg'k10, peg'k11, peg'k12, peg'k13])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k9, peg'k10, peg'k11, peg'k12, peg'k13])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k14) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart1 (
+      , do { (_, peg'k14) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart1 (
 {-# LINE 393 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}b
-{-# LINE 5721 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5558 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 393 "commonmark/Block.hpeg" #-}
- {-# COLUMN 29 #-} () 
-{-# LINE 5727 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k14)
+          ; PegPrelude.pure ((), peg'k14)
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k15) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k15) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 394 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5734 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5565 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k16) <- PegRt.plain (PegRt.lit "<!--" "'<!--'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 394 "commonmark/Block.hpeg" #-}
- {-# COLUMN 28 #-} () 
-{-# LINE 5741 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k15, peg'k16])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k17) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k17) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 395 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5748 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5573 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k18) <- PegRt.plain (PegRt.lit "<?" "'<?'")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 395 "commonmark/Block.hpeg" #-}
- {-# COLUMN 26 #-} () 
-{-# LINE 5755 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k17, peg'k18])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k17, peg'k18])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k19) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k19) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 396 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5762 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5581 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k20) <- PegRt.plain (PegRt.lit "<!" "'<!'")
           ; (_, peg'k21) <- PegRt.plain (PegRt.cls [('A', 'Z'), ('a', 'z')] "[A-Za-z]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 396 "commonmark/Block.hpeg" #-}
- {-# COLUMN 35 #-} () 
-{-# LINE 5770 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k19, peg'k20, peg'k21])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k20, peg'k21])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k22) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
+      , do { (_, peg'k22) <- PegRt.withCol (\_col -> peg'rule'Sp3 (
 {-# LINE 397 "commonmark/Block.hpeg" #-}
  {-# COLUMN 17 #-}b
-{-# LINE 5777 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5590 "commonmark/Conformance/CommonMark/Block.hs" #-}
     ))
           ; (_, peg'k23) <- PegRt.plain (PegRt.lit "<![CDATA[" "'<![CDATA['")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 397 "commonmark/Block.hpeg" #-}
- {-# COLUMN 33 #-} () 
-{-# LINE 5784 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), PegPrelude.concat [peg'k22, peg'k23])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k22, peg'k23])
           }
-      , do { peg'start <- PegRt.getOffset
-          ; (_, peg'k24) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart6 (
+      , do { (_, peg'k24) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.withCol (\_col -> peg'rule'HtmlStart6 (
 {-# LINE 398 "commonmark/Block.hpeg" #-}
  {-# COLUMN 25 #-}b
-{-# LINE 5791 "commonmark/Conformance/CommonMark/Block.hs" #-}
+{-# LINE 5598 "commonmark/Conformance/CommonMark/Block.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 398 "commonmark/Block.hpeg" #-}
- {-# COLUMN 29 #-} () 
-{-# LINE 5797 "commonmark/Conformance/CommonMark/Block.hs" #-}
-    ), peg'k24)
+          ; PegPrelude.pure ((), peg'k24)
           }
       ]))

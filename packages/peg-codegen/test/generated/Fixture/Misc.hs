@@ -214,13 +214,7 @@ peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]")
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 30 "test/fixtures/Misc.hpeg" #-}
- {-# COLUMN 21 #-} () 
-{-# LINE 224 "test/generated/Fixture/Misc.hs" #-}
-    )
+      [ do { PegRt.skipMany (PegRt.cls [(' ', ' '), ('\t', '\t'), ('\n', '\n')] "[ \\t\\n]")
+          ; PegPrelude.pure ()
           }
       ])
