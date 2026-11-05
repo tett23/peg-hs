@@ -59,20 +59,12 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 8 #-}Maybe Int
 {-# LINE 61 "test/generated/Fixture/Units.hs" #-}
     )
-  , peg'memo'Spaces :: PegRt.Table peg's (
-{-# LINE 26 "test/fixtures/Units.hpeg" #-}
- {-# COLUMN 11 #-}()
-{-# LINE 66 "test/generated/Fixture/Units.hs" #-}
-    )
-  , peg'memo'Sp :: PegRt.Table peg's (
-{-# LINE 29 "test/fixtures/Units.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 71 "test/generated/Fixture/Units.hs" #-}
-    )
+  , peg'memo'Spaces :: PegRt.Table peg's (())
+  , peg'memo'Sp :: PegRt.Table peg's (())
   , peg'memo'N :: PegRt.Table peg's (
-{-# LINE 32 "test/fixtures/Units.hpeg" #-}
+{-# LINE 30 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 6 #-}Int
-{-# LINE 76 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 68 "test/generated/Fixture/Units.hs" #-}
     )
   }
 
@@ -83,7 +75,7 @@ peg'newStore =
 peg'rule'Start :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 11 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 10 #-}Result
-{-# LINE 87 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 79 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'Start =
   PegRt.memo peg'memo'Start "Start"
@@ -100,7 +92,7 @@ peg'rule'Start =
           ; PegPrelude.pure (
 {-# LINE 12 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 52 #-} Result l p o s 
-{-# LINE 104 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 96 "test/generated/Fixture/Units.hs" #-}
     )
           }
       ])
@@ -108,7 +100,7 @@ peg'rule'Start =
 peg'rule'List :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 15 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 9 #-}[Int]
-{-# LINE 112 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 104 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'List =
   PegRt.memo peg'memo'List "List"
@@ -124,7 +116,7 @@ peg'rule'List =
           ; PegPrelude.pure (
 {-# LINE 16 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 30 #-} n : ns 
-{-# LINE 128 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 120 "test/generated/Fixture/Units.hs" #-}
     )
           }
       ])
@@ -132,7 +124,7 @@ peg'rule'List =
 peg'rule'Pass :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 19 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 136 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 128 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'Pass =
   PegRt.memo peg'memo'Pass "Pass"
@@ -147,7 +139,7 @@ peg'rule'Pass =
 peg'rule'Opt :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 22 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 8 #-}Maybe Int
-{-# LINE 151 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 143 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'Opt =
   PegRt.memo peg'memo'Opt "Opt"
@@ -160,11 +152,7 @@ peg'rule'Opt =
           }
       ])
 
-peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 26 "test/fixtures/Units.hpeg" #-}
- {-# COLUMN 11 #-}()
-{-# LINE 167 "test/generated/Fixture/Units.hs" #-}
-    )
+peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
     (PegRt.choice
@@ -173,11 +161,7 @@ peg'rule'Spaces =
           }
       ])
 
-peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 29 "test/fixtures/Units.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 180 "test/generated/Fixture/Units.hs" #-}
-    )
+peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
@@ -187,9 +171,9 @@ peg'rule'Sp =
       ])
 
 peg'rule'N :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 32 "test/fixtures/Units.hpeg" #-}
+{-# LINE 30 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 6 #-}Int
-{-# LINE 193 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 177 "test/generated/Fixture/Units.hs" #-}
     )
 peg'rule'N =
   PegRt.memo peg'memo'N "N"
@@ -198,9 +182,9 @@ peg'rule'N =
           ; d <- PegRt.capture (PegRt.cls [('0', '9')] "[0-9]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 33 "test/fixtures/Units.hpeg" #-}
+{-# LINE 31 "test/fixtures/Units.hpeg" #-}
  {-# COLUMN 16 #-} fromEnum (T.head d) - 48 
-{-# LINE 204 "test/generated/Fixture/Units.hs" #-}
+{-# LINE 188 "test/generated/Fixture/Units.hs" #-}
     )
           }
       ])

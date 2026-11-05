@@ -10,20 +10,12 @@ import qualified Peg.Runtime.Internal as PegRt
 import Prelude
 
 -- | Parse the whole input with the rule @S@.
-parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 17 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
+parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (())
 parse peg'input =
   Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'S peg'input)
 
 -- | Parse the whole input with the rule @Skip@.
-parseSkip :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 26 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
+parseSkip :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (())
 parseSkip peg'input =
   Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'Skip peg'input)
 
@@ -31,27 +23,15 @@ peg'config :: PegRt.Config
 peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
-  { peg'memo'S :: PegRt.Table peg's (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 38 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
-  , peg'memo'Skip :: PegRt.Table peg's (
-{-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 43 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
+  { peg'memo'S :: PegRt.Table peg's (())
+  , peg'memo'Skip :: PegRt.Table peg's (())
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
   Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
-peg'rule'S :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 54 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
+peg'rule'S :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'S =
   PegRt.memo peg'memo'S "S"
     (PegRt.choice
@@ -66,11 +46,7 @@ peg'rule'S =
           }
       ])
 
-peg'rule'Skip :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 73 "test/generated/Fixture/RecoverSharedNoLabels.hs" #-}
-    )
+peg'rule'Skip :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Skip =
   PegRt.memo peg'memo'Skip "Skip"
     (PegRt.choice

@@ -204,21 +204,9 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 8 #-}Int
 {-# LINE 206 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'Sp :: PegRt.Table peg's ((
-{-# LINE 32 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 211 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Ws :: PegRt.Table peg's ((
-{-# LINE 35 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 216 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Comment :: PegRt.Table peg's ((
-{-# LINE 38 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 221 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'Sp :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Ws :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Comment :: PegRt.Table peg's ((()), [PegRt.Child])
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
@@ -228,7 +216,7 @@ peg'newStore =
 peg'rule'Expr :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 16 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 232 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 220 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Expr =
   PegRt.memoLR peg'memo'Expr "Expr"
@@ -246,7 +234,7 @@ peg'rule'Expr =
           ; PegPrelude.pure ((
 {-# LINE 17 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 38 #-} l + r 
-{-# LINE 250 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 238 "test/generated/Fixture/Syntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -261,7 +249,7 @@ peg'rule'Expr =
           ; PegPrelude.pure ((
 {-# LINE 18 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 33 #-} l - r 
-{-# LINE 265 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 253 "test/generated/Fixture/Syntax.hs" #-}
     ), PegPrelude.concat [peg'k5, peg'k6, peg'k7, peg'k8, peg'k9])
           }
       , do { (peg'v11, peg'k10) <- peg'rule'Term
@@ -272,7 +260,7 @@ peg'rule'Expr =
 peg'rule'Term :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 21 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 276 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 264 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Term =
   PegRt.memoLR peg'memo'Term "Term"
@@ -289,7 +277,7 @@ peg'rule'Term =
           ; PegPrelude.pure ((
 {-# LINE 22 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 36 #-} l * r 
-{-# LINE 293 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 281 "test/generated/Fixture/Syntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { (peg'v6, peg'k5) <- peg'rule'Factor
@@ -300,7 +288,7 @@ peg'rule'Term =
 peg'rule'Factor :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 25 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 304 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 292 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Factor =
   PegRt.memo peg'memo'Factor "Factor"
@@ -316,7 +304,7 @@ peg'rule'Factor =
           ; PegPrelude.pure ((
 {-# LINE 26 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 33 #-} e 
-{-# LINE 320 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 308 "test/generated/Fixture/Syntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       , do { peg'start <- PegRt.getOffset
@@ -326,7 +314,7 @@ peg'rule'Factor =
           ; PegPrelude.pure ((
 {-# LINE 27 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 17 #-} n 
-{-# LINE 330 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 318 "test/generated/Fixture/Syntax.hs" #-}
     ), peg'k5)
           }
       ]))
@@ -334,7 +322,7 @@ peg'rule'Factor =
 peg'rule'Num :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 29 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 8 #-}Int
-{-# LINE 338 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 326 "test/generated/Fixture/Syntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Num =
   PegRt.memo peg'memo'Num "Num"
@@ -346,16 +334,12 @@ peg'rule'Num =
           ; PegPrelude.pure ((
 {-# LINE 30 "test/fixtures/Syntax.hpeg" #-}
  {-# COLUMN 20 #-} read (unpack ds) 
-{-# LINE 350 "test/generated/Fixture/Syntax.hs" #-}
+{-# LINE 338 "test/generated/Fixture/Syntax.hs" #-}
     ), peg'k0)
           }
       ]))
 
-peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 32 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 358 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
@@ -368,11 +352,7 @@ peg'rule'Sp =
           }
       ])
 
-peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 35 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 375 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.token syntaxKindWs (PegRt.choice
@@ -381,11 +361,7 @@ peg'rule'Ws =
           }
       ]))
 
-peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 38 "test/fixtures/Syntax.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 388 "test/generated/Fixture/Syntax.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Comment =
   PegRt.memo peg'memo'Comment "Comment"
     (PegRt.token syntaxKindComment (PegRt.choice

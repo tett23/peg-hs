@@ -167,16 +167,13 @@ Col(c :: Int) :: Int
 Col <- { c }
 
 # 行 -------------------------------------------------------------------------
-Newline :: ()
 Newline <- '\r\n'
         / '\n'
         / '\r'
 
-EOL :: ()
 EOL <- Newline
     / !.
 
-BlankRest :: ()
 BlankRest <- [ \t]* EOL
 
 LineRest1 :: Text
@@ -261,13 +258,10 @@ HtmlStart7(b :: Int) :: ()
 HtmlStart7 <- Sp3(b) '<' n:$TagName &{ not (lowerIn type1Tags n) } Attr* [ \t]* '/'? '>' [ \t]* &EOL { () }
            / Sp3(b) '</' TagName [ \t]* '>' [ \t]* &EOL
 
-TagName :: ()
 TagName <- [A-Za-z] [A-Za-z0-9\-]*
 
-Attr :: ()
 Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue?
 
-AttrValue :: ()
 AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+
           / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\''
           / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"'
@@ -323,7 +317,6 @@ EmptyStart <- &. p:Prefix(cs, _col) !BlankRest bs:Blocks(cs, p) { bs }
 RefDef(cs :: [Container], b :: Int) :: Block
 RefDef <- Sp3(b) '[' l:$LabelBody &{ validLabel l } ']' ':' DefWs(cs) d:Dest t:DefTitle(cs) { RefDef l d t }
 
-LabelBody :: ()
 LabelBody <- ('\\' . / ![\[\]] .)+
 
 DefWs(cs :: [Container]) :: ()
@@ -338,7 +331,6 @@ Dest :: Text
 Dest <- '<' d:$('\\' . / ![<>\n\r] .)* '>' { d }
      / !'<' d:$DestRaw { d }
 
-DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+
 
 DefTitle(cs :: [Container]) :: Maybe Text

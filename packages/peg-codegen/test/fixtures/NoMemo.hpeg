@@ -28,5 +28,4 @@ Item <- w:$([a-z] [a-z0-9_]*) Spaces { Word w }
 Key :: Text
 Key <- ([a-z]+ $[0-9]+ / $'_')
 
-Spaces :: ()
 Spaces <- [ \t\n]*

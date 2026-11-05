@@ -51,30 +51,14 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 9 #-}T.Text
 {-# LINE 53 "test/generated/Fixture/UnitActions.hs" #-}
     )
-  , peg'memo'Kw :: PegRt.Table peg's (
-{-# LINE 20 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 58 "test/generated/Fixture/UnitActions.hs" #-}
-    )
-  , peg'memo'End :: PegRt.Table peg's (
-{-# LINE 25 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 63 "test/generated/Fixture/UnitActions.hs" #-}
-    )
-  , peg'memo'Sep :: PegRt.Table peg's (
-{-# LINE 36 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 68 "test/generated/Fixture/UnitActions.hs" #-}
-    )
-  , peg'memo'Sp :: PegRt.Table peg's (
-{-# LINE 41 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 73 "test/generated/Fixture/UnitActions.hs" #-}
-    )
+  , peg'memo'Kw :: PegRt.Table peg's (())
+  , peg'memo'End :: PegRt.Table peg's (())
+  , peg'memo'Sep :: PegRt.Table peg's (())
+  , peg'memo'Sp :: PegRt.Table peg's (())
   , peg'memo'Op'0 :: PegRt.Table peg's (
-{-# LINE 31 "test/fixtures/UnitActions.hpeg" #-}
+{-# LINE 29 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 78 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 62 "test/generated/Fixture/UnitActions.hs" #-}
     )
   }
 
@@ -85,7 +69,7 @@ peg'newStore =
 peg'rule'Start :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 9 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 10 #-}[T.Text]
-{-# LINE 89 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 73 "test/generated/Fixture/UnitActions.hs" #-}
     )
 peg'rule'Start =
   PegRt.memo peg'memo'Start "Start"
@@ -100,7 +84,7 @@ peg'rule'Start =
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 12 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 9 #-}T.Text
-{-# LINE 104 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 88 "test/generated/Fixture/UnitActions.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -120,7 +104,7 @@ peg'rule'Item =
 peg'rule'Name :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 16 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 9 #-}T.Text
-{-# LINE 124 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 108 "test/generated/Fixture/UnitActions.hs" #-}
     )
 peg'rule'Name =
   PegRt.memo peg'memo'Name "Name"
@@ -131,11 +115,7 @@ peg'rule'Name =
           }
       ])
 
-peg'rule'Kw :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 20 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 138 "test/generated/Fixture/UnitActions.hs" #-}
-    )
+peg'rule'Kw :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Kw =
   PegRt.memo peg'memo'Kw "Kw"
     (PegRt.choice
@@ -151,11 +131,7 @@ peg'rule'Kw =
           }
       ])
 
-peg'rule'End :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 25 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 158 "test/generated/Fixture/UnitActions.hs" #-}
-    )
+peg'rule'End :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'End =
   PegRt.memo peg'memo'End "End"
     (PegRt.choice
@@ -167,9 +143,9 @@ peg'rule'End =
       , do { a <- peg'rule'Sp
           ; b <- peg'rule'Sp
           ; PegRt.predicate (\_col -> 
-{-# LINE 27 "test/fixtures/UnitActions.hpeg" #-}
+{-# LINE 25 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 19 #-} a == b 
-{-# LINE 173 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 149 "test/generated/Fixture/UnitActions.hs" #-}
     )
           ; PegRt.lit "," "','"
           ; PegPrelude.pure ()
@@ -179,11 +155,7 @@ peg'rule'End =
           }
       ])
 
-peg'rule'Sep :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 36 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 186 "test/generated/Fixture/UnitActions.hs" #-}
-    )
+peg'rule'Sep :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Sep =
   PegRt.memo peg'memo'Sep "Sep"
     (PegRt.choice
@@ -193,19 +165,15 @@ peg'rule'Sep =
           }
       , do { PegRt.lit "&" "'&'"
           ; PegRt.predicate (\_col -> 
-{-# LINE 38 "test/fixtures/UnitActions.hpeg" #-}
+{-# LINE 35 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 13 #-} True 
-{-# LINE 199 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 171 "test/generated/Fixture/UnitActions.hs" #-}
     )
           ; PegPrelude.pure ()
           }
       ])
 
-peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 41 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 208 "test/generated/Fixture/UnitActions.hs" #-}
-    )
+peg'rule'Sp :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Sp =
   PegRt.memo peg'memo'Sp "Sp"
     (PegRt.choice
@@ -215,9 +183,9 @@ peg'rule'Sp =
       ])
 
 peg'rule'Op'0 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 31 "test/fixtures/UnitActions.hpeg" #-}
+{-# LINE 29 "test/fixtures/UnitActions.hpeg" #-}
  {-# COLUMN 15 #-}()
-{-# LINE 221 "test/generated/Fixture/UnitActions.hs" #-}
+{-# LINE 189 "test/generated/Fixture/UnitActions.hs" #-}
     )
 peg'rule'Op'0 =
   PegRt.memo peg'memo'Op'0 "Op'0"

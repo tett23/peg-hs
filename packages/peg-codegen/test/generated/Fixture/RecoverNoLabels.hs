@@ -79,7 +79,7 @@ parse peg'input =
 
 -- | Parse the whole input with the rule @SkipBlock@.
 parseSkipBlock :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 57 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 55 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 14 #-}Block
 {-# LINE 85 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     )
@@ -87,19 +87,15 @@ parseSkipBlock peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'SkipBlock peg'input))
 
 -- | Parse the whole input with the rule @CloseAtParagraphEnd@.
-parseCloseAtParagraphEnd :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 24 #-}()
-{-# LINE 94 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    )
+parseCloseAtParagraphEnd :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (())
 parseCloseAtParagraphEnd peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'CloseAtParagraphEnd peg'input))
 
 -- | Parse the whole input with the rule @MissingName@.
 parseMissingName :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 63 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 103 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 99 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     )
 parseMissingName peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'MissingName peg'input))
@@ -316,57 +312,45 @@ data Peg'Store peg's = Peg'Store
   { peg'memo'Doc :: PegRt.Table peg's ((
 {-# LINE 29 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 8 #-}[Block]
-{-# LINE 320 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 316 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Item :: PegRt.Table peg's ((
 {-# LINE 33 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 325 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 321 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Para :: PegRt.Table peg's ((
 {-# LINE 36 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 330 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 326 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Inline :: PegRt.Table peg's ((
 {-# LINE 39 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 11 #-}Inline
-{-# LINE 335 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 331 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Command :: PegRt.Table peg's ((
 {-# LINE 43 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 12 #-}Inline
-{-# LINE 340 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 336 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Name :: PegRt.Table peg's ((
 {-# LINE 46 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 345 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 341 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'ParaEnd :: PegRt.Table peg's ((
-{-# LINE 49 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 350 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Sep :: PegRt.Table peg's ((
-{-# LINE 53 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 355 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'ParaEnd :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Sep :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'SkipBlock :: PegRt.Table peg's ((
-{-# LINE 57 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 55 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 14 #-}Block
-{-# LINE 360 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 348 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'CloseAtParagraphEnd :: PegRt.Table peg's ((
-{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 24 #-}()
-{-# LINE 365 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'CloseAtParagraphEnd :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'MissingName :: PegRt.Table peg's ((
-{-# LINE 63 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 370 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 354 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
   }
 
@@ -377,7 +361,7 @@ peg'newStore =
 peg'rule'Doc :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 29 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 8 #-}[Block]
-{-# LINE 381 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 365 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Doc =
   PegRt.memo peg'memo'Doc "Doc"
@@ -390,7 +374,7 @@ peg'rule'Doc =
           ; PegPrelude.pure ((
 {-# LINE 30 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 23 #-} bs 
-{-# LINE 394 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 378 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -398,7 +382,7 @@ peg'rule'Doc =
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 33 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 402 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 386 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -414,7 +398,7 @@ peg'rule'Item =
           ; PegPrelude.pure ((
 {-# LINE 34 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 34 #-} b 
-{-# LINE 418 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 402 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4])
           }
       ]))
@@ -422,7 +406,7 @@ peg'rule'Item =
 peg'rule'Para :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 36 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Block
-{-# LINE 426 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 410 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Para =
   PegRt.memo peg'memo'Para "Para"
@@ -434,7 +418,7 @@ peg'rule'Para =
           ; PegPrelude.pure ((
 {-# LINE 37 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 21 #-} Para is 
-{-# LINE 438 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 422 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), peg'k0)
           }
       ]))
@@ -442,7 +426,7 @@ peg'rule'Para =
 peg'rule'Inline :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 39 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 11 #-}Inline
-{-# LINE 446 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 430 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Inline =
   PegRt.memo peg'memo'Inline "Inline"
@@ -461,7 +445,7 @@ peg'rule'Inline =
           ; PegPrelude.pure ((
 {-# LINE 41 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 36 #-} Plain t 
-{-# LINE 465 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 449 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), peg'k5)
           }
       ]))
@@ -469,7 +453,7 @@ peg'rule'Inline =
 peg'rule'Command :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 43 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 12 #-}Inline
-{-# LINE 473 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 457 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Command =
   PegRt.memo peg'memo'Command "Command"
@@ -489,7 +473,7 @@ peg'rule'Command =
           ; PegPrelude.pure ((
 {-# LINE 44 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 58 #-} Command n body 
-{-# LINE 493 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 477 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k6])
           }
       ]))
@@ -497,7 +481,7 @@ peg'rule'Command =
 peg'rule'Name :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 46 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 501 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 485 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'Name =
   PegRt.memo peg'memo'Name "Name"
@@ -509,16 +493,12 @@ peg'rule'Name =
           ; PegPrelude.pure ((
 {-# LINE 47 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 20 #-} n 
-{-# LINE 513 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 497 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), peg'k0)
           }
       ]))
 
-peg'rule'ParaEnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 49 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 521 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
+peg'rule'ParaEnd :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'ParaEnd =
   PegRt.memo peg'memo'ParaEnd "ParaEnd"
     (PegRt.node syntaxKindParaEnd (PegRt.choice
@@ -535,11 +515,7 @@ peg'rule'ParaEnd =
           }
       ]))
 
-peg'rule'Sep :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 53 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 542 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Sep :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Sep =
   PegRt.memo peg'memo'Sep "Sep"
     (PegRt.token syntaxKindSep (PegRt.choice
@@ -549,9 +525,9 @@ peg'rule'Sep =
       ]))
 
 peg'rule'SkipBlock :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 57 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 55 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 14 #-}Block
-{-# LINE 555 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 531 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'SkipBlock =
   PegRt.memo peg'memo'SkipBlock "SkipBlock"
@@ -563,18 +539,14 @@ peg'rule'SkipBlock =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 58 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 56 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 29 #-} ErrorBlock 
-{-# LINE 569 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 545 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), peg'k2)
           }
       ]))
 
-peg'rule'CloseAtParagraphEnd :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
- {-# COLUMN 24 #-}()
-{-# LINE 577 "test/generated/Fixture/RecoverNoLabels.hs" #-}
-    ), [PegRt.Child])
+peg'rule'CloseAtParagraphEnd :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'CloseAtParagraphEnd =
   PegRt.memo peg'memo'CloseAtParagraphEnd "CloseAtParagraphEnd"
     (PegRt.node syntaxKindCloseAtParagraphEnd (PegRt.choice
@@ -584,9 +556,9 @@ peg'rule'CloseAtParagraphEnd =
       ]))
 
 peg'rule'MissingName :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 63 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 60 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 590 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 562 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [PegRt.Child])
 peg'rule'MissingName =
   PegRt.memo peg'memo'MissingName "MissingName"
@@ -594,9 +566,9 @@ peg'rule'MissingName =
       [ do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 64 "test/fixtures/Recover.hpeg" #-}
+{-# LINE 61 "test/fixtures/Recover.hpeg" #-}
  {-# COLUMN 17 #-} T.pack "?" 
-{-# LINE 600 "test/generated/Fixture/RecoverNoLabels.hs" #-}
+{-# LINE 572 "test/generated/Fixture/RecoverNoLabels.hs" #-}
     ), [])
           }
       ]))

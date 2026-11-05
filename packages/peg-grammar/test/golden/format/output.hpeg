@@ -25,6 +25,5 @@ Op<o> <- o Sp { id () }
 Rep<o>(a :: Int, b :: Int) :: ()
 Rep<o> <- o &{ a <= b } Sp { id () }
 
-Sp :: ()
 Sp <- [ \t\n]* { id () } # spaces
 # the end

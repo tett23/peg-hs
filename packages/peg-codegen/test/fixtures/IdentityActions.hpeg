@@ -25,5 +25,4 @@ Word <- $[a-z]+ Sp
 Bracket<p :: t> :: t
 Bracket<p> <- '[' Sp p ']' Sp
 
-Sp :: ()
 Sp <- ' '*

@@ -120,12 +120,12 @@ data Peg'Store peg's = Peg'Store
 {-# LINE 121 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
   , peg'memo'String :: PegRt.Table peg's (
-{-# LINE 93 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 90 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 11 #-}Text
 {-# LINE 126 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
   , peg'memo'Escape :: PegRt.Table peg's (
-{-# LINE 101 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 98 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 11 #-}Int
 {-# LINE 131 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
@@ -403,11 +403,7 @@ peg'rule'Number =
           }
       ])
 
-peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 83 "bench/JsonNomemo.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 410 "bench/Conformance/Bench/JsonNomemo.hs" #-}
-    )
+peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'IntPart =
   PegRt.nomemo "IntPart"
     (PegRt.choice
@@ -420,11 +416,7 @@ peg'rule'IntPart =
           }
       ])
 
-peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 87 "bench/JsonNomemo.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 427 "bench/Conformance/Bench/JsonNomemo.hs" #-}
-    )
+peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Frac =
   PegRt.nomemo "Frac"
     (PegRt.choice
@@ -434,11 +426,7 @@ peg'rule'Frac =
           }
       ])
 
-peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 90 "bench/JsonNomemo.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 441 "bench/Conformance/Bench/JsonNomemo.hs" #-}
-    )
+peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Exp =
   PegRt.nomemo "Exp"
     (PegRt.choice
@@ -450,9 +438,9 @@ peg'rule'Exp =
       ])
 
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 93 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 90 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 456 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 444 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -463,17 +451,17 @@ peg'rule'String =
           ; PegRt.lit "\"" "'\"'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 94 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 91 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 29 #-} T.pack (decodeUnits us) 
-{-# LINE 469 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 457 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       ])
 
 peg'rule'Unit :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 97 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 94 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 477 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 465 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
 peg'rule'Unit =
   PegRt.nomemo "Unit"
@@ -486,17 +474,17 @@ peg'rule'Unit =
           ; c <- PegRt.capture (PegRt.cls [(' ', '!'), ('#', '['), (']', '\1114111')] "[\\u{20}-\\u{21}\\u{23}-\\u{5B}\\u{5D}-\\u{10FFFF}]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 99 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 96 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
-{-# LINE 492 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 480 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       ])
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 101 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 98 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 500 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 488 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -505,72 +493,72 @@ peg'rule'Escape =
           ; PegRt.lit "\"" "'\"'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 102 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 99 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 16 #-} 0x22 
-{-# LINE 511 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 499 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "\\" "'\\\\'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 103 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 100 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 16 #-} 0x5C 
-{-# LINE 520 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 508 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "/" "'/'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 104 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 101 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x2F 
-{-# LINE 529 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 517 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "b" "'b'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 105 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 102 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x08 
-{-# LINE 538 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 526 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "f" "'f'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 106 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 103 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x0C 
-{-# LINE 547 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 535 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "n" "'n'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 107 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 104 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x0A 
-{-# LINE 556 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 544 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "r" "'r'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 108 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 105 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x0D 
-{-# LINE 565 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 553 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "t" "'t'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 109 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 106 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 15 #-} 0x09 
-{-# LINE 574 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 562 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -583,18 +571,14 @@ peg'rule'Escape =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 110 "bench/JsonNomemo.hpeg" #-}
+{-# LINE 107 "bench/JsonNomemo.hpeg" #-}
  {-# COLUMN 36 #-} hexValue h 
-{-# LINE 589 "bench/Conformance/Bench/JsonNomemo.hs" #-}
+{-# LINE 577 "bench/Conformance/Bench/JsonNomemo.hs" #-}
     )
           }
       ])
 
-peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 112 "bench/JsonNomemo.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 597 "bench/Conformance/Bench/JsonNomemo.hs" #-}
-    )
+peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Hex =
   PegRt.nomemo "Hex"
     (PegRt.choice
@@ -603,11 +587,7 @@ peg'rule'Hex =
           }
       ])
 
-peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 115 "bench/JsonNomemo.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 610 "bench/Conformance/Bench/JsonNomemo.hs" #-}
-    )
+peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Ws =
   PegRt.nomemo "Ws"
     (PegRt.choice

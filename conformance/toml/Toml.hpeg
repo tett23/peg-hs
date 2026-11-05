@@ -60,7 +60,6 @@ Expression <- Ws? l:KeyVal Ws? Comment? (EndOfLine ^eol) { l }
            / Ws? l:Table Ws? Comment? (EndOfLine ^eol) { l }
            / Ws? Comment? (EndOfLine ^eol) { LBlank }
 
-EndOfLine :: ()
 EndOfLine <- &Newline
           / !.
 
@@ -93,7 +92,6 @@ SimpleKey <- BasicString
 UnquotedKey :: Text
 UnquotedKey <- k:$[A-Za-z0-9_\-]+ { k }
 
-KeyValSep :: ()
 KeyValSep <- Ws? '=' Ws?
 
 # 値 --------------------------------------------------------------------------------
@@ -156,7 +154,6 @@ MlbChar <- '\\' [ \t]* Newline ([ \t] / Newline)* { "" }
 LiteralString :: Text
 LiteralString <- '\'' cs:$LiteralChar* '\'' { cs }
 
-LiteralChar :: ()
 LiteralChar <- [\t\u{20}-\u{26}\u{28}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]
 
 MlLiteralString :: Text
@@ -190,7 +187,6 @@ Float <- s:Sign? m:$FloatBody { signed s (floatOf m) }
       / s:Sign? 'inf' { signed s (1 / 0) }
       / Sign? 'nan' { 0 / 0 }
 
-FloatBody :: ()
 FloatBody <- DecUnsigned '.' [0-9] ('_'? [0-9])* ([eE] [+\-]? [0-9] ('_'? [0-9])*)? { () }
           / DecUnsigned [eE] [+\-]? [0-9] ('_'? [0-9])* { () }
 
@@ -239,23 +235,18 @@ InlineKeyVal :: (Key, Val)
 InlineKeyVal <- k:Key KeyValSep v:Val { (k, v) }
 
 # 空白、コメント、改行 --------------------------------------------------------------
-Wcn :: ()
 Wcn <- (Ws / Comment? Newline)*
 
-Ws :: ()
 Ws <- [ \t]+
 
-Comment :: ()
 Comment <- '#' [\t\u{20}-\u{7E}\u{80}-\u{D7FF}\u{E000}-\u{10FFFF}]*
 
-Newline :: ()
 Newline <- '\n'
         / '\r\n'
 
 # 回復の規則 ------------------------------------------------------------------------
 
 # = がなければ、空白だけを読んで = があったものとみなす
-MissingEq :: ()
 MissingEq <- [ \t]*
 
 # 壊れた値を読み飛ばす。複数行の文字列と括弧は閉じまで、それ以外は行の終わりまで。
@@ -266,14 +257,11 @@ SkipValue <- '"""' SkipString { VInvalid }
           / SkipBracket { VInvalid }
           / (!Newline .)* { VInvalid }
 
-SkipString :: ()
 SkipString <- (!'"""' ('\\' . / .))* '"""'?
 
-SkipBracket :: ()
 SkipBracket <- '[' SkipInBracket* (']' / !.)
             / '{' SkipInBracket* ('}' / !.)
 
-SkipInBracket :: ()
 SkipInBracket <- SkipBracket
               / '"""' SkipString
               / '\'\'\'' (!'\'\'\'' .)* '\'\'\''?
@@ -285,5 +273,4 @@ SkipInBracket <- SkipBracket
 SkipHeader :: Key
 SkipHeader <- (!Newline .)* { [] }
 
-SkipLine :: ()
 SkipLine <- (!Newline .)*

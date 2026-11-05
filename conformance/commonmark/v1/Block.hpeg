@@ -50,16 +50,13 @@ Block <- BlankLine
       / RefDef
       / Paragraph
 
-Newline :: ()
 Newline <- '\r\n'
         / '\n'
         / '\r'
 
-EOL :: ()
 EOL <- Newline
     / !.
 
-BlankRest :: ()
 BlankRest <- [ \t]* EOL
 
 LineNL :: Text
@@ -70,10 +67,8 @@ BlankLine :: Block
 BlankLine <- [ \t]* Newline { BlankLine }
           / [ \t]+ !. { BlankLine }
 
-Sp3 :: ()
 Sp3 <- ' '? ' '? ' '?
 
-Indent4 :: ()
 Indent4 <- '    '
         / ' '? ' '? ' '? '\t'
 
@@ -96,10 +91,8 @@ FencedCode :: Block
 FencedCode <- Sp3 '```' '`'* info:$(![`\n\r] .)* EOL ls:BacktickLine* BacktickClose? { CodeBlock (infoOf info) (T.concat ls) }
            / Sp3 '~~~' '~'* info:$(!Newline .)* EOL ls:TildeLine* TildeClose? { CodeBlock (infoOf info) (T.concat ls) }
 
-BacktickClose :: ()
 BacktickClose <- Sp3 '```' '`'* [ \t]* EOL
 
-TildeClose :: ()
 TildeClose <- Sp3 '~~~' '~'* [ \t]* EOL
 
 BacktickLine :: Text
@@ -126,13 +119,11 @@ HtmlBlock <- &(Sp3 '<' Type1Name ([ \t] / '>' / &EOL)) ls:Until1 { HtmlBlock (T.
           / &(Sp3 '<' '/'? BlockTag ([ \t] / '>' / '/>' / &EOL)) ls:UntilBlank { HtmlBlock (T.intercalate (T.pack "\n") ls) }
           / &(Sp3 !('<' Type1Name) (OpenTag / CloseTag) [ \t]* EOL) ls:UntilBlank { HtmlBlock (T.intercalate (T.pack "\n") ls) }
 
-Type1Name :: ()
 Type1Name <- [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa]
           / [Ss] [Cc] [Rr] [Ii] [Pp] [Tt]
           / [Ss] [Tt] [Yy] [Ll] [Ee]
           / [Pp] [Rr] [Ee]
 
-BlockTag :: ()
 BlockTag <- [Bb] [Ll] [Oo] [Cc] [Kk] [Qq] [Uu] [Oo] [Tt] [Ee]
          / [Ff] [Ii] [Gg] [Cc] [Aa] [Pp] [Tt] [Ii] [Oo] [Nn]
          / [Bb] [Aa] [Ss] [Ee] [Ff] [Oo] [Nn] [Tt]
@@ -196,7 +187,6 @@ BlockTag <- [Bb] [Ll] [Oo] [Cc] [Kk] [Qq] [Uu] [Oo] [Tt] [Ee]
          / [Uu] [Ll]
          / [Pp]
 
-End1 :: ()
 End1 <- '</' [Tt] [Ee] [Xx] [Tt] [Aa] [Rr] [Ee] [Aa] '>'
      / '</' [Ss] [Cc] [Rr] [Ii] [Pp] [Tt] '>'
      / '</' [Ss] [Tt] [Yy] [Ll] [Ee] '>'
@@ -249,19 +239,14 @@ UntilBlankRest :: [Text]
 UntilBlankRest <- UntilBlank
                / { [] }
 
-OpenTag :: ()
 OpenTag <- '<' TagName Attr* [ \t]* '/'? '>'
 
-CloseTag :: ()
 CloseTag <- '</' TagName [ \t]* '>'
 
-TagName :: ()
 TagName <- [A-Za-z] [A-Za-z0-9\-]*
 
-Attr :: ()
 Attr <- [ \t]+ [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue?
 
-AttrValue :: ()
 AttrValue <- [ \t]* '=' [ \t]* (![ \t\r\n"'=<>`] .)+
           / [ \t]* '=' [ \t]* '\'' (!'\'' !Newline .)* '\''
           / [ \t]* '=' [ \t]* '"' (!'"' !Newline .)* '"'
@@ -284,14 +269,12 @@ Marker <- c:$[\-+*] { Bullet (firstChar c) }
 RefDef :: Block
 RefDef <- Sp3 '[' l:$LabelBody ']' ':' [ \t]* Newline? [ \t]* d:Dest t:DefTitle { RefDef l d t }
 
-LabelBody :: ()
 LabelBody <- ('\\' . / ![\[\]] .)+
 
 Dest :: Text
 Dest <- '<' $('\\' . / ![<>\n\r] .)* '>'
      / !'<' $DestRaw
 
-DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+
 
 DefTitle :: Maybe Text
@@ -318,7 +301,6 @@ SetextLine :: Int
 SetextLine <- Sp3 '='+ [ \t]* EOL { 1 }
            / Sp3 '-'+ [ \t]* EOL { 2 }
 
-Interrupt :: ()
 Interrupt <- &ThematicBreak
           / &AtxHeading
           / Sp3 ('```' / '~~~')

@@ -83,14 +83,11 @@ Element <- Value Ws
 Number :: Text
 Number <- $('-'? IntPart Frac? Exp?)
 
-IntPart :: ()
 IntPart <- '0'
         / [1-9] [0-9]*
 
-Frac :: ()
 Frac <- '.' [0-9]+
 
-Exp :: ()
 Exp <- [eE] [+\-]? [0-9]+
 
 String :: Text
@@ -112,10 +109,8 @@ Escape <- '"' { 0x22 }
        / 't' { 0x09 }
        / 'u' h:$(Hex Hex Hex Hex) { hexValue h }
 
-Hex :: ()
 Hex <- [0-9a-fA-F]
 
-Ws :: ()
 Ws <- [ \t\n\r]*
 
 # 回復の規則（ADR 0021）---------------------------------------------------------
@@ -125,14 +120,10 @@ SkipValue <- (![,\]}\n] .)* { Null }
 SkipMember :: (Text, Value)
 SkipMember <- (![,}] .)* { (T.empty, Null) }
 
-InsertColon :: ()
 InsertColon <- { () }
 
-SkipToBracket :: ()
 SkipToBracket <- (!']' .)* ']'?
 
-SkipToBrace :: ()
 SkipToBrace <- (!'}' .)* '}'?
 
-CloseQuote :: ()
 CloseQuote <- (!'\n' !'"' .)* '"'?

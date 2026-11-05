@@ -24,10 +24,8 @@ Opt :: Maybe Int
 Opt <- (Sp* N)?
 
 # () の値しかない選択肢は、これまでどおり () を返す
-Spaces :: ()
 Spaces <- Sp
 
-Sp :: ()
 Sp <- ' '+
 
 N :: Int

@@ -115,13 +115,10 @@ CodeSpan <- '`' !'`' c:$Body1 '`' !'`' { Code (normalizeCode c) }
          / '``' !'`' c:$Body2 '``' !'`' { Code (normalizeCode c) }
          / '```' !'`' c:$Body3 '```' !'`' { Code (normalizeCode c) }
 
-Body1 :: ()
 Body1 <- (!'`' . / '``' '`'*)*
 
-Body2 :: ()
 Body2 <- (!'`' . / '`' !'`' / '```' '`'*)*
 
-Body3 :: ()
 Body3 <- (!'`' . / '`' !'`' / '``' !'`' / '````' '`'*)*
 
 Ticks :: Inline
@@ -132,54 +129,40 @@ AutolinkI :: Inline
 AutolinkI <- '<' u:$(Scheme ':' (![\u{0}-\u{20}<>] .)*) '>' { Autolink u u }
           / '<' e:$(EmailLocal '@' EmailDomain) '>' { Autolink (T.pack "mailto:" <> e) e }
 
-Scheme :: ()
 Scheme <- [A-Za-z] [A-Za-z0-9+.\-]+
 
-EmailLocal :: ()
 EmailLocal <- [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~\-]+
 
-EmailDomain :: ()
 EmailDomain <- DomainLabel ('.' DomainLabel)*
 
-DomainLabel :: ()
 DomainLabel <- [a-zA-Z0-9] ([a-zA-Z0-9\-]* [a-zA-Z0-9])?
 
 RawHtmlI :: Inline
 RawHtmlI <- t:$(OpenTag / ClosingTag / HtmlComment / ProcInstr / Decl / CData) { RawHtml t }
 
-OpenTag :: ()
 OpenTag <- '<' TagName Attr* TWs? '/'? '>'
 
-ClosingTag :: ()
 ClosingTag <- '</' TagName TWs? '>'
 
-TagName :: ()
 TagName <- [A-Za-z] [A-Za-z0-9\-]*
 
-Attr :: ()
 Attr <- TWs [A-Za-z_:] [A-Za-z0-9_.:\-]* AttrValue?
 
-AttrValue :: ()
 AttrValue <- TWs? '=' TWs? (![ \t\n"'=<>`] .)+
           / TWs? '=' TWs? '\'' (!'\'' .)* '\''
           / TWs? '=' TWs? '"' (!'"' .)* '"'
 
-TWs :: ()
 TWs <- [ \t]* '\n' [ \t]*
     / [ \t]+
 
-HtmlComment :: ()
 HtmlComment <- '<!-->'
             / '<!--->'
             / '<!--' (!'-->' .)* '-->'
 
-ProcInstr :: ()
 ProcInstr <- '<?' (!'?>' .)* '?>'
 
-Decl :: ()
 Decl <- '<!' [A-Za-z] (!'>' .)* '>'
 
-CData :: ()
 CData <- '<![CDATA[' (!']]>' .)* ']]>'
 
 # リンクと画像 ----------------------------------------------------------------------
@@ -201,14 +184,12 @@ ImageItem <- l:LinkI { [l] }
 InlineTail :: (Text, Maybe Text)
 InlineTail <- '(' LWs d:Dest? t:TitlePart? LWs ')' { (maybe T.empty id d, t) }
 
-LWs :: ()
 LWs <- [ \t]* ('\n' [ \t]*)?
 
 Dest :: Text
 Dest <- '<' $('\\' . / ![<>\n] .)* '>'
      / !'<' $DestRaw
 
-DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n()\u{0}-\u{1F}] .)+
 
 TitlePart :: Text

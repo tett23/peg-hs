@@ -116,25 +116,19 @@ Here :: Loc
 Here <- { here _span }
 
 # 空白とコメント -------------------------------------------------------------------
-Ws :: ()
 Ws <- (SpaceChar / Comment)*
 
-SpaceChar :: ()
 SpaceChar <- c:$. &{ isSpace (firstChar c) } { () }
 
-Comment :: ()
 Comment <- '#' (!'\n' .)*
 
-InlineSp :: ()
 InlineSp <- [ \t]*
 
 Ident :: Text
 Ident <- $(IdentStart IdentChar*)
 
-IdentStart :: ()
 IdentStart <- c:$. &{ isIdentStart (firstChar c) } { () }
 
-IdentChar :: ()
 IdentChar <- c:$. &{ isIdentChar (firstChar c) } { () }
 
 # 最上位の要素 ---------------------------------------------------------------------
@@ -185,7 +179,6 @@ Item :: Item
 Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }
      / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
 
-DeclStart :: ()
 DeclStart <- Ident TemplateParams? HsParen? Ws ('::' / '<-') { () }
 
 Binding :: Text
@@ -239,26 +232,19 @@ MoreGroup :: [Item]
 MoreGroup <- Ws '/' Item*
 
 # リテラルと文字クラス -------------------------------------------------------------------
-Lit1 :: ()
 Lit1 <- '\'' (Escape / !['\\\n] .)* ('\'' ^literal)
 
-Lit2 :: ()
 Lit2 <- '"' (Escape / !["\\\n] .)* ('"' ^literal)
 
-Escape :: ()
 Escape <- '\\' (EscapeBody ^escape)
 
-EscapeBody :: ()
 EscapeBody <- [ntr\\'"\]\[\-]
            / 'u' ('{' ^ubrace) h:$[0-9a-fA-F]* ('}' ^uclose) (&{ validHex h }) ^uescape { () }
 
-ClassLit :: ()
 ClassLit <- '[' (!']') ^emptyclass ClassItem* (']' ^class)
 
-ClassItem :: ()
 ClassItem <- s:$(ClassChar ('-' !']' ClassChar)?) (&{ nonEmptyRanges s }) ^range { () }
 
-ClassChar :: ()
 ClassChar <- Escape
           / ![\]\\\n] .
 
@@ -277,45 +263,36 @@ ArgChunk :: Located Text
 ArgChunk <- Ws l:Here c:$ArgCode (&{ not (T.null (T.strip c)) }) ^argument (&[,)]) ^argcode { Located l c }
 
 # 深さ 0 の '}' の手前まで
-ActionCode :: ()
 ActionCode <- HsPart*
 
 # 深さ 0 の ',' か ')' の手前まで
-ArgCode :: ()
 ArgCode <- (!',' HsPart)*
 
-HsPart :: ()
 HsPart <- HsNested
        / HsString
        / HsChar
        / HsIdent
        / ![()\[\]{}"'] .
 
-HsParen :: ()
 HsParen <- '(' HsInner* ')'
 
-HsNested :: ()
 HsNested <- HsParen
          / '[' HsInner* ']'
          / '{' HsInner* '}'
 
-HsInner :: ()
 HsInner <- HsNested
         / HsString
         / HsChar
         / HsIdent
         / ![()\[\]{}"'] .
 
-HsString :: ()
 HsString <- '"' ('\\' . / !'"' .)* ('"' ^hsstring)
 
 # 識別子の文字の直後にない引用符は文字リテラルの始まり。
 # 引用符はこの規則と HsString でだけ読む。閉じていない文字列や文字リテラルは、
 # ラベルがなくても拒否される（ラベルは誤りの文言のため、ADR 0028）
-HsChar :: ()
 HsChar <- '\'' '\\' . (!'\'' .)* ('\'' ^hschar)
        / '\'' . '\''
        / '\'' !'\\'
 
-HsIdent :: ()
 HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar* { () }

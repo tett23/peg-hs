@@ -4,8 +4,6 @@
 %recover a Skip
 %recover b Skip
 
-S :: ()
 S <- '(' ('x') ^a (')') ^b
 
-Skip :: ()
 Skip <- (![)] .)*

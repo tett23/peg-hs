@@ -10,21 +10,13 @@ import qualified Peg.Runtime.Internal as PegRt
 import Prelude
 
 -- | Parse the whole input with the rule @E0@.
-parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 4 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 17 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (())
 parse peg'input =
   Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'E0 peg'input)
 
 -- | Run the start rule with a runtime configuration and return statistics.
 -- Only meant for testing the generator.
-peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
-{-# LINE 4 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 27 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    ), PegRt.Stats)
+peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (()), PegRt.Stats)
 peg'parseWith peg'cfg peg'input =
   PegRt.runParser peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore) peg'rule'E0 peg'input
 
@@ -32,67 +24,23 @@ peg'config :: PegRt.Config
 peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
-  { peg'memo'E0 :: PegRt.Table peg's (
-{-# LINE 4 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 39 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E1 :: PegRt.Table peg's (
-{-# LINE 7 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 44 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E2 :: PegRt.Table peg's (
-{-# LINE 11 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 49 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E3 :: PegRt.Table peg's (
-{-# LINE 15 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 54 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E4 :: PegRt.Table peg's (
-{-# LINE 19 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 59 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E5 :: PegRt.Table peg's (
-{-# LINE 23 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 64 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E6 :: PegRt.Table peg's (
-{-# LINE 27 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 69 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E7 :: PegRt.Table peg's (
-{-# LINE 31 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 74 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'E8 :: PegRt.Table peg's (
-{-# LINE 35 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 79 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
-  , peg'memo'Atom :: PegRt.Table peg's (
-{-# LINE 39 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 84 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+  { peg'memo'E0 :: PegRt.Table peg's (())
+  , peg'memo'E1 :: PegRt.Table peg's (())
+  , peg'memo'E2 :: PegRt.Table peg's (())
+  , peg'memo'E3 :: PegRt.Table peg's (())
+  , peg'memo'E4 :: PegRt.Table peg's (())
+  , peg'memo'E5 :: PegRt.Table peg's (())
+  , peg'memo'E6 :: PegRt.Table peg's (())
+  , peg'memo'E7 :: PegRt.Table peg's (())
+  , peg'memo'E8 :: PegRt.Table peg's (())
+  , peg'memo'Atom :: PegRt.Table peg's (())
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
   Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
-peg'rule'E0 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 4 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 95 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E0 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E0 =
   PegRt.memo peg'memo'E0 "E0"
     (PegRt.choice
@@ -101,11 +49,7 @@ peg'rule'E0 =
           }
       ])
 
-peg'rule'E1 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 7 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 108 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E1 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E1 =
   PegRt.memoLR peg'memo'E1 "E1"
     (PegRt.choice
@@ -119,11 +63,7 @@ peg'rule'E1 =
           }
       ])
 
-peg'rule'E2 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 11 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 126 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E2 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E2 =
   PegRt.memoLR peg'memo'E2 "E2"
     (PegRt.choice
@@ -137,11 +77,7 @@ peg'rule'E2 =
           }
       ])
 
-peg'rule'E3 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 15 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 144 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E3 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E3 =
   PegRt.memoLR peg'memo'E3 "E3"
     (PegRt.choice
@@ -155,11 +91,7 @@ peg'rule'E3 =
           }
       ])
 
-peg'rule'E4 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 19 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 162 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E4 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E4 =
   PegRt.memoLR peg'memo'E4 "E4"
     (PegRt.choice
@@ -173,11 +105,7 @@ peg'rule'E4 =
           }
       ])
 
-peg'rule'E5 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 23 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 180 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E5 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E5 =
   PegRt.memoLR peg'memo'E5 "E5"
     (PegRt.choice
@@ -191,11 +119,7 @@ peg'rule'E5 =
           }
       ])
 
-peg'rule'E6 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 27 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 198 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E6 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E6 =
   PegRt.memoLR peg'memo'E6 "E6"
     (PegRt.choice
@@ -209,11 +133,7 @@ peg'rule'E6 =
           }
       ])
 
-peg'rule'E7 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 31 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 216 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E7 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E7 =
   PegRt.memoLR peg'memo'E7 "E7"
     (PegRt.choice
@@ -227,11 +147,7 @@ peg'rule'E7 =
           }
       ])
 
-peg'rule'E8 :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 35 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 234 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'E8 :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'E8 =
   PegRt.memoLR peg'memo'E8 "E8"
     (PegRt.choice
@@ -245,11 +161,7 @@ peg'rule'E8 =
           }
       ])
 
-peg'rule'Atom :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 39 "bench/NestedLR8.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 252 "bench/Conformance/Bench/NestedLR8.hs" #-}
-    )
+peg'rule'Atom :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Atom =
   PegRt.memo peg'memo'Atom "Atom"
     (PegRt.choice
