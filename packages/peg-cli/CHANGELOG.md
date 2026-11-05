@@ -44,6 +44,10 @@ Since v0.1.0-rc2:
 - `peg-hs gen --export NAME`: export only the names given of those the
   generator defines, and generate only the declarations they need
   ([ADR 0061](https://github.com/tett23/peg-hs/blob/main/docs/adr/0061-select-generated-exports.md)).
+- `peg-hs lint` writes notices, with `notice:` in place of `warning:`,
+  for what can be simpler, such as a `{ () }` that can be omitted. A
+  notice does not make `lint` fail
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md)).
 
 ### Changed
 

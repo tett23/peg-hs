@@ -52,6 +52,19 @@ Since v0.1.0-rc1:
   in `Peg.Grammar.Labels`
   ([ADR 0054](https://github.com/tett23/peg-hs/blob/main/docs/adr/0054-automatic-label-insertion.md)).
 
+Since v0.1.0-rc2:
+
+- In a rule of type `()`, an alternative with no value other than unit may
+  omit its action, and its value is `()`, even when its only counted
+  element is a repetition or an option of a unit rule
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
+  [ADR 0064](https://github.com/tett23/peg-hs/blob/main/docs/adr/0064-unit-rules-always-return-unit.md)).
+  `omitsUnitAction` in `Peg.Grammar.Check` tells such alternatives.
+- The linter gives notices besides warnings (`LintLevel`, `lintLevel`):
+  `omittable-unit-action` notes a `{ () }` that can be omitted, and
+  `renderLintWarning` writes a notice with `notice:`
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:

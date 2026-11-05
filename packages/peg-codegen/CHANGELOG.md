@@ -42,6 +42,10 @@ Since v0.1.0-rc2:
 - A module whose declarations `--export` leaves out turns off the warnings
   of unused imports and top-level bindings, which the code of the grammar
   used only by the left-out actions would get ([ADR 0062](https://github.com/tett23/peg-hs/blob/main/docs/adr/0062-warnings-of-pruned-generated-modules.md)).
+- An alternative of a rule of type `()` that omits its action because it
+  has no value other than unit returns `()`
+  ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
+  [ADR 0064](https://github.com/tett23/peg-hs/blob/main/docs/adr/0064-unit-rules-always-return-unit.md)).
 
 ### Fixed
 
