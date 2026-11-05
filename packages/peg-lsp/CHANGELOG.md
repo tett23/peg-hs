@@ -32,3 +32,16 @@ Since v0.1.0-rc2:
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 - The hover of a rule without a type annotation shows its type `()`
   ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).
+- Changes that arrive faster than the server checks them are coalesced:
+  the server sends the diagnostics of a changed document when no more
+  input is waiting, for its latest version only. Requests are still
+  answered in order, for the latest version. `receiveFrame`,
+  `receiveMessage` and `publishPending` expose this; `handleFrame` and
+  `handleMessage` still send the diagnostics with each change
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
+- An edit is checked faster: the grammar is parsed once per version, the
+  outline and the diagnostics of a version are computed once and shared,
+  lines are looked up in logarithmic time, JSON strings are written by
+  runs, and the lexical rules of the JSON parser are not memoised. The
+  diagnostics are unchanged
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).

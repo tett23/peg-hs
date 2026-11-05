@@ -60,7 +60,9 @@ if [ -d conformance/json ]; then
     cd conformance
     "$peg" gen json/Json.hpeg -o json/Conformance/Json/Parser.hs >/dev/null
     # The JSON parser of the language server (ADR 0035), from the same grammar.
-    sed 's/^%module Conformance.Json.Parser$/%module Peg.Lsp.JsonParser/' json/Json.hpeg > ../packages/peg-lsp/grammar/Json.hpeg
+    # The lexical rules are not memoised, as in bench/JsonNomemo.hpeg: the
+    # server decodes a whole document in every didChange (ADR 0070).
+    sed 's/^%module Conformance.Json.Parser$/%module Peg.Lsp.JsonParser\n%nomemo Ws\n%nomemo Unit\n%nomemo Hex\n%nomemo IntPart\n%nomemo Frac\n%nomemo Exp/' json/Json.hpeg > ../packages/peg-lsp/grammar/Json.hpeg
     (cd ../packages/peg-lsp && "$peg" gen grammar/Json.hpeg -o src/Peg/Lsp/JsonParser.hs >/dev/null)
     # Variants of the JSON grammar for ADR 0017, derived from json/Json.hpeg.
     sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonCounted/' json/Json.hpeg > bench/JsonCounted.hpeg

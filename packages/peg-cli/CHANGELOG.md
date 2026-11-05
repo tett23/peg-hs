@@ -63,3 +63,10 @@ Since v0.1.0-rc1:
   `.peg` files, which other PEG tools use too. A file given by name is
   taken whatever its extension
   ([ADR 0050](https://github.com/tett23/peg-hs/blob/main/docs/adr/0050-hpeg-extension.md)).
+
+Since v0.1.0-rc2:
+
+- `peg-hs` runs with an allocation area of 64 MB (`-with-rtsopts=-A64m`).
+  Parsing a grammar allocates about 40 MB, and with the default area most
+  of the time of an edit in `peg-hs lsp` went to garbage collection
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).

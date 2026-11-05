@@ -51,13 +51,14 @@ import qualified Data.ByteString as BS
 import Data.Char (isSpace, ord)
 import Data.List (find, nub, sortOn)
 import qualified Data.Map.Strict as M
+import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
 import Data.Maybe (fromMaybe, isJust, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Peg.Grammar (Diagnostic (..), Loc (..))
-import Peg.Grammar.Assemble (isIdentChar)
+import Peg.Grammar.Assemble (assemble, isIdentChar)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Format (formatGrammar)
 import Peg.Grammar.Highlight
@@ -65,7 +66,7 @@ import Peg.Grammar.LabelInsertion (Edit (..), Insertion (..), RecoverProposal (.
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar)
 import Peg.Grammar.Outline
-import Peg.Grammar.Parser (parseGrammar, parseTops)
+import Peg.Grammar.Parser (parseTops)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Peg.Lsp.Json
 
@@ -75,7 +76,8 @@ data Encoding = Utf8 | Utf16
 
 data Document = Document
   { docText :: Text
-  , docLines :: [Text]
+  , docLines :: Seq.Seq Text
+  -- ^ Indexed in logarithmic time: a diagnostic and a token look up their line.
   , docOutline :: Outline
   -- ^ Computed when first used, and kept until the document changes.
   , docChecks :: [(Severity, Diagnostic, Maybe Text)]
@@ -144,8 +146,9 @@ receiveFrame st = \case
     Just v -> receiveMessage st v
 
 -- | 'handleMessage' without the diagnostics of the document that the
--- message opens or changes: they wait for 'publishPending' (ADR 0070).
--- Requests are answered for the latest version of the document.
+-- message opens or changes: they wait for 'publishPending' (ADR 0070),
+-- or for @shutdown@, which sends them before its response. Requests are
+-- answered for the latest version of the document.
 receiveMessage :: State -> Value -> Step
 receiveMessage st msg =
   case (member "method" msg >>= asText, member "id" msg) of
@@ -162,7 +165,10 @@ request st method i params
        in Step st {stEncoding = enc, stInitialized = True} [response i (initializeResult enc)] Nothing
   | not (stInitialized st) = Step st [errorResponse i (-32002) "the server is not initialized"] Nothing
   | stShutdown st = Step st [errorResponse i (-32600) "the server is shutting down"] Nothing
-  | method == "shutdown" = Step st {stShutdown = True} [response i Null] Nothing
+  -- The diagnostics still waiting are sent before the server shuts down.
+  | method == "shutdown" =
+      let p = publishPending st
+       in Step (stepState p) {stShutdown = True} (stepOutput p ++ [response i Null]) Nothing
   | otherwise = case lookup method handlers of
       Just h -> Step st [response i (fromMaybe Null (document >>= \(uri, d) -> h (stEncoding st) uri d params))] Nothing
       Nothing -> Step st [errorResponse i (-32601) ("unknown method " <> method)] Nothing
@@ -218,7 +224,7 @@ newDocument text =
   let o = outline text
    in Document
     { docText = text
-    , docLines = T.splitOn "\n" text
+    , docLines = Seq.fromList (T.splitOn "\n" text)
     , docOutline = o
     , docChecks = diagnoseWith o text
     , docLabels = either (const []) fst (insertLabels [] text)
@@ -291,7 +297,7 @@ diagnoseWith o src = case parseTops src of
     map (\x -> (Error, x, Nothing)) ds
       ++ [(Error, e, Nothing) | e <- outlineSyntaxErrors o, locLine (diagLoc e) > locLine (diagLoc d)]
   Left [] -> []
-  Right _ -> case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (Right . (,) g0) (expandTemplates g0 >>= \g -> g <$ check g) of
+  Right tops -> case assemble tops >>= \g0 -> either (Left . templateNotes g0) (Right . (,) g0) (expandTemplates g0 >>= \g -> g <$ check g) of
     Left ds -> map (\x -> (Error, x, Nothing)) ds
     Right (g0, g) ->
       [(Warning, w, Nothing) | w <- templateNotes g0 (labelWarnings g)]
@@ -315,7 +321,7 @@ diagnosticValue enc d (sev, Diagnostic l@(Loc line col) msg, code) =
 -- Positions -----------------------------------------------------------------------
 
 lineAt :: Document -> Int -> Text
-lineAt d n = fromMaybe "" (listToMaybe (drop (n - 1) (docLines d)))
+lineAt d n = fromMaybe "" (Seq.lookup (n - 1) (docLines d))
 
 units :: Encoding -> Text -> Int
 units Utf8 t = BS.length (TE.encodeUtf8 t)
@@ -349,7 +355,7 @@ formatting :: Handler
 formatting enc _ d _ = Just $ case formatGrammar (docText d) of
   Right out
     | out /= docText d ->
-        let lastLine = length (docLines d)
+        let lastLine = Seq.length (docLines d)
             end = Loc lastLine (T.length (lineAt d lastLine) + 1)
          in Array [object [("range", rangeValue enc d (Loc 1 1) end), ("newText", String out)]]
   _ -> Array []

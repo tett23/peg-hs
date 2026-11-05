@@ -50,7 +50,10 @@ executable peg-hs
     ProcessBytes
   autogen-modules:
     Paths_peg_cli
-  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  -- A large allocation area: parsing a grammar allocates about 40 MB, and
+  -- with the default area most of the time of the language server went
+  -- to garbage collection (ADR 0070).
+  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints "-with-rtsopts=-A64m"
   build-depends:
     , base         >=4.20 && <4.23
     , bytestring   >=0.11 && <0.13

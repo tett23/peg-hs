@@ -53,7 +53,11 @@ renderJson = TL.toStrict . B.toLazyText . go
       Object ms -> "{" <> commas [string k <> ":" <> go v | (k, v) <- ms] <> "}"
     commas [] = mempty
     commas (x : xs) = x <> mconcat (map ("," <>) xs)
-    string s = "\"" <> T.foldr (\c b -> escape c <> b) mempty s <> "\""
+    string s = "\"" <> runs s <> "\""
+    -- Copy the runs of characters that need no escape as they are.
+    runs s = case T.break needsEscape s of
+      (plain, rest) -> B.fromText plain <> maybe mempty (\(c, more) -> escape c <> runs more) (T.uncons rest)
+    needsEscape c = c == '"' || c == '\\' || ord c < 0x20
     escape = \case
       '"' -> "\\\""
       '\\' -> "\\\\"

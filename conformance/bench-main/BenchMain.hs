@@ -101,6 +101,7 @@ main = do
     ["--memo-report"] -> memoReport
     ["--memory", variant, n] -> memory variant (read n)
     ["--lsp-session", file, out] -> lspSession file out
+    ["--lsp-messages", file, dir] -> lspMessages file dir
     _ -> benchmarks
 
 benchmarks :: IO ()
@@ -217,16 +218,26 @@ semanticTokensMsg =
 -- The input of a session of the language server for timing peg-hs lsp
 -- (ADR 0070): initialize, didOpen of a grammar, and 50 didChange of its
 -- full text, each with one more comment line at the end, then shutdown and
--- exit. --lsp-session GRAMMAR OUT.
+-- exit. --lsp-session GRAMMAR OUT. In one file, the server reads the
+-- changes faster than it checks them, and coalesces them.
 lspSession :: FilePath -> FilePath -> IO ()
-lspSession file out = do
+lspSession file out = B.writeFile out . B.concat . map encodeMessage =<< sessionMessages file
+
+-- The messages of --lsp-session, one file each (DIR/000 ...), for sending
+-- them one at a time: --lsp-messages GRAMMAR DIR.
+lspMessages :: FilePath -> FilePath -> IO ()
+lspMessages file dir = do
+  msgs <- sessionMessages file
+  forM_ (zip [0 :: Int ..] msgs) $ \(k, m) ->
+    B.writeFile (dir </> reverse (take 3 (reverse ("00" <> show k)))) (encodeMessage m)
+
+sessionMessages :: FilePath -> IO [J.Value]
+sessionMessages file = do
   src <- TIO.readFile file
   let edit k = src <> T.pack ("# edit " <> show k <> "\n")
       shutdown = lspMessage [(T.pack "id", J.int 2), (T.pack "method", J.String (T.pack "shutdown"))]
       exit = lspMessage [(T.pack "method", J.String (T.pack "exit"))]
-  B.writeFile out . B.concat . map encodeMessage $
-    [initializeMsg, didOpenMsg src] ++ [didChangeMsg k (edit k) | k <- [2 .. 51 :: Int]] ++ [shutdown, exit]
-  pure ()
+  pure ([initializeMsg, didOpenMsg src] ++ [didChangeMsg k (edit k) | k <- [2 .. 51 :: Int]] ++ [shutdown, exit])
 
 -- Memo table sizes and live memory, as material for choosing %nomemo rules
 -- (ADR 0006, ADR 0017).
