@@ -12,7 +12,7 @@ data Item = Word Text | Number P.Int | Quoted Text | Pair Text Text
 }%
 
 Items :: [Item]
-Items <- Spaces is:Item* !. { is }
+Items <- Spaces Item* !.
 
 Item :: Item
 Item <- w:$([a-z] [a-z0-9_]*) Spaces { Word w }
@@ -24,7 +24,7 @@ Item <- w:$([a-z] [a-z0-9_]*) Spaces { Word w }
 
 # 値を持つ括弧グループ
 Key :: Text
-Key <- k:([a-z]+ $[0-9]+ / $'_') { k }
+Key <- ([a-z]+ $[0-9]+ / $'_')
 
 Spaces :: ()
 Spaces <- [ \t\n]*

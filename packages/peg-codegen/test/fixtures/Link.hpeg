@@ -7,8 +7,8 @@ import Data.Text (Text)
 }%
 
 Links :: [Text]
-Links <- ls:Link* { ls }
+Links <- Link*
 
 Link :: Text
 Link <- '[' l:$[a-z]+ ']' &{ member l _env } { l }
-     / !'[' w:$[a-z ]+ { w }
+     / !'[' $[a-z ]+

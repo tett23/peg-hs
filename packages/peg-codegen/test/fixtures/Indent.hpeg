@@ -10,7 +10,7 @@ data Node = Node Text [Node]
 }%
 
 Doc :: [Node]
-Doc <- ns:Node(0)* { ns }
+Doc <- Node(0)*
 
 Node(d :: Int) :: Node
 Node <- Exactly(d) n:$[a-z]+ '\n' cs:Node(d + 2)* { Node n cs }

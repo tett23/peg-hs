@@ -43,7 +43,7 @@ decodeUnits [] = []
 }%
 
 Json :: Value
-Json <- Ws v:Value ^value Ws { v }
+Json <- Ws Value ^value Ws
 
 Value :: Value
 Value <- 'null' { Null }
@@ -62,7 +62,7 @@ Members :: [(Text, Value)]
 Members <- m:Member ms:MoreMember* { m : ms }
 
 MoreMember :: (Text, Value)
-MoreMember <- ',' Ws m:Member ^member { m }
+MoreMember <- ',' Ws Member ^member
 
 Member :: (Text, Value)
 Member <- k:String Ws ':' ^colon Ws v:Value ^value Ws { (k, v) }
@@ -75,13 +75,13 @@ Elements :: [Value]
 Elements <- e:Element es:MoreElement* { e : es }
 
 MoreElement :: Value
-MoreElement <- ',' Ws e:Element ^value { e }
+MoreElement <- ',' Ws Element ^value
 
 Element :: Value
-Element <- v:Value Ws { v }
+Element <- Value Ws
 
 Number :: Text
-Number <- n:$('-'? IntPart Frac? Exp?) { n }
+Number <- $('-'? IntPart Frac? Exp?)
 
 IntPart :: ()
 IntPart <- '0'
@@ -98,7 +98,7 @@ String <- '"' us:Unit* '"' ^quote { T.pack (decodeUnits us) }
 
 # 文字列の一要素。\u エスケープは UTF-16 の符号単位として返す
 Unit :: Int
-Unit <- '\\' e:Escape { e }
+Unit <- '\\' Escape
      / c:$[\u{20}-\u{21}\u{23}-\u{5B}\u{5D}-\u{10FFFF}] { ord (T.foldr const ' ' c) }
 
 Escape :: Int

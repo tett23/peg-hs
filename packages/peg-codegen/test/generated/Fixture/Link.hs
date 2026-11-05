@@ -79,21 +79,15 @@ peg'rule'Links =
   PegRt.memo peg'memo'Links "Links"
     (PegRt.choice
       [ do { _env <- PegRt.askStore peg'env
-          ; peg'start <- PegRt.getOffset
-          ; ls <- PegRt.many (peg'rule'Link)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 10 "test/fixtures/Link.hpeg" #-}
- {-# COLUMN 20 #-} ls 
-{-# LINE 89 "test/generated/Fixture/Link.hs" #-}
-    )
+          ; peg'v0 <- PegRt.many (peg'rule'Link)
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Link :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 12 "test/fixtures/Link.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 97 "test/generated/Fixture/Link.hs" #-}
+{-# LINE 91 "test/generated/Fixture/Link.hs" #-}
     )
 peg'rule'Link =
   PegRt.memo peg'memo'Link "Link"
@@ -106,24 +100,18 @@ peg'rule'Link =
           ; PegRt.predicate (\_col -> 
 {-# LINE 13 "test/fixtures/Link.hpeg" #-}
  {-# COLUMN 29 #-} member l _env 
-{-# LINE 110 "test/generated/Fixture/Link.hs" #-}
+{-# LINE 104 "test/generated/Fixture/Link.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 13 "test/fixtures/Link.hpeg" #-}
  {-# COLUMN 47 #-} l 
-{-# LINE 116 "test/generated/Fixture/Link.hs" #-}
+{-# LINE 110 "test/generated/Fixture/Link.hs" #-}
     )
           }
       , do { _env <- PegRt.askStore peg'env
-          ; peg'start <- PegRt.getOffset
           ; PegRt.notP (PegRt.lit "[" "'['")
-          ; w <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z'), (' ', ' ')] "[a-z ]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 14 "test/fixtures/Link.hpeg" #-}
- {-# COLUMN 25 #-} w 
-{-# LINE 127 "test/generated/Fixture/Link.hs" #-}
-    )
+          ; peg'v0 <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z'), (' ', ' ')] "[a-z ]"))
+          ; PegPrelude.pure peg'v0
           }
       ])

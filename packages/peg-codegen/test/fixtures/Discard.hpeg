@@ -6,19 +6,19 @@ import Data.Text (Text, pack, unpack)
 }%
 
 Items :: [Text]
-Items <- is:Item* { is }
+Items <- Item*
 
 # Num と Name の値の型は異なる。どの位置でもグループの値は使われない
 Item :: Text
-Item <- '$' t:$(Num / Name) ';' { t }
-     / '&' &(Num / Name) t:$[a-z0-9]+ ';' { t }
+Item <- '$' $(Num / Name) ';'
+     / '&' &(Num / Name) $[a-z0-9]+ ';'
      / '!' !(Num / Name) '.' ';' { pack "none" }
      / '*' (Num / Name)* ';' { pack "many" }
      / '?' (Num / Name)? ';' { pack "optional" }
-     / '^' t:$((Num / Name) ^word) ';' { t }
+     / '^' $((Num / Name) ^word) ';'
 
 Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
 Name :: Text
-Name <- n:$[a-z]+ { n }
+Name <- $[a-z]+

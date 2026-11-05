@@ -93,55 +93,37 @@ peg'rule'Items :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Items =
   PegRt.memo peg'memo'Items "Items"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; is <- PegRt.many (peg'rule'Item)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 9 "test/fixtures/Discard.hpeg" #-}
- {-# COLUMN 20 #-} is 
-{-# LINE 103 "test/generated/Fixture/Discard.hs" #-}
-    )
+      [ do { peg'v0 <- PegRt.many (peg'rule'Item)
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 12 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 111 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 105 "test/generated/Fixture/Discard.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "$" "'$'"
-          ; t <- PegRt.capture (PegRt.choice [do { _ <- peg'rule'Num
+      [ do { PegRt.lit "$" "'$'"
+          ; peg'v0 <- PegRt.capture (PegRt.choice [do { _ <- peg'rule'Num
           ; PegPrelude.pure ()
           }, do { _ <- peg'rule'Name
           ; PegPrelude.pure ()
           }])
           ; PegRt.lit ";" "';'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 13 "test/fixtures/Discard.hpeg" #-}
- {-# COLUMN 34 #-} t 
-{-# LINE 128 "test/generated/Fixture/Discard.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
-      , do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "&" "'&'"
+      , do { PegRt.lit "&" "'&'"
           ; PegRt.andP (PegRt.choice [do { _ <- peg'rule'Num
           ; PegPrelude.pure ()
           }, do { _ <- peg'rule'Name
           ; PegPrelude.pure ()
           }])
-          ; t <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z'), ('0', '9')] "[a-z0-9]"))
+          ; peg'v1 <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z'), ('0', '9')] "[a-z0-9]"))
           ; PegRt.lit ";" "';'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 14 "test/fixtures/Discard.hpeg" #-}
- {-# COLUMN 44 #-} t 
-{-# LINE 144 "test/generated/Fixture/Discard.hs" #-}
-    )
+          ; PegPrelude.pure peg'v1
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "!" "'!'"
@@ -156,7 +138,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 15 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 35 #-} pack "none" 
-{-# LINE 160 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 142 "test/generated/Fixture/Discard.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -171,7 +153,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 16 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 31 #-} pack "many" 
-{-# LINE 175 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 157 "test/generated/Fixture/Discard.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -186,12 +168,11 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 17 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 31 #-} pack "optional" 
-{-# LINE 190 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 172 "test/generated/Fixture/Discard.hs" #-}
     )
           }
-      , do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "^" "'^'"
-          ; t <- PegRt.capture (PegRt.choice [do { _ <- PegRt.labeled "word" PegPrelude.Nothing (PegRt.choice [do { _ <- peg'rule'Num
+      , do { PegRt.lit "^" "'^'"
+          ; peg'v2 <- PegRt.capture (PegRt.choice [do { _ <- PegRt.labeled "word" PegPrelude.Nothing (PegRt.choice [do { _ <- peg'rule'Num
           ; PegPrelude.pure ()
           }, do { _ <- peg'rule'Name
           ; PegPrelude.pure ()
@@ -199,19 +180,14 @@ peg'rule'Item =
           ; PegPrelude.pure ()
           }])
           ; PegRt.lit ";" "';'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 18 "test/fixtures/Discard.hpeg" #-}
- {-# COLUMN 41 #-} t 
-{-# LINE 207 "test/generated/Fixture/Discard.hs" #-}
-    )
+          ; PegPrelude.pure peg'v2
           }
       ])
 
 peg'rule'Num :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 20 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 8 #-}Int
-{-# LINE 215 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 191 "test/generated/Fixture/Discard.hs" #-}
     )
 peg'rule'Num =
   PegRt.memo peg'memo'Num "Num"
@@ -222,7 +198,7 @@ peg'rule'Num =
           ; PegPrelude.pure (
 {-# LINE 21 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 20 #-} read (unpack ds) 
-{-# LINE 226 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 202 "test/generated/Fixture/Discard.hs" #-}
     )
           }
       ])
@@ -230,18 +206,12 @@ peg'rule'Num =
 peg'rule'Name :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 23 "test/fixtures/Discard.hpeg" #-}
  {-# COLUMN 9 #-}Text
-{-# LINE 234 "test/generated/Fixture/Discard.hs" #-}
+{-# LINE 210 "test/generated/Fixture/Discard.hs" #-}
     )
 peg'rule'Name =
   PegRt.memo peg'memo'Name "Name"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; n <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]"))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 24 "test/fixtures/Discard.hpeg" #-}
- {-# COLUMN 20 #-} n 
-{-# LINE 245 "test/generated/Fixture/Discard.hs" #-}
-    )
+      [ do { peg'v0 <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]"))
+          ; PegPrelude.pure peg'v0
           }
       ])

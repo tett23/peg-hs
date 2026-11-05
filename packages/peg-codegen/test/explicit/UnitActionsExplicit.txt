@@ -8,14 +8,14 @@ import qualified Data.Text as T
 }%
 
 Start :: [T.Text]
-Start <- Sp ws:Item* !. { ws }
+Start <- Sp Item* !.
 
 Item :: T.Text
-Item <- Kw w:Name End { w }
-     / Op<Sep> w:Name End { w }
+Item <- Kw Name End
+     / Op<Sep> Name End
 
 Name :: T.Text
-Name <- !Kw w:$[a-z]+ { w }
+Name <- !Kw $[a-z]+
 
 # リテラルと先読み
 Kw :: ()

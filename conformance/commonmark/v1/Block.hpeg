@@ -35,7 +35,7 @@ firstChar = T.foldr const ' '
 }%
 
 Document :: [Block]
-Document <- bs:Block+ { bs }
+Document <- Block+
          / !. { [] }
 
 Block :: Block
@@ -63,8 +63,8 @@ BlankRest :: ()
 BlankRest <- [ \t]* EOL
 
 LineNL :: Text
-LineNL <- t:$(!Newline .)* Newline { t }
-       / t:$(!Newline .)+ !. { t }
+LineNL <- $(!Newline .)* Newline
+       / $(!Newline .)+ !.
 
 BlankLine :: Block
 BlankLine <- [ \t]* Newline { BlankLine }
@@ -271,7 +271,7 @@ Quote :: Block
 Quote <- ls:QuoteLine+ { BlockQuote [Paragraph (joinPara ls)] }
 
 QuoteLine :: Text
-QuoteLine <- Sp3 '>' ' '? [ \t]* t:$(!Newline .)* EOL { t }
+QuoteLine <- Sp3 '>' ' '? [ \t]* $(!Newline .)* EOL
 
 ListItem :: Block
 ListItem <- Sp3 m:Marker [ \t]+ !BlankRest t:$(!Newline .)+ EOL { Item m [Paragraph (T.strip t)] }
@@ -288,8 +288,8 @@ LabelBody :: ()
 LabelBody <- ('\\' . / ![\[\]] .)+
 
 Dest :: Text
-Dest <- '<' d:$('\\' . / ![<>\n\r] .)* '>' { d }
-     / !'<' d:$DestRaw { d }
+Dest <- '<' $('\\' . / ![<>\n\r] .)* '>'
+     / !'<' $DestRaw
 
 DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n\r()\u{0}-\u{1F}] .)+
@@ -299,9 +299,9 @@ DefTitle <- ([ \t]+ / [ \t]* Newline [ \t]*) t:Title [ \t]* EOL { Just t }
          / [ \t]* EOL { Nothing }
 
 Title :: Text
-Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
-      / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
-      / '(' t:$('\\' . / ![()] .)* ')' { t }
+Title <- '"' $('\\' . / !'"' .)* '"'
+      / '\'' $('\\' . / !'\'' .)* '\''
+      / '(' $('\\' . / ![()] .)* ')'
 
 # 段落と setext 見出し
 Paragraph :: Block
@@ -309,10 +309,10 @@ Paragraph <- Sp3 f:ParaLine ls:ParaCont* u:SetextLine { Heading u (joinPara (f :
           / Sp3 f:ParaLine ls:ParaCont* { Paragraph (joinPara (f : ls)) }
 
 ParaLine :: Text
-ParaLine <- !BlankRest t:$(!Newline .)+ EOL { t }
+ParaLine <- !BlankRest $(!Newline .)+ EOL
 
 ParaCont :: Text
-ParaCont <- !SetextLine !Interrupt [ \t]* l:ParaLine { l }
+ParaCont <- !SetextLine !Interrupt [ \t]* ParaLine
 
 SetextLine :: Int
 SetextLine <- Sp3 '='+ [ \t]* EOL { 1 }

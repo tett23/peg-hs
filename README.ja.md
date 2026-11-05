@@ -80,7 +80,7 @@ Term <- l:Term '*' Sp r:Atom { Mul l r }
 
 Atom :: Expr
 Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
-     / '(' Sp e:Expr ')' Sp { e }
+     / '(' Sp Expr ')' Sp
 
 Sp :: ()
 Sp <- ' '*
@@ -239,7 +239,8 @@ peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKin
 対象は、試されない選択肢と成功しない選択肢、前の選択肢と同じ選択肢、先読みの中の効果のないラベル、使われない束縛である。
 規則は固定で、警告を抑える手段はない。どの警告も文法を直せば消え、警告が一つでもあれば失敗する。
 警告とは別に、誤りではないが簡潔にできる書き方を info として知らせる。info は `--verbose` を付けたときだけ `warning:` の代わりに `info:` と書いて表示し、付けても付けなくても `lint` を失敗させない（[ADR 0067](docs/adr/0067-lint-info-with-verbose.md)）。
-info の規則は `omittable-unit-action` だけで、省略できる `{ () }` を指す。型注釈が `()` の規則では、`()` 以外の値を持つ要素がない選択肢はアクションを省略でき、値は `()` になる（[ADR 0063](docs/adr/0063-omit-unit-actions.md)、[ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)）。
+`omittable-unit-action` は、省略できる `{ () }` を指す。型注釈が `()` の規則では、`()` 以外の値を持つ要素がない選択肢はアクションを省略でき、値は `()` になる（[ADR 0063](docs/adr/0063-omit-unit-actions.md)、[ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)）。
+`omittable-identity-action` は、`'(' e:Expr ')' { e }` のように束縛した値をそのまま返すアクションを指す。束縛とアクションを消しても、選択肢は同じ値を返す。`%syntax` の文法では、束縛が構文木の取り出し関数の名前にもなるので出さない（[ADR 0065](docs/adr/0065-omittable-identity-actions.md)）。
 言語サーバーは info を重大度 Hint で報告する。多くのエディタは Hint を淡く示す。
 対象のファイルの選び方は `fmt` と同じである。
 

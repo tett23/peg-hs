@@ -65,6 +65,11 @@ Since v0.1.0-rc2:
   `renderLintWarning` writes an info with `info:`
   ([ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
+- The info `omittable-identity-action` of the linter notes an action that
+  only returns a binding, as `e:Expr { e }`, where the alternative returns
+  the same value without the binding and the action. It is not given in
+  grammars with `%syntax`
+  ([ADR 0065](https://github.com/tett23/peg-hs/blob/main/docs/adr/0065-omittable-identity-actions.md)).
 
 ### Changed
 

@@ -1,0 +1,30 @@
+# ADR 0065：束縛した値をそのまま返すアクションを省く
+# ../fixtures/IdentityActions.hpeg の、省いた束縛とアクションを書いた版
+# 省ける束縛とアクションを残すので、拡張子を .txt にして peg-hs lint と peg-hs fmt の探索から外す
+%module Fixture.IdentityActionsExplicit
+
+%{
+import qualified Data.Text as T
+}%
+
+# 繰り返し
+Start :: [T.Text]
+Start <- Sp is:Item* !. { is }
+
+Item :: T.Text
+Item <- '(' Sp e:Item ')' Sp { e }
+     / n:$[0-9]+ &{ T.length n > 1 } '!' Sp { n }
+     / d:$[0-9]+ Sp { d }
+     / w:Word { w }
+     / b:Bracket<Item> { b }
+
+# キャプチャ
+Word :: T.Text
+Word <- w:$[a-z]+ Sp { w }
+
+# 雛形
+Bracket<p :: t> :: t
+Bracket<p> <- '[' Sp x:p ']' Sp { x }
+
+Sp :: ()
+Sp <- ' '*

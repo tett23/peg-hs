@@ -173,23 +173,17 @@ peg'rule'Json :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Json =
   PegRt.memo peg'memo'Json "Json"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
+      [ do { _ <- peg'rule'Ws
+          ; peg'v0 <- peg'rule'Value
           ; _ <- peg'rule'Ws
-          ; v <- peg'rule'Value
-          ; _ <- peg'rule'Ws
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 37 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 24 #-} v 
-{-# LINE 185 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Value :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 39 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 193 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 187 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Value =
   PegRt.memo peg'memo'Value "Value"
@@ -200,7 +194,7 @@ peg'rule'Value =
           ; PegPrelude.pure (
 {-# LINE 40 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 18 #-} Null 
-{-# LINE 204 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 198 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -209,7 +203,7 @@ peg'rule'Value =
           ; PegPrelude.pure (
 {-# LINE 41 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 17 #-} Bool True 
-{-# LINE 213 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 207 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -218,7 +212,7 @@ peg'rule'Value =
           ; PegPrelude.pure (
 {-# LINE 42 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 18 #-} Bool False 
-{-# LINE 222 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 216 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -227,7 +221,7 @@ peg'rule'Value =
           ; PegPrelude.pure (
 {-# LINE 43 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 19 #-} Number n 
-{-# LINE 231 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 225 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -236,7 +230,7 @@ peg'rule'Value =
           ; PegPrelude.pure (
 {-# LINE 44 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 19 #-} String s 
-{-# LINE 240 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 234 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'v0 <- peg'rule'Array
@@ -250,7 +244,7 @@ peg'rule'Value =
 peg'rule'Object :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 48 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 11 #-}Value
-{-# LINE 254 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 248 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Object =
   PegRt.memo peg'memo'Object "Object"
@@ -264,7 +258,7 @@ peg'rule'Object =
           ; PegPrelude.pure (
 {-# LINE 49 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 34 #-} Object ms 
-{-# LINE 268 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 262 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -275,7 +269,7 @@ peg'rule'Object =
           ; PegPrelude.pure (
 {-# LINE 50 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 22 #-} Object [] 
-{-# LINE 279 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 273 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -283,7 +277,7 @@ peg'rule'Object =
 peg'rule'Members :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 52 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 12 #-}[(Text, Value)]
-{-# LINE 287 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 281 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Members =
   PegRt.memo peg'memo'Members "Members"
@@ -295,7 +289,7 @@ peg'rule'Members =
           ; PegPrelude.pure (
 {-# LINE 53 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 37 #-} m : ms 
-{-# LINE 299 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 293 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -303,28 +297,22 @@ peg'rule'Members =
 peg'rule'MoreMember :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 55 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 307 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 301 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'MoreMember =
   PegRt.memo peg'memo'MoreMember "MoreMember"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "," "','"
+      [ do { PegRt.lit "," "','"
           ; _ <- peg'rule'Ws
-          ; m <- peg'rule'Member
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 56 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 32 #-} m 
-{-# LINE 320 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+          ; peg'v0 <- peg'rule'Member
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Member :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 58 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 11 #-}(Text, Value)
-{-# LINE 328 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 316 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Member =
   PegRt.memo peg'memo'Member "Member"
@@ -340,7 +328,7 @@ peg'rule'Member =
           ; PegPrelude.pure (
 {-# LINE 59 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 42 #-} (k, v) 
-{-# LINE 344 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 332 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -348,7 +336,7 @@ peg'rule'Member =
 peg'rule'Array :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 61 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 352 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 340 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Array =
   PegRt.memo peg'memo'Array "Array"
@@ -362,7 +350,7 @@ peg'rule'Array =
           ; PegPrelude.pure (
 {-# LINE 62 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 34 #-} Array vs 
-{-# LINE 366 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 354 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -373,7 +361,7 @@ peg'rule'Array =
           ; PegPrelude.pure (
 {-# LINE 63 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 21 #-} Array [] 
-{-# LINE 377 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 365 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -381,7 +369,7 @@ peg'rule'Array =
 peg'rule'Elements :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 65 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 13 #-}[Value]
-{-# LINE 385 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 373 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Elements =
   PegRt.memo peg'memo'Elements "Elements"
@@ -393,7 +381,7 @@ peg'rule'Elements =
           ; PegPrelude.pure (
 {-# LINE 66 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 40 #-} e : es 
-{-# LINE 397 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 385 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -401,72 +389,54 @@ peg'rule'Elements =
 peg'rule'MoreElement :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 68 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 16 #-}Value
-{-# LINE 405 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 393 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'MoreElement =
   PegRt.memo peg'memo'MoreElement "MoreElement"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "," "','"
+      [ do { PegRt.lit "," "','"
           ; _ <- peg'rule'Ws
-          ; e <- peg'rule'Element
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 69 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 34 #-} e 
-{-# LINE 418 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+          ; peg'v0 <- peg'rule'Element
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Element :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 71 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 12 #-}Value
-{-# LINE 426 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 408 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Element =
   PegRt.memo peg'memo'Element "Element"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; v <- peg'rule'Value
+      [ do { peg'v0 <- peg'rule'Value
           ; _ <- peg'rule'Ws
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 72 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 24 #-} v 
-{-# LINE 438 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Number :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 74 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 446 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 422 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Number =
   PegRt.memo peg'memo'Number "Number"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; n <- PegRt.capture (PegRt.choice [do { PegRt.skipOptional (PegRt.lit "-" "'-'")
+      [ do { peg'v0 <- PegRt.capture (PegRt.choice [do { PegRt.skipOptional (PegRt.lit "-" "'-'")
           ; _ <- peg'rule'IntPart
           ; _ <- PegRt.skipOptional (peg'rule'Frac)
           ; _ <- PegRt.skipOptional (peg'rule'Exp)
           ; PegPrelude.pure ()
           }])
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 75 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 41 #-} n 
-{-# LINE 462 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 77 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 470 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 440 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'IntPart =
   PegRt.memo peg'memo'IntPart "IntPart"
@@ -483,7 +453,7 @@ peg'rule'IntPart =
 peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 81 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 487 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 457 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Frac =
   PegRt.memo peg'memo'Frac "Frac"
@@ -497,7 +467,7 @@ peg'rule'Frac =
 peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 84 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 501 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 471 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Exp =
   PegRt.memo peg'memo'Exp "Exp"
@@ -512,7 +482,7 @@ peg'rule'Exp =
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 87 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 516 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 486 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -525,7 +495,7 @@ peg'rule'String =
           ; PegPrelude.pure (
 {-# LINE 88 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 29 #-} T.pack (decodeUnits us) 
-{-# LINE 529 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 499 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -533,20 +503,14 @@ peg'rule'String =
 peg'rule'Unit :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 91 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 537 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 507 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Unit =
   PegRt.memo peg'memo'Unit "Unit"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "\\" "'\\\\'"
-          ; e <- peg'rule'Escape
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 92 "bench/JsonCounted.hpeg" #-}
- {-# COLUMN 24 #-} e 
-{-# LINE 549 "bench/Conformance/Bench/JsonCounted.hs" #-}
-    )
+      [ do { PegRt.lit "\\" "'\\\\'"
+          ; peg'v0 <- peg'rule'Escape
+          ; PegPrelude.pure peg'v0
           }
       , do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.cls [(' ', '!'), ('#', '['), (']', '\1114111')] "[\\u{20}-\\u{21}\\u{23}-\\u{5B}\\u{5D}-\\u{10FFFF}]")
@@ -554,7 +518,7 @@ peg'rule'Unit =
           ; PegPrelude.pure (
 {-# LINE 93 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
-{-# LINE 558 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 522 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -562,7 +526,7 @@ peg'rule'Unit =
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 95 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 566 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 530 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -573,7 +537,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 96 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 16 #-} 0x22 
-{-# LINE 577 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 541 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -582,7 +546,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 97 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 16 #-} 0x5C 
-{-# LINE 586 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 550 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -591,7 +555,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 98 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x2F 
-{-# LINE 595 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 559 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -600,7 +564,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 99 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x08 
-{-# LINE 604 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 568 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -609,7 +573,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 100 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x0C 
-{-# LINE 613 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 577 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -618,7 +582,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 101 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x0A 
-{-# LINE 622 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 586 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -627,7 +591,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 102 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x0D 
-{-# LINE 631 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 595 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -636,7 +600,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 103 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 15 #-} 0x09 
-{-# LINE 640 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 604 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -651,7 +615,7 @@ peg'rule'Escape =
           ; PegPrelude.pure (
 {-# LINE 104 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 36 #-} hexValue h 
-{-# LINE 655 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 619 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
           }
       ])
@@ -659,7 +623,7 @@ peg'rule'Escape =
 peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 106 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 663 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 627 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Hex =
   PegRt.memo peg'memo'Hex "Hex"
@@ -672,7 +636,7 @@ peg'rule'Hex =
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 109 "bench/JsonCounted.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 676 "bench/Conformance/Bench/JsonCounted.hs" #-}
+{-# LINE 640 "bench/Conformance/Bench/JsonCounted.hs" #-}
     )
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"

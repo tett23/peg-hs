@@ -81,7 +81,7 @@ Term <- l:Term '*' Sp r:Atom { Mul l r }
 
 Atom :: Expr
 Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
-     / '(' Sp e:Expr ')' Sp { e }
+     / '(' Sp Expr ')' Sp
 
 Sp :: ()
 Sp <- ' '*
@@ -238,7 +238,8 @@ alternatives that are never tried or never succeed, alternatives that are the sa
 The rules are fixed, and no warning can be silenced: every warning goes away by fixing the grammar, and any warning makes `lint` fail.
 Besides warnings, `lint` gives infos of what is not a mistake but can be simpler.
 Infos are shown only with `--verbose`, written with `info:` in place of `warning:`, and never make `lint` fail ([ADR 0067](docs/adr/0067-lint-info-with-verbose.md)).
-The only info, `omittable-unit-action`, points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
+`omittable-unit-action` points at a `{ () }` that can be omitted: in a rule of type `()`, an alternative without a value other than unit may omit its action, and its value is `()` ([ADR 0063](docs/adr/0063-omit-unit-actions.md), [ADR 0064](docs/adr/0064-unit-rules-always-return-unit.md)).
+`omittable-identity-action` points at an action that only returns a binding, as in `'(' e:Expr ')' { e }`, where the alternative returns the same value without the binding and the action; it is not given in grammars with `%syntax`, where a binding also names an accessor of the syntax tree ([ADR 0065](docs/adr/0065-omittable-identity-actions.md)).
 The language server reports infos with the severity Hint, which most editors show faintly.
 It chooses files as `fmt` does.
 

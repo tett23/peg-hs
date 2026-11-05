@@ -77,29 +77,23 @@ peg'rule'Doc :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Doc =
   PegRt.memo peg'memo'Doc "Doc"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; ns <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Node (
+      [ do { peg'v0 <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Node (
 {-# LINE 13 "test/fixtures/Indent.hpeg" #-}
- {-# COLUMN 16 #-}0
-{-# LINE 85 "test/generated/Fixture/Indent.hs" #-}
+ {-# COLUMN 13 #-}0
+{-# LINE 84 "test/generated/Fixture/Indent.hs" #-}
     )))
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 13 "test/fixtures/Indent.hpeg" #-}
- {-# COLUMN 21 #-} ns 
-{-# LINE 91 "test/generated/Fixture/Indent.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Node :: (
 {-# LINE 15 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 99 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 93 "test/generated/Fixture/Indent.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 15 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 19 #-}Node
-{-# LINE 103 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 97 "test/generated/Fixture/Indent.hs" #-}
     )
 peg'rule'Node d =
   PegRt.memoArg peg'memo'Node "Node" d
@@ -108,20 +102,20 @@ peg'rule'Node d =
           ; _ <- PegRt.withCol (\_col -> peg'rule'Exactly (
 {-# LINE 16 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 17 #-}d
-{-# LINE 112 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 106 "test/generated/Fixture/Indent.hs" #-}
     ))
           ; n <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]"))
           ; PegRt.lit "\n" "'\\n'"
           ; cs <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Node (
 {-# LINE 16 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 43 #-}d + 2
-{-# LINE 119 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 113 "test/generated/Fixture/Indent.hs" #-}
     )))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 16 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 52 #-} Node n cs 
-{-# LINE 125 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 119 "test/generated/Fixture/Indent.hs" #-}
     )
           }
       ])
@@ -129,11 +123,11 @@ peg'rule'Node d =
 peg'rule'Exactly :: (
 {-# LINE 19 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 14 #-}Int
-{-# LINE 133 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 127 "test/generated/Fixture/Indent.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 19 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 22 #-}()
-{-# LINE 137 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 131 "test/generated/Fixture/Indent.hs" #-}
     )
 peg'rule'Exactly w =
   PegRt.memoArg peg'memo'Exactly "Exactly" w
@@ -141,7 +135,7 @@ peg'rule'Exactly w =
       [ do { PegRt.predicate (\_col -> 
 {-# LINE 20 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 14 #-} _col == w 
-{-# LINE 145 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 139 "test/generated/Fixture/Indent.hs" #-}
     )
           ; PegRt.notP (PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]")
           ; PegPrelude.pure ()
@@ -149,13 +143,13 @@ peg'rule'Exactly w =
       , do { PegRt.predicate (\_col -> 
 {-# LINE 21 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 13 #-} _col < w 
-{-# LINE 153 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 147 "test/generated/Fixture/Indent.hs" #-}
     )
           ; PegRt.cls [(' ', ' '), ('\t', '\t')] "[ \\t]"
           ; _ <- PegRt.withCol (\_col -> peg'rule'Exactly (
 {-# LINE 21 "test/fixtures/Indent.hpeg" #-}
  {-# COLUMN 39 #-}w
-{-# LINE 159 "test/generated/Fixture/Indent.hs" #-}
+{-# LINE 153 "test/generated/Fixture/Indent.hs" #-}
     ))
           ; PegPrelude.pure ()
           }

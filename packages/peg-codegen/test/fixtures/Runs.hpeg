@@ -15,7 +15,7 @@ data Block = Para Text | Bullets [(Text, [Block])] | Defs [(Text, [Block])]
 }%
 
 Doc :: [Block]
-Doc <- BlankLines? bs:Blocks(0) BlankLines? { bs }
+Doc <- BlankLines? Blocks(0) BlankLines?
 
 # 空行を挟んで p が続く。more は続きの判定
 Run<p :: a, more> :: [a]
@@ -37,20 +37,20 @@ ListItem(ind :: Int) :: (Text, [Block])
 ListItem <- Ind(ind) '-' Gap<Ind(ind)> t:Line bs:Sub(ind)? { (t, maybe [] id bs) }
 
 Sub(ind :: Int) :: [Block]
-Sub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:Blocks(ind + 2) { bs }
+Sub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) Blocks(ind + 2)
 
 DefGroup(ind :: Int) :: (Text, [Block])
 DefGroup <- Ind(ind) '=' ' ' t:Line bs:DefBody(ind) { (t, bs) }
 
 DefBody(ind :: Int) :: [Block]
-DefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:Run<Block(ind + 2), &(Ind(ind + 2) ![ ] !BlankLine .)> { bs }
+DefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) Run<Block(ind + 2), &(Ind(ind + 2) ![ ] !BlankLine .)>
 
 # 値の引数を取る雛形で書いた同じ文法。n の深さに字下げした p が、空行を挟んで続く
 Indented<p :: a>(n :: Int) :: [a]
 Indented<p> <- BlankLines? &(Ind(n) ![ ] !BlankLine .) x:p xs:(BlankLines? &(Ind(n) ![ ] !BlankLine .) p)* { x : xs }
 
 DeepDoc :: [Block]
-DeepDoc <- BlankLines? bs:Run<DeepBlock(0), &(Ind(0) !BlankLine .)> BlankLines? { bs }
+DeepDoc <- BlankLines? Run<DeepBlock(0), &(Ind(0) !BlankLine .)> BlankLines?
 
 DeepBlock(ind :: Int) :: Block
 DeepBlock <- is:Run<DeepListItem(ind), &(Ind(ind) '-' ' ')> { Bullets is }
@@ -65,7 +65,7 @@ DeepDefGroup <- Ind(ind) '=' ' ' t:Line bs:Indented<DeepBlock(ind + 2)>(ind + 2)
 
 # 雛形を使わずに書き下した同じ文法
 PlainDoc :: [Block]
-PlainDoc <- BlankLines? bs:PlainBlocks(0) BlankLines? { bs }
+PlainDoc <- BlankLines? PlainBlocks(0) BlankLines?
 
 PlainBlocks(ind :: Int) :: [Block]
 PlainBlocks <- x:PlainBlock(ind) xs:(BlankLines? &(Ind(ind) !BlankLine .) PlainBlock(ind))* { x : xs }
@@ -79,7 +79,7 @@ PlainListItem(ind :: Int) :: (Text, [Block])
 PlainListItem <- Ind(ind) '-' ' '+ t:Line bs:PlainSub(ind)? { (t, maybe [] id bs) }
 
 PlainSub(ind :: Int) :: [Block]
-PlainSub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) bs:PlainBlocks(ind + 2) { bs }
+PlainSub <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) PlainBlocks(ind + 2)
 
 PlainDefGroup(ind :: Int) :: (Text, [Block])
 PlainDefGroup <- Ind(ind) '=' ' ' t:Line bs:PlainDefBody(ind) { (t, bs) }
@@ -89,7 +89,7 @@ PlainDefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) x:PlainBlock(ind +
 
 # 共通の規則
 Line :: Text
-Line <- t:$(![\n] .)+ ('\n' / !.) { t }
+Line <- $(![\n] .)+ ('\n' / !.)
 
 BlankLine :: ()
 BlankLine <- [ ]* '\n'

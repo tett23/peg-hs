@@ -480,6 +480,13 @@ main = do
                     , "G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
                         <> "G.hpeg:4:9: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
                     )
+          , testCase "an identity action is an info: shown with --verbose, and neither fails (ADR 0065)" $ do
+              let src = "%module M\nS :: [Int]\nS <- is:N* { is }\nN :: Int\nN <- '1' { 1 }\n"
+              dir <- treeWith "lint-identity" [("G.hpeg", src)]
+              quiet <- pegHsIn dir ["lint", "G.hpeg"]
+              quiet @?= (ExitSuccess, "", "")
+              verbose <- pegHsIn dir ["lint", "--verbose", "G.hpeg"]
+              verbose @?= (ExitSuccess, "", "G.hpeg:3:12: info: the action can be omitted: it returns the value of the binding is, which the alternative returns without the action [omittable-identity-action]; remove is: and { is }\n")
           , testCase "without --verbose, a grammar with a warning and infos writes only the warning, and fails with 1 (ADR 0067)" $ do
               dir <- treeWith "lint-warning-info" [("G.hpeg", warnedAndInformed)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]

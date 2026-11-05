@@ -34,6 +34,8 @@ import qualified Fixture.Templates as Templates
 import qualified Fixture.TemplatesSyntax as TemplatesSyntax
 import qualified Fixture.Unicode as Unicode
 import qualified Fixture.UnicodeSyntax as UnicodeSyntax
+import qualified Fixture.IdentityActions as IdentityActions
+import qualified Fixture.IdentityActionsExplicit as IdentityActionsExplicit
 import qualified Fixture.UnitActions as UnitActions
 import qualified Fixture.UnitActionsExplicit as UnitActionsExplicit
 import qualified Fixture.UnitActionsExplicitSyntax as UnitActionsExplicitSyntax
@@ -124,6 +126,7 @@ main =
           ]
       , unitActionTests
       , unitRepeatTests
+      , identityActionTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -137,7 +140,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -229,6 +232,25 @@ unitActionTests =
     tree p name t = either (Left . parseErrorPos) (Right . debugTree name) (p t)
     -- Words, keywords, separators and the punctuation of the grammar.
     gen = T.concat <$> listOf (elements ["if ", "do ", "ab", "c", " ", ";", ",", "(|)", "(&)", "-", "(", "|"])
+
+-- ADR 0065: the grammar without the bindings and actions that the linter
+-- notes as identity actions, and the same grammar with them written.
+identityActionTests :: TestTree
+identityActionTests =
+  testGroup
+    "identity actions removed (ADR 0065)"
+    [ testCase "values" $ do
+        IdentityActions.parse input @?= Right ["ab", "12", "345", "c", "6"]
+        IdentityActionsExplicit.parse input @?= Right ["ab", "12", "345", "c", "6"]
+    , testProperty "the same results and farthest failures as with the bindings and actions" $
+        withNumTests 3000 . checkCoverage $ forAll gen $ \t ->
+          cover 5 (either (const False) (const True) (IdentityActions.parse t)) "accepted" $
+            farthest (IdentityActions.parse t) === farthest (IdentityActionsExplicit.parse t)
+    ]
+  where
+    input = " ab (12!) [ 345 ] ([c]) 6"
+    farthest = either (Left . parseErrorPos) Right
+    gen = T.concat <$> listOf (elements ["(", ")", "[", "]", " ", "1", "23", "ab", "!", "c"])
 
 -- ADR 0064: in rules of type (), alternatives without actions return ()
 -- even when their only counted element is a repetition or an option of a
@@ -336,7 +358,7 @@ syntaxVariant src extra = T.unlines (map line (T.lines src)) <> extra
   where
     line l
       | l == "%module Peg.Grammar.SelfHosted" = "%module Peg.Grammar.SelfHostedSyntax"
-      | l == "TopItem <- t:TopOne Ws { t }" = "TopItem <- &. t:(TopOne ^topitem) Ws { t }"
+      | l == "TopItem <- TopOne Ws" = "TopItem <- &. (TopOne ^topitem) Ws"
       | otherwise = l
 
 templateInput :: Text

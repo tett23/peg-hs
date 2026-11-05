@@ -33,6 +33,11 @@ lintTests files =
     , testGroup "does not warn" [testCase (T.unpack n) (rulesOf src @?= Right []) | (n, src) <- notWarned]
     , testGroup "infos (ADR 0063, ADR 0067)" [testCase (T.unpack n) (infosOf src @?= Right [l]) | (n, l, src) <- informed]
     , testGroup "no info (ADR 0063, ADR 0067)" [testCase (T.unpack n) (infosOf src @?= Right []) | (n, src) <- notInformed]
+    , testGroup "identity actions (ADR 0065)" [testCase (T.unpack n) (identitiesOf src @?= Right [l]) | (n, l, src) <- identities]
+    , testGroup "no identity action (ADR 0065)" [testCase (T.unpack n) (identitiesOf src @?= Right []) | (n, src) <- notIdentities]
+    , testCase "an identity action is rendered with info:, its binding and its action (ADR 0065)" $
+        map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: [Int]", "S <- is:N* { is }", "N :: Int", "N <- '1' { 1 }"])))
+          @?= ["G.hpeg:3:12: info: the action can be omitted: it returns the value of the binding is, which the alternative returns without the action [omittable-identity-action]; remove is: and { is }"]
     , testGroup
         "omitted actions in rules of type () (ADR 0064)"
         [ testCase "nothing for a unit repetition" $
@@ -50,6 +55,7 @@ lintTests files =
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
           concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) warnings (lintOf src)) | (n, _, src) <- warned]
             ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- informed]
+            ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- identities]
     , testCase "the grammars of the repository have no warnings and no infos" $ do
         ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
@@ -105,6 +111,41 @@ infosOf :: Text -> Either [Diagnostic] [(Int, Int)]
 infosOf src = do
   ws <- lintOf src
   pure [(locLine (lintLoc w), locColumn (lintLoc w)) | w <- ws, lintLevel w == LevelInfo, lintRule w == "omittable-unit-action"]
+
+-- The locations of the infos of identity actions (ADR 0065).
+identitiesOf :: Text -> Either [Diagnostic] [(Int, Int)]
+identitiesOf src = do
+  ws <- lintOf src
+  pure [(locLine (lintLoc w), locColumn (lintLoc w)) | w <- ws, lintLevel w == LevelInfo, lintRule w == "omittable-identity-action"]
+
+-- Grammars with an action that returns its only binding, and where the
+-- info is (ADR 0065).
+identities :: [(Text, (Int, Int), Text)]
+identities =
+  [ ("a repetition", (3, 17), grammar ["S :: [Int]", "S <- is:Inline* { is }", "Inline :: Int", "Inline <- '1' { 1 }"])
+  , ("unit elements around the binding", (3, 24), grammar ["S :: Int", "S <- '(' Sp e:N ')' Sp { e }", "N :: Int", "N <- '1' { 1 }", "Sp :: ()", "Sp <- ' '*"])
+  , ("a capture", (3, 16), grammar ["S :: Text", "S <- d:$[0-9]+ { d }"])
+  , ("spaces in the code", (3, 12), grammar ["S :: [Int]", "S <- is:N* {  is\n }", "N :: Int", "N <- '1' { 1 }"])
+  , ("a template whose instances count only the binding", (5, 21), grammar ["S :: Int", "S <- P<N>", "P<p :: t> :: t", "P<p> <- '(' x:p ')' { x }", "N :: Int", "N <- '1' { 1 }"])
+  , ("a binding of a rule of type ()", (3, 11), grammar ["S :: ()", "S <- u:Sp { u }", "Sp :: ()", "Sp <- ' '*"])
+  ]
+
+-- Grammars whose actions return a binding that cannot be removed with them
+-- (ADR 0065).
+notIdentities :: [(Text, Text)]
+notIdentities =
+  [ ("the name in a predicate", grammar ["S :: Int", "S <- n:N &{ n > 0 } { n }", "N :: Int", "N <- '1' { 1 }"])
+  , ("the name in an argument of a rule", grammar ["S :: Int", "S <- n:N C(n) { n }", "N :: Int", "N <- '1' { 1 }", "C(k :: Int) :: ()", "C <- 'c'"])
+  , ("the name in an argument of a template", grammar ["S :: Int", "S <- n:N T<'c'>(n) { n }", "N :: Int", "N <- '1' { 1 }", "T<p>(k :: Int) :: ()", "T<p> <- p"])
+  , ("two bindings", grammar ["S :: Int", "S <- n:N m:N &{ m > 0 } { n }", "N :: Int", "N <- '1' { 1 }"])
+  , ("another bound unit element", grammar ["S :: Int", "S <- n:N u:Sp &{ u == () } { n }", "N :: Int", "N <- '1' { 1 }", "Sp :: ()", "Sp <- ' '*"])
+  , ("an action that is not the name", grammar ["S :: Int", "S <- n:N { negate n }", "N :: Int", "N <- '1' { 1 }"])
+  , ("the name in parentheses", grammar ["S :: Int", "S <- n:N { (n) }", "N :: Int", "N <- '1' { 1 }"])
+  , ("a grammar with a syntax tree", "%module M\n%syntax\nS :: [Int]\nS <- is:N* { is }\nN :: Int\nN <- '1' { 1 }\n")
+  , ("two elements with values without the binding", grammar ["S :: Int", "S <- n:N M { n }", "N :: Int", "N <- '1' { 1 }", "M :: Int", "M <- '2' { 2 }"])
+  , ("two unit elements without the binding", grammar ["S :: ()", "S <- Sp u:Sp Sp { u }", "Sp :: ()", "Sp <- ' '*"])
+  , ("a template with an instance that counts another element", grammar ["S :: ()", "S <- P<Sp>", "P<p :: t> :: t", "P<p> <- Sp x:p { x }", "Sp :: ()", "Sp <- ' '*"])
+  ]
 
 -- Grammars with an omittable { () }, and where the info is.
 informed :: [(Text, (Int, Int), Text)]

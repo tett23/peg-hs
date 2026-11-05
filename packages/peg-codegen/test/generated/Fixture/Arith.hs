@@ -168,26 +168,20 @@ peg'rule'Factor :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Factor =
   PegRt.memo peg'memo'Factor "Factor"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "(" "'('"
-          ; e <- peg'rule'Expr
+      [ do { PegRt.lit "(" "'('"
+          ; peg'v0 <- peg'rule'Expr
           ; PegRt.lit ")" "')'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 24 "test/fixtures/Arith.hpeg" #-}
- {-# COLUMN 27 #-} e 
-{-# LINE 180 "test/generated/Fixture/Arith.hs" #-}
-    )
-          }
-      , do { peg'v0 <- peg'rule'Num
           ; PegPrelude.pure peg'v0
+          }
+      , do { peg'v1 <- peg'rule'Num
+          ; PegPrelude.pure peg'v1
           }
       ])
 
 peg'rule'Num :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 27 "test/fixtures/Arith.hpeg" #-}
  {-# COLUMN 8 #-}Int
-{-# LINE 191 "test/generated/Fixture/Arith.hs" #-}
+{-# LINE 185 "test/generated/Fixture/Arith.hs" #-}
     )
 peg'rule'Num =
   PegRt.memo peg'memo'Num "Num"
@@ -198,7 +192,7 @@ peg'rule'Num =
           ; PegPrelude.pure (
 {-# LINE 28 "test/fixtures/Arith.hpeg" #-}
  {-# COLUMN 20 #-} read (unpack ds) 
-{-# LINE 202 "test/generated/Fixture/Arith.hs" #-}
+{-# LINE 196 "test/generated/Fixture/Arith.hs" #-}
     )
           }
       ])

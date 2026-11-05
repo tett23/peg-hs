@@ -26,7 +26,6 @@ module Conformance.Bench.JsonSyntax
   , syntaxKindWs
   , JsonSyntax(..)
   , castJsonSyntax
-  , jsonV
   , ValueSyntax(..)
   , castValueSyntax
   , valueN
@@ -40,7 +39,6 @@ module Conformance.Bench.JsonSyntax
   , membersMs
   , MoreMemberSyntax(..)
   , castMoreMemberSyntax
-  , moreMemberM
   , MemberSyntax(..)
   , castMemberSyntax
   , memberK
@@ -54,13 +52,10 @@ module Conformance.Bench.JsonSyntax
   , elementsEs
   , MoreElementSyntax(..)
   , castMoreElementSyntax
-  , moreElementE
   , ElementSyntax(..)
   , castElementSyntax
-  , elementV
   , NumberSyntax(..)
   , castNumberSyntax
-  , numberN
   , IntPartSyntax(..)
   , castIntPartSyntax
   , FracSyntax(..)
@@ -73,7 +68,6 @@ module Conformance.Bench.JsonSyntax
   , UnitSyntax(..)
   , castUnitSyntax
   , unitC
-  , unitE
   , EscapeSyntax(..)
   , castEscapeSyntax
   , escapeH
@@ -117,13 +111,13 @@ decodeUnits (u : rest)
   | 0xD800 <= u && u <= 0xDFFF = '\xFFFD' : decodeUnits rest
   | otherwise = chr u : decodeUnits rest
 decodeUnits [] = []
-{-# LINE 121 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 115 "bench/Conformance/Bench/JsonSyntax.hs" #-}
 
 -- | Parse the whole input with the rule @Json@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
 {-# LINE 39 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Value
-{-# LINE 127 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 121 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     )
 parse peg'input =
   PegPrelude.fmap PegPrelude.fst (Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'Json peg'input))
@@ -138,7 +132,7 @@ parseSyntax peg'input =
 peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
 {-# LINE 39 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Value
-{-# LINE 142 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 136 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegRt.Stats)
 peg'parseWith peg'cfg peg'input =
   let (peg'r, peg's) = PegRt.runParser peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore) peg'rule'Json peg'input
@@ -266,10 +260,6 @@ castJsonSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe JsonSyntax
 castJsonSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindJson then PegPrelude.Just (JsonSyntax peg'n) else PegPrelude.Nothing
 
--- | The children bound to @v@ in the rule @Json@.
-jsonV :: JsonSyntax -> PegPrelude.Maybe ValueSyntax
-jsonV (JsonSyntax peg'n) = PegPrelude.fmap ValueSyntax (PegRt.labeledNode syntaxKindValue (PegRt.labelText "v") peg'n)
-
 -- | A node of the rule @Value@.
 newtype ValueSyntax = ValueSyntax PegRt.SyntaxNode
   deriving (PegPrelude.Eq, PegPrelude.Show)
@@ -325,10 +315,6 @@ newtype MoreMemberSyntax = MoreMemberSyntax PegRt.SyntaxNode
 castMoreMemberSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe MoreMemberSyntax
 castMoreMemberSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindMoreMember then PegPrelude.Just (MoreMemberSyntax peg'n) else PegPrelude.Nothing
-
--- | The children bound to @m@ in the rule @MoreMember@.
-moreMemberM :: MoreMemberSyntax -> PegPrelude.Maybe MemberSyntax
-moreMemberM (MoreMemberSyntax peg'n) = PegPrelude.fmap MemberSyntax (PegRt.labeledNode syntaxKindMember (PegRt.labelText "m") peg'n)
 
 -- | A node of the rule @Member@.
 newtype MemberSyntax = MemberSyntax PegRt.SyntaxNode
@@ -386,10 +372,6 @@ castMoreElementSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe MoreElementSyntax
 castMoreElementSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindMoreElement then PegPrelude.Just (MoreElementSyntax peg'n) else PegPrelude.Nothing
 
--- | The children bound to @e@ in the rule @MoreElement@.
-moreElementE :: MoreElementSyntax -> PegPrelude.Maybe ElementSyntax
-moreElementE (MoreElementSyntax peg'n) = PegPrelude.fmap ElementSyntax (PegRt.labeledNode syntaxKindElement (PegRt.labelText "e") peg'n)
-
 -- | A node of the rule @Element@.
 newtype ElementSyntax = ElementSyntax PegRt.SyntaxNode
   deriving (PegPrelude.Eq, PegPrelude.Show)
@@ -399,10 +381,6 @@ castElementSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe ElementSyntax
 castElementSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindElement then PegPrelude.Just (ElementSyntax peg'n) else PegPrelude.Nothing
 
--- | The children bound to @v@ in the rule @Element@.
-elementV :: ElementSyntax -> PegPrelude.Maybe ValueSyntax
-elementV (ElementSyntax peg'n) = PegPrelude.fmap ValueSyntax (PegRt.labeledNode syntaxKindValue (PegRt.labelText "v") peg'n)
-
 -- | A node of the rule @Number@.
 newtype NumberSyntax = NumberSyntax PegRt.SyntaxNode
   deriving (PegPrelude.Eq, PegPrelude.Show)
@@ -411,10 +389,6 @@ newtype NumberSyntax = NumberSyntax PegRt.SyntaxNode
 castNumberSyntax :: PegRt.SyntaxNode -> PegPrelude.Maybe NumberSyntax
 castNumberSyntax peg'n =
   if PegRt.syntaxKind peg'n PegPrelude.== syntaxKindNumber then PegPrelude.Just (NumberSyntax peg'n) else PegPrelude.Nothing
-
--- | The children bound to @n@ in the rule @Number@.
-numberN :: NumberSyntax -> [PegRt.SyntaxElement]
-numberN (NumberSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "n") peg'n
 
 -- | A node of the rule @IntPart@.
 newtype IntPartSyntax = IntPartSyntax PegRt.SyntaxNode
@@ -469,10 +443,6 @@ castUnitSyntax peg'n =
 unitC :: UnitSyntax -> [PegRt.SyntaxElement]
 unitC (UnitSyntax peg'n) = PegRt.labeledElements isTriviaSyntaxKind (PegRt.labelText "c") peg'n
 
--- | The children bound to @e@ in the rule @Unit@.
-unitE :: UnitSyntax -> PegPrelude.Maybe EscapeSyntax
-unitE (UnitSyntax peg'n) = PegPrelude.fmap EscapeSyntax (PegRt.labeledNode syntaxKindEscape (PegRt.labelText "e") peg'n)
-
 -- | A node of the rule @Escape@.
 newtype EscapeSyntax = EscapeSyntax PegRt.SyntaxNode
   deriving (PegPrelude.Eq, PegPrelude.Show)
@@ -502,97 +472,97 @@ data Peg'Store peg's = Peg'Store
   { peg'memo'Json :: PegRt.Table peg's ((
 {-# LINE 39 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Value
-{-# LINE 506 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 476 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Value :: PegRt.Table peg's ((
 {-# LINE 42 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 511 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 481 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Object :: PegRt.Table peg's ((
 {-# LINE 51 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Value
-{-# LINE 516 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 486 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Members :: PegRt.Table peg's ((
 {-# LINE 55 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}[(Text, Value)]
-{-# LINE 521 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 491 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreMember :: PegRt.Table peg's ((
 {-# LINE 58 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 526 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 496 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Member :: PegRt.Table peg's ((
 {-# LINE 61 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}(Text, Value)
-{-# LINE 531 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 501 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Array :: PegRt.Table peg's ((
 {-# LINE 64 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 536 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 506 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Elements :: PegRt.Table peg's ((
 {-# LINE 68 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 13 #-}[Value]
-{-# LINE 541 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 511 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MoreElement :: PegRt.Table peg's ((
 {-# LINE 71 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 16 #-}Value
-{-# LINE 546 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 516 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Element :: PegRt.Table peg's ((
 {-# LINE 74 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}Value
-{-# LINE 551 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 521 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Number :: PegRt.Table peg's ((
 {-# LINE 77 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 556 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 526 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'IntPart :: PegRt.Table peg's ((
 {-# LINE 80 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 561 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 531 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Frac :: PegRt.Table peg's ((
 {-# LINE 84 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 566 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 536 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Exp :: PegRt.Table peg's ((
 {-# LINE 87 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 571 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 541 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'String :: PegRt.Table peg's ((
 {-# LINE 90 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 576 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 546 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Unit :: PegRt.Table peg's ((
 {-# LINE 94 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 581 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 551 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Escape :: PegRt.Table peg's ((
 {-# LINE 98 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 586 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 556 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Hex :: PegRt.Table peg's ((
 {-# LINE 109 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 591 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 561 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Ws :: PegRt.Table peg's ((
 {-# LINE 112 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 596 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 566 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
   }
 
@@ -603,29 +573,22 @@ peg'newStore =
 peg'rule'Json :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 39 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Value
-{-# LINE 607 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 577 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Json =
   PegRt.memo peg'memo'Json "Json"
     (PegRt.node syntaxKindJson (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- peg'rule'Ws
-          ; (v, peg'k1) <- PegRt.label "v" (peg'rule'Value)
-          ; PegRt.touch v
-          ; (_, peg'k2) <- peg'rule'Ws
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 40 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 24 #-} v 
-{-# LINE 621 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
+      [ do { (_, peg'k0) <- peg'rule'Ws
+          ; (peg'v2, peg'k1) <- peg'rule'Value
+          ; (_, peg'k3) <- peg'rule'Ws
+          ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1, peg'k3])
           }
       ]))
 
 peg'rule'Value :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 42 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 629 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 592 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Value =
   PegRt.memo peg'memo'Value "Value"
@@ -636,7 +599,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 43 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 18 #-} Null 
-{-# LINE 640 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 603 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -645,7 +608,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 44 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 17 #-} Bool True 
-{-# LINE 649 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 612 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
@@ -654,7 +617,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 45 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 18 #-} Bool False 
-{-# LINE 658 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 621 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
@@ -664,7 +627,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 46 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 19 #-} Number n 
-{-# LINE 668 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 631 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k3)
           }
       , do { peg'start <- PegRt.getOffset
@@ -674,7 +637,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 47 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 19 #-} String s 
-{-# LINE 678 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 641 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k4)
           }
       , do { (peg'v6, peg'k5) <- peg'rule'Array
@@ -688,7 +651,7 @@ peg'rule'Value =
 peg'rule'Object :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 51 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Value
-{-# LINE 692 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 655 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Object =
   PegRt.memo peg'memo'Object "Object"
@@ -703,7 +666,7 @@ peg'rule'Object =
           ; PegPrelude.pure ((
 {-# LINE 52 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 34 #-} Object ms 
-{-# LINE 707 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 670 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -714,7 +677,7 @@ peg'rule'Object =
           ; PegPrelude.pure ((
 {-# LINE 53 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 22 #-} Object [] 
-{-# LINE 718 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 681 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -722,7 +685,7 @@ peg'rule'Object =
 peg'rule'Members :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 55 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}[(Text, Value)]
-{-# LINE 726 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 689 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Members =
   PegRt.memo peg'memo'Members "Members"
@@ -736,7 +699,7 @@ peg'rule'Members =
           ; PegPrelude.pure ((
 {-# LINE 56 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 37 #-} m : ms 
-{-# LINE 740 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 703 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -744,29 +707,22 @@ peg'rule'Members =
 peg'rule'MoreMember :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 58 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 748 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 711 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreMember =
   PegRt.memo peg'memo'MoreMember "MoreMember"
     (PegRt.node syntaxKindMoreMember (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "," "','")
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "," "','")
           ; (_, peg'k1) <- peg'rule'Ws
-          ; (m, peg'k2) <- PegRt.label "m" (peg'rule'Member)
-          ; PegRt.touch m
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 59 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 32 #-} m 
-{-# LINE 762 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
+          ; (peg'v3, peg'k2) <- peg'rule'Member
+          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
 peg'rule'Member :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 61 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}(Text, Value)
-{-# LINE 770 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 726 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Member =
   PegRt.memo peg'memo'Member "Member"
@@ -784,7 +740,7 @@ peg'rule'Member =
           ; PegPrelude.pure ((
 {-# LINE 62 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 42 #-} (k, v) 
-{-# LINE 788 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 744 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5])
           }
       ]))
@@ -792,7 +748,7 @@ peg'rule'Member =
 peg'rule'Array :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 64 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 796 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 752 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Array =
   PegRt.memo peg'memo'Array "Array"
@@ -807,7 +763,7 @@ peg'rule'Array =
           ; PegPrelude.pure ((
 {-# LINE 65 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 34 #-} Array vs 
-{-# LINE 811 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 767 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -818,7 +774,7 @@ peg'rule'Array =
           ; PegPrelude.pure ((
 {-# LINE 66 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 21 #-} Array [] 
-{-# LINE 822 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 778 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -826,7 +782,7 @@ peg'rule'Array =
 peg'rule'Elements :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 68 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 13 #-}[Value]
-{-# LINE 830 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 786 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Elements =
   PegRt.memo peg'memo'Elements "Elements"
@@ -840,7 +796,7 @@ peg'rule'Elements =
           ; PegPrelude.pure ((
 {-# LINE 69 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 40 #-} e : es 
-{-# LINE 844 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 800 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -848,75 +804,54 @@ peg'rule'Elements =
 peg'rule'MoreElement :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 71 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 16 #-}Value
-{-# LINE 852 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 808 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreElement =
   PegRt.memo peg'memo'MoreElement "MoreElement"
     (PegRt.node syntaxKindMoreElement (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "," "','")
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "," "','")
           ; (_, peg'k1) <- peg'rule'Ws
-          ; (e, peg'k2) <- PegRt.label "e" (peg'rule'Element)
-          ; PegRt.touch e
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 72 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 34 #-} e 
-{-# LINE 866 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
+          ; (peg'v3, peg'k2) <- peg'rule'Element
+          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
 peg'rule'Element :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 74 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}Value
-{-# LINE 874 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 823 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Element =
   PegRt.memo peg'memo'Element "Element"
     (PegRt.node syntaxKindElement (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (v, peg'k0) <- PegRt.label "v" (peg'rule'Value)
-          ; PegRt.touch v
-          ; (_, peg'k1) <- peg'rule'Ws
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 75 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 24 #-} v 
-{-# LINE 887 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+      [ do { (peg'v1, peg'k0) <- peg'rule'Value
+          ; (_, peg'k2) <- peg'rule'Ws
+          ; PegPrelude.pure (peg'v1, PegPrelude.concat [peg'k0, peg'k2])
           }
       ]))
 
 peg'rule'Number :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 77 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 895 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 837 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Number =
   PegRt.memo peg'memo'Number "Number"
     (PegRt.node syntaxKindNumber (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (n, peg'k4) <- PegRt.label "n" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k0) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "-" "'-'"))
+      [ do { (peg'v5, peg'k4) <- (PegRt.captureS) (PegRt.choice [do { (_, peg'k0) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "-" "'-'"))
           ; (_, peg'k1) <- peg'rule'IntPart
           ; (_, peg'k2) <- (PegRt.optionalS) (peg'rule'Frac)
           ; (_, peg'k3) <- (PegRt.optionalS) (peg'rule'Exp)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
-          }]))
-          ; PegRt.touch n
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 78 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 41 #-} n 
-{-# LINE 912 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), peg'k4)
+          }])
+          ; PegPrelude.pure (peg'v5, peg'k4)
           }
       ]))
 
 peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 80 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 12 #-}()
-{-# LINE 920 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 855 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'IntPart =
   PegRt.memo peg'memo'IntPart "IntPart"
@@ -933,7 +868,7 @@ peg'rule'IntPart =
 peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 84 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}()
-{-# LINE 937 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 872 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Frac =
   PegRt.memo peg'memo'Frac "Frac"
@@ -947,7 +882,7 @@ peg'rule'Frac =
 peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 87 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 951 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 886 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Exp =
   PegRt.memo peg'memo'Exp "Exp"
@@ -962,7 +897,7 @@ peg'rule'Exp =
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 90 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 966 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 901 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -976,7 +911,7 @@ peg'rule'String =
           ; PegPrelude.pure ((
 {-# LINE 91 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 29 #-} T.pack (decodeUnits us) 
-{-# LINE 980 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 915 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
@@ -984,38 +919,31 @@ peg'rule'String =
 peg'rule'Unit :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 94 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 988 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 923 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Unit =
   PegRt.memo peg'memo'Unit "Unit"
     (PegRt.node syntaxKindUnit (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
-          ; (e, peg'k1) <- PegRt.label "e" (peg'rule'Escape)
-          ; PegRt.touch e
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure ((
-{-# LINE 95 "bench/JsonSyntax.hpeg" #-}
- {-# COLUMN 24 #-} e 
-{-# LINE 1001 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), PegPrelude.concat [peg'k0, peg'k1])
+      [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
+          ; (peg'v2, peg'k1) <- peg'rule'Escape
+          ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
-          ; (c, peg'k2) <- PegRt.label "c" ((PegRt.captureS) (PegRt.plain (PegRt.cls [(' ', '!'), ('#', '['), (']', '\1114111')] "[\\u{20}-\\u{21}\\u{23}-\\u{5B}\\u{5D}-\\u{10FFFF}]")))
+          ; (c, peg'k3) <- PegRt.label "c" ((PegRt.captureS) (PegRt.plain (PegRt.cls [(' ', '!'), ('#', '['), (']', '\1114111')] "[\\u{20}-\\u{21}\\u{23}-\\u{5B}\\u{5D}-\\u{10FFFF}]")))
           ; PegRt.touch c
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 96 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
-{-# LINE 1011 "bench/Conformance/Bench/JsonSyntax.hs" #-}
-    ), peg'k2)
+{-# LINE 939 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+    ), peg'k3)
           }
       ]))
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 98 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 1019 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 947 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -1026,7 +954,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 99 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 16 #-} 0x22 
-{-# LINE 1030 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 958 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1035,7 +963,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 100 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 16 #-} 0x5C 
-{-# LINE 1039 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 967 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1044,7 +972,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 101 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x2F 
-{-# LINE 1048 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 976 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1053,7 +981,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 102 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x08 
-{-# LINE 1057 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 985 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k3)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1062,7 +990,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 103 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x0C 
-{-# LINE 1066 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 994 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k4)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1071,7 +999,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 104 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x0A 
-{-# LINE 1075 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1003 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k5)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1080,7 +1008,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 105 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x0D 
-{-# LINE 1084 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1012 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k6)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1089,7 +1017,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 106 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 15 #-} 0x09 
-{-# LINE 1093 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1021 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1105,7 +1033,7 @@ peg'rule'Escape =
           ; PegPrelude.pure ((
 {-# LINE 107 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 36 #-} hexValue h 
-{-# LINE 1109 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1037 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k13])
           }
       ]))
@@ -1113,7 +1041,7 @@ peg'rule'Escape =
 peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 109 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 8 #-}()
-{-# LINE 1117 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1045 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Hex =
   PegRt.memo peg'memo'Hex "Hex"
@@ -1126,7 +1054,7 @@ peg'rule'Hex =
 peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 112 "bench/JsonSyntax.hpeg" #-}
  {-# COLUMN 7 #-}()
-{-# LINE 1130 "bench/Conformance/Bench/JsonSyntax.hs" #-}
+{-# LINE 1058 "bench/Conformance/Bench/JsonSyntax.hs" #-}
     ), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
