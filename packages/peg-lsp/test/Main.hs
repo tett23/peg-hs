@@ -59,12 +59,12 @@ main =
                 Right out ->
                   let ids xs = sort (mapMaybe (\m -> member "id" m >>= asInt) xs)
                    in ids out === ids [m | m <- msgs, member "method" m /= Nothing]
-      , testCase "a notice of the linter has the severity Information (ADR 0063)" $ do
+      , testCase "an info of the linter has the severity Hint (ADR 0067)" $ do
           let src = "%module M\nS :: ()\nS <- 'a' { () }\n"
           [(sev, locLine l, locColumn l, code) | (sev, Diagnostic l _, code) <- diagnose src]
-            @?= [(Information, 3, 10, Just "omittable-unit-action")]
+            @?= [(Hint, 3, 10, Just "omittable-unit-action")]
           let out = T.concat (map renderJson (session [initialize False, open src]))
-          assertBool (T.unpack out) ("\"severity\":3,\"source\":\"peg-hs\",\"message\":\"the action can be omitted" `T.isInfixOf` out)
+          assertBool (T.unpack out) ("\"severity\":4,\"source\":\"peg-hs\",\"message\":\"the action can be omitted" `T.isInfixOf` out)
       , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
             @?= [(3, 6, "rule B is not a template")]

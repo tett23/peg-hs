@@ -218,15 +218,16 @@ data Severity
     Error
   | -- | A warning of the label check or of @peg-hs lint@.
     Warning
-  | -- | A notice of @peg-hs lint@ (ADR 0063).
-    Information
+  | -- | An info of @peg-hs lint@ (ADR 0063, ADR 0067). Editors show hints
+    -- faintly, often without an underline.
+    Hint
   deriving (Eq, Show)
 
 -- | The diagnostics of a grammar with the messages and locations of
 -- @peg-hs gen@ and @peg-hs lint@, and the code of a lint rule
 -- ('Peg.Grammar.Lint.lintRule'). An error stops the checks as in
 -- @peg-hs gen@: a grammar with an error has no warnings. The warnings of
--- the linter have the severity 'Warning', and its notices 'Information'.
+-- the linter have the severity 'Warning', and its infos 'Hint'.
 -- A grammar with a syntax error has only its syntax errors: the first is the one of
 -- @peg-hs gen@, followed by those that recovery finds on later lines.
 diagnose :: Text -> [(Severity, Diagnostic, Maybe Text)]
@@ -244,13 +245,13 @@ diagnose src = case parseTops src of
            ]
   where
     severity LevelWarning = Warning
-    severity LevelNotice = Information
+    severity LevelInfo = Hint
 
 diagnosticValue :: Encoding -> Document -> (Severity, Diagnostic, Maybe Text) -> Value
 diagnosticValue enc d (sev, Diagnostic l@(Loc line col) msg, code) =
   object $
     [ ("range", rangeValue enc d l (Loc line (col + max 1 (T.length (T.takeWhile isIdentChar (T.drop (col - 1) (lineAt d line)))))))
-    , ("severity", int (case sev of Error -> 1; Warning -> 2; Information -> 3))
+    , ("severity", int (case sev of Error -> 1; Warning -> 2; Hint -> 4))
     , ("source", String "peg-hs")
     , ("message", String msg)
     ]

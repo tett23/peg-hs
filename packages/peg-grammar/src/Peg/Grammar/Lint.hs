@@ -21,10 +21,10 @@
 --   grammar with @%syntax@, where a binding labels the children of the
 --   syntax tree.
 --
--- Besides the warnings, the linter gives notices (ADR 0063): ways to make
--- the grammar simpler that are not wrong to leave. A notice does not make
--- @peg-hs lint@ fail, and, like the warnings, cannot be chosen or
--- silenced. The rule of notices is:
+-- Besides the warnings, the linter gives infos (ADR 0063, ADR 0067): ways
+-- to make the grammar simpler that are not wrong to leave. An info does not
+-- make @peg-hs lint@ fail, and is shown only with @--verbose@. Like the
+-- warnings, infos cannot be chosen or silenced. The rule of infos is:
 --
 -- [@omittable-unit-action@] An action @{ () }@ that can be omitted: the
 --   rule has type @()@ and the alternative has no value other than unit
@@ -57,7 +57,7 @@ import Peg.Grammar
 import Peg.Grammar.Check (countedItems, omitsUnitAction, unitRules)
 import Peg.Grammar.Templates (expandTemplates)
 
--- | A warning or a notice of the linter, located at the alternative, label,
+-- | A warning or an info of the linter, located at the alternative, label,
 -- binding or action it is about.
 data LintWarning = LintWarning
   { lintLoc :: Loc
@@ -67,22 +67,23 @@ data LintWarning = LintWarning
   , lintHint :: Text
   -- ^ How to change the grammar.
   , lintLevel :: LintLevel
-  -- ^ Whether it is a warning or a notice.
+  -- ^ Whether it is a warning or an info.
   }
   deriving (Eq, Show)
 
--- | The level of a result of the linter (ADR 0063).
+-- | The level of a result of the linter (ADR 0063, ADR 0067).
 data LintLevel
   = -- | Something wrong with the grammar. @peg-hs lint@ fails if there is
     -- a warning.
     LevelWarning
   | -- | Something that is not wrong, but that a change makes simpler.
-    -- Notices do not make @peg-hs lint@ fail.
-    LevelNotice
+    -- Infos do not make @peg-hs lint@ fail, and it shows them only with
+    -- @--verbose@.
+    LevelInfo
   deriving (Eq, Ord, Show)
 
 -- | Render as @file:line:column: warning: message [rule]; hint@, the form
--- @peg-hs lint@ uses. A notice has @notice:@ in place of @warning:@.
+-- @peg-hs lint@ uses. An info has @info:@ in place of @warning:@.
 renderLintWarning :: FilePath -> LintWarning -> Text
 renderLintWarning file w =
   T.concat
@@ -92,9 +93,9 @@ renderLintWarning file w =
   where
     level = case lintLevel w of
       LevelWarning -> ": warning: "
-      LevelNotice -> ": notice: "
+      LevelInfo -> ": info: "
 
--- | The warnings and notices of a grammar that passed the checks, in source
+-- | The warnings and infos of a grammar that passed the checks, in source
 -- order. The grammar is the one parsed, before the expansion of templates.
 lintGrammar :: Grammar -> [LintWarning]
 lintGrammar g =
@@ -102,7 +103,7 @@ lintGrammar g =
     concatMap (alternativeWarnings throwing) rules
       ++ concatMap (concatMap labelWarnings . ruleAlts) rules
       ++ (if isJust (grammarSyntax g) then [] else concatMap (\r -> concatMap (bindingWarnings units (ruleName r)) (ruleAlts r)) rules)
-      ++ unitActionNotices g
+      ++ unitActionInfos g
   where
     rules = grammarRules g
     units = unitRules rules
@@ -113,9 +114,9 @@ lintGrammar g =
 -- The actions @{ () }@ that the rule of ADR 0063 allows to omit. The rules
 -- are looked at after the expansion of templates, where the types of the
 -- instances are known; an action of a template is omittable when it is in
--- every instance. The notice is at the opening brace of the action.
-unitActionNotices :: Grammar -> [LintWarning]
-unitActionNotices g = case expandTemplates g of
+-- every instance. The info is at the opening brace of the action.
+unitActionInfos :: Grammar -> [LintWarning]
+unitActionInfos g = case expandTemplates g of
   Left _ -> []
   Right expanded ->
     let rules = grammarRules expanded
@@ -129,7 +130,7 @@ unitActionNotices g = case expandTemplates g of
             , Just (Located (Loc line col) code) <- [altAction a]
             , T.filter (not . isSpace) code == "()"
             ]
-     in [ LintWarning l "omittable-unit-action" "the action can be omitted: the rule has type () and the alternative has no value" "remove { () }" LevelNotice
+     in [ LintWarning l "omittable-unit-action" "the action can be omitted: the rule has type () and the alternative has no value" "remove { () }" LevelInfo
         | (l, True) <- M.toList found
         ]
 
