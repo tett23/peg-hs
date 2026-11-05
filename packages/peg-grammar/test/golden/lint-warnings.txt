@@ -44,5 +44,9 @@ a grammar with a syntax tree
   G.hpeg:4:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 calls of a template of type ()
   G.hpeg:3:20: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+a unit repetition (ADR 0064)
+  G.hpeg:3:10: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
+a bound unit repetition (ADR 0064)
+  G.hpeg:3:24: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 the definition of a template whose instances have type ()
   G.hpeg:5:18: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }

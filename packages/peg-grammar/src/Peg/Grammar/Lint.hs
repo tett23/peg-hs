@@ -101,7 +101,7 @@ lintGrammar g =
   sortOn (\w -> (lintLoc w, lintRule w)) $
     concatMap (alternativeWarnings throwing) rules
       ++ concatMap (concatMap labelWarnings . ruleAlts) rules
-      ++ (if isJust (grammarSyntax g) then [] else concatMap (concatMap (bindingWarnings units) . ruleAlts) rules)
+      ++ (if isJust (grammarSyntax g) then [] else concatMap (\r -> concatMap (bindingWarnings units (ruleName r)) (ruleAlts r)) rules)
       ++ unitActionNotices g
   where
     rules = grammarRules g
@@ -239,16 +239,17 @@ labelWarnings a = concatMap (expr False . itemExpr) (altItems a)
 
 -- A binding whose name is not an identifier of the action, the predicates
 -- or the arguments of its alternative. Without an action, a binding that
--- chooses the value of the alternative (ADR 0030) is used.
-bindingWarnings :: Set Text -> Alt -> [LintWarning]
-bindingWarnings units a = concatMap (sequenceWarnings True) [altItems a]
+-- chooses the value of the alternative (ADR 0030) is used, but for an
+-- alternative of a rule of type () whose value is () (ADR 0064).
+bindingWarnings :: Set Text -> Text -> Alt -> [LintWarning]
+bindingWarnings units rule a = concatMap (sequenceWarnings True) [altItems a]
   where
     used = S.fromList (concatMap identifiers (maybe [] (pure . unLoc) (altAction a) ++ concatMap (codesOf . itemExpr) (altItems a)))
     sequenceWarnings top items =
       [ LintWarning l "unused-binding" ("the binding " <> n <> " is not used") ("remove " <> n <> ":") LevelWarning
       | (k, Item l (Just n) _) <- zip [0 :: Int ..] items
       , S.notMember n used
-      , (top && isJust (altAction a)) || choosesNothing k items
+      , (top && (isJust (altAction a) || omitsUnitAction units rule (altItems a))) || choosesNothing k items
       ]
         ++ concatMap (nested . itemExpr) items
     nested = \case

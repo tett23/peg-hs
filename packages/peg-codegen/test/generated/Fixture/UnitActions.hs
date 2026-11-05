@@ -129,7 +129,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 14 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 29 #-} w 
+ {-# COLUMN 28 #-} w 
 {-# LINE 134 "test/generated/Fixture/UnitActions.hs" #-}
     )
           }
@@ -165,13 +165,13 @@ peg'rule'Kw =
     (PegRt.choice
       [ do { PegRt.lit "if" "'if'"
           ; PegRt.notP (PegRt.cls [('a', 'z')] "[a-z]")
-          ; peg'v0 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v0
+          ; _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       , do { PegRt.lit "do" "'do'"
           ; PegRt.notP (PegRt.cls [('a', 'z')] "[a-z]")
-          ; peg'v1 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v1
+          ; _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       ])
 
@@ -192,14 +192,14 @@ peg'rule'End =
           ; b <- peg'rule'Sp
           ; PegRt.predicate (\_col -> 
 {-# LINE 27 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 20 #-} a == b 
+ {-# COLUMN 19 #-} a == b 
 {-# LINE 197 "test/generated/Fixture/UnitActions.hs" #-}
     )
           ; PegRt.lit "," "','"
           ; PegPrelude.pure ()
           }
-      , do { peg'v0 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v0
+      , do { _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       ])
 
@@ -212,13 +212,13 @@ peg'rule'Sep =
   PegRt.memo peg'memo'Sep "Sep"
     (PegRt.choice
       [ do { PegRt.lit "|" "'|'"
-          ; peg'v0 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v0
+          ; _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       , do { PegRt.lit "&" "'&'"
           ; PegRt.predicate (\_col -> 
 {-# LINE 38 "test/fixtures/UnitActions.hpeg" #-}
- {-# COLUMN 14 #-} True 
+ {-# COLUMN 13 #-} True 
 {-# LINE 223 "test/generated/Fixture/UnitActions.hs" #-}
     )
           ; PegPrelude.pure ()
@@ -247,12 +247,12 @@ peg'rule'Op'0 =
   PegRt.memo peg'memo'Op'0 "Op'0"
     (PegRt.choice
       [ do { PegRt.lit "(" "'('"
-          ; peg'v0 <- peg'rule'Sep
+          ; _ <- peg'rule'Sep
           ; PegRt.lit ")" "')'"
-          ; PegPrelude.pure peg'v0
+          ; PegPrelude.pure ()
           }
       , do { PegRt.lit "-" "'-'"
-          ; peg'v1 <- peg'rule'Sp
-          ; PegPrelude.pure peg'v1
+          ; _ <- peg'rule'Sp
+          ; PegPrelude.pure ()
           }
       ])

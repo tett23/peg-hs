@@ -100,8 +100,10 @@ unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) 
 -- | Whether an alternative of a rule may omit its action because the rule
 -- has type @()@ (ADR 0063): the rule is one of the given rules of type
 -- @()@, the alternative has an element, and no element it counts has a
--- value other than unit. The value of such an alternative is @()@. The
--- action of the alternative, if any, is not looked at.
+-- value other than unit. The value of such an alternative is always @()@,
+-- even when it counts one element, whose value may be @[()]@ or
+-- @Maybe ()@ (ADR 0064). The action of the alternative, if any, is not
+-- looked at.
 omitsUnitAction :: Set Text -> Text -> [Item] -> Bool
 omitsUnitAction units rule items =
   S.member rule units && not (null items) && all (isUnit units . itemExpr) (countedItems units items)

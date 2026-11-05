@@ -597,8 +597,8 @@ ruleDecl env r =
       [p] -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " " <> paramName p
       ps -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " (" <> T.intercalate ", " (map paramName ps) <> ")"
     alts
-      | envSyntax env = fst (runGen (mapM (altCodeS env) (ruleAlts r)) 0)
-      | otherwise = fst (runGen (mapM (altCode env) (ruleAlts r)) 0)
+      | envSyntax env = fst (runGen (mapM (altCodeS env name) (ruleAlts r)) 0)
+      | otherwise = fst (runGen (mapM (altCode env name) (ruleAlts r)) 0)
     g = envGrammar env
     (treeWrap, treeClose)
       | not (envSyntax env) = ("", "")
@@ -625,8 +625,9 @@ fresh = Gen $ \n -> ("peg'v" <> showT n, n + 1)
 doBlock :: [Text] -> Text
 doBlock stmts = "do { " <> T.concat (intersperse "\n          ; " stmts) <> "\n          }"
 
-altCode :: Env -> Alt -> Gen Text
-altCode env a = do
+-- The code of an alternative of the named rule.
+altCode :: Env -> Text -> Alt -> Gen Text
+altCode env rule a = do
   let envStmt = ["_env <- PegRt.askStore peg'env" | isJust (grammarEnv (envGrammar env))]
       items = altItems a
   case altAction a of
@@ -641,10 +642,11 @@ altCode env a = do
           )
     Nothing
       -- An alternative of a rule of type () whose action is omitted, because
-      -- it has no value but unit (ADR 0063): it is generated as with the
-      -- action (), so the unbound items discard their values and the bound
-      -- ones stay for the predicates.
-      | Nothing <- passedItem env items -> do
+      -- it has no value but unit (ADR 0063): its value is (), even when it
+      -- counts one element (ADR 0064). It is generated as with the action
+      -- (), so the unbound items discard their values and the bound ones
+      -- stay for the predicates.
+      | omitsUnitAction (units env) rule items -> do
           stmts <- mapM (itemStmt env True) items
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
       | otherwise -> do
@@ -897,8 +899,9 @@ kidsExpr [] = "[]"
 kidsExpr [k] = k
 kidsExpr ks = "PegPrelude.concat [" <> T.intercalate ", " ks <> "]"
 
-altCodeS :: Env -> Alt -> Gen Text
-altCodeS env a = do
+-- 'altCode' for grammars with @%syntax@.
+altCodeS :: Env -> Text -> Alt -> Gen Text
+altCodeS env rule a = do
   let envStmt = ["_env <- PegRt.askStore peg'env" | isJust (grammarEnv (envGrammar env))]
       items = altItems a
   case altAction a of
@@ -909,12 +912,15 @@ altCodeS env a = do
           (envStmt ++ ["peg'start <- PegRt.getOffset"] ++ map fst rs ++ ["_span <- PegRt.spanFrom peg'start"])
           ("(" <> fragment (envOpts env) act <> ")")
           (map snd rs)
-    -- Without an item to pass through (ADR 0063), the value is (), and the
-    -- bound items keep their labels, so that the children are those of the
-    -- alternative with { () }.
-    Nothing -> do
-      (stmts, value, kids) <- passThroughS env True items
-      pure (doReturn (envStmt ++ stmts) value kids)
+    Nothing
+      -- As in 'altCode' (ADR 0063). The bound items keep their labels, so
+      -- that the children are those of the alternative with { () }.
+      | omitsUnitAction (units env) rule items -> do
+          rs <- mapM (itemStmtS env True) items
+          pure (doReturn (envStmt ++ map fst rs) "()" (map snd rs))
+      | otherwise -> do
+          (stmts, value, kids) <- passThroughS env True items
+          pure (doReturn (envStmt ++ stmts) value kids)
 
 -- Statements for a sequence whose single value is returned unchanged.
 passThroughS :: Env -> Bool -> [Item] -> Gen ([Text], Text, [Text])

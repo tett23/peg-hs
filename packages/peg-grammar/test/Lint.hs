@@ -33,6 +33,16 @@ lintTests files =
     , testGroup "does not warn" [testCase (T.unpack n) (rulesOf src @?= Right []) | (n, src) <- notWarned]
     , testGroup "notices (ADR 0063)" [testCase (T.unpack n) (noticesOf src @?= Right [l]) | (n, l, src) <- noticed]
     , testGroup "no notice (ADR 0063)" [testCase (T.unpack n) (noticesOf src @?= Right []) | (n, src) <- notNoticed]
+    , testGroup
+        "omitted actions in rules of type () (ADR 0064)"
+        [ testCase "nothing for a unit repetition" $
+            lintOf (grammar ["S :: ()", "S <- Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right []
+        , testCase "only the unused binding for a bound unit repetition" $
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp*", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding"]
+        , testCase "the unused bindings, as with { () }" $ do
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding"]
+            map lintRule <$> lintOf (grammar ["S :: ()", "S <- x:Sp y:Sp { () }", "Sp :: ()", "Sp <- ' '"]) @?= Right ["unused-binding", "unused-binding", "omittable-unit-action"]
+        ]
     , testCase "a notice is rendered with notice: (ADR 0063)" $
         map (renderLintWarning "G.hpeg") (either (const []) id (lintOf (grammar ["S :: ()", "S <- ' '* { () }"])))
           @?= ["G.hpeg:3:11: notice: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }"]
@@ -40,10 +50,8 @@ lintTests files =
         pure . BL.fromStrict . TE.encodeUtf8 . T.unlines $
           concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) warnings (lintOf src)) | (n, _, src) <- warned]
             ++ concat [n : map (("  " <>) . renderLintWarning "G.hpeg") (either (const []) id (lintOf src)) | (n, _, src) <- noticed]
-      -- The fixtures that compare alternatives with { () } and without it
-      -- keep their actions (ADR 0063).
     , testCase "the grammars of the repository have no warnings and no notices" $ do
-        ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) [f | f <- files, not ("Explicit" `T.isInfixOf` T.pack f)]
+        ws <- mapM (\f -> (,) f . lintOf <$> TIO.readFile f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
     ]
       ++ [ testGroup "the failures of the interpreter are those of peg-runtime (ADR 0049)" [testCase (T.unpack body <> " on " <> show input) (fmap renderFailure (run (grammarOf body) input) @?= Just message) | (body, input, message) <- runtimeErrors]
@@ -110,6 +118,8 @@ noticed =
   , ("spaces in the type ()", (3, 10), grammar ["S :: ( )", "S <- 'a' { () }"])
   , ("a grammar with a syntax tree", (4, 10), "%module M\n%syntax\nS :: ()\nS <- 'a' { () }\n")
   , ("calls of a template of type ()", (3, 20), grammar ["S :: ()", "S <- K<'a'> K<'b'> { () }", "K<w> :: ()", "K<w> <- w ![a-z]"])
+  , ("a unit repetition (ADR 0064)", (3, 10), grammar ["S :: ()", "S <- Sp* { () }", "Sp :: ()", "Sp <- ' '"])
+  , ("a bound unit repetition (ADR 0064)", (3, 24), grammar ["S :: ()", "S <- x:Sp* &{ null x } { () }", "Sp :: ()", "Sp <- ' '"])
   , ("the definition of a template whose instances have type ()", (5, 18), grammar ["S :: ()", "S <- K<'a'> K<'b'>", "K<w> :: ()", "K<w> <- w ![a-z] { () }"])
   ]
 
@@ -162,7 +172,7 @@ notWarned =
   , ("a binding in an argument", grammar ["S :: ()", "S <- x:B C(x) { () }", "B :: Int", "B <- 'b' { 1 }", "C(n :: Int) :: ()", "C <- 'c' { () }"])
   , ("a binding in a string", grammar ["S :: String", "S <- x:B { \"x\" }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding of a grammar with a syntax tree", "%module M\n%syntax\nS :: ()\nS <- x:B { () }\nB :: Int\nB <- 'b' { 1 }\n")
-  , ("a binding that chooses the value", grammar ["S :: ()", "S <- Sp x:U Sp", "U :: ()", "U <- 'u' { () }", "Sp :: ()", "Sp <- ' '? { () }"])
+  , ("a binding that chooses the value", grammar ["S :: Maybe ()", "S <- Sp x:U? Sp", "U :: ()", "U <- 'u'", "Sp :: ()", "Sp <- ' '?"])
   ]
 
 -- The grammar without the alternative or the label a warning names.

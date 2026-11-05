@@ -1,0 +1,34 @@
+# ADR 0064：型が () の規則で、アクションを省略した選択肢は常に () を返す
+# ../fixtures/UnitRepeats.hpeg の、省略したアクションを { () } と書いた版
+# 省略できる { () } を残すので、拡張子を .txt にして peg-hs lint と peg-hs fmt の探索から外す
+%module Fixture.UnitRepeatsExplicit
+
+Start :: ((), (), (), (), (), (), Int)
+Start <- a:Many ';' b:Many1 ';' c:Opt ';' d:Bound ';' e:Labeled ';' f:Single ';' n:Count !. { (a, b, c, d, e, f, length n) }
+
+# 単位の繰り返しや省略の要素が一つだけでも、値は ()
+Many :: ()
+Many <- Ws* { () }
+
+Many1 :: ()
+Many1 <- Ws+ { () }
+
+Opt :: ()
+Opt <- Ws? { () }
+
+Bound :: ()
+Bound <- x:Ws* &{ length x < 100 } { () }
+
+Labeled :: ()
+Labeled <- Ws* ^ws { () }
+
+# 数える要素の値が () の選択肢
+Single :: ()
+Single <- Ws { () }
+
+# 型が () でない規則は、これまでどおり数える要素の値を返す
+Count :: [()]
+Count <- Ws*
+
+Ws :: ()
+Ws <- ' ' { () }

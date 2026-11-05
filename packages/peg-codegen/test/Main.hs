@@ -4,6 +4,7 @@
 module Main (main) where
 
 import qualified Data.ByteString.Lazy as BL
+import Data.List (isInfixOf)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Data.Text (Text)
@@ -37,6 +38,10 @@ import qualified Fixture.UnitActions as UnitActions
 import qualified Fixture.UnitActionsExplicit as UnitActionsExplicit
 import qualified Fixture.UnitActionsExplicitSyntax as UnitActionsExplicitSyntax
 import qualified Fixture.UnitActionsSyntax as UnitActionsSyntax
+import qualified Fixture.UnitRepeats as UnitRepeats
+import qualified Fixture.UnitRepeatsExplicit as UnitRepeatsExplicit
+import qualified Fixture.UnitRepeatsExplicitSyntax as UnitRepeatsExplicitSyntax
+import qualified Fixture.UnitRepeatsSyntax as UnitRepeatsSyntax
 import qualified Fixture.Units as Units
 import qualified Fixture.UnitsSyntax as UnitsSyntax
 import Peg.Codegen
@@ -56,7 +61,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Gen, Property, checkCoverage, choose, cover, elements, forAll, listOf, oneof, sized, testProperty, (.&&.), (===), withNumTests)
+import Test.Tasty.QuickCheck (Gen, Property, checkCoverage, choose, cover, elements, forAll, frequency, listOf, oneof, sized, testProperty, vectorOf, (.&&.), (===), withNumTests)
 
 main :: IO ()
 main =
@@ -118,6 +123,7 @@ main =
           , testCase "%syntax, lossless tree" $ fmap syntaxText (UnitsSyntax.parseSyntax "1;2;; ") @?= Right "1;2;; "
           ]
       , unitActionTests
+      , unitRepeatTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -131,12 +137,20 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax"]
+
+-- The grammar of a fixture. The versions with { () } that the linter
+-- would have omitted are .txt files outside test/fixtures, which
+-- peg-hs lint and fmt do not walk (ADR 0063, ADR 0064).
+fixtureSource :: String -> FilePath
+fixtureSource n
+  | "Explicit" `isInfixOf` n = "test/explicit/" <> n <> ".txt"
+  | otherwise = "test/fixtures/" <> n <> ".hpeg"
 
 fixtureOptions :: String -> Options
 fixtureOptions n =
   Options
-    { optSourceName = "test/fixtures/" <> n <> ".hpeg"
+    { optSourceName = fixtureSource n
     , optOutputName = "test/generated/Fixture/" <> n <> ".hs"
     , optDebugEntry = True
     , optExports = Nothing
@@ -144,7 +158,7 @@ fixtureOptions n =
 
 generateFixture :: Options -> String -> IO BL.ByteString
 generateFixture opts n = do
-  src <- TIO.readFile ("test/fixtures/" <> n <> ".hpeg")
+  src <- TIO.readFile (fixtureSource n)
   case generateFromSource opts src of
     Left ds -> assertFailure (show ds) >> pure ""
     Right code -> pure (BL.fromStrict (TE.encodeUtf8 code))
@@ -215,6 +229,42 @@ unitActionTests =
     tree p name t = either (Left . parseErrorPos) (Right . debugTree name) (p t)
     -- Words, keywords, separators and the punctuation of the grammar.
     gen = T.concat <$> listOf (elements ["if ", "do ", "ab", "c", " ", ";", ",", "(|)", "(&)", "-", "(", "|"])
+
+-- ADR 0064: in rules of type (), alternatives without actions return ()
+-- even when their only counted element is a repetition or an option of a
+-- unit rule.
+unitRepeatTests :: TestTree
+unitRepeatTests =
+  testGroup
+    "alternatives without actions in rules of type () return () (ADR 0064)"
+    [ testCase "values" $ do
+        UnitRepeats.parse unitRepeatInput @?= Right ((), (), (), (), (), (), 3)
+        UnitRepeatsExplicit.parse unitRepeatInput @?= Right ((), (), (), (), (), (), 3)
+        UnitRepeatsSyntax.parse unitRepeatInput @?= Right ((), (), (), (), (), (), 3)
+    , testCase "%syntax, the same tree as with { () }" $ do
+        tree UnitRepeatsSyntax.parseSyntax UnitRepeatsSyntax.nameOfSyntaxKind unitRepeatInput
+          @?= tree UnitRepeatsExplicitSyntax.parseSyntax UnitRepeatsExplicitSyntax.nameOfSyntaxKind unitRepeatInput
+        fmap syntaxText (UnitRepeatsSyntax.parseSyntax unitRepeatInput) @?= Right unitRepeatInput
+    , testProperty "the same results, farthest failures and trees as with { () }" $
+        withNumTests 1000 . checkCoverage $ forAll repeatGen $ \t ->
+          cover 3 (either (const False) (const True) (UnitRepeats.parse t)) "accepted" $
+            farthest (UnitRepeats.parse t) === farthest (UnitRepeatsExplicit.parse t)
+              .&&. farthest (UnitRepeatsSyntax.parse t) === farthest (UnitRepeats.parse t)
+              .&&. tree UnitRepeatsSyntax.parseSyntax UnitRepeatsSyntax.nameOfSyntaxKind t === tree UnitRepeatsExplicitSyntax.parseSyntax UnitRepeatsExplicitSyntax.nameOfSyntaxKind t
+    ]
+  where
+    farthest = either (Left . parseErrorPos) Right
+    tree p name t = either (Left . parseErrorPos) (Right . debugTree name) (p t)
+
+-- Runs of spaces, rarely with another character, separated by semicolons:
+-- mostly the seven runs that the grammar reads.
+repeatGen :: Gen Text
+repeatGen = do
+  n <- frequency [(3, pure 7), (1, pure 6), (1, pure 8)]
+  T.intercalate ";" <$> vectorOf n (frequency [(5, pure ""), (5, pure " "), (5, pure "  "), (1, pure "x")])
+
+unitRepeatInput :: Text
+unitRepeatInput = "  ; ;; ; ; ;   "
 
 unitActionInput :: Text
 unitActionInput = " if ab ; (|)cd,- ef do gh"
@@ -506,7 +556,7 @@ golemExports = ["parseSyntaxRecover", "nameOfSyntaxKind"]
 -- the grammar without its labels.
 generateExports :: String -> Maybe Text -> Bool -> [Text] -> IO (Either [Diagnostic] Text)
 generateExports n strip debug names = do
-  src <- TIO.readFile ("test/fixtures/" <> n <> ".hpeg")
+  src <- TIO.readFile (fixtureSource n)
   let opts = (fixtureOptions n) {optDebugEntry = debug, optExports = Just names}
   pure $ case strip of
     Nothing -> generateFromSource opts src

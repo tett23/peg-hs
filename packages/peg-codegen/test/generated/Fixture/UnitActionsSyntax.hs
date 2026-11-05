@@ -304,7 +304,7 @@ peg'rule'Item =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 15 "test/fixtures/UnitActionsSyntax.hpeg" #-}
- {-# COLUMN 29 #-} w 
+ {-# COLUMN 28 #-} w 
 {-# LINE 309 "test/generated/Fixture/UnitActionsSyntax.hs" #-}
     ), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
           }
@@ -341,13 +341,13 @@ peg'rule'Kw =
     (PegRt.node syntaxKindKw (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "if" "'if'")
           ; (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('a', 'z')] "[a-z]"))
-          ; (peg'v3, peg'k2) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v3, PegPrelude.concat [peg'k0, peg'k1, peg'k2])
+          ; (_, peg'k2) <- peg'rule'Sp
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
-      , do { (_, peg'k4) <- PegRt.plain (PegRt.lit "do" "'do'")
-          ; (_, peg'k5) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('a', 'z')] "[a-z]"))
-          ; (peg'v7, peg'k6) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v7, PegPrelude.concat [peg'k4, peg'k5, peg'k6])
+      , do { (_, peg'k3) <- PegRt.plain (PegRt.lit "do" "'do'")
+          ; (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.cls [('a', 'z')] "[a-z]"))
+          ; (_, peg'k5) <- peg'rule'Sp
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4, peg'k5])
           }
       ]))
 
@@ -370,14 +370,14 @@ peg'rule'End =
           ; PegRt.touch b
           ; (_, peg'k5) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 28 "test/fixtures/UnitActionsSyntax.hpeg" #-}
- {-# COLUMN 20 #-} a == b 
+ {-# COLUMN 19 #-} a == b 
 {-# LINE 375 "test/generated/Fixture/UnitActionsSyntax.hs" #-}
     ))
           ; (_, peg'k6) <- PegRt.plain (PegRt.lit "," "','")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4, peg'k5, peg'k6])
           }
-      , do { (peg'v8, peg'k7) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v8, peg'k7)
+      , do { (_, peg'k7) <- peg'rule'Sp
+          ; PegPrelude.pure ((), peg'k7)
           }
       ]))
 
@@ -390,16 +390,16 @@ peg'rule'Sep =
   PegRt.memo peg'memo'Sep "Sep"
     (PegRt.node syntaxKindSep (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "|" "'|'")
-          ; (peg'v2, peg'k1) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1])
+          ; (_, peg'k1) <- peg'rule'Sp
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
-      , do { (_, peg'k3) <- PegRt.plain (PegRt.lit "&" "'&'")
-          ; (_, peg'k4) <- PegRt.plain (PegRt.predicate (\_col -> 
+      , do { (_, peg'k2) <- PegRt.plain (PegRt.lit "&" "'&'")
+          ; (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 39 "test/fixtures/UnitActionsSyntax.hpeg" #-}
- {-# COLUMN 14 #-} True 
+ {-# COLUMN 13 #-} True 
 {-# LINE 401 "test/generated/Fixture/UnitActionsSyntax.hs" #-}
     ))
-          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }
       ]))
 
@@ -425,12 +425,12 @@ peg'rule'Op'0 =
   PegRt.memo peg'memo'Op'0 "Op'0"
     (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "(" "'('")
-          ; (peg'v2, peg'k1) <- peg'rule'Sep
-          ; (_, peg'k3) <- PegRt.plain (PegRt.lit ")" "')'")
-          ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1, peg'k3])
+          ; (_, peg'k1) <- peg'rule'Sep
+          ; (_, peg'k2) <- PegRt.plain (PegRt.lit ")" "')'")
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
-      , do { (_, peg'k4) <- PegRt.plain (PegRt.lit "-" "'-'")
-          ; (peg'v6, peg'k5) <- peg'rule'Sp
-          ; PegPrelude.pure (peg'v6, PegPrelude.concat [peg'k4, peg'k5])
+      , do { (_, peg'k3) <- PegRt.plain (PegRt.lit "-" "'-'")
+          ; (_, peg'k4) <- peg'rule'Sp
+          ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }
       ])
