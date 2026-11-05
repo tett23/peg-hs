@@ -17,7 +17,7 @@ peg=$("$cabal" list-bin exe:peg-hs)
   # The variant with a lossless syntax tree and recovery, for the formatter
   # and the language server (ADR 0032, ADR 0035).
   sed -e 's/^%module Peg.Grammar.SelfHosted$/%module Peg.Grammar.SelfHostedSyntax/' \
-    -e 's/^TopItem <- t:TopOne Ws { t }$/TopItem <- \&. t:(TopOne ^topitem) Ws { t }/' grammar/Peg.hpeg > grammar/PegSyntax.hpeg
+    -e 's/^TopItem <- TopOne Ws$/TopItem <- \&. (TopOne ^topitem) Ws/' grammar/Peg.hpeg > grammar/PegSyntax.hpeg
   cat grammar/SyntaxVariant.txt >> grammar/PegSyntax.hpeg
   "$peg" gen grammar/PegSyntax.hpeg -o src/Peg/Grammar/SelfHostedSyntax.hs >/dev/null
 )

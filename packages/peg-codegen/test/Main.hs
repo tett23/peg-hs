@@ -336,7 +336,7 @@ syntaxVariant src extra = T.unlines (map line (T.lines src)) <> extra
   where
     line l
       | l == "%module Peg.Grammar.SelfHosted" = "%module Peg.Grammar.SelfHostedSyntax"
-      | l == "TopItem <- t:TopOne Ws { t }" = "TopItem <- &. t:(TopOne ^topitem) Ws { t }"
+      | l == "TopItem <- TopOne Ws" = "TopItem <- &. (TopOne ^topitem) Ws"
       | otherwise = l
 
 templateInput :: Text

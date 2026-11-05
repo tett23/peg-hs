@@ -174,26 +174,20 @@ peg'rule'Factor :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Factor =
   PegRt.memo peg'memo'Factor "Factor"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; PegRt.lit "(" "'('"
-          ; e <- peg'rule'Expr
+      [ do { PegRt.lit "(" "'('"
+          ; peg'v0 <- peg'rule'Expr
           ; PegRt.lit ")" "')'"
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 26 "test/fixtures/Extensions.hpeg" #-}
- {-# COLUMN 27 #-} e 
-{-# LINE 186 "test/generated/Fixture/Extensions.hs" #-}
-    )
-          }
-      , do { peg'v0 <- peg'rule'Num
           ; PegPrelude.pure peg'v0
+          }
+      , do { peg'v1 <- peg'rule'Num
+          ; PegPrelude.pure peg'v1
           }
       ])
 
 peg'rule'Num :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 29 "test/fixtures/Extensions.hpeg" #-}
  {-# COLUMN 8 #-}Int
-{-# LINE 197 "test/generated/Fixture/Extensions.hs" #-}
+{-# LINE 191 "test/generated/Fixture/Extensions.hs" #-}
     )
 peg'rule'Num =
   PegRt.memo peg'memo'Num "Num"
@@ -204,7 +198,7 @@ peg'rule'Num =
           ; PegPrelude.pure (
 {-# LINE 30 "test/fixtures/Extensions.hpeg" #-}
  {-# COLUMN 20 #-} read (unpack ds) 
-{-# LINE 208 "test/generated/Fixture/Extensions.hs" #-}
+{-# LINE 202 "test/generated/Fixture/Extensions.hs" #-}
     )
           }
       ])

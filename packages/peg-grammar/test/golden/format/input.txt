@@ -9,14 +9,14 @@ import Data.Text (Text)
 
 # The start rule.
 Items  ::  [Text]
-Items<-is:Item*   { is }
+Items<-is:Item*   { id is }
 Item :: Text
 
-Item <- w:$( [a-z]+ )  Sp   {w}   # a word
-   /  &[0-9]  n:$[0-9]+ Sp {   n   }
+Item <- w:$( [a-z]+ )  Sp   {id w}   # a word
+   /  &[0-9]  n:$[0-9]+ Sp {   id n   }
        / ( "("  Sp  ) Item Sp ")" Sp
            { "group" }
-   / Rep<'-'>(1,2)   x:Item {x}
+   / Rep<'-'>(1,2)   x:Item {id x}
    / Op<'+'>   x:Item  ^item   {
        x <> "!"
      }

@@ -46,7 +46,7 @@ hexNumeric x h
 }%
 
 Inlines :: [Inline]
-Inlines <- is:Inline* { is }
+Inlines <- Inline*
 
 Inline :: Inline
 Inline <- Break
@@ -205,19 +205,19 @@ LWs :: ()
 LWs <- [ \t]* ('\n' [ \t]*)?
 
 Dest :: Text
-Dest <- '<' d:$('\\' . / ![<>\n] .)* '>' { d }
-     / !'<' d:$DestRaw { d }
+Dest <- '<' $('\\' . / ![<>\n] .)* '>'
+     / !'<' $DestRaw
 
 DestRaw :: ()
 DestRaw <- ('\\' [!-/:-@\[-`{-~] / '(' DestRaw? ')' / ![ \t\n()\u{0}-\u{1F}] .)+
 
 TitlePart :: Text
-TitlePart <- ([ \t]+ ('\n' [ \t]*)? / [ \t]* '\n' [ \t]*) t:Title { t }
+TitlePart <- ([ \t]+ ('\n' [ \t]*)? / [ \t]* '\n' [ \t]*) Title
 
 Title :: Text
-Title <- '"' t:$('\\' . / !'"' .)* '"' { t }
-      / '\'' t:$('\\' . / !'\'' .)* '\'' { t }
-      / '(' t:$('\\' . / ![()] .)* ')' { t }
+Title <- '"' $('\\' . / !'"' .)* '"'
+      / '\'' $('\\' . / !'\'' .)* '\''
+      / '(' $('\\' . / ![()] .)* ')'
 
 # 強調の区切り記号 ------------------------------------------------------------------
 DelimRun :: Inline

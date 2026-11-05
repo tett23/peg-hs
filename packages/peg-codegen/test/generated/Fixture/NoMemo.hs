@@ -66,23 +66,17 @@ peg'rule'Items :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Items =
   PegRt.memo peg'memo'Items "Items"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'Spaces
-          ; is <- PegRt.many (peg'rule'Item)
+      [ do { _ <- peg'rule'Spaces
+          ; peg'v0 <- PegRt.many (peg'rule'Item)
           ; PegRt.notP (PegRt.anyChar)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 17 "test/fixtures/NoMemo.hpeg" #-}
- {-# COLUMN 30 #-} is 
-{-# LINE 78 "test/generated/Fixture/NoMemo.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 19 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 9 #-}Item
-{-# LINE 86 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 80 "test/generated/Fixture/NoMemo.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -97,7 +91,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 20 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 39 #-} Word w 
-{-# LINE 101 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 95 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -108,7 +102,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 21 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 33 #-} Number (P.read (T.unpack n)) 
-{-# LINE 112 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 106 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -128,7 +122,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 22 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 48 #-} Quoted s 
-{-# LINE 132 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 126 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -142,7 +136,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 23 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 40 #-} Pair a b 
-{-# LINE 146 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 140 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -157,7 +151,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 24 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 35 #-} Word (T.cons 'あ' v) 
-{-# LINE 161 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 155 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -167,7 +161,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 25 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 28 #-} Word (T.pack "smile") 
-{-# LINE 171 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 165 "test/generated/Fixture/NoMemo.hs" #-}
     )
           }
       ])
@@ -175,31 +169,25 @@ peg'rule'Item =
 peg'rule'Key :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 28 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 8 #-}Text
-{-# LINE 179 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 173 "test/generated/Fixture/NoMemo.hs" #-}
     )
 peg'rule'Key =
   PegRt.nomemo "Key"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; k <- PegRt.choice [do { PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]")
+      [ do { peg'v2 <- PegRt.choice [do { PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]")
           ; peg'v0 <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('0', '9')] "[0-9]"))
           ; PegPrelude.pure peg'v0
           }, do { peg'v1 <- PegRt.capture (PegRt.lit "_" "'_'")
           ; PegPrelude.pure peg'v1
           }]
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 29 "test/fixtures/NoMemo.hpeg" #-}
- {-# COLUMN 35 #-} k 
-{-# LINE 195 "test/generated/Fixture/NoMemo.hs" #-}
-    )
+          ; PegPrelude.pure peg'v2
           }
       ])
 
 peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 31 "test/fixtures/NoMemo.hpeg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 203 "test/generated/Fixture/NoMemo.hs" #-}
+{-# LINE 191 "test/generated/Fixture/NoMemo.hs" #-}
     )
 peg'rule'Spaces =
   PegRt.nomemo "Spaces"

@@ -102,10 +102,10 @@ applyOp e c = case c of
 }%
 
 File :: [Top]
-File <- Ws ts:TopItem* (!.) ^top { ts }
+File <- Ws TopItem* (!.) ^top
 
 TopItem :: Top
-TopItem <- &. t:(TopOne ^topitem) Ws { t }
+TopItem <- &. (TopOne ^topitem) Ws
 
 TopOne :: Top
 TopOne <- Verbatim
@@ -129,7 +129,7 @@ InlineSp :: ()
 InlineSp <- [ \t]*
 
 Ident :: Text
-Ident <- t:$(IdentStart IdentChar*) { t }
+Ident <- $(IdentStart IdentChar*)
 
 IdentStart :: ()
 IdentStart <- c:$. &{ isIdentStart (firstChar c) } { () }
@@ -162,7 +162,7 @@ TypeText :: Text
 TypeText <- ty:$(!'\n' .)* &{ not (T.null (T.stripEnd ty)) } { T.stripEnd ty }
 
 ParamList :: [Param]
-ParamList <- '(' ps:ParamChunks { ps }
+ParamList <- '(' ParamChunks
 
 ParamChunks :: [Param]
 ParamChunks <- p:ParamChunk ',' rest:ParamChunks { p : rest }
@@ -176,7 +176,7 @@ Alts :: [Alt]
 Alts <- a:Alt as:MoreAlt* { a : as }
 
 MoreAlt :: Alt
-MoreAlt <- Ws '/' a:Alt { a }
+MoreAlt <- Ws '/' Alt
 
 Alt :: Alt
 Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
@@ -189,7 +189,7 @@ DeclStart :: ()
 DeclStart <- Ident TemplateParams? HsParen? Ws ('::' / '<-') { () }
 
 Binding :: Text
-Binding <- n:Ident ':' !':' { n }
+Binding <- Ident ':' !':'
 
 PrefixE :: Expr
 PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
@@ -230,13 +230,13 @@ TemplateArg :: Expr
 TemplateArg <- g:GroupAlts { case g of { [[Item _ Nothing e]] -> e; _ -> EGroup g } }
 
 CallArgs :: [Located Text]
-CallArgs <- '(' cs:ArgChunks { cs }
+CallArgs <- '(' ArgChunks
 
 GroupAlts :: [[Item]]
 GroupAlts <- s:Item* ss:MoreGroup* { s : ss }
 
 MoreGroup :: [Item]
-MoreGroup <- Ws '/' s:Item* { s }
+MoreGroup <- Ws '/' Item*
 
 # リテラルと文字クラス -------------------------------------------------------------------
 Lit1 :: ()

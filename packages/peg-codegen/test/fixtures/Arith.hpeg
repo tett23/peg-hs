@@ -21,7 +21,7 @@ Pow <- b:Factor '^' e:Pow { b ^ e }
     / Factor
 
 Factor :: Int
-Factor <- '(' e:Expr ')' { e }
+Factor <- '(' Expr ')'
        / Num
 
 Num :: Int

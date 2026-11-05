@@ -76,23 +76,17 @@ peg'rule'Items :: PegRt.P (Peg'Store peg's) peg's (
 peg'rule'Items =
   PegRt.memo peg'memo'Items "Items"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; _ <- peg'rule'Spaces
-          ; is <- PegRt.many (peg'rule'Item)
+      [ do { _ <- peg'rule'Spaces
+          ; peg'v0 <- PegRt.many (peg'rule'Item)
           ; PegRt.notP (PegRt.anyChar)
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 15 "test/fixtures/Misc.hpeg" #-}
- {-# COLUMN 30 #-} is 
-{-# LINE 88 "test/generated/Fixture/Misc.hs" #-}
-    )
+          ; PegPrelude.pure peg'v0
           }
       ])
 
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 17 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 9 #-}Item
-{-# LINE 96 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 90 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -107,7 +101,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 18 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 39 #-} Word w 
-{-# LINE 111 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 105 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -118,7 +112,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 19 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 33 #-} Number (P.read (T.unpack n)) 
-{-# LINE 122 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 116 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -138,7 +132,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 20 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 48 #-} Quoted s 
-{-# LINE 142 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 136 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -152,7 +146,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 21 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 40 #-} Pair a b 
-{-# LINE 156 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 150 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -167,7 +161,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 22 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 35 #-} Word (T.cons 'あ' v) 
-{-# LINE 171 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 165 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -177,7 +171,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 23 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 28 #-} Word (T.pack "smile") 
-{-# LINE 181 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 175 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       ])
@@ -185,31 +179,25 @@ peg'rule'Item =
 peg'rule'Key :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 26 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 8 #-}Text
-{-# LINE 189 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 183 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Key =
   PegRt.memo peg'memo'Key "Key"
     (PegRt.choice
-      [ do { peg'start <- PegRt.getOffset
-          ; k <- PegRt.choice [do { PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]")
+      [ do { peg'v2 <- PegRt.choice [do { PegRt.skipMany1 (PegRt.cls [('a', 'z')] "[a-z]")
           ; peg'v0 <- PegRt.capture (PegRt.skipMany1 (PegRt.cls [('0', '9')] "[0-9]"))
           ; PegPrelude.pure peg'v0
           }, do { peg'v1 <- PegRt.capture (PegRt.lit "_" "'_'")
           ; PegPrelude.pure peg'v1
           }]
-          ; _span <- PegRt.spanFrom peg'start
-          ; PegPrelude.pure (
-{-# LINE 27 "test/fixtures/Misc.hpeg" #-}
- {-# COLUMN 35 #-} k 
-{-# LINE 205 "test/generated/Fixture/Misc.hs" #-}
-    )
+          ; PegPrelude.pure peg'v2
           }
       ])
 
 peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 29 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 11 #-}()
-{-# LINE 213 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 201 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
