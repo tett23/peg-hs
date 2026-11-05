@@ -477,7 +477,8 @@ main = do
               (code, out, err)
                 @?= ( ExitSuccess
                     , ""
-                    , "G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
+                    , "G.hpeg:2:1: info: the type annotation can be omitted: a rule without one has type () [omittable-unit-annotation]; remove the line S :: ()\n"
+                        <> "G.hpeg:3:10: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
                         <> "G.hpeg:4:9: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }\n"
                     )
           , testCase "an identity action is an info: shown with --verbose, and neither fails (ADR 0065)" $ do
@@ -496,7 +497,7 @@ main = do
               dir <- treeWith "lint-warning-info-verbose" [("G.hpeg", warnedAndInformed)]
               (code, out, err) <- pegHsIn dir ["lint", "--verbose", "G.hpeg"]
               (code, out) @?= (ExitFailure 1, "")
-              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["info", "warning", "info"]
+              map (takeWhile (/= ':') . drop 1 . dropWhile (/= ' ')) (lines err) @?= ["info", "info", "warning", "info"]
           , testCase "a warning fails with 1, on stderr" $ do
               dir <- treeWith "lint-ng" [("G.hpeg", linted)]
               (code, out, err) <- pegHsIn dir ["lint", "G.hpeg"]

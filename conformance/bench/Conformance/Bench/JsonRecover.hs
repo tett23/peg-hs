@@ -627,76 +627,40 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 11 #-}Text
 {-# LINE 629 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'IntPart :: PegRt.Table peg's ((
-{-# LINE 86 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 634 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Frac :: PegRt.Table peg's ((
-{-# LINE 90 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 639 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Exp :: PegRt.Table peg's ((
-{-# LINE 93 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 644 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'IntPart :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Frac :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Exp :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'String :: PegRt.Table peg's ((
-{-# LINE 96 "bench/JsonRecover.hpeg" #-}
+{-# LINE 93 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 649 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 637 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Unit :: PegRt.Table peg's ((
-{-# LINE 100 "bench/JsonRecover.hpeg" #-}
+{-# LINE 97 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 654 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 642 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Escape :: PegRt.Table peg's ((
-{-# LINE 104 "bench/JsonRecover.hpeg" #-}
+{-# LINE 101 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 659 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 647 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'Hex :: PegRt.Table peg's ((
-{-# LINE 115 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 664 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Ws :: PegRt.Table peg's ((
-{-# LINE 118 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 669 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'Hex :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Ws :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'SkipValue :: PegRt.Table peg's ((
-{-# LINE 122 "bench/JsonRecover.hpeg" #-}
+{-# LINE 117 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 14 #-}Value
-{-# LINE 674 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 654 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
   , peg'memo'SkipMember :: PegRt.Table peg's ((
-{-# LINE 125 "bench/JsonRecover.hpeg" #-}
+{-# LINE 120 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 679 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 659 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'InsertColon :: PegRt.Table peg's ((
-{-# LINE 128 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 684 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'SkipToBracket :: PegRt.Table peg's ((
-{-# LINE 131 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 18 #-}()
-{-# LINE 689 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'SkipToBrace :: PegRt.Table peg's ((
-{-# LINE 134 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 694 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'CloseQuote :: PegRt.Table peg's ((
-{-# LINE 137 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 15 #-}()
-{-# LINE 699 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'InsertColon :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'SkipToBracket :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'SkipToBrace :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'CloseQuote :: PegRt.Table peg's ((()), [PegRt.Child])
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
@@ -706,7 +670,7 @@ peg'newStore =
 peg'rule'Json :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 45 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 9 #-}Value
-{-# LINE 710 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 674 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Json =
   PegRt.memo peg'memo'Json "Json"
@@ -721,7 +685,7 @@ peg'rule'Json =
 peg'rule'Value :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 48 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 725 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 689 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Value =
   PegRt.memo peg'memo'Value "Value"
@@ -732,7 +696,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 49 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 18 #-} Null 
-{-# LINE 736 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 700 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -741,7 +705,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 50 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 17 #-} Bool True 
-{-# LINE 745 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 709 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
@@ -750,7 +714,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 51 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 18 #-} Bool False 
-{-# LINE 754 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 718 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
@@ -760,7 +724,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 52 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 19 #-} Number n 
-{-# LINE 764 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 728 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k3)
           }
       , do { peg'start <- PegRt.getOffset
@@ -770,7 +734,7 @@ peg'rule'Value =
           ; PegPrelude.pure ((
 {-# LINE 53 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 19 #-} String s 
-{-# LINE 774 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 738 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k4)
           }
       , do { (peg'v6, peg'k5) <- peg'rule'Array
@@ -784,7 +748,7 @@ peg'rule'Value =
 peg'rule'Object :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 57 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Value
-{-# LINE 788 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 752 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Object =
   PegRt.memo peg'memo'Object "Object"
@@ -799,7 +763,7 @@ peg'rule'Object =
           ; PegPrelude.pure ((
 {-# LINE 58 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 42 #-} Object ms 
-{-# LINE 803 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 767 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -810,7 +774,7 @@ peg'rule'Object =
           ; PegPrelude.pure ((
 {-# LINE 59 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 22 #-} Object [] 
-{-# LINE 814 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 778 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -818,7 +782,7 @@ peg'rule'Object =
 peg'rule'Members :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 61 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 12 #-}[(Text, Value)]
-{-# LINE 822 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 786 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Members =
   PegRt.memo peg'memo'Members "Members"
@@ -832,7 +796,7 @@ peg'rule'Members =
           ; PegPrelude.pure ((
 {-# LINE 62 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 37 #-} m : ms 
-{-# LINE 836 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 800 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -840,7 +804,7 @@ peg'rule'Members =
 peg'rule'MoreMember :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 64 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 844 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 808 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreMember =
   PegRt.memo peg'memo'MoreMember "MoreMember"
@@ -855,7 +819,7 @@ peg'rule'MoreMember =
 peg'rule'Member :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 67 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}(Text, Value)
-{-# LINE 859 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 823 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Member =
   PegRt.memo peg'memo'Member "Member"
@@ -873,7 +837,7 @@ peg'rule'Member =
           ; PegPrelude.pure ((
 {-# LINE 68 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 56 #-} (k, v) 
-{-# LINE 877 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 841 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4, peg'k5])
           }
       ]))
@@ -881,7 +845,7 @@ peg'rule'Member =
 peg'rule'Array :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 70 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 10 #-}Value
-{-# LINE 885 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 849 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Array =
   PegRt.memo peg'memo'Array "Array"
@@ -896,7 +860,7 @@ peg'rule'Array =
           ; PegPrelude.pure ((
 {-# LINE 71 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 44 #-} Array vs 
-{-# LINE 900 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 864 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -907,7 +871,7 @@ peg'rule'Array =
           ; PegPrelude.pure ((
 {-# LINE 72 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 21 #-} Array [] 
-{-# LINE 911 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 875 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       ]))
@@ -915,7 +879,7 @@ peg'rule'Array =
 peg'rule'Elements :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 74 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 13 #-}[Value]
-{-# LINE 919 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 883 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Elements =
   PegRt.memo peg'memo'Elements "Elements"
@@ -929,7 +893,7 @@ peg'rule'Elements =
           ; PegPrelude.pure ((
 {-# LINE 75 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 40 #-} e : es 
-{-# LINE 933 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 897 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -937,7 +901,7 @@ peg'rule'Elements =
 peg'rule'MoreElement :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 77 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 16 #-}Value
-{-# LINE 941 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 905 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreElement =
   PegRt.memo peg'memo'MoreElement "MoreElement"
@@ -952,7 +916,7 @@ peg'rule'MoreElement =
 peg'rule'Element :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 80 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 12 #-}Value
-{-# LINE 956 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 920 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Element =
   PegRt.memo peg'memo'Element "Element"
@@ -966,7 +930,7 @@ peg'rule'Element =
 peg'rule'Number :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 83 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 970 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 934 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Number =
   PegRt.memo peg'memo'Number "Number"
@@ -981,11 +945,7 @@ peg'rule'Number =
           }
       ]))
 
-peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 86 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 988 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'IntPart :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'IntPart =
   PegRt.memo peg'memo'IntPart "IntPart"
     (PegRt.node syntaxKindIntPart (PegRt.choice
@@ -998,11 +958,7 @@ peg'rule'IntPart =
           }
       ]))
 
-peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 90 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 1005 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Frac :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Frac =
   PegRt.memo peg'memo'Frac "Frac"
     (PegRt.node syntaxKindFrac (PegRt.choice
@@ -1012,11 +968,7 @@ peg'rule'Frac =
           }
       ]))
 
-peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 93 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 1019 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Exp :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Exp =
   PegRt.memo peg'memo'Exp "Exp"
     (PegRt.node syntaxKindExp (PegRt.choice
@@ -1028,9 +980,9 @@ peg'rule'Exp =
       ]))
 
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 96 "bench/JsonRecover.hpeg" #-}
+{-# LINE 93 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1034 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 986 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -1042,17 +994,17 @@ peg'rule'String =
           ; (_, peg'k2) <- PegRt.labeledS "quote" (PegPrelude.Just (PegRt.voidS peg'rule'CloseQuote)) (PegRt.plain (PegRt.lit "\"" "'\"'"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 97 "bench/JsonRecover.hpeg" #-}
+{-# LINE 94 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 36 #-} T.pack (decodeUnits us) 
-{-# LINE 1048 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1000 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
 peg'rule'Unit :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 100 "bench/JsonRecover.hpeg" #-}
+{-# LINE 97 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 9 #-}Int
-{-# LINE 1056 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1008 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Unit =
   PegRt.memo peg'memo'Unit "Unit"
@@ -1066,17 +1018,17 @@ peg'rule'Unit =
           ; PegRt.touch c
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 102 "bench/JsonRecover.hpeg" #-}
+{-# LINE 99 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 58 #-} ord (T.foldr const ' ' c) 
-{-# LINE 1072 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1024 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k3)
           }
       ]))
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 104 "bench/JsonRecover.hpeg" #-}
+{-# LINE 101 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 1080 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1032 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -1085,72 +1037,72 @@ peg'rule'Escape =
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\"" "'\"'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 105 "bench/JsonRecover.hpeg" #-}
+{-# LINE 102 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 16 #-} 0x22 
-{-# LINE 1091 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1043 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 106 "bench/JsonRecover.hpeg" #-}
+{-# LINE 103 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 16 #-} 0x5C 
-{-# LINE 1100 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1052 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "/" "'/'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 107 "bench/JsonRecover.hpeg" #-}
+{-# LINE 104 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x2F 
-{-# LINE 1109 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1061 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 108 "bench/JsonRecover.hpeg" #-}
+{-# LINE 105 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x08 
-{-# LINE 1118 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1070 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k3)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "f" "'f'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 109 "bench/JsonRecover.hpeg" #-}
+{-# LINE 106 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x0C 
-{-# LINE 1127 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1079 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k4)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "n" "'n'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 110 "bench/JsonRecover.hpeg" #-}
+{-# LINE 107 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x0A 
-{-# LINE 1136 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1088 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k5)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k6) <- PegRt.plain (PegRt.lit "r" "'r'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 111 "bench/JsonRecover.hpeg" #-}
+{-# LINE 108 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x0D 
-{-# LINE 1145 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1097 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k6)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "t" "'t'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 112 "bench/JsonRecover.hpeg" #-}
+{-# LINE 109 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-} 0x09 
-{-# LINE 1154 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1106 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1164,18 +1116,14 @@ peg'rule'Escape =
           ; PegRt.touch h
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 113 "bench/JsonRecover.hpeg" #-}
+{-# LINE 110 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 36 #-} hexValue h 
-{-# LINE 1170 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1122 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k13])
           }
       ]))
 
-peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 115 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 1178 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Hex :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Hex =
   PegRt.memo peg'memo'Hex "Hex"
     (PegRt.node syntaxKindHex (PegRt.choice
@@ -1184,11 +1132,7 @@ peg'rule'Hex =
           }
       ]))
 
-peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 118 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 1191 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.token syntaxKindWs (PegRt.choice
@@ -1198,9 +1142,9 @@ peg'rule'Ws =
       ]))
 
 peg'rule'SkipValue :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 122 "bench/JsonRecover.hpeg" #-}
+{-# LINE 117 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 14 #-}Value
-{-# LINE 1204 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1148 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'SkipValue =
   PegRt.memo peg'memo'SkipValue "SkipValue"
@@ -1212,17 +1156,17 @@ peg'rule'SkipValue =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 123 "bench/JsonRecover.hpeg" #-}
+{-# LINE 118 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 30 #-} Null 
-{-# LINE 1218 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1162 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k2)
           }
       ]))
 
 peg'rule'SkipMember :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 125 "bench/JsonRecover.hpeg" #-}
+{-# LINE 120 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 15 #-}(Text, Value)
-{-# LINE 1226 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1170 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [PegRt.Child])
 peg'rule'SkipMember =
   PegRt.memo peg'memo'SkipMember "SkipMember"
@@ -1234,36 +1178,28 @@ peg'rule'SkipMember =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 126 "bench/JsonRecover.hpeg" #-}
+{-# LINE 121 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 27 #-} (T.empty, Null) 
-{-# LINE 1240 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1184 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), peg'k2)
           }
       ]))
 
-peg'rule'InsertColon :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 128 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 1248 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'InsertColon :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'InsertColon =
   PegRt.memo peg'memo'InsertColon "InsertColon"
     (PegRt.node syntaxKindInsertColon (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 129 "bench/JsonRecover.hpeg" #-}
+{-# LINE 123 "bench/JsonRecover.hpeg" #-}
  {-# COLUMN 17 #-} () 
-{-# LINE 1258 "bench/Conformance/Bench/JsonRecover.hs" #-}
+{-# LINE 1198 "bench/Conformance/Bench/JsonRecover.hs" #-}
     ), [])
           }
       ]))
 
-peg'rule'SkipToBracket :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 131 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 18 #-}()
-{-# LINE 1266 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipToBracket :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipToBracket =
   PegRt.memo peg'memo'SkipToBracket "SkipToBracket"
     (PegRt.node syntaxKindSkipToBracket (PegRt.choice
@@ -1276,11 +1212,7 @@ peg'rule'SkipToBracket =
           }
       ]))
 
-peg'rule'SkipToBrace :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 134 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 1283 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipToBrace :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipToBrace =
   PegRt.memo peg'memo'SkipToBrace "SkipToBrace"
     (PegRt.node syntaxKindSkipToBrace (PegRt.choice
@@ -1293,11 +1225,7 @@ peg'rule'SkipToBrace =
           }
       ]))
 
-peg'rule'CloseQuote :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 137 "bench/JsonRecover.hpeg" #-}
- {-# COLUMN 15 #-}()
-{-# LINE 1300 "bench/Conformance/Bench/JsonRecover.hs" #-}
-    ), [PegRt.Child])
+peg'rule'CloseQuote :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'CloseQuote =
   PegRt.memo peg'memo'CloseQuote "CloseQuote"
     (PegRt.node syntaxKindCloseQuote (PegRt.choice

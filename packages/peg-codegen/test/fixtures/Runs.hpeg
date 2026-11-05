@@ -91,10 +91,8 @@ PlainDefBody <- BlankLines? &(Ind(ind + 2) ![ ] !BlankLine .) x:PlainBlock(ind +
 Line :: Text
 Line <- $(![\n] .)+ ('\n' / !.)
 
-BlankLine :: ()
 BlankLine <- [ ]* '\n'
 
-BlankLines :: ()
 BlankLines <- BlankLine+
 
 # ちょうど n 個の空白

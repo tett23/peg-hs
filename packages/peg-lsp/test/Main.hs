@@ -62,9 +62,14 @@ main =
       , testCase "an info of the linter has the severity Hint (ADR 0067)" $ do
           let src = "%module M\nS :: ()\nS <- 'a' { () }\n"
           [(sev, locLine l, locColumn l, code) | (sev, Diagnostic l _, code) <- diagnose src]
-            @?= [(Hint, 3, 10, Just "omittable-unit-action")]
+            @?= [(Hint, 2, 1, Just "omittable-unit-annotation"), (Hint, 3, 10, Just "omittable-unit-action")]
           let out = T.concat (map renderJson (session [initialize False, open src]))
           assertBool (T.unpack out) ("\"severity\":4,\"source\":\"peg-hs\",\"message\":\"the action can be omitted" `T.isInfixOf` out)
+      , testCase "the hover of a rule without a type annotation shows () (ADR 0066)" $ do
+          let src = "%module M\n\nS :: Int\nS <- A { 1 }\n\nA <- 'a'\n"
+              results = [r | m <- session [initialize False, open src, request 2 "textDocument/hover" (docAt 3 5), request 3 "textDocument/hover" (docAt 5 0)], Just r <- [member "result" m]]
+              contents r = member "contents" r >>= member "value"
+          map contents (drop 1 results) @?= [Just (String "```peg\nA :: ()\n```"), Just (String "```peg\nA :: ()\n```")]
       , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
             @?= [(3, 6, "rule B is not a template")]

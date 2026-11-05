@@ -12,42 +12,26 @@ import qualified Peg.Runtime.Internal as PegRt
 import Prelude
 
 -- | Parse the whole input with the rule @S@.
-parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 19 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (())
 parse peg'input =
   Prelude.fst (PegRt.runParser peg'config (peg'newStore) peg'rule'S peg'input)
 
 -- | Parse the whole input with the rule @S@, recovering from labelled failures.
 -- The value is 'PegPrelude.Nothing' only if the rule could not be recovered.
-parseRecover :: PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 29 "test/generated/Fixture/RecoverShared.hs" #-}
-    ), [PegRt.SyntaxError])
+parseRecover :: PegRt.Text -> (PegPrelude.Maybe (()), [PegRt.SyntaxError])
 parseRecover peg'input =
   let (peg'v, peg'e, _) = PegRt.runParserRecover peg'config (peg'newStore) peg'rule'S peg'input
    in (peg'v, peg'e)
 
 -- | Like 'peg'parseWith', recovering. Only meant for testing the generator.
-peg'parseRecoverWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 39 "test/generated/Fixture/RecoverShared.hs" #-}
-    ), [PegRt.SyntaxError], PegRt.Stats)
+peg'parseRecoverWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Maybe (()), [PegRt.SyntaxError], PegRt.Stats)
 peg'parseRecoverWith peg'cfg peg'input =
   let (peg'v, peg'e, peg's) = PegRt.runParserRecover peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore) peg'rule'S peg'input
    in (peg'v, peg'e, peg's)
 
 -- | Run the start rule with a runtime configuration and return statistics.
 -- Only meant for testing the generator.
-peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 50 "test/generated/Fixture/RecoverShared.hs" #-}
-    ), PegRt.Stats)
+peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (()), PegRt.Stats)
 peg'parseWith peg'cfg peg'input =
   PegRt.runParser peg'cfg {PegRt.cfgTabstop = PegRt.cfgTabstop peg'config} (peg'newStore) peg'rule'S peg'input
 
@@ -55,27 +39,15 @@ peg'config :: PegRt.Config
 peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
-  { peg'memo'S :: PegRt.Table peg's (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 62 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
-  , peg'memo'Skip :: PegRt.Table peg's (
-{-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 67 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+  { peg'memo'S :: PegRt.Table peg's (())
+  , peg'memo'Skip :: PegRt.Table peg's (())
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
 peg'newStore =
   Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
-peg'rule'S :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 7 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 78 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+peg'rule'S :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'S =
   PegRt.memo peg'memo'S "S"
     (PegRt.choice
@@ -90,11 +62,7 @@ peg'rule'S =
           }
       ])
 
-peg'rule'Skip :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 10 "test/fixtures/RecoverShared.hpeg" #-}
- {-# COLUMN 9 #-}()
-{-# LINE 97 "test/generated/Fixture/RecoverShared.hs" #-}
-    )
+peg'rule'Skip :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Skip =
   PegRt.memo peg'memo'Skip "Skip"
     (PegRt.choice

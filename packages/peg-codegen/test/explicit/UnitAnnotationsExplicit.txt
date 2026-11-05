@@ -1,0 +1,25 @@
+# ADR 0066：型注釈のない規則の型は ()
+# ../fixtures/UnitAnnotations.hpeg の、型注釈 :: () を書いた版
+# 省ける型注釈を残すので、拡張子を .txt にして peg-hs lint と peg-hs fmt の探索から外す
+%module Fixture.UnitAnnotationsExplicit
+
+%{
+import qualified Data.Text as T
+}%
+
+Start :: [T.Text]
+Start <- Sp Word* !.
+
+Word :: T.Text
+Word <- $[a-z]+ Gap
+     / Kw $[0-9]+ Gap
+
+# 型注釈が () の規則の値は数えない
+Gap :: ()
+Gap <- Sp (',' Sp)?
+
+Kw :: ()
+Kw <- '#' ![a-z]
+
+Sp :: ()
+Sp <- ' '*

@@ -45,6 +45,7 @@ main = do
       , checkTests
       , unitValueTests
       , unitActionTests
+      , unitAnnotationTests
       , templateTests
       , templateParamTests
       , analysisTests
@@ -345,6 +346,32 @@ unitValueTests =
   where
     g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+ { () }\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
 
+-- ADR 0066: a rule without a type annotation has type ().
+unitAnnotationTests :: TestTree
+unitAnnotationTests =
+  testGroup
+    "rules without type annotations have type () (ADR 0066)"
+    [ testCase "a rule without a type annotation is not an error" $
+        messagesOf (g "A :: Int\nA <- W N\nW <- ' ' { () }") @?= []
+    , testCase "its type is ()" $
+        fmap (map (\r -> (ruleName r, unLoc (ruleType r), ruleAnnotation r))) (grammarRules <$> parseGrammar (g "W <- ' '"))
+          @?= Right [("W", "()", Nothing), ("Sp", "()", Just (Loc 3 1)), ("N", "Int", Just (Loc 5 1))]
+    , testCase "a group does not count its value" $
+        messagesOf (g "A :: [Int]\nA <- n:N ns:(',' W N)* { n : ns }\nW <- ' '*") @?= []
+    , testCase "its alternatives without values may omit their actions" $
+        messagesOf (g "W <- ' '* / 'a' Sp Sp") @?= []
+    , testCase "an alternative with two values is an error, as in a rule of type ()" $
+        messagesOf (g "W <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "a template without a type annotation is an error" $
+        checkErrorsAt (g "A :: ()\nA <- T<'a'>\nT<p> <- p") @?= [(4, 1, "rule T has parameters, so it needs a type annotation")]
+    , testCase "a type annotation without a definition is an error, as before" $
+        messagesOf (g "W :: ()") @?= ["rule W has a type annotation but no definition"]
+    , testCase "a duplicate type annotation is an error, as before" $
+        messagesOf (g "W :: ()\nW :: ()\nW <- ' '") @?= ["duplicate type annotation for W"]
+    ]
+  where
+    g body = "%module M\n" <> body <> "\nSp :: ()\nSp <- ' '+\nN :: Int\nN <- [0-9] { 0 }\n%entry Sp\n%entry N\n"
+
 -- ADR 0063: alternatives without values in rules of type () may omit their
 -- actions.
 unitActionTests :: TestTree
@@ -454,7 +481,7 @@ checkTests =
     , testCase "omitted action with no value" $ errorsOf "%module M\nA :: Int\nA <- 'unit'\n" @?= [(3, 6)]
     , testCase "omitted action with two values" $
         errorsOf "%module M\nA :: ()\nA <- $'a' $'b'\n" @?= [(3, 6)]
-    , testCase "rule without a type annotation" $ errorsOf "%module M\nA <- 'a'\n" @?= [(2, 1)]
+    , testCase "rule without a type annotation is not an error (ADR 0066)" $ errorsOf "%module M\nA <- 'a'\n" @?= []
     , testCase "calling a rule without parameters" $
         messagesOf "%module M\nA :: ()\nA <- B(1)\nB :: ()\nB <- 'b' { () }\n" @?= ["rule B takes no arguments"]
     , testCase "wrong number of arguments" $

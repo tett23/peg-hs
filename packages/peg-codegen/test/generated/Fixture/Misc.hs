@@ -57,11 +57,7 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 8 #-}Text
 {-# LINE 59 "test/generated/Fixture/Misc.hs" #-}
     )
-  , peg'memo'Spaces :: PegRt.Table peg's (
-{-# LINE 29 "test/fixtures/Misc.hpeg" #-}
- {-# COLUMN 11 #-}()
-{-# LINE 64 "test/generated/Fixture/Misc.hs" #-}
-    )
+  , peg'memo'Spaces :: PegRt.Table peg's (())
   }
 
 peg'newStore :: PegRt.ST peg's (Peg'Store peg's)
@@ -71,7 +67,7 @@ peg'newStore =
 peg'rule'Items :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 14 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 10 #-}[Item]
-{-# LINE 75 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 71 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Items =
   PegRt.memo peg'memo'Items "Items"
@@ -86,7 +82,7 @@ peg'rule'Items =
 peg'rule'Item :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 17 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 9 #-}Item
-{-# LINE 90 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 86 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Item =
   PegRt.memo peg'memo'Item "Item"
@@ -101,7 +97,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 18 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 39 #-} Word w 
-{-# LINE 105 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 101 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -112,7 +108,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 19 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 33 #-} Number (P.read (T.unpack n)) 
-{-# LINE 116 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 112 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -132,7 +128,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 20 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 48 #-} Quoted s 
-{-# LINE 136 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 132 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -146,7 +142,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 21 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 40 #-} Pair a b 
-{-# LINE 150 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 146 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -161,7 +157,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 22 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 35 #-} Word (T.cons 'あ' v) 
-{-# LINE 165 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 161 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       , do { peg'start <- PegRt.getOffset
@@ -171,7 +167,7 @@ peg'rule'Item =
           ; PegPrelude.pure (
 {-# LINE 23 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 28 #-} Word (T.pack "smile") 
-{-# LINE 175 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 171 "test/generated/Fixture/Misc.hs" #-}
     )
           }
       ])
@@ -179,7 +175,7 @@ peg'rule'Item =
 peg'rule'Key :: PegRt.P (Peg'Store peg's) peg's (
 {-# LINE 26 "test/fixtures/Misc.hpeg" #-}
  {-# COLUMN 8 #-}Text
-{-# LINE 183 "test/generated/Fixture/Misc.hs" #-}
+{-# LINE 179 "test/generated/Fixture/Misc.hs" #-}
     )
 peg'rule'Key =
   PegRt.memo peg'memo'Key "Key"
@@ -194,11 +190,7 @@ peg'rule'Key =
           }
       ])
 
-peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 29 "test/fixtures/Misc.hpeg" #-}
- {-# COLUMN 11 #-}()
-{-# LINE 201 "test/generated/Fixture/Misc.hs" #-}
-    )
+peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Spaces =
   PegRt.memo peg'memo'Spaces "Spaces"
     (PegRt.choice

@@ -117,7 +117,8 @@ data Grammar = Grammar
   }
   deriving (Eq, Show)
 
--- | A rule: a type annotation together with a definition.
+-- | A rule: a definition together with its type annotation. A rule without
+-- a type annotation has type @()@ (ADR 0066).
 data Rule = Rule
   { ruleName :: Text
   , ruleLoc :: Loc
@@ -126,7 +127,11 @@ data Rule = Rule
   , ruleTemplateParams :: [TemplateParam]
   -- ^ The parameters of a rule template (ADR 0031). Empty for other rules.
   , ruleType :: Located Text
-  -- ^ The result type, as written.
+  -- ^ The result type, as written. For a rule without a type annotation,
+  -- @()@ at the start of the definition.
+  , ruleAnnotation :: Maybe Loc
+  -- ^ Where the type annotation starts, or 'Nothing' for a rule without
+  -- one (ADR 0066).
   , ruleAlts :: [Alt]
   }
   deriving (Eq, Show)

@@ -184,11 +184,7 @@ peg'rule'Key =
           }
       ])
 
-peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 31 "test/fixtures/NoMemo.hpeg" #-}
- {-# COLUMN 11 #-}()
-{-# LINE 191 "test/generated/Fixture/NoMemo.hs" #-}
-    )
+peg'rule'Spaces :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'Spaces =
   PegRt.nomemo "Spaces"
     (PegRt.choice

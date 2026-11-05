@@ -93,6 +93,8 @@ test-suite peg-codegen-test
     Fixture.UnitRepeatsExplicitSyntax
     Fixture.IdentityActions
     Fixture.IdentityActionsExplicit
+    Fixture.UnitAnnotations
+    Fixture.UnitAnnotationsExplicit
   build-depends:
     , base
     , bytestring

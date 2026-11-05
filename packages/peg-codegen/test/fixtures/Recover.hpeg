@@ -46,18 +46,15 @@ Command <- '[' n:(Name ^name) body:Inline* (']' ^close) { Command n body }
 Name :: Text
 Name <- n:$[a-z]+ { n }
 
-ParaEnd :: ()
 ParaEnd <- '\n' ('\n' / !.)
         / !.
 
-Sep :: ()
 Sep <- '\n'+
 
 # 回復の規則
 SkipBlock :: Block
 SkipBlock <- (!ParaEnd .)* { ErrorBlock }
 
-CloseAtParagraphEnd :: ()
 CloseAtParagraphEnd <- &ParaEnd
 
 MissingName :: Text

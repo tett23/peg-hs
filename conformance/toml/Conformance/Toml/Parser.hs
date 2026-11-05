@@ -223,7 +223,7 @@ parse peg'input =
 
 -- | Parse the whole input with the rule @DateTime@.
 parseDateTime :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 199 "toml/Toml.hpeg" #-}
+{-# LINE 195 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}DateTime
 {-# LINE 229 "toml/Conformance/Toml/Parser.hs" #-}
     )
@@ -261,7 +261,7 @@ parseSyntaxRecover peg'input =
 -- | Parse the whole input with the rule @DateTime@, recovering from labelled failures.
 -- The value is 'PegPrelude.Nothing' only if the rule could not be recovered.
 parseRecoverDateTime :: PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 199 "toml/Toml.hpeg" #-}
+{-# LINE 195 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}DateTime
 {-# LINE 267 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.SyntaxError])
@@ -1105,270 +1105,218 @@ data Peg'Store peg's = Peg'Store
  {-# COLUMN 15 #-}Line
 {-# LINE 1107 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'EndOfLine :: PegRt.Table peg's ((
-{-# LINE 63 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1112 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'EndOfLine :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'KeyVal :: PegRt.Table peg's ((
-{-# LINE 68 "toml/Toml.hpeg" #-}
+{-# LINE 67 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Line
-{-# LINE 1117 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1113 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Table :: PegRt.Table peg's ((
-{-# LINE 71 "toml/Toml.hpeg" #-}
+{-# LINE 70 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Line
-{-# LINE 1122 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1118 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'ArrayTableBody :: PegRt.Table peg's ((
-{-# LINE 75 "toml/Toml.hpeg" #-}
+{-# LINE 74 "toml/Toml.hpeg" #-}
  {-# COLUMN 19 #-}Key
-{-# LINE 1127 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1123 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'StdTableBody :: PegRt.Table peg's ((
-{-# LINE 78 "toml/Toml.hpeg" #-}
+{-# LINE 77 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-}Key
-{-# LINE 1132 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1128 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Key :: PegRt.Table peg's ((
-{-# LINE 82 "toml/Toml.hpeg" #-}
+{-# LINE 81 "toml/Toml.hpeg" #-}
  {-# COLUMN 8 #-}Key
-{-# LINE 1137 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1133 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'DotKey :: PegRt.Table peg's ((
-{-# LINE 85 "toml/Toml.hpeg" #-}
+{-# LINE 84 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1142 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1138 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'SimpleKey :: PegRt.Table peg's ((
-{-# LINE 88 "toml/Toml.hpeg" #-}
+{-# LINE 87 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 1147 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1143 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'UnquotedKey :: PegRt.Table peg's ((
-{-# LINE 93 "toml/Toml.hpeg" #-}
+{-# LINE 92 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 1152 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1148 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'KeyValSep :: PegRt.Table peg's ((
-{-# LINE 96 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1157 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'KeyValSep :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'Val :: PegRt.Table peg's ((
-{-# LINE 101 "toml/Toml.hpeg" #-}
+{-# LINE 99 "toml/Toml.hpeg" #-}
  {-# COLUMN 8 #-}Val
-{-# LINE 1162 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1154 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Boolean :: PegRt.Table peg's ((
-{-# LINE 110 "toml/Toml.hpeg" #-}
+{-# LINE 108 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Bool
-{-# LINE 1167 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1159 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'String :: PegRt.Table peg's ((
-{-# LINE 117 "toml/Toml.hpeg" #-}
+{-# LINE 115 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1172 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1164 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'BasicString :: PegRt.Table peg's ((
-{-# LINE 123 "toml/Toml.hpeg" #-}
+{-# LINE 121 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 1177 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1169 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'BasicChar :: PegRt.Table peg's ((
-{-# LINE 126 "toml/Toml.hpeg" #-}
+{-# LINE 124 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 1182 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1174 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Escape :: PegRt.Table peg's ((
-{-# LINE 130 "toml/Toml.hpeg" #-}
+{-# LINE 128 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1187 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1179 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MlBasicString :: PegRt.Table peg's ((
-{-# LINE 144 "toml/Toml.hpeg" #-}
+{-# LINE 142 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 1192 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1184 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MlbItem :: PegRt.Table peg's ((
-{-# LINE 147 "toml/Toml.hpeg" #-}
+{-# LINE 145 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1197 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1189 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MlbChar :: PegRt.Table peg's ((
-{-# LINE 150 "toml/Toml.hpeg" #-}
+{-# LINE 148 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1202 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1194 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'LiteralString :: PegRt.Table peg's ((
-{-# LINE 156 "toml/Toml.hpeg" #-}
+{-# LINE 154 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 1207 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1199 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'LiteralChar :: PegRt.Table peg's ((
-{-# LINE 159 "toml/Toml.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 1212 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'LiteralChar :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'MlLiteralString :: PegRt.Table peg's ((
-{-# LINE 162 "toml/Toml.hpeg" #-}
+{-# LINE 159 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-}Text
-{-# LINE 1217 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1205 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MllItem :: PegRt.Table peg's ((
-{-# LINE 165 "toml/Toml.hpeg" #-}
+{-# LINE 162 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1222 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1210 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'MllChar :: PegRt.Table peg's ((
-{-# LINE 168 "toml/Toml.hpeg" #-}
+{-# LINE 165 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1227 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1215 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Integer :: PegRt.Table peg's ((
-{-# LINE 174 "toml/Toml.hpeg" #-}
+{-# LINE 171 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Integer
-{-# LINE 1232 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1220 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Sign :: PegRt.Table peg's ((
-{-# LINE 181 "toml/Toml.hpeg" #-}
+{-# LINE 178 "toml/Toml.hpeg" #-}
  {-# COLUMN 9 #-}Bool
-{-# LINE 1237 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1225 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'DecUnsigned :: PegRt.Table peg's ((
-{-# LINE 185 "toml/Toml.hpeg" #-}
+{-# LINE 182 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 1242 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1230 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Float :: PegRt.Table peg's ((
-{-# LINE 188 "toml/Toml.hpeg" #-}
+{-# LINE 185 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Double
-{-# LINE 1247 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1235 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'FloatBody :: PegRt.Table peg's ((
-{-# LINE 193 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1252 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'FloatBody :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'DateTime :: PegRt.Table peg's ((
-{-# LINE 199 "toml/Toml.hpeg" #-}
+{-# LINE 195 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}DateTime
-{-# LINE 1257 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1241 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'FullDate :: PegRt.Table peg's ((
-{-# LINE 205 "toml/Toml.hpeg" #-}
+{-# LINE 201 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}(Int, Int, Int)
-{-# LINE 1262 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1246 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'PartialTime :: PegRt.Table peg's ((
-{-# LINE 208 "toml/Toml.hpeg" #-}
+{-# LINE 204 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Time
-{-# LINE 1267 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1251 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Seconds :: PegRt.Table peg's ((
-{-# LINE 211 "toml/Toml.hpeg" #-}
+{-# LINE 207 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}(Int, Text)
-{-# LINE 1272 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1256 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'SecFrac :: PegRt.Table peg's ((
-{-# LINE 214 "toml/Toml.hpeg" #-}
+{-# LINE 210 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 1277 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1261 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Offset :: PegRt.Table peg's ((
-{-# LINE 217 "toml/Toml.hpeg" #-}
+{-# LINE 213 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 1282 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1266 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Array :: PegRt.Table peg's ((
-{-# LINE 222 "toml/Toml.hpeg" #-}
+{-# LINE 218 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Val
-{-# LINE 1287 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1271 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Elements :: PegRt.Table peg's ((
-{-# LINE 225 "toml/Toml.hpeg" #-}
+{-# LINE 221 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}[Val]
-{-# LINE 1292 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1276 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'InlineTable :: PegRt.Table peg's ((
-{-# LINE 228 "toml/Toml.hpeg" #-}
+{-# LINE 224 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Val
-{-# LINE 1297 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1281 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'InlineKeyVals :: PegRt.Table peg's ((
-{-# LINE 231 "toml/Toml.hpeg" #-}
+{-# LINE 227 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[(Key, Val)]
-{-# LINE 1302 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1286 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'InlineKeyVal :: PegRt.Table peg's ((
-{-# LINE 238 "toml/Toml.hpeg" #-}
+{-# LINE 234 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-}(Key, Val)
-{-# LINE 1307 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1291 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'Wcn :: PegRt.Table peg's ((
-{-# LINE 242 "toml/Toml.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 1312 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Ws :: PegRt.Table peg's ((
-{-# LINE 245 "toml/Toml.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 1317 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Comment :: PegRt.Table peg's ((
-{-# LINE 248 "toml/Toml.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 1322 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'Newline :: PegRt.Table peg's ((
-{-# LINE 251 "toml/Toml.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 1327 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'MissingEq :: PegRt.Table peg's ((
-{-# LINE 258 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1332 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'Wcn :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Ws :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Comment :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'Newline :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'MissingEq :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'SkipValue :: PegRt.Table peg's ((
-{-# LINE 263 "toml/Toml.hpeg" #-}
+{-# LINE 254 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Val
-{-# LINE 1337 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1301 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'SkipString :: PegRt.Table peg's ((
-{-# LINE 269 "toml/Toml.hpeg" #-}
- {-# COLUMN 15 #-}()
-{-# LINE 1342 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'SkipBracket :: PegRt.Table peg's ((
-{-# LINE 272 "toml/Toml.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 1347 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
-  , peg'memo'SkipInBracket :: PegRt.Table peg's ((
-{-# LINE 276 "toml/Toml.hpeg" #-}
- {-# COLUMN 18 #-}()
-{-# LINE 1352 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'SkipString :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'SkipBracket :: PegRt.Table peg's ((()), [PegRt.Child])
+  , peg'memo'SkipInBracket :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'SkipHeader :: PegRt.Table peg's ((
-{-# LINE 285 "toml/Toml.hpeg" #-}
+{-# LINE 273 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-}Key
-{-# LINE 1357 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1309 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
-  , peg'memo'SkipLine :: PegRt.Table peg's ((
-{-# LINE 288 "toml/Toml.hpeg" #-}
- {-# COLUMN 13 #-}()
-{-# LINE 1362 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+  , peg'memo'SkipLine :: PegRt.Table peg's ((()), [PegRt.Child])
   , peg'memo'Items'0 :: PegRt.Table peg's ((
-{-# LINE 235 "toml/Toml.hpeg" #-}
+{-# LINE 231 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[(Val)]
-{-# LINE 1367 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1315 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   , peg'memo'Items'1 :: PegRt.Table peg's ((
-{-# LINE 235 "toml/Toml.hpeg" #-}
+{-# LINE 231 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[((Key, Val))]
-{-# LINE 1372 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1320 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
   }
 
@@ -1379,7 +1327,7 @@ peg'newStore =
 peg'rule'Toml :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 51 "toml/Toml.hpeg" #-}
  {-# COLUMN 9 #-}[Line]
-{-# LINE 1383 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1331 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Toml =
   PegRt.memo peg'memo'Toml "Toml"
@@ -1393,7 +1341,7 @@ peg'rule'Toml =
           ; PegPrelude.pure ((
 {-# LINE 52 "toml/Toml.hpeg" #-}
  {-# COLUMN 36 #-} l : ls 
-{-# LINE 1397 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1345 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -1401,7 +1349,7 @@ peg'rule'Toml =
 peg'rule'MoreLine :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 54 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}Line
-{-# LINE 1405 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1353 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MoreLine =
   PegRt.memo peg'memo'MoreLine "MoreLine"
@@ -1414,7 +1362,7 @@ peg'rule'MoreLine =
           ; PegPrelude.pure ((
 {-# LINE 55 "toml/Toml.hpeg" #-}
  {-# COLUMN 35 #-} l 
-{-# LINE 1418 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1366 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
@@ -1422,7 +1370,7 @@ peg'rule'MoreLine =
 peg'rule'Expression :: PegRt.P (Peg'Store peg's) peg's ((
 {-# LINE 58 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-}Line
-{-# LINE 1426 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1374 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Expression =
   PegRt.memo peg'memo'Expression "Expression"
@@ -1440,7 +1388,7 @@ peg'rule'Expression =
           ; PegPrelude.pure ((
 {-# LINE 59 "toml/Toml.hpeg" #-}
  {-# COLUMN 59 #-} l 
-{-# LINE 1444 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1392 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -1456,7 +1404,7 @@ peg'rule'Expression =
           ; PegPrelude.pure ((
 {-# LINE 60 "toml/Toml.hpeg" #-}
  {-# COLUMN 57 #-} l 
-{-# LINE 1460 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1408 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7, peg'k8, peg'k9, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
@@ -1469,16 +1417,12 @@ peg'rule'Expression =
           ; PegPrelude.pure ((
 {-# LINE 61 "toml/Toml.hpeg" #-}
  {-# COLUMN 45 #-} LBlank 
-{-# LINE 1473 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1421 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k13, peg'k15])
           }
       ]))
 
-peg'rule'EndOfLine :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 63 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1481 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'EndOfLine :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'EndOfLine =
   PegRt.memo peg'memo'EndOfLine "EndOfLine"
     (PegRt.node syntaxKindEndOfLine (PegRt.choice
@@ -1491,9 +1435,9 @@ peg'rule'EndOfLine =
       ]))
 
 peg'rule'KeyVal :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 68 "toml/Toml.hpeg" #-}
+{-# LINE 67 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Line
-{-# LINE 1497 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1441 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'KeyVal =
   PegRt.memo peg'memo'KeyVal "KeyVal"
@@ -1510,17 +1454,17 @@ peg'rule'KeyVal =
           ; PegRt.touch v
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 69 "toml/Toml.hpeg" #-}
+{-# LINE 68 "toml/Toml.hpeg" #-}
  {-# COLUMN 49 #-} LKeyVal _span k v 
-{-# LINE 1516 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1460 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k2, peg'k5])
           }
       ]))
 
 peg'rule'Table :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 71 "toml/Toml.hpeg" #-}
+{-# LINE 70 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Line
-{-# LINE 1524 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1468 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Table =
   PegRt.memo peg'memo'Table "Table"
@@ -1533,9 +1477,9 @@ peg'rule'Table =
           ; PegRt.touch k
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 72 "toml/Toml.hpeg" #-}
+{-# LINE 71 "toml/Toml.hpeg" #-}
  {-# COLUMN 42 #-} LArrayTable _span k 
-{-# LINE 1539 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1483 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -1546,17 +1490,17 @@ peg'rule'Table =
           ; PegRt.touch k
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 73 "toml/Toml.hpeg" #-}
+{-# LINE 72 "toml/Toml.hpeg" #-}
  {-# COLUMN 38 #-} LTable _span k 
-{-# LINE 1552 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1496 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k7])
           }
       ]))
 
 peg'rule'ArrayTableBody :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 75 "toml/Toml.hpeg" #-}
+{-# LINE 74 "toml/Toml.hpeg" #-}
  {-# COLUMN 19 #-}Key
-{-# LINE 1560 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1504 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'ArrayTableBody =
   PegRt.memo peg'memo'ArrayTableBody "ArrayTableBody"
@@ -1569,17 +1513,17 @@ peg'rule'ArrayTableBody =
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "]]" "']]'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 76 "toml/Toml.hpeg" #-}
+{-# LINE 75 "toml/Toml.hpeg" #-}
  {-# COLUMN 39 #-} k 
-{-# LINE 1575 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1519 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'StdTableBody :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 78 "toml/Toml.hpeg" #-}
+{-# LINE 77 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-}Key
-{-# LINE 1583 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1527 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'StdTableBody =
   PegRt.memo peg'memo'StdTableBody "StdTableBody"
@@ -1592,17 +1536,17 @@ peg'rule'StdTableBody =
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "]" "']'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 79 "toml/Toml.hpeg" #-}
+{-# LINE 78 "toml/Toml.hpeg" #-}
  {-# COLUMN 36 #-} k 
-{-# LINE 1598 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1542 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'Key :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 82 "toml/Toml.hpeg" #-}
+{-# LINE 81 "toml/Toml.hpeg" #-}
  {-# COLUMN 8 #-}Key
-{-# LINE 1606 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1550 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Key =
   PegRt.memo peg'memo'Key "Key"
@@ -1614,17 +1558,17 @@ peg'rule'Key =
           ; PegRt.touch ks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 83 "toml/Toml.hpeg" #-}
+{-# LINE 82 "toml/Toml.hpeg" #-}
  {-# COLUMN 32 #-} k : ks 
-{-# LINE 1620 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1564 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'DotKey :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 85 "toml/Toml.hpeg" #-}
+{-# LINE 84 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1628 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1572 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DotKey =
   PegRt.memo peg'memo'DotKey "DotKey"
@@ -1637,17 +1581,17 @@ peg'rule'DotKey =
           ; PegRt.touch k
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 86 "toml/Toml.hpeg" #-}
+{-# LINE 85 "toml/Toml.hpeg" #-}
  {-# COLUMN 36 #-} k 
-{-# LINE 1643 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1587 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       ]))
 
 peg'rule'SimpleKey :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 88 "toml/Toml.hpeg" #-}
+{-# LINE 87 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 1651 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1595 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'SimpleKey =
   PegRt.memo peg'memo'SimpleKey "SimpleKey"
@@ -1664,9 +1608,9 @@ peg'rule'SimpleKey =
       ]))
 
 peg'rule'UnquotedKey :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 93 "toml/Toml.hpeg" #-}
+{-# LINE 92 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 1670 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1614 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'UnquotedKey =
   PegRt.memo peg'memo'UnquotedKey "UnquotedKey"
@@ -1676,18 +1620,14 @@ peg'rule'UnquotedKey =
           ; PegRt.touch k
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 94 "toml/Toml.hpeg" #-}
+{-# LINE 93 "toml/Toml.hpeg" #-}
  {-# COLUMN 36 #-} k 
-{-# LINE 1682 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1626 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       ]))
 
-peg'rule'KeyValSep :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 96 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 1690 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'KeyValSep :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'KeyValSep =
   PegRt.memo peg'memo'KeyValSep "KeyValSep"
     (PegRt.node syntaxKindKeyValSep (PegRt.choice
@@ -1699,9 +1639,9 @@ peg'rule'KeyValSep =
       ]))
 
 peg'rule'Val :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 101 "toml/Toml.hpeg" #-}
+{-# LINE 99 "toml/Toml.hpeg" #-}
  {-# COLUMN 8 #-}Val
-{-# LINE 1705 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1645 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Val =
   PegRt.memo peg'memo'Val "Val"
@@ -1711,9 +1651,9 @@ peg'rule'Val =
           ; PegRt.touch s
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 102 "toml/Toml.hpeg" #-}
+{-# LINE 100 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-} VString s 
-{-# LINE 1717 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1657 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1721,9 +1661,9 @@ peg'rule'Val =
           ; PegRt.touch b
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 103 "toml/Toml.hpeg" #-}
+{-# LINE 101 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-} VBool b 
-{-# LINE 1727 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1667 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k1)
           }
       , do { (peg'v3, peg'k2) <- peg'rule'Array
@@ -1737,9 +1677,9 @@ peg'rule'Val =
           ; PegRt.touch d
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 106 "toml/Toml.hpeg" #-}
+{-# LINE 104 "toml/Toml.hpeg" #-}
  {-# COLUMN 19 #-} VDateTime d 
-{-# LINE 1743 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1683 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k6)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1747,9 +1687,9 @@ peg'rule'Val =
           ; PegRt.touch f
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 107 "toml/Toml.hpeg" #-}
+{-# LINE 105 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-} VFloat f 
-{-# LINE 1753 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1693 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1757,17 +1697,17 @@ peg'rule'Val =
           ; PegRt.touch i
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 108 "toml/Toml.hpeg" #-}
+{-# LINE 106 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-} VInteger i 
-{-# LINE 1763 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1703 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k8)
           }
       ]))
 
 peg'rule'Boolean :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 110 "toml/Toml.hpeg" #-}
+{-# LINE 108 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Bool
-{-# LINE 1771 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1711 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Boolean =
   PegRt.memo peg'memo'Boolean "Boolean"
@@ -1776,26 +1716,26 @@ peg'rule'Boolean =
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "true" "'true'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 111 "toml/Toml.hpeg" #-}
+{-# LINE 109 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-} True 
-{-# LINE 1782 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1722 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "false" "'false'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 112 "toml/Toml.hpeg" #-}
+{-# LINE 110 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-} False 
-{-# LINE 1791 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1731 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k1)
           }
       ]))
 
 peg'rule'String :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 117 "toml/Toml.hpeg" #-}
+{-# LINE 115 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1799 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1739 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'String =
   PegRt.memo peg'memo'String "String"
@@ -1809,9 +1749,9 @@ peg'rule'String =
           ; PegRt.touch s
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 119 "toml/Toml.hpeg" #-}
+{-# LINE 117 "toml/Toml.hpeg" #-}
  {-# COLUMN 32 #-} s 
-{-# LINE 1815 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1755 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       , do { (peg'v5, peg'k4) <- peg'rule'MlLiteralString
@@ -1823,17 +1763,17 @@ peg'rule'String =
           ; PegRt.touch s
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 121 "toml/Toml.hpeg" #-}
+{-# LINE 119 "toml/Toml.hpeg" #-}
  {-# COLUMN 37 #-} s 
-{-# LINE 1829 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1769 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k7])
           }
       ]))
 
 peg'rule'BasicString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 123 "toml/Toml.hpeg" #-}
+{-# LINE 121 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 1837 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1777 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'BasicString =
   PegRt.memo peg'memo'BasicString "BasicString"
@@ -1845,17 +1785,17 @@ peg'rule'BasicString =
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "\"" "'\"'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 124 "toml/Toml.hpeg" #-}
+{-# LINE 122 "toml/Toml.hpeg" #-}
  {-# COLUMN 39 #-} T.concat cs 
-{-# LINE 1851 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1791 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
 peg'rule'BasicChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 126 "toml/Toml.hpeg" #-}
+{-# LINE 124 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Text
-{-# LINE 1859 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1799 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'BasicChar =
   PegRt.memo peg'memo'BasicChar "BasicChar"
@@ -1866,9 +1806,9 @@ peg'rule'BasicChar =
           ; PegRt.touch e
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 127 "toml/Toml.hpeg" #-}
+{-# LINE 125 "toml/Toml.hpeg" #-}
  {-# COLUMN 29 #-} e 
-{-# LINE 1872 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1812 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -1876,17 +1816,17 @@ peg'rule'BasicChar =
           ; PegRt.touch c
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 128 "toml/Toml.hpeg" #-}
+{-# LINE 126 "toml/Toml.hpeg" #-}
  {-# COLUMN 89 #-} c 
-{-# LINE 1882 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1822 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k2)
           }
       ]))
 
 peg'rule'Escape :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 130 "toml/Toml.hpeg" #-}
+{-# LINE 128 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Text
-{-# LINE 1890 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1830 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
@@ -1895,72 +1835,72 @@ peg'rule'Escape =
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\"" "'\"'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 131 "toml/Toml.hpeg" #-}
+{-# LINE 129 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-} "\"" 
-{-# LINE 1901 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1841 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 132 "toml/Toml.hpeg" #-}
+{-# LINE 130 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-} "\\" 
-{-# LINE 1910 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1850 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 133 "toml/Toml.hpeg" #-}
+{-# LINE 131 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\b" 
-{-# LINE 1919 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1859 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k2)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "e" "'e'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 134 "toml/Toml.hpeg" #-}
+{-# LINE 132 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\ESC" 
-{-# LINE 1928 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1868 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k3)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "f" "'f'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 135 "toml/Toml.hpeg" #-}
+{-# LINE 133 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\f" 
-{-# LINE 1937 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1877 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k4)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "n" "'n'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 136 "toml/Toml.hpeg" #-}
+{-# LINE 134 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\n" 
-{-# LINE 1946 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1886 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k5)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k6) <- PegRt.plain (PegRt.lit "r" "'r'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 137 "toml/Toml.hpeg" #-}
+{-# LINE 135 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\r" 
-{-# LINE 1955 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1895 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k6)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "t" "'t'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 138 "toml/Toml.hpeg" #-}
+{-# LINE 136 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-} "\t" 
-{-# LINE 1964 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1904 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -1972,9 +1912,9 @@ peg'rule'Escape =
           ; PegRt.touch h
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 139 "toml/Toml.hpeg" #-}
+{-# LINE 137 "toml/Toml.hpeg" #-}
  {-# COLUMN 44 #-} codePoint h 
-{-# LINE 1978 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1918 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k8, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
@@ -1987,15 +1927,15 @@ peg'rule'Escape =
           }]))
           ; PegRt.touch h
           ; (_, peg'k18) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 140 "toml/Toml.hpeg" #-}
+{-# LINE 138 "toml/Toml.hpeg" #-}
  {-# COLUMN 69 #-} scalarValue (integerIn 16 h) 
-{-# LINE 1993 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1933 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 140 "toml/Toml.hpeg" #-}
+{-# LINE 138 "toml/Toml.hpeg" #-}
  {-# COLUMN 102 #-} codePoint h 
-{-# LINE 1999 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1939 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k17, peg'k18])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2012,23 +1952,23 @@ peg'rule'Escape =
           }]))
           ; PegRt.touch h
           ; (_, peg'k29) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 141 "toml/Toml.hpeg" #-}
+{-# LINE 139 "toml/Toml.hpeg" #-}
  {-# COLUMN 117 #-} scalarValue (integerIn 16 h) 
-{-# LINE 2018 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1958 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 141 "toml/Toml.hpeg" #-}
+{-# LINE 139 "toml/Toml.hpeg" #-}
  {-# COLUMN 150 #-} codePoint h 
-{-# LINE 2024 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1964 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k19, peg'k28, peg'k29])
           }
       ]))
 
 peg'rule'MlBasicString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 144 "toml/Toml.hpeg" #-}
+{-# LINE 142 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 2032 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1972 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MlBasicString =
   PegRt.memo peg'memo'MlBasicString "MlBasicString"
@@ -2049,17 +1989,17 @@ peg'rule'MlBasicString =
           ; (_, peg'k8) <- PegRt.plain (PegRt.lit "\"\"\"" "'\"\"\"'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 145 "toml/Toml.hpeg" #-}
+{-# LINE 143 "toml/Toml.hpeg" #-}
  {-# COLUMN 83 #-} T.concat cs <> q 
-{-# LINE 2055 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 1995 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k7, peg'k8])
           }
       ]))
 
 peg'rule'MlbItem :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 147 "toml/Toml.hpeg" #-}
+{-# LINE 145 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2063 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2003 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MlbItem =
   PegRt.memo peg'memo'MlbItem "MlbItem"
@@ -2070,17 +2010,17 @@ peg'rule'MlbItem =
           ; PegRt.touch i
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 148 "toml/Toml.hpeg" #-}
+{-# LINE 146 "toml/Toml.hpeg" #-}
  {-# COLUMN 30 #-} i 
-{-# LINE 2076 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2016 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'MlbChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 150 "toml/Toml.hpeg" #-}
+{-# LINE 148 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2084 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2024 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MlbChar =
   PegRt.memo peg'memo'MlbChar "MlbChar"
@@ -2096,9 +2036,9 @@ peg'rule'MlbChar =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 151 "toml/Toml.hpeg" #-}
+{-# LINE 149 "toml/Toml.hpeg" #-}
  {-# COLUMN 52 #-} "" 
-{-# LINE 2102 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2042 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5])
           }
       , do { (peg'v7, peg'k6) <- peg'rule'BasicChar
@@ -2108,26 +2048,26 @@ peg'rule'MlbChar =
           ; (_, peg'k8) <- peg'rule'Newline
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 153 "toml/Toml.hpeg" #-}
+{-# LINE 151 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-} "\n" 
-{-# LINE 2114 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2054 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k8)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k9) <- PegRt.plain (PegRt.lit "\"" "'\"'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 154 "toml/Toml.hpeg" #-}
+{-# LINE 152 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-} "\"" 
-{-# LINE 2123 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2063 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k9)
           }
       ]))
 
 peg'rule'LiteralString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 156 "toml/Toml.hpeg" #-}
+{-# LINE 154 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}Text
-{-# LINE 2131 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2071 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'LiteralString =
   PegRt.memo peg'memo'LiteralString "LiteralString"
@@ -2139,18 +2079,14 @@ peg'rule'LiteralString =
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "'" "'\\''")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 157 "toml/Toml.hpeg" #-}
+{-# LINE 155 "toml/Toml.hpeg" #-}
  {-# COLUMN 46 #-} cs 
-{-# LINE 2145 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2085 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
-peg'rule'LiteralChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 159 "toml/Toml.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 2153 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'LiteralChar :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'LiteralChar =
   PegRt.memo peg'memo'LiteralChar "LiteralChar"
     (PegRt.node syntaxKindLiteralChar (PegRt.choice
@@ -2160,9 +2096,9 @@ peg'rule'LiteralChar =
       ]))
 
 peg'rule'MlLiteralString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 162 "toml/Toml.hpeg" #-}
+{-# LINE 159 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-}Text
-{-# LINE 2166 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2102 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MlLiteralString =
   PegRt.memo peg'memo'MlLiteralString "MlLiteralString"
@@ -2183,17 +2119,17 @@ peg'rule'MlLiteralString =
           ; (_, peg'k8) <- PegRt.plain (PegRt.lit "'''" "'\\'\\'\\''")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 163 "toml/Toml.hpeg" #-}
+{-# LINE 160 "toml/Toml.hpeg" #-}
  {-# COLUMN 100 #-} T.concat cs <> q 
-{-# LINE 2189 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2125 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k7, peg'k8])
           }
       ]))
 
 peg'rule'MllItem :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 165 "toml/Toml.hpeg" #-}
+{-# LINE 162 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2197 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2133 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MllItem =
   PegRt.memo peg'memo'MllItem "MllItem"
@@ -2204,17 +2140,17 @@ peg'rule'MllItem =
           ; PegRt.touch i
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 166 "toml/Toml.hpeg" #-}
+{-# LINE 163 "toml/Toml.hpeg" #-}
  {-# COLUMN 33 #-} i 
-{-# LINE 2210 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2146 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'MllChar :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 168 "toml/Toml.hpeg" #-}
+{-# LINE 165 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2218 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2154 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'MllChar =
   PegRt.memo peg'memo'MllChar "MllChar"
@@ -2224,35 +2160,35 @@ peg'rule'MllChar =
           ; PegRt.touch c
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 169 "toml/Toml.hpeg" #-}
+{-# LINE 166 "toml/Toml.hpeg" #-}
  {-# COLUMN 28 #-} c 
-{-# LINE 2230 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2166 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- peg'rule'Newline
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 170 "toml/Toml.hpeg" #-}
+{-# LINE 167 "toml/Toml.hpeg" #-}
  {-# COLUMN 20 #-} "\n" 
-{-# LINE 2239 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2175 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k1)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "'" "'\\''")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 171 "toml/Toml.hpeg" #-}
+{-# LINE 168 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-} "'" 
-{-# LINE 2248 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2184 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k2)
           }
       ]))
 
 peg'rule'Integer :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 174 "toml/Toml.hpeg" #-}
+{-# LINE 171 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Integer
-{-# LINE 2256 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2192 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Integer =
   PegRt.memo peg'memo'Integer "Integer"
@@ -2269,9 +2205,9 @@ peg'rule'Integer =
           ; PegRt.touch h
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 175 "toml/Toml.hpeg" #-}
+{-# LINE 172 "toml/Toml.hpeg" #-}
  {-# COLUMN 55 #-} integerIn 16 h 
-{-# LINE 2275 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2211 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k5])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2286,9 +2222,9 @@ peg'rule'Integer =
           ; PegRt.touch o
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 176 "toml/Toml.hpeg" #-}
+{-# LINE 173 "toml/Toml.hpeg" #-}
  {-# COLUMN 42 #-} integerIn 8 o 
-{-# LINE 2292 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2228 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k6, peg'k11])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2303,9 +2239,9 @@ peg'rule'Integer =
           ; PegRt.touch b
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 177 "toml/Toml.hpeg" #-}
+{-# LINE 174 "toml/Toml.hpeg" #-}
  {-# COLUMN 40 #-} integerIn 2 b 
-{-# LINE 2309 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2245 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k12, peg'k17])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2315,17 +2251,17 @@ peg'rule'Integer =
           ; PegRt.touch d
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 178 "toml/Toml.hpeg" #-}
+{-# LINE 175 "toml/Toml.hpeg" #-}
  {-# COLUMN 34 #-} signed s (integerIn 10 d) 
-{-# LINE 2321 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2257 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k18, peg'k19])
           }
       ]))
 
 peg'rule'Sign :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 181 "toml/Toml.hpeg" #-}
+{-# LINE 178 "toml/Toml.hpeg" #-}
  {-# COLUMN 9 #-}Bool
-{-# LINE 2329 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2265 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Sign =
   PegRt.memo peg'memo'Sign "Sign"
@@ -2334,26 +2270,26 @@ peg'rule'Sign =
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "-" "'-'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 182 "toml/Toml.hpeg" #-}
+{-# LINE 179 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-} True 
-{-# LINE 2340 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2276 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "+" "'+'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 183 "toml/Toml.hpeg" #-}
+{-# LINE 180 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-} False 
-{-# LINE 2349 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2285 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k1)
           }
       ]))
 
 peg'rule'DecUnsigned :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 185 "toml/Toml.hpeg" #-}
+{-# LINE 182 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Text
-{-# LINE 2357 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2293 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DecUnsigned =
   PegRt.memo peg'memo'DecUnsigned "DecUnsigned"
@@ -2371,17 +2307,17 @@ peg'rule'DecUnsigned =
           ; PegRt.touch d
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 186 "toml/Toml.hpeg" #-}
+{-# LINE 183 "toml/Toml.hpeg" #-}
  {-# COLUMN 50 #-} d 
-{-# LINE 2377 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2313 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k5)
           }
       ]))
 
 peg'rule'Float :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 188 "toml/Toml.hpeg" #-}
+{-# LINE 185 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Double
-{-# LINE 2385 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2321 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Float =
   PegRt.memo peg'memo'Float "Float"
@@ -2393,9 +2329,9 @@ peg'rule'Float =
           ; PegRt.touch m
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 189 "toml/Toml.hpeg" #-}
+{-# LINE 186 "toml/Toml.hpeg" #-}
  {-# COLUMN 32 #-} signed s (floatOf m) 
-{-# LINE 2399 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2335 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2404,9 +2340,9 @@ peg'rule'Float =
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "inf" "'inf'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 190 "toml/Toml.hpeg" #-}
+{-# LINE 187 "toml/Toml.hpeg" #-}
  {-# COLUMN 24 #-} signed s (1 / 0) 
-{-# LINE 2410 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2346 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2414,18 +2350,14 @@ peg'rule'Float =
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "nan" "'nan'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 191 "toml/Toml.hpeg" #-}
+{-# LINE 188 "toml/Toml.hpeg" #-}
  {-# COLUMN 22 #-} 0 / 0 
-{-# LINE 2420 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2356 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5])
           }
       ]))
 
-peg'rule'FloatBody :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 193 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 2428 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'FloatBody :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'FloatBody =
   PegRt.memo peg'memo'FloatBody "FloatBody"
     (PegRt.node syntaxKindFloatBody (PegRt.choice
@@ -2448,9 +2380,9 @@ peg'rule'FloatBody =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 194 "toml/Toml.hpeg" #-}
+{-# LINE 190 "toml/Toml.hpeg" #-}
  {-# COLUMN 86 #-} () 
-{-# LINE 2454 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2386 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5, peg'k12])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2464,17 +2396,17 @@ peg'rule'FloatBody =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 195 "toml/Toml.hpeg" #-}
+{-# LINE 191 "toml/Toml.hpeg" #-}
  {-# COLUMN 58 #-} () 
-{-# LINE 2470 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2402 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k13, peg'k14, peg'k15, peg'k16, peg'k19])
           }
       ]))
 
 peg'rule'DateTime :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 199 "toml/Toml.hpeg" #-}
+{-# LINE 195 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}DateTime
-{-# LINE 2478 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2410 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'DateTime =
   PegRt.memo peg'memo'DateTime "DateTime"
@@ -2489,9 +2421,9 @@ peg'rule'DateTime =
           ; PegRt.touch o
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 200 "toml/Toml.hpeg" #-}
+{-# LINE 196 "toml/Toml.hpeg" #-}
  {-# COLUMN 54 #-} DateTime (Just d) (Just t) (Just o) 
-{-# LINE 2495 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2427 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2502,9 +2434,9 @@ peg'rule'DateTime =
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 201 "toml/Toml.hpeg" #-}
+{-# LINE 197 "toml/Toml.hpeg" #-}
  {-# COLUMN 44 #-} DateTime (Just d) (Just t) Nothing 
-{-# LINE 2508 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2440 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2512,9 +2444,9 @@ peg'rule'DateTime =
           ; PegRt.touch d
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 202 "toml/Toml.hpeg" #-}
+{-# LINE 198 "toml/Toml.hpeg" #-}
  {-# COLUMN 24 #-} DateTime (Just d) Nothing Nothing 
-{-# LINE 2518 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2450 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -2522,17 +2454,17 @@ peg'rule'DateTime =
           ; PegRt.touch t
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 203 "toml/Toml.hpeg" #-}
+{-# LINE 199 "toml/Toml.hpeg" #-}
  {-# COLUMN 27 #-} DateTime Nothing (Just t) Nothing 
-{-# LINE 2528 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2460 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k8)
           }
       ]))
 
 peg'rule'FullDate :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 205 "toml/Toml.hpeg" #-}
+{-# LINE 201 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}(Int, Int, Int)
-{-# LINE 2536 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2468 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'FullDate =
   PegRt.memo peg'memo'FullDate "FullDate"
@@ -2558,23 +2490,23 @@ peg'rule'FullDate =
           }]))
           ; PegRt.touch d
           ; (_, peg'k13) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 206 "toml/Toml.hpeg" #-}
+{-# LINE 202 "toml/Toml.hpeg" #-}
  {-# COLUMN 86 #-} num m >= 1 && num m <= 12 && num d >= 1 && num d <= 31 
-{-# LINE 2564 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2496 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 206 "toml/Toml.hpeg" #-}
+{-# LINE 202 "toml/Toml.hpeg" #-}
  {-# COLUMN 145 #-} (num y, num m, num d) 
-{-# LINE 2570 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2502 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k4, peg'k5, peg'k8, peg'k9, peg'k12, peg'k13])
           }
       ]))
 
 peg'rule'PartialTime :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 208 "toml/Toml.hpeg" #-}
+{-# LINE 204 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Time
-{-# LINE 2578 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2510 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'PartialTime =
   PegRt.memo peg'memo'PartialTime "PartialTime"
@@ -2594,23 +2526,23 @@ peg'rule'PartialTime =
           ; (s, peg'k7) <- PegRt.label "s" ((PegRt.optionalS) (peg'rule'Seconds))
           ; PegRt.touch s
           ; (_, peg'k8) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 209 "toml/Toml.hpeg" #-}
+{-# LINE 205 "toml/Toml.hpeg" #-}
  {-# COLUMN 67 #-} num h <= 23 && num m <= 59 
-{-# LINE 2600 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2532 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 209 "toml/Toml.hpeg" #-}
+{-# LINE 205 "toml/Toml.hpeg" #-}
  {-# COLUMN 98 #-} let (sec, frac) = fromMaybe (0, "") s in Time (num h) (num m) sec frac 
-{-# LINE 2606 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2538 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k3, peg'k6, peg'k7, peg'k8])
           }
       ]))
 
 peg'rule'Seconds :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 211 "toml/Toml.hpeg" #-}
+{-# LINE 207 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}(Int, Text)
-{-# LINE 2614 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2546 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Seconds =
   PegRt.memo peg'memo'Seconds "Seconds"
@@ -2625,23 +2557,23 @@ peg'rule'Seconds =
           ; (f, peg'k4) <- PegRt.label "f" ((PegRt.optionalS) (peg'rule'SecFrac))
           ; PegRt.touch f
           ; (_, peg'k5) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 212 "toml/Toml.hpeg" #-}
+{-# LINE 208 "toml/Toml.hpeg" #-}
  {-# COLUMN 46 #-} num s <= 60 
-{-# LINE 2631 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2563 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 212 "toml/Toml.hpeg" #-}
+{-# LINE 208 "toml/Toml.hpeg" #-}
  {-# COLUMN 62 #-} (num s, fromMaybe "" f) 
-{-# LINE 2637 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2569 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k3, peg'k4, peg'k5])
           }
       ]))
 
 peg'rule'SecFrac :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 214 "toml/Toml.hpeg" #-}
+{-# LINE 210 "toml/Toml.hpeg" #-}
  {-# COLUMN 12 #-}Text
-{-# LINE 2645 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2577 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'SecFrac =
   PegRt.memo peg'memo'SecFrac "SecFrac"
@@ -2652,17 +2584,17 @@ peg'rule'SecFrac =
           ; PegRt.touch f
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 215 "toml/Toml.hpeg" #-}
+{-# LINE 211 "toml/Toml.hpeg" #-}
  {-# COLUMN 27 #-} f 
-{-# LINE 2658 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2590 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       ]))
 
 peg'rule'Offset :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 217 "toml/Toml.hpeg" #-}
+{-# LINE 213 "toml/Toml.hpeg" #-}
  {-# COLUMN 11 #-}Int
-{-# LINE 2666 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2598 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Offset =
   PegRt.memo peg'memo'Offset "Offset"
@@ -2671,9 +2603,9 @@ peg'rule'Offset =
           ; (_, peg'k0) <- PegRt.plain (PegRt.cls [('Z', 'Z'), ('z', 'z')] "[Zz]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 218 "toml/Toml.hpeg" #-}
+{-# LINE 214 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-} 0 
-{-# LINE 2677 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2609 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k0)
           }
       , do { peg'start <- PegRt.getOffset
@@ -2691,23 +2623,23 @@ peg'rule'Offset =
           }]))
           ; PegRt.touch m
           ; (_, peg'k9) <- PegRt.plain (PegRt.predicate (\_col -> 
-{-# LINE 219 "toml/Toml.hpeg" #-}
+{-# LINE 215 "toml/Toml.hpeg" #-}
  {-# COLUMN 57 #-} num h <= 23 && num m <= 59 
-{-# LINE 2697 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2629 "toml/Conformance/Toml/Parser.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 219 "toml/Toml.hpeg" #-}
+{-# LINE 215 "toml/Toml.hpeg" #-}
  {-# COLUMN 88 #-} signed (Just s) (num h * 60 + num m) 
-{-# LINE 2703 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2635 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k1, peg'k4, peg'k5, peg'k8, peg'k9])
           }
       ]))
 
 peg'rule'Array :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 222 "toml/Toml.hpeg" #-}
+{-# LINE 218 "toml/Toml.hpeg" #-}
  {-# COLUMN 10 #-}Val
-{-# LINE 2711 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2643 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Array =
   PegRt.memo peg'memo'Array "Array"
@@ -2721,17 +2653,17 @@ peg'rule'Array =
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "]" "']'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 223 "toml/Toml.hpeg" #-}
+{-# LINE 219 "toml/Toml.hpeg" #-}
  {-# COLUMN 40 #-} VArray (fromMaybe [] vs) 
-{-# LINE 2727 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2659 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
 
 peg'rule'Elements :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 225 "toml/Toml.hpeg" #-}
+{-# LINE 221 "toml/Toml.hpeg" #-}
  {-# COLUMN 13 #-}[Val]
-{-# LINE 2735 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2667 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Elements =
   PegRt.memo peg'memo'Elements "Elements"
@@ -2742,9 +2674,9 @@ peg'rule'Elements =
       ]))
 
 peg'rule'InlineTable :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 228 "toml/Toml.hpeg" #-}
+{-# LINE 224 "toml/Toml.hpeg" #-}
  {-# COLUMN 16 #-}Val
-{-# LINE 2748 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2680 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'InlineTable =
   PegRt.memo peg'memo'InlineTable "InlineTable"
@@ -2758,17 +2690,17 @@ peg'rule'InlineTable =
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "}" "'}'")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 229 "toml/Toml.hpeg" #-}
+{-# LINE 225 "toml/Toml.hpeg" #-}
  {-# COLUMN 52 #-} VInline (fromMaybe [] kvs) 
-{-# LINE 2764 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2696 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k3, peg'k4])
           }
       ]))
 
 peg'rule'InlineKeyVals :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 231 "toml/Toml.hpeg" #-}
+{-# LINE 227 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[(Key, Val)]
-{-# LINE 2772 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2704 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'InlineKeyVals =
   PegRt.memo peg'memo'InlineKeyVals "InlineKeyVals"
@@ -2779,9 +2711,9 @@ peg'rule'InlineKeyVals =
       ]))
 
 peg'rule'InlineKeyVal :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 238 "toml/Toml.hpeg" #-}
+{-# LINE 234 "toml/Toml.hpeg" #-}
  {-# COLUMN 17 #-}(Key, Val)
-{-# LINE 2785 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2717 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'InlineKeyVal =
   PegRt.memo peg'memo'InlineKeyVal "InlineKeyVal"
@@ -2794,18 +2726,14 @@ peg'rule'InlineKeyVal =
           ; PegRt.touch v
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 239 "toml/Toml.hpeg" #-}
+{-# LINE 235 "toml/Toml.hpeg" #-}
  {-# COLUMN 40 #-} (k, v) 
-{-# LINE 2800 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2732 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }
       ]))
 
-peg'rule'Wcn :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 242 "toml/Toml.hpeg" #-}
- {-# COLUMN 8 #-}()
-{-# LINE 2808 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Wcn :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Wcn =
   PegRt.memo peg'memo'Wcn "Wcn"
     (PegRt.choice
@@ -2819,11 +2747,7 @@ peg'rule'Wcn =
           }
       ])
 
-peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 245 "toml/Toml.hpeg" #-}
- {-# COLUMN 7 #-}()
-{-# LINE 2826 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Ws :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Ws =
   PegRt.memo peg'memo'Ws "Ws"
     (PegRt.token syntaxKindWs (PegRt.choice
@@ -2832,11 +2756,7 @@ peg'rule'Ws =
           }
       ]))
 
-peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 248 "toml/Toml.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 2839 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Comment :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Comment =
   PegRt.memo peg'memo'Comment "Comment"
     (PegRt.token syntaxKindComment (PegRt.choice
@@ -2846,11 +2766,7 @@ peg'rule'Comment =
           }
       ]))
 
-peg'rule'Newline :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 251 "toml/Toml.hpeg" #-}
- {-# COLUMN 12 #-}()
-{-# LINE 2853 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'Newline :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'Newline =
   PegRt.memo peg'memo'Newline "Newline"
     (PegRt.token syntaxKindNewline (PegRt.choice
@@ -2862,11 +2778,7 @@ peg'rule'Newline =
           }
       ]))
 
-peg'rule'MissingEq :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 258 "toml/Toml.hpeg" #-}
- {-# COLUMN 14 #-}()
-{-# LINE 2869 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'MissingEq :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'MissingEq =
   PegRt.memo peg'memo'MissingEq "MissingEq"
     (PegRt.node syntaxKindMissingEq (PegRt.choice
@@ -2876,9 +2788,9 @@ peg'rule'MissingEq =
       ]))
 
 peg'rule'SkipValue :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 263 "toml/Toml.hpeg" #-}
+{-# LINE 254 "toml/Toml.hpeg" #-}
  {-# COLUMN 14 #-}Val
-{-# LINE 2882 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2794 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'SkipValue =
   PegRt.memo peg'memo'SkipValue "SkipValue"
@@ -2888,9 +2800,9 @@ peg'rule'SkipValue =
           ; (_, peg'k1) <- peg'rule'SkipString
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 264 "toml/Toml.hpeg" #-}
+{-# LINE 255 "toml/Toml.hpeg" #-}
  {-# COLUMN 32 #-} VInvalid 
-{-# LINE 2894 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2806 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1])
           }
       , do { peg'start <- PegRt.getOffset
@@ -2902,18 +2814,18 @@ peg'rule'SkipValue =
           ; (_, peg'k6) <- (PegRt.optionalS) (PegRt.plain (PegRt.lit "'''" "'\\'\\'\\''"))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 265 "toml/Toml.hpeg" #-}
+{-# LINE 256 "toml/Toml.hpeg" #-}
  {-# COLUMN 48 #-} VInvalid 
-{-# LINE 2908 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2820 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k2, peg'k5, peg'k6])
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k7) <- peg'rule'SkipBracket
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 266 "toml/Toml.hpeg" #-}
+{-# LINE 257 "toml/Toml.hpeg" #-}
  {-# COLUMN 26 #-} VInvalid 
-{-# LINE 2917 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2829 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k7)
           }
       , do { peg'start <- PegRt.getOffset
@@ -2923,18 +2835,14 @@ peg'rule'SkipValue =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 267 "toml/Toml.hpeg" #-}
+{-# LINE 258 "toml/Toml.hpeg" #-}
  {-# COLUMN 28 #-} VInvalid 
-{-# LINE 2929 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2841 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k10)
           }
       ]))
 
-peg'rule'SkipString :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 269 "toml/Toml.hpeg" #-}
- {-# COLUMN 15 #-}()
-{-# LINE 2937 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipString :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipString =
   PegRt.memo peg'memo'SkipString "SkipString"
     (PegRt.node syntaxKindSkipString (PegRt.choice
@@ -2952,11 +2860,7 @@ peg'rule'SkipString =
           }
       ]))
 
-peg'rule'SkipBracket :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 272 "toml/Toml.hpeg" #-}
- {-# COLUMN 16 #-}()
-{-# LINE 2959 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipBracket :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipBracket =
   PegRt.memo peg'memo'SkipBracket "SkipBracket"
     (PegRt.node syntaxKindSkipBracket (PegRt.choice
@@ -2980,11 +2884,7 @@ peg'rule'SkipBracket =
           }
       ]))
 
-peg'rule'SkipInBracket :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 276 "toml/Toml.hpeg" #-}
- {-# COLUMN 18 #-}()
-{-# LINE 2987 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipInBracket :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipInBracket =
   PegRt.memo peg'memo'SkipInBracket "SkipInBracket"
     (PegRt.node syntaxKindSkipInBracket (PegRt.choice
@@ -3038,9 +2938,9 @@ peg'rule'SkipInBracket =
       ]))
 
 peg'rule'SkipHeader :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 285 "toml/Toml.hpeg" #-}
+{-# LINE 273 "toml/Toml.hpeg" #-}
  {-# COLUMN 15 #-}Key
-{-# LINE 3044 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2944 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'SkipHeader =
   PegRt.memo peg'memo'SkipHeader "SkipHeader"
@@ -3052,18 +2952,14 @@ peg'rule'SkipHeader =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 286 "toml/Toml.hpeg" #-}
+{-# LINE 274 "toml/Toml.hpeg" #-}
  {-# COLUMN 30 #-} [] 
-{-# LINE 3058 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2958 "toml/Conformance/Toml/Parser.hs" #-}
     ), peg'k2)
           }
       ]))
 
-peg'rule'SkipLine :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 288 "toml/Toml.hpeg" #-}
- {-# COLUMN 13 #-}()
-{-# LINE 3066 "toml/Conformance/Toml/Parser.hs" #-}
-    ), [PegRt.Child])
+peg'rule'SkipLine :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'SkipLine =
   PegRt.memo peg'memo'SkipLine "SkipLine"
     (PegRt.node syntaxKindSkipLine (PegRt.choice
@@ -3076,9 +2972,9 @@ peg'rule'SkipLine =
       ]))
 
 peg'rule'Items'0 :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 235 "toml/Toml.hpeg" #-}
+{-# LINE 231 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[(Val)]
-{-# LINE 3082 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 2978 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Items'0 =
   PegRt.memo peg'memo'Items'0 "Items'0"
@@ -3100,17 +2996,17 @@ peg'rule'Items'0 =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 236 "toml/Toml.hpeg" #-}
+{-# LINE 232 "toml/Toml.hpeg" #-}
  {-# COLUMN 53 #-} x : xs 
-{-# LINE 3106 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 3002 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k7, peg'k10])
           }
       ])
 
 peg'rule'Items'1 :: PegRt.P (Peg'Store peg's) peg's ((
-{-# LINE 235 "toml/Toml.hpeg" #-}
+{-# LINE 231 "toml/Toml.hpeg" #-}
  {-# COLUMN 18 #-}[((Key, Val))]
-{-# LINE 3114 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 3010 "toml/Conformance/Toml/Parser.hs" #-}
     ), [PegRt.Child])
 peg'rule'Items'1 =
   PegRt.memo peg'memo'Items'1 "Items'1"
@@ -3132,9 +3028,9 @@ peg'rule'Items'1 =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
-{-# LINE 236 "toml/Toml.hpeg" #-}
+{-# LINE 232 "toml/Toml.hpeg" #-}
  {-# COLUMN 53 #-} x : xs 
-{-# LINE 3138 "toml/Conformance/Toml/Parser.hs" #-}
+{-# LINE 3034 "toml/Conformance/Toml/Parser.hs" #-}
     ), PegPrelude.concat [peg'k0, peg'k1, peg'k7, peg'k10])
           }
       ])

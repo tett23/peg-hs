@@ -38,5 +38,4 @@ Vars <- vs:List<$[a-z]+, ','> { Vars vs }
 N :: Int
 N <- d:$[0-9]+ Sp { read (T.unpack d) }
 
-Sp :: ()
 Sp <- ' '*

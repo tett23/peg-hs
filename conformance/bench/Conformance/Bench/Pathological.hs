@@ -81,11 +81,7 @@ peg'rule'E =
           }
       ])
 
-peg'rule'L :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 12 "bench/Pathological.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 88 "bench/Conformance/Bench/Pathological.hs" #-}
-    )
+peg'rule'L :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'L =
   PegRt.nomemo "L"
     (PegRt.choice
@@ -95,11 +91,7 @@ peg'rule'L =
           }
       ])
 
-peg'rule'A :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 15 "bench/Pathological.hpeg" #-}
- {-# COLUMN 6 #-}()
-{-# LINE 102 "bench/Conformance/Bench/Pathological.hs" #-}
-    )
+peg'rule'A :: PegRt.P (Peg'Store peg's) peg's (())
 peg'rule'A =
   PegRt.nomemo "A"
     (PegRt.choice

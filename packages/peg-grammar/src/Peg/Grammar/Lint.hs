@@ -38,6 +38,9 @@
 --   alone ('Peg.Grammar.Check.countedItems'). Not reported in a grammar
 --   with @%syntax@, where removing a binding removes an accessor. In a
 --   template, every instance must count that element alone.
+-- [@omittable-unit-annotation@] A type annotation @()@ of a rule without
+--   parameters or template parameters, which a rule without a type
+--   annotation has (ADR 0066).
 --
 -- 'lintGrammar' takes a grammar that passed the checks of "Peg.Grammar"
 -- (see the example there), before template expansion, and
@@ -113,6 +116,7 @@ lintGrammar g =
       ++ (if isJust (grammarSyntax g) then [] else concatMap (\r -> concatMap (bindingWarnings units (ruleName r)) (ruleAlts r)) rules)
       ++ unitActionInfos g
       ++ (if isJust (grammarSyntax g) then [] else identityActionInfos g)
+      ++ concatMap unitAnnotationInfos rules
   where
     rules = grammarRules g
     units = unitRules rules
@@ -180,6 +184,23 @@ identityActionInfos g = case expandTemplates g of
                 && name `notElem` concatMap identifiers (concatMap (codesOf . itemExpr) items)
                 && map itemLoc (countedItems units unbound) == [itemLoc bound]
         _ -> False
+
+-- The type annotations () that a rule without a type annotation has (ADR
+-- 0066). A rule with parameters or template parameters needs its
+-- annotation to declare them. The info is at the start of the annotation.
+unitAnnotationInfos :: Rule -> [LintWarning]
+unitAnnotationInfos r =
+  [ LintWarning
+      l
+      "omittable-unit-annotation"
+      "the type annotation can be omitted: a rule without one has type ()"
+      ("remove the line " <> ruleName r <> " :: ()")
+      LevelInfo
+  | Just l <- [ruleAnnotation r]
+  , null (ruleParams r)
+  , null (ruleTemplateParams r)
+  , T.filter (not . isSpace) (unLoc (ruleType r)) == "()"
+  ]
 
 -- Unreachable alternatives --------------------------------------------------------
 

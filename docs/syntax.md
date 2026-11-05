@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -78,7 +78,6 @@ info は、直せば文法が簡潔になるが、直さなくても誤りでは
 %module Example.Hash
 
 # この行はコメント
-Hash :: ()
 Hash <- '#' # リテラルの '#' はコメントではない
 ```
 
@@ -216,6 +215,22 @@ Name <- 選択肢 / 選択肢 / ...
 `[Int]` や `Maybe (Text, Int)` のような型もそのまま書ける。
 型の正しさを確かめるのは GHC であり、peg-hs は型を文字列として生成モジュールに写す。
 
+型注釈は省ける。
+型注釈のない規則の型は `()` である（[ADR 0066](adr/0066-omit-unit-type-annotations.md)）。
+空白、区切り、キーワードを読む規則の多くは値を持たないので、定義の一行だけで書ける。
+
+```hpeg
+# 断片
+Sp <- ' '*    # Sp :: () と書いたのと同じ
+```
+
+peg-hs は型を推論せず、選択肢の値によらず `()` とする。
+値を返すつもりの規則で型注釈を書き忘れると、アクションの値が `()` と合わない。
+この食い違いは、生成モジュールのコンパイルで、GHC がアクションの位置を指す型の誤りとして報告する。
+
+引数を持つ規則（[引数付き規則](#引数付き規則)）と雛形（[規則の雛形](#規則の雛形)）は、型注釈を省けない。
+引数を宣言できるのが型注釈だけだからである。
+
 定義の右辺の選択肢は複数行にわたって書ける。
 次の規則の型注釈か定義が始まると、前の規則の定義が終わる。
 
@@ -254,7 +269,7 @@ import Data.Text (unpack)
 
 | 書き方 | 報告 |
 |---|---|
-| 型注釈を書き忘れた | `error: rule A has no type annotation` |
+| 雛形の型注釈を書き忘れた（`T<p> <- p` だけを書いた） | `error: rule T has parameters, so it needs a type annotation` |
 | 型注釈だけで定義がない | `error: rule A has a type annotation but no definition` |
 | 型注釈の `::` の後に型がない | `error: expected a type` |
 | 同じ規則を二度定義した | `error: duplicate definition of A` |
@@ -384,6 +399,7 @@ Ident <- s:$([a-z] [a-z0-9]*) { s }
 ### `()` の値は数えない
 
 空白を読む規則のように、型注釈が `()` の規則は、値として情報を持たない。
+型注釈のない規則も、型が `()` なので同じである。
 値を数えるとき、束縛しない `()` の値は数えない（[ADR 0030](adr/0030-unit-values-are-not-counted.md)）。
 型注釈が `()` の規則と、それに `*`、`+`、`?` を付けたものがこれにあたる。
 そのため、空白の規則を挟んでもグループの値は一つのままである。
@@ -401,7 +417,6 @@ Names <- n:Name ns:(',' Sp Name)* { n : ns }   # グループの値は Name の�
 Name :: Text
 Name <- $[a-z]+ Sp
 
-Sp :: ()
 Sp <- [ \t]*
 ```
 
@@ -541,6 +556,7 @@ Signed <- '-' n:Num { negate n }
 数え方は、[`()` の値は数えない](#-の値は数えない)で述べたとおりである。
 
 ただし、型注釈が `()` の規則には例外がある（[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)）。
+型注釈のない規則も、型が `()` なので同じに扱う。
 `()` 以外の値を持つ要素が一つもない選択肢は、アクションを省略でき、値は `()` になる。
 型が `()` の規則の値は `()` しかないので、`{ () }` を書いても情報は増えないからである。
 
@@ -641,7 +657,6 @@ Stat <- K<'print'> xs:List<Name, ','> { SPrint xs }
 Name :: Text
 Name <- $[a-z]+ Sp
 
-Sp :: ()
 Sp <- [ \t]*
 
 # 予約語：リテラルの後に識別子の文字が続かず、空白を読む
@@ -677,7 +692,6 @@ List<p, sep> <- x:p xs:(sep Sp p)* { x : xs }
 ```hpeg
 %module Example.Items
 
-Doc :: ()
 Doc <- Items(0)
 
 Items(ind :: Int) :: ()
@@ -718,7 +732,6 @@ Item <- ' '* &{ _col == ind } '-'
 ```hpeg
 %module Example.Indented
 
-Doc :: ()
 Doc <- Indented<Item(0)>(0)
 
 # 深さ n に字下げした p が、改行を挟んで続く
@@ -1032,10 +1045,8 @@ Expr <- l:Expr Sp '+' Sp r:Num { l + r }
 Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
-Sp :: ()
 Sp <- Ws?
 
-Ws :: ()
 Ws <- [ \t]+
 ```
 
@@ -1124,7 +1135,6 @@ Inline <- '[' name:$[a-z]+ (']' ^close) { Command name }
         / w:$[a-z ]+ { Words w }
 
 # 何も読まない。行の終わりで閉じたとみなす
-CloseAtLineEnd :: ()
 CloseAtLineEnd <- &('\n' / !.)
 ```
 
@@ -1302,12 +1312,13 @@ Sp.hpeg:4:12: info: the action can be omitted: the rule has type () and the alte
 言語サーバーは、info を重大度 Hint の診断として報告する。
 多くのエディタは、Hint に下線を引かずに淡く示す。
 
-info の規則は次の二つである。
+info の規則は次の三つである。
 
 | 規則 | 知らせる書き方 | 節 |
 |---|---|---|
 | `omittable-unit-action` | 型注釈が `()` の規則の、省略できる `{ () }`。位置はアクションの `{` を指す。雛形の中のアクションは、すべての展開で省略できるときに限る | [アクションの省略](#アクションの省略) |
 | `omittable-identity-action` | 束縛した値をそのまま返す、束縛ごと省けるアクション（`e:Expr { e }`）。位置はアクションの `{` を指す。`%syntax` の文法には出さない。雛形の中のアクションは、すべての展開で省けるときに限る | [アクションの省略](#アクションの省略) |
+| `omittable-unit-annotation` | 型注釈 `A :: ()`。型注釈のない規則の型も `()` なので、行ごと省ける。位置は型注釈の始まりを指す。引数付き規則と雛形の型注釈には出さない | [規則](#規則) |
 
 警告に従って直しても、文法が受理する入力と、誤りの位置は変わらない。
 変わりうるのは、リテラルの接頭辞の警告に従って選択肢を消したときの、誤りの文言の「期待したもの」だけである。

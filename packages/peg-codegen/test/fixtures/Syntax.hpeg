@@ -29,11 +29,8 @@ Factor <- '(' Sp e:Expr Sp ')' { e }
 Num :: Int
 Num <- ds:$[0-9]+ { read (unpack ds) }
 
-Sp :: ()
 Sp <- (Ws / Comment)*
 
-Ws :: ()
 Ws <- [ \t\n]+
 
-Comment :: ()
 Comment <- '#' (!'\n' .)*
