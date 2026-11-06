@@ -299,6 +299,7 @@ It compiles the generated parser with the `ghc` on `PATH` and caches the executa
 
 `lsp` is a language server that speaks the Language Server Protocol on standard input and output ([ADR 0035](docs/adr/0035-language-server.md)).
 Editors run it; the next section has their settings.
+When changes arrive faster than it checks them, it checks only the last version and sends its diagnostics ([ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)).
 
 ## Editors
 
