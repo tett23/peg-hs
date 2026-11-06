@@ -20,7 +20,7 @@ module Peg.Grammar.Highlight
   , treeHighlights
   ) where
 
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isUpper)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar (Loc (..))
@@ -66,6 +66,10 @@ data HighlightKind
     HOperator
   | -- | @^label@.
     HLabel
+  | -- | The name of @\@Name@, a constructor name (ADR 0075).
+    HConstructor
+  | -- | A class name in the argument of @%deriving@ (ADR 0075).
+    HClassName
   | -- | @_span@, @_env@ and @_col@ in Haskell code; inside an action, a
     -- predicate or arguments.
     HReservedBinding
@@ -126,6 +130,7 @@ node root n = case kindOf n of
   "CallArgs" -> range root HArguments (syntaxRange n) : reserved root n
   "ParamList" -> [range root HArguments (syntaxRange n)]
   "Binding" -> [range root HBinding (syntaxRange n)]
+  "Constructor" -> [range root HConstructor (tokenRange t) | TokenElement t <- syntaxChildrenWithTokens n, tokenKindName t == "Ident"]
   "LabelPart" -> case [t | TokenElement t <- syntaxChildrenWithTokens n, tokenText t == "^"] of
     t : _ -> [range root HLabel (fst (tokenRange t), snd (syntaxRange n))]
     [] -> []
@@ -184,6 +189,10 @@ directive root n =
       argEnd = argStart + bytes argText
       commentStart = argStart + bytes arg
       argument
+        | name == "deriving" =
+            [ range root (if isClassName w then HClassName else HDirectiveArgument) (argStart + off, argStart + off + bytes w)
+            | (off, w) <- commaItems argText
+            ]
         | name `elem` wordDirectives =
             [ range root (wordKind name k w) (argStart + off, argStart + off + bytes w)
             | (k, (off, w)) <- zip [0 :: Int ..] (byteWords argText)
@@ -208,6 +217,29 @@ wordKind name k w
   | name == "recover", k == 1 = HDirectiveRule
   | name == "safe", k == 0 = HDirectiveLabel
   | otherwise = HDirectiveArgument
+
+-- The items of a text separated by commas, without the spaces around
+-- them, with their offsets in bytes.
+commaItems :: Text -> [(Int, Text)]
+commaItems = go 0
+  where
+    go off t
+      | T.null t = []
+      | otherwise =
+          let (item, rest) = T.break (== ',') t
+              lead = T.takeWhile blank item
+              w = T.stripEnd (T.drop (T.length lead) item)
+              next = off + bytes item + 1
+           in [(off + bytes lead, w) | not (T.null w)] ++ (if T.null rest then [] else go next (T.drop 1 rest))
+    blank c = c == ' ' || c == '\t'
+
+-- Whether a word is a class name, which may be qualified.
+isClassName :: Text -> Bool
+isClassName w = not (T.null w) && all part (T.splitOn "." w)
+  where
+    part p = case T.uncons p of
+      Just (c, rest) -> isUpper c && T.all isIdentChar rest
+      Nothing -> False
 
 -- The words of a text separated by spaces and tabs, with their offsets in
 -- bytes.

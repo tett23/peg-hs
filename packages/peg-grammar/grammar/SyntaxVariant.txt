@@ -46,6 +46,7 @@
 %recover action SkipToTop
 %recover hsstring SkipToTop
 %recover hschar SkipToTop
+%recover constructor RecoverText
 
 # 回復の規則（ADR 0035）。どのラベルの送出からも、次の最上位の要素の手前まで
 # 読み飛ばす。行頭の空白、/、# でない文字を、最上位の要素の始まりとみなす

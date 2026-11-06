@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 -- | Benchmarks of ADR 0007. Compare results before and after a change on
 -- the same machine; absolute numbers are not recorded.
 module Main (main) where
@@ -5,6 +7,7 @@ module Main (main) where
 import qualified Conformance.Bench.JsonCounted as JsonCounted
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
+import qualified Conformance.Bench.JsonGenerated as JsonGenerated
 import qualified Conformance.Bench.JsonUntyped as JsonUntyped
 import qualified Conformance.Bench.NestedLR8 as NestedLR8
 import qualified Conformance.CommonMark as CommonMark
@@ -123,6 +126,7 @@ benchmarks = do
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, typed entry") (whnf (either (const 0) (size . convertSyntax) . JsonSyntax.parse) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, untyped, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonUntyped.parseSyntax) json)
+        , bench ("parse " <> show (T.length json) <> " characters with inferred and generated types") (whnf (either (const 0) generatedSize . JsonGenerated.parse) json)
         ]
     , bgroup
         "commonmark"
@@ -338,7 +342,7 @@ memoReport = withArgs [] $ do
 
 -- The peak live memory of one parse. The peak is per process, so each
 -- variant runs in its own process: --memory
--- memoised|nomemo|syntax|syntax-tree|untyped-tree RECORDS.
+-- memoised|nomemo|syntax|syntax-tree|untyped-tree|generated RECORDS.
 memory :: String -> Int -> IO ()
 memory "commonmark" _ = withArgs [] $ do
   input <- TIO.readFile specPath
@@ -372,6 +376,8 @@ memory variant n = withArgs [] $ do
         "syntax-tree" -> either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax
         -- The grammar without type annotations and actions (ADR 0068).
         "untyped-tree" -> either (const 0) (snd . syntaxRange) . JsonUntyped.parseSyntax
+        -- The grammar whose types are inferred and generated (ADR 0075).
+        "generated" -> either (const 0) generatedSize . JsonGenerated.parse
         _ -> either (const 0) size . Json.parse
   _ <- evaluate (T.length input)
   performMajorGC
@@ -384,6 +390,21 @@ memory variant n = withArgs [] $ do
       <> ", max live bytes " <> show (max_live_bytes stats)
       <> " (input and program before parsing: " <> show (max_live_bytes base) <> ")"
 
+
+-- 'size' for a document of JsonGenerated, which forces the whole value. A
+-- string counts its units.
+generatedSize :: JsonGenerated.Value -> Int
+generatedSize = \case
+  JsonGenerated.Value4 n -> T.length n
+  JsonGenerated.Value5 us -> sum (map unit us)
+  JsonGenerated.Value6 (JsonGenerated.Array1 (JsonGenerated.Elements e es)) -> 1 + sum (map generatedSize (e : es))
+  JsonGenerated.Value7 (JsonGenerated.Object1 (JsonGenerated.Members m ms)) -> 1 + sum [sum (map unit k) + generatedSize v | JsonGenerated.Member k v <- m : ms]
+  _ -> 1
+  where
+    unit = \case
+      JsonGenerated.Unit1 (JsonGenerated.Escape9 h) -> T.length h
+      JsonGenerated.Unit2 c -> T.length c
+      JsonGenerated.Unit1 _ -> 1
 
 convertNomemo :: JsonNomemo.Value -> Value
 convertNomemo v = case v of

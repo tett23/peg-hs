@@ -428,3 +428,42 @@ a verbatim block of a } only (ADR 0045)
 (source_file
   (verbatim
     (haskell)))
+
+========================================================================
+constructor names and %deriving (ADR 0075)
+========================================================================
+
+%deriving Eq, GHC.Generics.Generic
+%deriving
+
+A <- B C @Pair
+   / { () } @Unit
+   / @Empty
+
+------------------------------------------------------------------------
+
+(source_file
+  (directive
+    (directive_name)
+    (class_name)
+    (class_name))
+  (directive
+    (directive_name))
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))
+        (item
+          (rule_reference
+            (identifier)))
+        (constructor_name))
+      (alternative
+        (action
+          (haskell))
+        (constructor_name))
+      (alternative
+        (constructor_name)))))

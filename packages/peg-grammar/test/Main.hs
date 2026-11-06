@@ -14,6 +14,7 @@ import Peg.Grammar.Check
 import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
+import GeneratedTypes (generatedTypeTests)
 import Incremental (incrementalTests)
 import Labels (labelTests)
 import LabelInsertion (labelInsertionTests)
@@ -48,6 +49,7 @@ main = do
       , unitActionTests
       , unitAnnotationTests
       , untypedSyntaxTests
+      , generatedTypeTests
       , templateTests
       , templateParamTests
       , analysisTests
@@ -363,8 +365,10 @@ unitAnnotationTests =
         messagesOf (g "A :: [Int]\nA <- n:N ns:(',' W N)* { n : ns }\nW <- ' '*") @?= []
     , testCase "its alternatives without values may omit their actions" $
         messagesOf (g "W <- ' '* / 'a' Sp Sp") @?= []
-    , testCase "an alternative with two values is an error, as in a rule of type ()" $
-        messagesOf (g "W <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "an alternative with two values is an error in a rule with an action" $
+        messagesOf (g "W <- N N / 'a' { () }") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "without actions, two values generate a type (ADR 0075)" $
+        messagesOf (g "W <- N N") @?= []
     , testCase "a template without a type annotation is an error" $
         checkErrorsAt (g "A :: ()\nA <- T<'a'>\nT<p> <- p") @?= [(4, 1, "rule T has parameters, so it needs a type annotation")]
     , testCase "a type annotation without a definition is an error, as before" $
@@ -392,8 +396,8 @@ untypedSyntaxTests =
         messagesOf (s "W :: ()\nW <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
     , testCase "a binding of an expression without a value is an error, as before" $
         messagesOf (s "W <- x:'a' N") @?= ["cannot bind x: the expression has no value (capture the text with $)"]
-    , testCase "without %syntax, two values are an error, as before" $
-        messagesOf (g "W <- N $'x'") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "without %syntax, two values generate a type (ADR 0075)" $
+        messagesOf (g "W <- N $'x'") @?= []
     , testCase "without %syntax, one value passes the check, and GHC reports the type" $
         messagesOf (g "W <- $[a-z]+") @?= []
     ]

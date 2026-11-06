@@ -1,0 +1,49 @@
+# 型の推論と生成（ADR 0075）：構築子の名前、%deriving、newtype、引数のない
+# 構築子、大文字のない規則名、雛形の呼び出し、型注釈とアクションを書いた規則
+%module Fixture.GeneratedNames
+%deriving Eq, Ord, Show
+%entry Count
+%entry Flags
+
+%{
+type Unit = ()
+}%
+
+# 選択肢が一つで、引数が二つ以上の構築子
+Doc <- Sp Keys Wrapped 値* End
+
+# 雛形の呼び出しの型は、展開した規則の型注釈の型
+Keys <- List<Key>
+
+Key <- $[a-z]+ Sp
+
+# 構築子が一つで引数が一つの型は newtype
+Wrapped <- '[' Sp Flags ']' Sp @Wrapped
+
+Flags <- Flag*
+
+# 値を持たない選択肢は、引数のない構築子
+Flag <- 'y' Sp @Yes
+     / 'n' Sp @No
+     / $[0-9] Sp @Level
+
+# 大文字のない規則名の型には Rule' が付く
+値 <- Num
+  / '#' Sp Count
+
+Num <- $[0-9]+ Sp
+
+# 型注釈とアクションを書いた規則は、推論した型の値を受け取る
+Count :: Int
+Count <- ks:Keys { length ks }
+
+# () の別名を型注釈に書いた規則の値は、これまでどおり返す
+End <- Blank
+
+Blank :: Unit
+Blank <- !. { () }
+
+Sp <- ' '*
+
+List<p :: a> :: [a]
+List<p> <- x:p xs:(',' Sp p)* { x : xs }

@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -104,8 +104,9 @@ Hash <- '#' # リテラルの '#' はコメントではない
 | `%inline Name` | 構文木で、規則の呼び出しをノードにせず、子を呼び出し元に並べる | [ADR 0019](adr/0019-lossless-syntax-tree.md) |
 | `%recover label Name` | ラベル `label` の回復の規則を `Name` とする | [ADR 0021](adr/0021-error-recovery.md) |
 | `%safe label` | ラベル `label` の安全性の警告を止める | [ADR 0028](adr/0028-label-safety-check.md) |
+| `%deriving クラス, ...` | 生成する型が導出するクラス。引数なしなら何も導出しない | [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) |
 
-`%module`、`%start`、`%env`、`%tabstop`、`%syntax` は一度しか書けない。
+`%module`、`%start`、`%env`、`%tabstop`、`%syntax`、`%deriving` は一度しか書けない。
 `%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe` は何度でも書ける。
 一行に一つの規則を書くディレクティブ（`%entry`、`%nomemo` など）は、規則ごとに一行を書く。
 
@@ -216,7 +217,7 @@ Name <- 選択肢 / 選択肢 / ...
 型の正しさを確かめるのは GHC であり、peg-hs は型を文字列として生成モジュールに写す。
 
 型注釈は省ける。
-型注釈のない規則の型は `()` である（[ADR 0066](adr/0066-omit-unit-type-annotations.md)）。
+値を持たない規則の型は、型注釈がなければ `()` である（[ADR 0066](adr/0066-omit-unit-type-annotations.md)）。
 空白、区切り、キーワードを読む規則の多くは値を持たないので、定義の一行だけで書ける。
 
 ```hpeg
@@ -224,8 +225,9 @@ Name <- 選択肢 / 選択肢 / ...
 Sp <- ' '*    # Sp :: () と書いたのと同じ
 ```
 
-peg-hs は型を推論せず、選択肢の値によらず `()` とする。
-値を返すつもりの規則で型注釈を書き忘れると、アクションの値が `()` と合わない。
+型注釈もアクションもない規則が値を持つときは、peg-hs が型を推論するか、型を生成する（[型の推論と生成](#型の推論と生成)）。
+アクションを書いた規則の型は、型注釈がなければ、選択肢の値によらず `()` である。
+値を返すつもりの規則で、アクションを書いて型注釈を書き忘れると、アクションの値が `()` と合わない。
 この食い違いは、生成モジュールのコンパイルで、GHC がアクションの位置を指す型の誤りとして報告する。
 
 引数を持つ規則（[引数付き規則](#引数付き規則)）と雛形（[規則の雛形](#規則の雛形)）は、型注釈を省けない。
@@ -399,9 +401,9 @@ Ident <- s:$([a-z] [a-z0-9]*) { s }
 ### `()` の値は数えない
 
 空白を読む規則のように、型注釈が `()` の規則は、値として情報を持たない。
-型注釈のない規則も、型が `()` なので同じである。
 値を数えるとき、束縛しない `()` の値は数えない（[ADR 0030](adr/0030-unit-values-are-not-counted.md)）。
 型注釈が `()` の規則と、それに `*`、`+`、`?` を付けたものがこれにあたる。
+値を持たないので型が `()` になる、型注釈のない規則も同じである。
 そのため、空白の規則を挟んでもグループの値は一つのままである。
 
 ```hpeg
@@ -556,7 +558,7 @@ Signed <- '-' n:Num { negate n }
 数え方は、[`()` の値は数えない](#-の値は数えない)で述べたとおりである。
 
 ただし、型注釈が `()` の規則には例外がある（[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)）。
-型注釈のない規則も、型が `()` なので同じに扱う。
+型が `()` の、型注釈のない規則も同じに扱う。
 `()` 以外の値を持つ要素が一つもない選択肢は、アクションを省略でき、値は `()` になる。
 型が `()` の規則の値は `()` しかないので、`{ () }` を書いても情報は増えないからである。
 
@@ -583,7 +585,7 @@ Spaces <- Sp+             # 要素の値は [()] だが、選択肢の値は ()
 この例外には三つの限りがある。
 
 - 要素のない選択肢（`S <- 'a' / { () }` の後ろの選択肢）は、アクションを省略できない。空の選択肢には `{ () }` を書く
-- `()` 以外の値を持つ要素がちょうど一つの選択肢は、これまでどおりその値を返す。型が `()` と合わなければ、GHC が型の誤りを報告する。ただし、`%syntax` の文法の型注釈のない規則は別に扱う（[型を書かない文法](#型を書かない文法)）
+- `()` 以外の値を持つ要素がちょうど一つの選択肢は、これまでどおりその値を返す。型が `()` と合わなければ、GHC が型の誤りを報告する。ただし、型注釈もアクションもない規則（[型の推論と生成](#型の推論と生成)）と、`%syntax` の文法の型注釈のない規則（[型を書かない文法](#型を書かない文法)）は別に扱う
 - 型注釈が `()` でない規則は、例外の対象にならない。`type Unit = ()` のような別名も `()` とみなさない
 
 省略できる `{ () }` を書いても誤りではない。
@@ -594,10 +596,119 @@ Spaces <- Sp+             # 要素の値は [()] だが、選択肢の値は ()
 | 書き方 | 報告 |
 |---|---|
 | `Flag <- 'on'`（型注釈が `Bool` の規則で、値を持つ要素が 0 個） | `error: an alternative without an action must have exactly one element with a value, but it has none` |
-| `Pair <- Num Num`（値を持つ要素が 2 個） | `error: an alternative without an action must have exactly one element with a value, but it has 2` |
+| `Pair <- Num Num`（型注釈が `(Int, Int)` の規則で、値を持つ要素が 2 個） | `error: an alternative without an action must have exactly one element with a value, but it has 2` |
 
 一つめは `Flag <- 'on' { True }` と書く。
 二つめは、二つの値を束縛してアクションで組み立てる。
+型注釈とアクションをどちらも書かなければ、`Pair` は型を生成する規則になり、誤りにならない（[型の推論と生成](#型の推論と生成)）。
+
+### 型の推論と生成
+
+`%syntax` のない文法で、型注釈がなく、どの選択肢もアクションを持たない規則は、選択肢の値から型が決まる（[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)）。
+値の型を verbatim ブロックに書き、型注釈と束縛とアクションで値を組み立てる手間を、文法の形から機械的に省くためである。
+
+| 分類 | 条件 | 規則の型 | 選択肢の値 |
+|---|---|---|---|
+| `()` の規則 | どの選択肢も `()` 以外の値を持つ要素を持たない | `()` | `()` |
+| 型を推論する規則 | どの選択肢も、`()` 以外の値を持つ要素をちょうど一つ持ち、それらの型がすべて同じ | その型 | その要素の値 |
+| 型を生成する規則 | それ以外 | 生成した型 | 構築子に要素の値を並べたもの |
+
+```hpeg
+%module Example.Generated
+
+Expr <- Expr '+' Sp Atom # 型を生成する。値の数が 2 と 1
+     / Atom
+
+Sp <- ' '* # () の規則
+
+Num <- $[0-9]+ Sp # 型を推論する。型は Text
+
+Paren <- '(' Sp Expr ')' Sp # 型を推論する。型は Expr
+
+Atom <- Num # 型を生成する。Text と Expr が違う
+     / Paren
+```
+
+生成モジュールは、型を生成する規則ごとに、次の型を宣言して公開する。
+
+```haskell
+data Expr = Expr1 Expr Atom | Expr2 Atom
+  deriving (Eq, Show)
+
+data Atom = Atom1 Text | Atom2 Expr
+  deriving (Eq, Show)
+```
+
+`parse "1+2"` は `Right (Expr1 (Expr2 (Atom1 "1")) (Atom1 "2"))` を返す。
+`Paren` は値を一つだけ返すので、構築子で包まずに `Expr` の値を返す。
+
+分類は、規則が互いを呼ぶので、二段の不動点で決める。
+はじめに、すべての規則を `()` の規則とみなし、`()` 以外の値を持つ選択肢のある規則を `()` でない規則に移す。
+値の数え方は [`()` の値は数えない](#-の値は数えない)と同じで、`[()]` と `Maybe ()` も `()` の値とみなす。
+次に、`()` でない規則のうち、値の数が 1 でない選択肢を持つ規則を、型を生成する規則に決める。
+残りの規則は、要素の型（[値を持つ式](#値を持つ式)）から型を推論する。
+二つの違う型が現れた規則と、型が最後まで決まらない規則は、型を生成する規則に移す。
+
+二つの型が同じかどうかは、型の文字列を空白を除いて比べて決める。
+`[Int]` と `[ Int ]` は同じ型、`Text` と別名の `Name`（`type Name = Text`）は違う型である。
+雛形の呼び出しの型は、展開した規則の型注釈の型で、型の変数を置き換えた型は括弧で囲まれる（`[(Int)]`）。
+比べられないときは型を生成する側に倒れるので、生成モジュールの型が合わなくなることはない。
+
+生成する型は、次のように作る。
+
+- 型の名前は、規則名の先頭を大文字にしたものである。大文字のない文字で始まる規則名は、前に `Rule'` を付ける（`値` の型は `Rule'値`）
+- 選択肢ごとに構築子を一つ作る。値を一つだけ持つ選択肢も構築子で包む
+- 構築子の名前は、選択肢が一つなら型の名前と同じ、二つ以上なら型の名前に選択肢の番号（1 から）を付けたもの（`Expr1`、`Expr2`）である
+- 構築子の引数は、選択肢の `()` 以外の値を持つ要素の値を、現れる順に並べたものである。束縛の有無によらない
+- 値を持つ要素のない選択肢は、引数のない構築子になる
+- 構築子が一つで引数が一つの型は、`newtype` にする
+- 構築子ごと（`Expr(..)`）公開する。`peg-hs gen --export` で入口を絞ったときは、公開する入口の型から辿れる型だけを公開する
+
+選択肢の末尾（アクションを書く位置）に `@名前` を書くと、その選択肢の構築子の名前になる。
+`@名前` を書いた規則は、型を推論できる場合も、型を生成する。
+既定の名前は選択肢の並びで変わるので、長く使う文法では `@名前` で固定する。
+言語サーバーのコードアクションは、既定の名前を `@名前` として書き出す。
+
+```hpeg
+# 断片
+Expr <- Expr '+' Sp Atom @Add
+     / Atom @Single
+```
+
+生成する型は、既定で `Eq` と `Show` を導出する。
+`%deriving Eq, Ord, Show` のように書くと、導出するクラスが変わり、引数なしの `%deriving` は何も導出しない。
+構築子の引数に型注釈で書いた利用者の型が現れ、その型がクラスのインスタンスを持たなければ、GHC の誤りになる。
+そのときは、`%deriving` で導出するクラスを減らすか、インスタンスを書く。
+
+型を推論する規則と型を生成する規則は、型注釈とアクションを書いた規則から呼べる。
+呼び出し元のアクションは、推論した型か生成した型の値を受け取る。
+束縛は書いてよく、束縛した値は意味述語と規則の引数から読める。
+選択肢に一つでもアクションを書くと、その規則は対象から外れ、型注釈がなければ型は `()` である。
+
+この書き方は、型注釈とアクションを書いた文法より遅い。
+キャプチャした `Text` と構築子を、使うかどうかによらず作るからである。
+80 万文字の JSON の文書では、型注釈とアクションを書いた文法に比べて、時間は約 0.97 倍、最大の常駐メモリは約 1.18 倍だった（[docs/benchmarks/2026-11-06-json-generated-types.md](benchmarks/2026-11-06-json-generated-types.md)）。
+この値は、生成した型の値をそのまま使う場合のもので、利用者の型に写す時間は含まない。
+速さが要る規則だけ、型注釈とアクションを手で書く。
+規則ごとに選べるので、時間のかかる規則だけを書き直せる。
+
+よくある誤り：
+
+| 書き方 | 報告 |
+|---|---|
+| 型注釈のある規則に `@名前` を書いた | `error: @Add names a constructor, but rule Expr has a type annotation` |
+| アクションのある規則に `@名前` を書いた | `error: @Add names a constructor, but rule Expr has an action` |
+| `()` の規則に `@名前` を書いた | `error: @Add names a constructor, but rule Sp has type (): no alternative has a value other than ()` |
+| `%syntax` の文法に `@名前` を書いた | `error: @Add names a constructor, but the grammar has %syntax` |
+| 小文字で始まる名前（`@add`） | `error: the constructor name add must start with an upper case letter` |
+| 同じ名前を二度書いた | `error: the constructor Add is defined twice in rule Expr; name one of the alternatives with @Name` |
+| 既定の名前が別の規則の型の名前と重なる（`S <- S1 / ...` と規則 `S1`） | `error: the constructor S1 of rule S has the name of the type of rule S1; name the alternative with @Name` |
+| 型の名前が重なる（`expr` と `Expr`） | `error: the rules expr and Expr have the same type name Expr; rename one of them` |
+| `%deriving` を二度書いた | `error: duplicate %deriving directive` |
+| クラスの名前でないものを書いた（`%deriving eq`） | `error: %deriving expects class names, but got eq` |
+
+`%syntax` の文法では、型注釈のない規則の型は、これまでどおり `()` である（[型を書かない文法](#型を書かない文法)）。
+値を持つ要素が二つ以上のグループ（`(a:A ',' b:B)*`）は値を持たないので、値が要るときはグループを規則に切り出す。
 
 ### 位置を持つ構文木
 
@@ -974,7 +1085,7 @@ parseTerm :: Text -> Either ParseError Int
 入口は入力の全体の消費を要求する。
 規則が成功しても入力が残っていれば、解析は失敗する。
 
-生成モジュールが公開するのは、入口と、`%export` に挙げた名前だけである。
+生成モジュールが公開するのは、入口と、生成した型（[型の推論と生成](#型の推論と生成)）と、`%export` に挙げた名前だけである。
 入口と `%syntax` の名前は、`peg-hs gen --export NAME` で使うものだけに狭められる（[ADR 0061](adr/0061-select-generated-exports.md)）。
 宣言を削ったモジュールは、使われない import とトップレベルの束縛の警告を出さない。削った規則のアクションだけが使っていた verbatim ブロックの import や関数が、使われなくなるためである。verbatim ブロックのそれらの誤りは、`--export` を付けずに生成して確かめる（[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)）。
 規則の内部の実装は公開されない。
@@ -1133,7 +1244,7 @@ Ws <- [ \t]+
 ```
 
 `Num <- $[0-9]+` は、キャプチャの値（`Text`）を一つだけ持つ選択肢である。
-`%syntax` のない文法なら、この選択肢はその `Text` を返し、型 `()` の規則と合わずに GHC の型の誤りになる。
+`%syntax` のない文法なら、`Num` は型を推論する規則になり、型は `Text` である（[型の推論と生成](#型の推論と生成)）。
 `%syntax` の文法では、型注釈のない規則の、アクションを省略した選択肢の値は、要素によらず `()` になる。
 キャプチャ、型注釈のある規則の呼び出し、`()` でない値を持つ要素が、いくつあってもよい。
 要素の値は捨てられ、数字の文字列は構文木の `Num` のトークンとして残る。
@@ -1145,7 +1256,7 @@ Ws <- [ \t]+
 
 次の規則は、これまでどおり扱う。
 
-- `%syntax` のない文法。型付きの値を返す文法では、型注釈の書き忘れが GHC の型の誤りとして見つかるほうを選んだ
+- `%syntax` のない文法。型注釈とアクションのない規則の型は、推論するか生成する（[型の推論と生成](#型の推論と生成)）
 - 型注釈のある規則。`:: ()` と書いた規則も含む。型注釈を書くのは、型付きの値を返すつもりだからである
 - アクションを書いた選択肢と、要素のない選択肢
 
@@ -1369,7 +1480,7 @@ info の規則は次の三つである。
 |---|---|---|
 | `omittable-unit-action` | 型注釈が `()` の規則の、省略できる `{ () }`。位置はアクションの `{` を指す。雛形の中のアクションは、すべての展開で省略できるときに限る | [アクションの省略](#アクションの省略) |
 | `omittable-identity-action` | 束縛した値をそのまま返す、束縛ごと省けるアクション（`e:Expr { e }`）。位置はアクションの `{` を指す。`%syntax` の文法には出さない。雛形の中のアクションは、すべての展開で省けるときに限る | [アクションの省略](#アクションの省略) |
-| `omittable-unit-annotation` | 型注釈 `A :: ()`。型注釈のない規則の型も `()` なので、行ごと省ける。位置は型注釈の始まりを指す。引数付き規則と雛形の型注釈には出さない | [規則](#規則) |
+| `omittable-unit-annotation` | 型注釈 `A :: ()`。値を持たない、型注釈のない規則の型も `()` なので、行ごと省ける。位置は型注釈の始まりを指す。引数付き規則と雛形の型注釈には出さない | [規則](#規則) |
 
 警告に従って直しても、文法が受理する入力と、誤りの位置は変わらない。
 変わりうるのは、リテラルの接頭辞の警告に従って選択肢を消したときの、誤りの文言の「期待したもの」だけである。

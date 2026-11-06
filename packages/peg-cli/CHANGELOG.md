@@ -55,6 +55,13 @@ Since v0.1.0-rc2:
   [ADR 0063](https://github.com/tett23/peg-hs/blob/main/docs/adr/0063-omit-unit-actions.md),
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 
+Since v0.1.0-rc3:
+
+- `peg-hs gen` infers or generates the types of the rules without type
+  annotations and actions, and `peg-hs fmt` places `@Name` where an
+  action goes
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:

@@ -1,5 +1,6 @@
 ; The captures follow the table of ADR 0034, with the punctuation and the
-; arguments of directives of ADR 0069.
+; arguments of directives of ADR 0069, and the constructor names and the
+; classes of %deriving of ADR 0075.
 
 (comment) @comment
 
@@ -14,6 +15,10 @@
 (label_argument) @label
 
 (extension_name) @constant
+
+(class_name) @type
+
+(constructor_name) @constructor
 
 (rule_name) @function
 
@@ -75,3 +80,5 @@
 (template_call "," @punctuation.delimiter)
 
 (label "^" @operator)
+
+(alternative "@" @punctuation.special)

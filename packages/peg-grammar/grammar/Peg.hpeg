@@ -31,6 +31,7 @@
 %safe action
 %safe hsstring
 %safe hschar
+%safe constructor
 
 %{
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)
@@ -173,7 +174,11 @@ MoreAlt :: Alt
 MoreAlt <- Ws '/' Alt
 
 Alt :: Alt
-Alt <- Ws l:Here is:Item* Ws act:Action? { Alt l is act }
+Alt <- Ws l:Here is:Item* Ws act:Action? c:Constructor? { Alt l is act c }
+
+# 構築子の名前（ADR 0075）。アクションを書く位置に置く
+Constructor :: Located Text
+Constructor <- Ws '@' l:Here n:(Ident ^constructor) { Located l n }
 
 Item :: Item
 Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }

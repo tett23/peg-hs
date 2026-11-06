@@ -89,7 +89,7 @@ Sp <- ' '*
 `%module` は生成するモジュールの名前である。
 `%{` と `}%` の間（verbatim ブロック）には、生成したモジュールにそのまま入る Haskell を書く。
 `Expr :: Expr` は規則 `Expr` の結果の型で、`Expr <- ...` が規則の定義である。
-`Sp` のように型注釈のない規則の型は `()` である。引数付き規則と雛形には型注釈が要る（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
+`Sp` のように型注釈がなく値を持たない規則の型は `()` である。引数付き規則と雛形には型注釈が要る（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 `l:Expr` は結果に名前を付け（束縛）、`{ Add l r }` はアクションである。
 `$[0-9]+` は、読んだ範囲の文字列（`Text`）を値にする。
 記法の詳しい解説は [docs/syntax.md](docs/syntax.md) にある。
@@ -117,11 +117,50 @@ peg-hs parse grammar/Calc.hpeg input.txt
 Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))
 ```
 
-### 構文木を使う書き方と、型付きの値を返す書き方
+### 型を生成する書き方、構文木を使う書き方、型付きの値を返す書き方
 
-文法の書き方は二つある（[ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)）。
+文法の書き方は三つある。
+`%syntax` のない文法では、一つめと三つめを規則ごとに混ぜられる。
 上の文法は型付きの値を返す書き方で、規則に型注釈とアクションを書く。
-もう一つは、`%syntax` を付けて型注釈もアクションも書かず、`parseSyntax` が返すロスレスな構文木から結果を読む書き方である。
+
+型注釈もアクションも書かなければ、peg-hs が文法から値の型を決める（[ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)）。
+
+```hpeg
+%module Calc.Generated
+
+Expr <- Expr '+' Sp Term @Add
+     / Term
+
+Term <- Term '*' Sp Atom @Mul
+     / Atom
+
+Atom <- Num
+     / '(' Sp Expr ')' Sp
+
+Num <- $[0-9]+ Sp
+
+Sp <- ' '*
+```
+
+`Sp` のように、どの選択肢も `()` 以外の値を持たない規則の型は `()` である。
+どの選択肢も値をちょうど一つ持ち、型がすべて同じ規則は、その型を持つ。`Num` は `$[0-9]+` の `Text` を返す。
+それ以外の規則には、選択肢ごとに構築子を持つ型を生成する。既定で `deriving (Eq, Show)` を付け、`%deriving` で変えられる。
+`Expr` と `Term` は値が二つの選択肢と一つの選択肢を持ち、`Atom` の値は `Text` と `Expr` で型が違う。
+`@Add` は選択肢の構築子の名前である。書かなければ、型の名前に選択肢の番号を付けた名前（`Expr2`）になる。
+生成モジュールは、次の型を宣言して公開する。
+
+```haskell
+data Expr = Add Expr Term | Expr2 Term
+  deriving (Eq, Show)
+
+data Term = Mul Term Atom | Term2 Atom
+  deriving (Eq, Show)
+
+data Atom = Atom1 Text | Atom2 Expr
+  deriving (Eq, Show)
+```
+
+二つめは、`%syntax` を付けて型注釈もアクションも書かず、`parseSyntax` が返すロスレスな構文木から結果を読む書き方である（[ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)）。
 
 ```hpeg
 %module Calc.Syntax
@@ -144,9 +183,12 @@ Sp <- ' '*
 
 `%syntax` の文法では、型注釈のない規則の、アクションを省略した選択肢の値は、要素の値（キャプチャ `$[0-9]+` の `Text` など）によらず `()` になる。
 型付きの値が要る規則にだけ、型注釈とアクションを書けばよい。
-構文木には時間とメモリの費用がかかる。
-80 万文字の JSON の文書では、構文木を使う書き方は、`%syntax` のない型付きの文法に比べて、時間が約 1.6 倍、メモリが約 1.1 倍だった（[docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)）。
+
+三つの書き方は速さが違う。
+80 万文字の JSON の文書では、`%syntax` のない型付きの文法に比べて、型を生成する書き方は、生成した値を別の型に写さない場合で、時間が約 0.97 倍、最大の常駐メモリが約 1.18 倍だった（[docs/benchmarks/2026-11-06-json-generated-types.md](docs/benchmarks/2026-11-06-json-generated-types.md)）。
+同じ計測で、構文木を使う書き方は、時間とメモリがどちらも約 1.2 倍だった（[docs/benchmarks/2026-11-06-json-generated-types.md](docs/benchmarks/2026-11-06-json-generated-types.md)）。前の計測では、時間が約 1.6 倍、メモリが約 1.1 倍だった（[docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)）。
 速さが要るときは、型注釈とアクションを書き、`%syntax` を付けない。
+`%syntax` のない文法では、時間のかかる規則だけを書き直せる。
 
 ## 生成したモジュールを使う
 
@@ -314,14 +356,17 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 `editors/` に、シンタックスハイライトの文法と VS Code の拡張機能を置いている（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）。
 TextMate と tree-sitter の文法は、リリースにも入れている。[Releases](https://github.com/tett23/peg-hs/releases) の `peg-hs-editors-<版>.tar.gz` と、実行ファイルのアーカイブの `editors/` である。そこにある tree-sitter の文法は生成済みのパーサーを含むので、Neovim と Helix は tree-sitter の CLI なしでビルドできる。下の設定の `/path/to/peg-hs/editors/tree-sitter-hpeg` には、展開したアーカイブの `tree-sitter-hpeg/` を指定してもよい（[ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)）。
 規則、リテラル、演算子のほか、括弧、アクションの波括弧、束縛と雛形の引数の区切り、指示の引数にも色を付ける。指示の引数は、規則、ラベル、モジュール、言語拡張のどれを指すかで色を分ける（[ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)）。
+構築子の名前（`@Add`）と `%deriving` のクラスは、構築子と型の色にする（[ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)）。
 Haskell の断片（verbatim ブロック、型、アクション、意味述語、引数）は、エディタの Haskell の文法がハイライトする。
 tree-sitter の文法には、折り畳み、字下げ、名前の定義と参照の問い合わせもある。規則は型注釈とまとめて畳め、新しい行の選択肢は `fmt` と同じく定義の `<-` の桁に字下げされる。
 
 言語サーバー `peg-hs lsp` は、編集のたびに `gen` と `lint` の誤りと警告を報告し、`fmt` で整形する。
 semantic tokens、定義への移動、参照の検索、ホバー、文書の記号も提供する。
-semantic tokens は、指示の引数の規則、ラベル、モジュールも区別する。
+semantic tokens は、指示の引数の規則、ラベル、モジュールも区別し、構築子の名前と `%deriving` のクラスも区別する。
+ホバーは規則の型を示す。型注釈のない規則には推論した型か生成した型の宣言を示し、構築子の名前にはその構築子の型を示す。
 コードアクションとして、`label` と同じラベルを付ける「ラベルを付ける」と、回復の規則を持たないラベルに `%recover` と回復の規則の雛形を加える「`%recover` を加える」がある（[ADR 0054](docs/adr/0054-automatic-label-insertion.md)）。
 雛形の値は型の穴 `{ _ }` なので、GHC が示す型を見て作者が書き入れる。
+もう一つのコードアクションは、規則の既定の構築子の名前を `@名前` として書き出す。書き出した名前は、選択肢を並べ替えても変わらない（[ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)）。
 
 下の設定は、どれもまだエディタで手で確かめていない（**未確認**）。
 確かめた結果は `docs/editors/` に記録し、記録したエディタからこの表示を外す（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。

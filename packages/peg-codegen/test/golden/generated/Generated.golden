@@ -1,0 +1,12 @@
+-- | The value of the rule @Expr@.
+data Expr
+  = Expr1 Expr Atom
+  | Expr2 Atom
+  deriving (PegPrelude.Eq, PegPrelude.Show)
+
+-- | The value of the rule @Atom@.
+data Atom
+  = Atom1 PegRt.Text
+  | Atom2 Expr
+  deriving (PegPrelude.Eq, PegPrelude.Show)
+

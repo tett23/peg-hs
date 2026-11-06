@@ -19,7 +19,7 @@ module Peg.Grammar.Assemble
   , directiveArg
   ) where
 
-import Data.Char (isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isSpace)
+import Data.Char (isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isSpace, isUpper)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -120,6 +120,9 @@ assemble items =
                 , [lab, rule] <- [T.words a]
                 ]
             , grammarSafe = [Located l a | TDirective l "safe" _ a <- items]
+            , grammarDeriving = case [Located l (splitExports al a) | TDirective l "deriving" al a <- items] of
+                d : _ -> Just d
+                [] -> Nothing
             , grammarVerbatim = [Located l t | TVerbatim l t <- items]
             , grammarRules = rules
             }
@@ -128,7 +131,7 @@ assemble items =
   where
     directives = [(l, n, a) | TDirective l n _ a <- items]
     argLocs = [(n, al, a) | TDirective _ n al a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe"]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving"]
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
@@ -151,10 +154,10 @@ assemble items =
     errors =
       [Diagnostic l ("unknown directive %" <> n) | (l, n, _) <- directives, n `notElem` known]
         ++ [ Diagnostic l ("duplicate %" <> n <> " directive")
-           | n <- ["module", "start", "env", "tabstop", "syntax"]
+           | n <- ["module", "start", "env", "tabstop", "syntax", "deriving"]
            , (l, _, _) : _ : _ <- [reverse [d | d@(_, n', _) <- directives, n' == n]]
            ]
-        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n /= "syntax", T.null a]
+        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n `notElem` ["syntax", "deriving"], T.null a]
         ++ [Diagnostic l "%syntax takes no argument" | (l, "syntax", a) <- directives, not (T.null a)]
         ++ [ Diagnostic l "%recover expects a label and a rule name"
            | (l, "recover", a) <- directives
@@ -167,6 +170,12 @@ assemble items =
            | ("language", al, a) <- argLocs
            , Located l x <- splitExports al a
            , not (isExtensionName x)
+           ]
+        -- ADR 0075
+        ++ [ Diagnostic l ("%deriving expects class names, but got " <> x)
+           | ("deriving", al, a) <- argLocs
+           , Located l x <- splitExports al a
+           , not (isClassName x)
            ]
         ++ [ Diagnostic l "%safe expects a label name"
            | (l, "safe", a) <- directives
@@ -213,6 +222,15 @@ isExtensionName :: Text -> Bool
 isExtensionName t = case T.uncons t of
   Just (c, rest) -> isAsciiUpper c && T.all (\x -> isAscii x && isAlphaNum x) rest
   Nothing -> False
+
+-- The lexical form of a class name, which may be qualified: @Eq@,
+-- @GHC.Generics.Generic@.
+isClassName :: Text -> Bool
+isClassName t = not (T.null t) && all part (T.splitOn "." t)
+  where
+    part p = case T.uncons p of
+      Just (c, rest) -> isUpper c && T.all isIdentChar rest
+      Nothing -> False
 
 -- Split export items at top-level commas.
 splitExports :: Loc -> Text -> [Located Text]

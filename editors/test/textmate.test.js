@@ -82,3 +82,18 @@ test('the arguments of directives have their own scopes (ADR 0069)', () => {
     ['B', 'constant.language.extension.hpeg'],
   ]);
 });
+
+test('constructor names and the classes of %deriving have the scopes of Haskell (ADR 0075)', () => {
+  const scopesOf = (src) => tokenize(src).map((t) => [t.text, t.scopes.at(-1)]);
+  assert.deepEqual(scopesOf('%deriving Eq, GHC.Generics.Generic # c\n').filter(([, s]) => s !== 'source.hpeg'), [
+    ['%deriving', 'keyword.other.directive.hpeg'],
+    ['Eq', 'storage.type.class.hpeg'],
+    [',', 'punctuation.separator.comma.hpeg'],
+    ['GHC.Generics.Generic', 'storage.type.class.hpeg'],
+    ['# c', 'comment.line.number-sign.hpeg'],
+  ]);
+  assert.deepEqual(scopesOf("A <- B C @Pair\n").filter(([t]) => t === '@' || t === 'Pair'), [
+    ['@', 'punctuation.definition.constructor.hpeg'],
+    ['Pair', 'constant.other.constructor.hpeg'],
+  ]);
+});

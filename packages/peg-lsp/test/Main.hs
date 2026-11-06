@@ -80,6 +80,7 @@ main = do
               results = [r | m <- session [initialize False, open src, request 2 "textDocument/hover" (docAt 3 5), request 3 "textDocument/hover" (docAt 5 0)], Just r <- [member "result" m]]
               contents r = member "contents" r >>= member "value"
           map contents (drop 1 results) @?= [Just (String "```peg\nA :: ()\n```"), Just (String "```peg\nA :: ()\n```")]
+      , generatedTypeTests
       , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
             @?= [(3, 6, "rule B is not a template")]
@@ -128,6 +129,49 @@ main = do
           src <- TIO.readFile "../peg-grammar/grammar/Peg.hpeg"
           [d | (Error, d, _) <- diagnose src] @?= []
       ]
+
+-- ADR 0075: the semantic tokens, hovers and code actions of the rules whose
+-- types are inferred or generated.
+generatedTypeTests :: TestTree
+generatedTypeTests =
+  testGroup
+    "types of rules without type annotations and actions (ADR 0075)"
+    [ testCase "a constructor name is an enumMember, and a class of %deriving a type" $ do
+        let out = session [initialize False, open generatedGrammar, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])])]
+            typed = decodeTypedTokens generatedGrammar (fromMaybe [] (lastResult out >>= member "data" >>= asArray))
+        [(locLine a, locColumn a, locColumn b, ty) | (a, b, ty) <- typed, ty `elem` ["enumMember", "type"]]
+          @?= [(2, 11, 13, "type"), (2, 15, 19, "type"), (4, 26, 29, "enumMember")]
+        assertBool "enumMember and type in the legend" (all (`elem` tokenTypes) ["enumMember", "type"])
+    , testCase "the hovers of an inferred, a generated and a unit rule, and of a constructor" $ do
+        let results = [r | m <- session (initialize False : open generatedGrammar : [request i "textDocument/hover" (docAt l c) | (i, (l, c)) <- zip [2 ..] [(3, 0), (6, 0), (8, 0), (3, 26), (3, 17)]]), Just r <- [member "result" m]]
+            contents r = member "contents" r >>= member "value" >>= asText
+        map contents (drop 1 results)
+          @?= [ Just "```peg\nExpr :: Expr\n```\n\n```haskell\ndata Expr = Add Expr Text | Expr2 Text\n  deriving (Eq, Show)\n```"
+              , Just "```peg\nNum :: Text\n```"
+              , Just "```peg\nSp :: ()\n```"
+              , Just "```haskell\nAdd :: Expr -> Text -> Expr\n```"
+              , Just "```peg\nSp :: ()\n```"
+              ]
+    , testCase "a code action writes the default constructor names" $ do
+        let actions = [(t, applyAction generatedGrammar a) | (t, a) <- codeActionsAt generatedGrammar "/ Num", "Write the constructor names" `T.isPrefixOf` t]
+        actions @?= [("Write the constructor names of rule Expr", Right (T.replace "     / Num\n" "     / Num @Expr2\n" generatedGrammar))]
+    , testCase "no code action for a rule whose type is not generated" $
+        [t | (t, _) <- codeActionsAt generatedGrammar "Num <-", "Write the constructor names" `T.isPrefixOf` t] @?= []
+    ]
+
+generatedGrammar :: Text
+generatedGrammar =
+  T.unlines
+    [ "%module M"
+    , "%deriving Eq, Show"
+    , ""
+    , "Expr <- Expr '+' Sp Num @Add"
+    , "     / Num"
+    , ""
+    , "Num <- $[0-9]+ Sp"
+    , ""
+    , "Sp <- ' '*"
+    ]
 
 -- A grammar for the code actions: labels on a reference, a literal, a class
 -- and a group, a label with %recover and a label it covers.

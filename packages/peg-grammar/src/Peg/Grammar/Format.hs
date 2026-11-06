@@ -85,7 +85,7 @@ eraseTop = \case
   where
     z = Loc 0 0
     erase (Located _ x) = Located z x
-    alt (Alt _ is a) = Alt z (map item is) (fmap (\(Located _ c) -> Located z (oneLine c)) a)
+    alt (Alt _ is a c) = Alt z (map item is) (fmap (\(Located _ x) -> Located z (oneLine x)) a) (fmap erase c)
     oneLine c = if T.any (== '\n') c then c else T.strip c
     item (Item _ b e) = Item z b (expr e)
     expr = \case
@@ -217,7 +217,7 @@ sequenceOf first = go False
   where
     go _ [] = []
     go seen (e : rest)
-      | isNode "Item" e || isNode "Action" e = Gap (if seen then GSoft else first) : element e ++ go True rest
+      | isNode "Item" e || isNode "Action" e || isNode "Constructor" e = Gap (if seen then GSoft else first) : element e ++ go True rest
       | isTok "/" e = Gap GSpace : element e ++ go seen rest
       | otherwise = element e ++ go seen rest
 

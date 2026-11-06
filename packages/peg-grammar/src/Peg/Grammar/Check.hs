@@ -20,12 +20,18 @@
 --
 -- 'check' checks that labels named in @%recover@ and @%safe@ exist, but
 -- not whether a label is safe; 'Peg.Grammar.Labels.labelWarnings' warns
--- about the labels that may not be (ADR 0028). 'hasValue', 'countedItems' and 'unitRules' decide
--- which expressions have values (ADR 0030), 'omitsUnitAction' which
+-- about the labels that may not be (ADR 0028). 'hasValue', 'countedItems' and 'unitRules',
+-- from "Peg.Grammar.Types", decide which expressions have values (ADR 0030)
+-- and which rules have type @()@ (ADR 0075), 'omitsUnitAction' which
 -- alternatives of rules of type @()@ may omit their actions (ADR 0063), and
 -- 'discardingRules' and 'discardsValues' which alternatives have value @()@
 -- whatever their elements (ADR 0068). They are shared with the code
 -- generator and the linter.
+--
+-- 'check' also checks the constructor names of the rules whose types are
+-- generated (ADR 0075): a name is written only in such a rule, starts with
+-- an upper case letter, and is not the name of another constructor or of
+-- another generated type.
 module Peg.Grammar.Check
   ( Analysis (..)
   , check
@@ -37,16 +43,17 @@ module Peg.Grammar.Check
   , discardsValues
   ) where
 
-import Data.Char (isSpace)
+import Data.Char (isUpper)
 import Data.Graph (SCC (..), stronglyConnComp)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
+import Peg.Grammar.Types
 
 -- | What the code generator needs to know about a valid grammar.
 data Analysis = Analysis
@@ -58,49 +65,10 @@ data Analysis = Analysis
   -- ^ Rules that can succeed without consuming input.
   , analysisUnit :: Set Text
   -- ^ Rules whose type is @()@ (ADR 0030).
+  , analysisTypes :: Classification
+  -- ^ The types of the rules (ADR 0075).
   }
   deriving (Eq, Show)
-
--- | Whether an expression produces a value that can be bound (ADR 0004),
--- given the rules whose type is @()@ (ADR 0030).
-hasValue :: Set Text -> Expr -> Bool
-hasValue units = \e -> case e of
-  ERef {} -> True
-  ECapture _ -> True
-  EStar x -> hasValue units x
-  EPlus x -> hasValue units x
-  EOpt x -> hasValue units x
-  ELabel _ x _ -> hasValue units x
-  ETemplate {} -> True
-  EGroup alts -> not (null alts) && all ((== 1) . length . countedItems units) alts
-  _ -> False
-
--- | The items of a sequence whose values count, for a group's value and an
--- alternative without an action (ADR 0030): the items with a value, except
--- unbound items whose value is unit. When no item has a value other than
--- unit, the unit values count too.
-countedItems :: Set Text -> [Item] -> [Item]
-countedItems units items = if null significant then valued else significant
-  where
-    valued = [i | i <- items, hasValue units (itemExpr i)]
-    significant = [i | i <- valued, isJustBind i || not (isUnit units (itemExpr i))]
-    isJustBind i = maybe False (const True) (itemBind i)
-
--- Whether the value of an expression is made of @()@ only.
-isUnit :: Set Text -> Expr -> Bool
-isUnit units = \case
-  ERef _ n _ -> S.member n units
-  EStar x -> isUnit units x
-  EPlus x -> isUnit units x
-  EOpt x -> isUnit units x
-  ELabel _ x _ -> isUnit units x
-  EGroup alts -> not (null alts) && all (\is -> all (isUnit units . itemExpr) (countedItems units is)) alts && hasValue units (EGroup alts)
-  _ -> False
-
--- | The rules of type @()@: their type annotation is @()@, ignoring spaces
--- (ADR 0030), or they have none (ADR 0066).
-unitRules :: [Rule] -> Set Text
-unitRules rules = S.fromList [ruleName r | r <- rules, T.filter (not . isSpace) (unLoc (ruleType r)) == "()"]
 
 -- | Whether an alternative of a rule may omit its action because the rule
 -- has type @()@ (ADR 0063): the rule is one of the given rules of type
@@ -138,7 +106,7 @@ check g = case grammarRules g of
 checkRules :: Grammar -> Rule -> Either [Diagnostic] Analysis
 checkRules g firstRule =
   case sortOn diagLoc errors of
-    [] -> Right (Analysis start lr nullable units)
+    [] -> Right (Analysis start lr nullable units classes)
     es -> Left es
   where
     rules = grammarRules g
@@ -146,14 +114,16 @@ checkRules g firstRule =
     start = maybe (ruleName firstRule) unLoc (grammarStart g)
     nullable = nullableRules rules
     lr = leftRecursiveRules nullable rules
-    units = unitRules rules
+    classes = classify g
+    units = classUnits classes
     errors =
       undefinedErrors
         ++ arityErrors
         ++ entryErrors
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
-        ++ concatMap (altErrors units (discardingRules g)) rules
+        ++ concatMap (altErrors units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
+        ++ constructorErrors g classes
         ++ paramLrErrors
         ++ syntaxNameErrors g
         ++ concatMap hygieneErrors (grammarVerbatim g)
@@ -408,8 +378,8 @@ leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
 
 -- Alternatives -------------------------------------------------------------------
 
-altErrors :: Set Text -> Set Text -> Rule -> [Diagnostic]
-altErrors units discarding r = concatMap alt (ruleAlts r)
+altErrors :: Set Text -> Set Text -> Set Text -> Set Text -> Rule -> [Diagnostic]
+altErrors units discarding valued unknown r = concatMap alt (ruleAlts r)
   where
     alt a =
       bindingErrors (altItems a)
@@ -434,6 +404,12 @@ altErrors units discarding r = concatMap alt (ruleAlts r)
       ]
     omissionErrors a = case altAction a of
       Just _ -> []
+      -- The value of an alternative of a rule whose type is inferred or
+      -- generated is that of its elements (ADR 0075).
+      Nothing | S.member (ruleName r) valued -> []
+      -- The values of a call of an undefined rule are not known; the error
+      -- is the undefined rule (ADR 0075).
+      Nothing | S.member (ruleName r) unknown || any (`S.member` unknown) (concatMap (valueRefs . itemExpr) (altItems a)) -> []
       Nothing -> case length (countedItems units (altItems a)) of
         1 -> []
         _ | omitsUnitAction units (ruleName r) (altItems a) -> []
@@ -452,6 +428,77 @@ altErrors units discarding r = concatMap alt (ruleAlts r)
       ELabel _ x _ -> exprGroupErrors x
       EDiscard x -> exprGroupErrors x
       _ -> []
+
+-- The rules whose types are inferred or generated (ADR 0075).
+valuedRules :: Grammar -> Classification -> Set Text
+valuedRules g c = S.fromList [ruleName r | r <- grammarRules g, isClassified g r, not (S.member (ruleName r) (classUnits c))]
+
+-- Constructor names ------------------------------------------------------------
+
+-- The constructor names written where no type is generated, the names
+-- that are not names of constructors, and the constructors and types of
+-- the generated module with the same name (ADR 0075).
+constructorErrors :: Grammar -> Classification -> [Diagnostic]
+constructorErrors g c =
+  [ Diagnostic l msg
+  | r <- grammarRules g
+  , a <- ruleAlts r
+  , Just (Located l n) <- [altConstructor a]
+  , Just msg <- [misplaced r n]
+  ]
+    ++ [ Diagnostic l ("the constructor name " <> n <> " must start with an upper case letter")
+       | r <- grammarRules g
+       , isGenerated (ruleName r) || S.member (ruleName r) unknown
+       , a <- ruleAlts r
+       , Just (Located l n) <- [altConstructor a]
+       , not (startsUpper n)
+       ]
+    ++ typeNameErrors
+    ++ clashes M.empty constructors
+  where
+    isGenerated n = case M.lookup n (classRules c) of
+      Just (Generated _) -> True
+      _ -> False
+    misplaced r n
+      | Just _ <- grammarSyntax g = Just (prefix n <> "the grammar has %syntax")
+      | Just _ <- ruleAnnotation r = Just (prefix n <> "rule " <> ruleName r <> " has a type annotation")
+      | any (isJust . altAction) (ruleAlts r) = Just (prefix n <> "rule " <> ruleName r <> " has an action")
+      | S.member (ruleName r) unknown = Nothing
+      | not (isGenerated (ruleName r)) = Just (prefix n <> "rule " <> ruleName r <> " has type (): no alternative has a value other than ()")
+      | otherwise = Nothing
+    prefix n = "@" <> n <> " names a constructor, but "
+    startsUpper n = maybe False (isUpper . fst) (T.uncons n)
+    unknown = classUnknown c
+    -- The types of rules whose types are not known are not compared.
+    types = [d | d <- classDataTypes c, not (S.member (dataRule d) unknown)]
+    -- Two rules whose types have the same name, such as expr and Expr.
+    typeNameErrors =
+      [ Diagnostic (ruleLocOf (dataRule d)) ("the rules " <> dataRule e <> " and " <> dataRule d <> " have the same type name " <> dataName d <> "; rename one of them")
+      | (k, d) <- zip [0 :: Int ..] types
+      , e : _ <- [[e | e <- take k types, dataName e == dataName d]]
+      ]
+    ruleLocOf n = maybe (Loc 1 1) ruleLoc (M.lookup n ruleMap)
+    ruleMap = M.fromList [(ruleName r, r) | r <- grammarRules g]
+    -- A type with a constructor of its name clashes as a constructor.
+    typeOwners = M.fromListWith (\_ x -> x) [(dataName d, dataRule d) | d <- types, dataName d `notElem` map conName (dataConstructors d)]
+    -- The constructors of a type whose name is that of an earlier type are
+    -- not compared: the rules are renamed first.
+    constructors = [(d, k) | (i, d) <- zip [0 :: Int ..] types, dataName d `notElem` map dataName (take i types), k <- dataConstructors d]
+    -- The constructors in order; a name is reported where it is seen again,
+    -- and where it is the name of the type of another rule.
+    clashes _ [] = []
+    clashes seen ((d, k) : rest) =
+      let n = conName k
+          at = maybe (conAltLoc k) id (conNameLoc k)
+          again = case M.lookup n seen of
+            Just owner
+              | owner == dataRule d -> [Diagnostic at ("the constructor " <> n <> " is defined twice in rule " <> owner <> "; name one of the alternatives with @Name")]
+              | otherwise -> [Diagnostic at ("the constructor " <> n <> " of rule " <> dataRule d <> " is also a constructor of rule " <> owner <> "; name one of the alternatives with @Name")]
+            Nothing -> case M.lookup n typeOwners of
+              Just owner
+                | owner /= dataRule d -> [Diagnostic at ("the constructor " <> n <> " of rule " <> dataRule d <> " has the name of the type of rule " <> owner <> "; name the alternative with @Name")]
+              _ -> []
+       in again ++ clashes (M.insertWith (\_ x -> x) n (dataRule d) seen) rest
 
 -- Hygiene ----------------------------------------------------------------------
 

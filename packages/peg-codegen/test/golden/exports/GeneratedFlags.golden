@@ -1,0 +1,4 @@
+module Fixture.GeneratedNames
+  ( parseFlags
+  , Flag(..)
+  ) where

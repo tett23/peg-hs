@@ -1,0 +1,17 @@
+# 型注釈とアクションのない規則の型を、推論するか生成する（ADR 0075）。
+# Expr と Atom は型を生成し、Num と Paren は型を推論する
+%module Fixture.Generated
+%entry Atom
+%entry Paren
+
+Expr <- Expr '+' Sp Atom
+     / Atom
+
+Sp <- ' '*
+
+Num <- $[0-9]+ Sp
+
+Paren <- '(' Sp Expr ')' Sp
+
+Atom <- Num
+     / Paren

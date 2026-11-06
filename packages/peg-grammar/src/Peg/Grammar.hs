@@ -9,6 +9,8 @@
 -- * "Peg.Grammar.Templates" expands rule templates (ADR 0031).
 -- * "Peg.Grammar.Check" checks the expanded grammar and analyses it for
 --   the code generator.
+-- * "Peg.Grammar.Types" decides the types of the rules without type
+--   annotations and actions (ADR 0075).
 -- * "Peg.Grammar.Labels" warns about labels that may change the language
 --   (ADR 0028).
 -- * "Peg.Grammar.Lint" warns about mistakes that are not errors (ADR 0033).
@@ -110,6 +112,10 @@ data Grammar = Grammar
   -- ^ @%recover@: labels and their recovery rules.
   , grammarSafe :: [Located Text]
   -- ^ @%safe@: labels the author has checked to be safe (ADR 0028).
+  , grammarDeriving :: Maybe (Located [Located Text])
+  -- ^ @%deriving@: the classes that the generated types derive (ADR 0075),
+  -- at the location of the directive. 'Nothing' without the directive:
+  -- the types derive @Eq@ and @Show@. An empty list derives nothing.
   , grammarVerbatim :: [Located Text]
   -- ^ @%{ ... }%@ blocks, in order.
   , grammarRules :: [Rule]
@@ -151,11 +157,14 @@ data TemplateParam = TemplateParam
   }
   deriving (Eq, Show)
 
--- | An alternative of a rule: a sequence and an optional action.
+-- | An alternative of a rule: a sequence, an optional action, and an
+-- optional constructor name @\@Name@ (ADR 0075).
 data Alt = Alt
   { altLoc :: Loc
   , altItems :: [Item]
   , altAction :: Maybe (Located Text)
+  , altConstructor :: Maybe (Located Text)
+  -- ^ The name after @\@@, at the location of the name.
   }
   deriving (Eq, Show)
 

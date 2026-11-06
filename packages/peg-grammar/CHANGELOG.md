@@ -96,6 +96,29 @@ Since v0.1.0-rc2:
   `Peg.Grammar.Outline` build an outline from parts
   ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).
 
+Since v0.1.0-rc3:
+
+- In a grammar without `%syntax`, a rule without a type annotation and
+  without actions has type `()` when no alternative has a value other
+  than `()`, the type of its values when every alternative has one value
+  of the same type, and otherwise a type generated for it, with a
+  constructor for each alternative. `Peg.Grammar.Types` classifies the
+  rules (`classify`, `Classification`, `RuleType`, `DataType`,
+  `Constructor`) and writes their types; `analysisTypes` of `Analysis`
+  has the classification
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+- The constructor name `@Name` at the end of an alternative
+  (`altConstructor` of `Alt`), and `%deriving`, the classes that the
+  generated types derive (`grammarDeriving` of `Grammar`). The checks
+  report a constructor name where no type is generated, a name that does
+  not start with an upper case letter, a name used twice and a default
+  name that is the name of another generated type
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+- `Peg.Grammar.Constructors`: the edits that write out the default
+  constructor names of a rule, and the highlight kinds `HConstructor`
+  and `HClassName` of `Peg.Grammar.Highlight`
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:
@@ -107,6 +130,21 @@ Since v0.1.0-rc1:
   `T<a> (b)` for the group. `ETemplate` has the value arguments as its
   last field
   ([ADR 0055](https://github.com/tett23/peg-hs/blob/main/docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
+
+Since v0.1.0-rc3:
+
+- An alternative without an action with two or more values, in a rule
+  without a type annotation and without actions, is no longer an error:
+  the rule gets a generated type. `unitRules` takes the grammar, and
+  `hasValue` and `countedItems` are in `Peg.Grammar.Types`, still
+  exported by `Peg.Grammar.Check`
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+- A call of an undefined rule has no known value: next to `undefined rule
+  X`, the checks no longer report the number of values of the
+  alternatives that call it, nor errors of constructor names that depend
+  on it. `classUnknown` of `Classification` has the rules whose types
+  depend on undefined rules
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
 ### Fixed
 

@@ -4,7 +4,8 @@
 -- The server supports diagnostics (pushed on @didOpen@ and @didChange@,
 -- with incremental text synchronisation, ADR 0071), formatting, semantic tokens, go to
 -- definition, references, hover, document symbols, and code actions that
--- insert safe labels and add recovery rules (ADR 0054). Positions are
+-- insert safe labels and add recovery rules (ADR 0054) and write the
+-- default constructor names of a rule (ADR 0075). Positions are
 -- counted in UTF-16 code units, or in bytes when the client offers
 -- @utf-8@ in @positionEncodings@.
 --
@@ -66,6 +67,7 @@ import qualified Data.Text.Encoding as TE
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Assemble (assemble, isIdentChar)
 import Peg.Grammar.Check (check)
+import Peg.Grammar.Constructors (constructorNameEdits)
 import Peg.Grammar.Format (formatGrammar)
 import Peg.Grammar.Assemble (Top)
 import Peg.Grammar.Highlight
@@ -76,6 +78,8 @@ import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar)
 import Peg.Grammar.Outline
 import Peg.Grammar.Parser (parseTops)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
+import Peg.Grammar.Types (Classification (..), Constructor (..), DataType (..), RuleType (..), constructorTypeText, dataTypeText, typeText)
+import qualified Peg.Grammar.Types as Types
 import Peg.Lsp.Json
 
 -- | How positions count characters (LSP 3.17 @positionEncoding@).
@@ -95,6 +99,12 @@ data Document = Document
   -- ^ The labels that can be inserted (ADR 0054), computed when first used.
   , docRecovers :: [RecoverProposal]
   -- ^ The recovery rules to propose (ADR 0054), computed when first used.
+  , docTypes :: Maybe Classification
+  -- ^ The types of the rules (ADR 0075), computed when first used; for a
+  -- grammar that parses and whose templates expand.
+  , docConstructors :: [(Text, [Edit])]
+  -- ^ The edits that write the default constructor names of each rule
+  -- (ADR 0075), computed when first used.
   , docFragments :: !Fragments
   -- ^ The parsed top-level fragments, for the next version (ADR 0071).
   , docParsed :: Int
@@ -244,6 +254,8 @@ newDocument table text =
     , docChecks = diagnoseTops o (parsedTops p)
     , docLabels = either (const []) fst (insertLabels [] text)
     , docRecovers = either (const []) id (recoverProposals text)
+    , docTypes = either (const Nothing) (Just . Types.classify) (parsedTops p >>= assemble >>= expandTemplates)
+    , docConstructors = constructorNameEdits text
     , docFragments = parsedFragments p
     , docParsed = parsedNew p
     }
@@ -414,7 +426,7 @@ formatting enc _ d _ = Just $ case formatGrammar (docText d) of
 -- | The token types of the semantic tokens, in the order of their indices,
 -- as announced in the legend of the @initialize@ response.
 tokenTypes :: [Text]
-tokenTypes = ["function", "macro", "parameter", "variable", "string", "regexp", "keyword", "operator", "decorator", "comment", "namespace"]
+tokenTypes = ["function", "macro", "parameter", "variable", "string", "regexp", "keyword", "operator", "decorator", "comment", "namespace", "enumMember", "type"]
 
 -- | The token modifiers, in the order of their bits.
 tokenModifiers :: [Text]
@@ -462,6 +474,8 @@ classify o h = case hlKind h of
   HDirectiveRule -> Just (start, end, "function", [])
   HDirectiveLabel -> Just (start, end, "decorator", [])
   HModuleName -> Just (start, end, "namespace", [])
+  HConstructor -> Just (start, end, "enumMember", [])
+  HClassName -> Just (start, end, "type", [])
   HComment | locLine start == locLine end -> Just (start, end, "comment", [])
   _ -> Nothing
   where
@@ -506,18 +520,36 @@ references enc uri d params = do
 hover :: Handler
 hover enc _ d params = do
   p <- member "position" params >>= locOf enc d
-  (name, a, b) <- nameAt d p
-  let decls = [x | x <- outlineDeclarations (docOutline d), declName x == name]
-  -- A rule without a type annotation has type () (ADR 0066).
-  ty <- case (find ((== Annotation) . declKind) decls, find ((== Definition) . declKind) decls) of
-    (Just x, _) -> Just (T.dropWhileEnd isSpace (declText x))
-    (Nothing, Just _) -> Just (name <> " :: ()")
-    _ -> Nothing
-  pure $
-    object
-      [ ("contents", object [("kind", String "markdown"), ("value", String ("```peg\n" <> ty <> "\n```"))])
-      , ("range", rangeValue enc d a b)
-      ]
+  constructorHover p `orElse` ruleHover p
+  where
+    orElse (Just x) _ = Just x
+    orElse Nothing y = y
+    contents a b value =
+      object
+        [ ("contents", object [("kind", String "markdown"), ("value", String value)])
+        , ("range", rangeValue enc d a b)
+        ]
+    -- The type of the constructor of @Name (ADR 0075).
+    constructorHover p = do
+      h <- find (\x -> hlKind x == HConstructor && within p (hlStart x) (hlEnd x)) (outlineHighlights (docOutline d))
+      types <- docTypes d
+      (dt, c) <- find (\(_, c) -> conNameLoc c == Just (hlStart h)) [(dt, c) | dt <- classDataTypes types, c <- dataConstructors dt]
+      pure (contents (hlStart h) (hlEnd h) ("```haskell\n" <> constructorTypeText dt c <> "\n```"))
+    ruleHover p = do
+      (name, a, b) <- nameAt d p
+      let decls = [x | x <- outlineDeclarations (docOutline d), declName x == name]
+      -- A rule without a type annotation has type () (ADR 0066), unless
+      -- its type is inferred or generated (ADR 0075).
+      value <- case (find ((== Annotation) . declKind) decls, find ((== Definition) . declKind) decls) of
+        (Just x, _) -> Just (peg (T.dropWhileEnd isSpace (declText x)))
+        (Nothing, Just _) -> case docTypes d >>= \c -> if Set.member name (classUnknown c) then Nothing else M.lookup name (classRules c) of
+          Just (Inferred t) -> Just (peg (name <> " :: " <> typeText t))
+          Just (Generated dt) -> Just (peg (name <> " :: " <> dataName dt) <> "\n\n```haskell\n" <> dataTypeText dt <> "\n```")
+          Just UnitType -> Just (peg (name <> " :: ()"))
+          _ -> Nothing
+        _ -> Nothing
+      pure (contents a b value)
+    peg t = "```peg\n" <> t <> "\n```"
 
 documentSymbols :: Handler
 documentSymbols enc _ d _ =
@@ -552,6 +584,11 @@ codeActions enc uri d params = do
       ++ [ action ("Add %recover " <> proposalLabel p <> " and the rule " <> proposalRule p) (proposalEdits p)
          | p <- docRecovers d
          , overlaps (proposalStart p) (proposalEnd p)
+         ]
+      -- ADR 0075
+      ++ [ action ("Write the constructor names of rule " <> rule) edits
+         | (rule, edits) <- docConstructors d
+         , any (\x -> declName x == rule && declKind x == Definition && overlaps (declStart x) (declEnd x)) (outlineDeclarations (docOutline d))
          ]
   where
     action title edits =

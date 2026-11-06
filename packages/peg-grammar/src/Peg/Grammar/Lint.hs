@@ -119,7 +119,7 @@ lintGrammar g =
       ++ concatMap unitAnnotationInfos rules
   where
     rules = grammarRules g
-    units = unitRules rules
+    units = unitRules g
     throwing = throwingRules rules
 
 -- Omittable actions -----------------------------------------------------------------
@@ -133,7 +133,7 @@ unitActionInfos g = case expandTemplates g of
   Left _ -> []
   Right expanded ->
     let rules = grammarRules expanded
-        units = unitRules rules
+        units = unitRules expanded
         found =
           M.fromListWith
             (&&)
@@ -156,7 +156,7 @@ identityActionInfos g = case expandTemplates g of
   Left _ -> []
   Right expanded ->
     let rules = grammarRules expanded
-        units = unitRules rules
+        units = unitRules expanded
         found =
           M.fromListWith
             (\(n, a) (_, b) -> (n, a && b))

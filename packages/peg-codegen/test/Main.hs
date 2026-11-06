@@ -4,7 +4,7 @@
 module Main (main) where
 
 import qualified Data.ByteString.Lazy as BL
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, sortOn)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Data.Text (Text)
@@ -17,6 +17,9 @@ import qualified Fixture.Calc as Calc
 import qualified Fixture.Discard as Discard
 import qualified Fixture.DiscardSyntax as DiscardSyntax
 import qualified Fixture.Extensions as Extensions
+import qualified Fixture.Generated as Generated
+import qualified Fixture.GeneratedNames as GeneratedNames
+import qualified Fixture.GeneratedPlain as GeneratedPlain
 import qualified Fixture.Indent as Indent
 import qualified Fixture.Link as Link
 import qualified Fixture.Located as Located
@@ -51,7 +54,8 @@ import qualified Fixture.UnitsSyntax as UnitsSyntax
 import qualified Fixture.UntypedSyntax as UntypedSyntax
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
-import Peg.Grammar.LabelInsertion (insertLabels)
+import Peg.Grammar.Constructors (constructorNameEdits)
+import Peg.Grammar.LabelInsertion (Edit (..), insertLabels)
 import Peg.Grammar.Labels (stripLabelsAs)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Runtime
@@ -132,6 +136,7 @@ main =
       , identityActionTests
       , unitAnnotationTests
       , untypedSyntaxTests
+      , generatedTypeTests
       , testGroup
           "values that are not used (ADR 0026)"
           [ testCase "typed" $ Discard.parse unusedInput @?= Right unusedExpected
@@ -145,7 +150,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -295,10 +300,9 @@ untypedSyntaxTests =
         src <- TIO.readFile "test/fixtures/UntypedSyntax.hpeg"
         (ex, err) <- typecheckWith ["-Wall", "-Werror"] "UntypedSyntax" (T.replace "Fixture.UntypedSyntax" "UntypedSyntax" src)
         assertEqual err ExitSuccess ex
-    , skippedWithout "../peg-runtime/src" "without %syntax, a capture alone is a type error, as before" $ do
+    , skippedWithout "../peg-runtime/src" "without %syntax, a capture alone has the type Text (ADR 0075)" $ do
         (ex, err) <- typecheck "UntypedTyped" (T.unlines ["%module UntypedTyped", "", "A <- $'a'"])
-        ex @?= ExitFailure 1
-        assertBool ("expected a type error of PegRt.Text\n" <> err) ("PegRt.Text" `T.isInfixOf` T.pack err)
+        assertEqual err ExitSuccess ex
     , skippedWithout "../peg-runtime/src" "with %syntax, a rule annotated :: () returning a capture is a type error, as before" $ do
         (ex, err) <- typecheck "UntypedAnnotated" (T.unlines ["%module UntypedAnnotated", "%syntax", "", "A :: ()", "A <- $'a'"])
         ex @?= ExitFailure 1
@@ -307,6 +311,69 @@ untypedSyntaxTests =
   where
     input = "ab 12 (3,cd) #5 ef"
     descendants n = n : concatMap descendants (syntaxChildren n)
+
+-- ADR 0075: the rules without type annotations and actions of a grammar
+-- without %syntax return values of inferred and generated types.
+generatedTypeTests :: TestTree
+generatedTypeTests =
+  testGroup
+    "types of rules without type annotations and actions (ADR 0075)"
+    [ testCase "the grammar of ADR 0075" $
+        Generated.parse "1+2" @?= Right (Generated.Expr1 (Generated.Expr2 (Generated.Atom1 "1")) (Generated.Atom1 "2"))
+    , testCase "the entries return values of generated and inferred types" $ do
+        Generated.parseAtom "(1)" @?= Right (Generated.Atom2 (Generated.Expr2 (Generated.Atom1 "1")))
+        Generated.parseParen "( 1 + 2 )" @?= Right (Generated.Expr1 (Generated.Expr2 (Generated.Atom1 "1")) (Generated.Atom1 "2"))
+    , testCase "constructor names, newtype, constructors without arguments, templates" $
+        GeneratedNames.parse "a, b [y n 3] 1 #c,d"
+          @?= Right
+            ( GeneratedNames.Doc
+                ["a", "b"]
+                (GeneratedNames.Wrapped [GeneratedNames.Yes, GeneratedNames.No, GeneratedNames.Level "3"])
+                [GeneratedNames.Rule'値1 "1", GeneratedNames.Rule'値2 2]
+                ()
+            )
+    , testCase "an action receives the value of an inferred type" $ GeneratedNames.parseCount "a,b,c" @?= Right 3
+    , testCase "an entry of an inferred type" $ GeneratedNames.parseFlags "y 1" @?= Right [GeneratedNames.Yes, GeneratedNames.Level "1"]
+    , testCase "%deriving Eq, Ord, Show" $ compare GeneratedNames.Yes GeneratedNames.No @?= LT
+    , testCase "%deriving without arguments derives nothing" $ case GeneratedPlain.parse "a,b" of
+        Right (GeneratedPlain.Pair x y) -> (x, y) @?= ("a", "b")
+        Left e -> assertFailure (show e)
+    , testGroup
+        "the generated declarations"
+        [ goldenVsString n ("test/golden/generated/" <> n <> ".golden") (BL.fromStrict . TE.encodeUtf8 . dataDeclarations . TE.decodeUtf8 . BL.toStrict <$> generateFixture (fixtureOptions n) n)
+        | n <- ["Generated", "GeneratedNames", "GeneratedPlain"]
+        ]
+    , testGroup
+        "writing out the default constructor names does not change the generated code"
+        [ testCase n $ do
+            src <- TIO.readFile (fixtureSource n)
+            let edits = concatMap snd (constructorNameEdits src)
+                named = applyEdits edits src
+            assertBool "no names to write" (not (null edits))
+            assertBool "the names are written" (all (\(Edit _ t) -> t `T.isInfixOf` named) edits)
+            generateFromSource (fixtureOptions n) named @?= generateFromSource (fixtureOptions n) src
+        | n <- ["Generated", "GeneratedNames"]
+        ]
+    , testGroup
+        "the generated modules compile without warnings"
+        [ skippedWithout "../peg-runtime/src" n $ do
+            src <- TIO.readFile (fixtureSource n)
+            typecheckWarnings n (generateFromSource (fixtureOptions n) {optOutputName = n <> ".hs"} src)
+        | n <- ["Generated", "GeneratedNames", "GeneratedPlain"]
+        ]
+    ]
+  where
+    -- Edits at locations of the text, applied from the last.
+    applyEdits edits t = foldr insertAt t (sortOn (\(Edit l _) -> l) edits)
+    insertAt (Edit (Loc l c) x) t =
+      case splitAt (l - 1) (T.splitOn "\n" t) of
+        (above, line : below) -> T.intercalate "\n" (above ++ [T.take (c - 1) line <> x <> T.drop (c - 1) line] ++ below)
+        _ -> t
+    -- The declarations of the generated types, with their comments.
+    dataDeclarations code = T.unlines (concat [takeWhile (/= "") (drop 0 rest) ++ [""] | rest <- tailsFrom (T.lines code)])
+    tailsFrom ls = case break ("-- | The value of the rule " `T.isPrefixOf`) ls of
+      (_, []) -> []
+      (_, x : rest) -> (x : rest) : tailsFrom rest
 
 -- ADR 0064: in rules of type (), alternatives without actions return ()
 -- even when their only counted element is a repetition or an option of a
@@ -665,6 +732,7 @@ exportCases =
   , ("Syntax", "Syntax", Nothing, False, ["nameOfSyntaxKind"], False)
   , ("SyntaxWrapper", "Syntax", Nothing, False, ["ExprSyntax"], False)
   , ("RecoverDebug", "Recover", Nothing, True, ["parse"], True)
+  , ("GeneratedFlags", "GeneratedNames", Nothing, False, ["parseFlags"], True)
   ]
 
 exportTests :: TestTree
