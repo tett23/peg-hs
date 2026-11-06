@@ -9,6 +9,8 @@
 -- * "Peg.Grammar.Templates" expands rule templates (ADR 0031).
 -- * "Peg.Grammar.Check" checks the expanded grammar and analyses it for
 --   the code generator.
+-- * "Peg.Grammar.Types" decides the types of the rules without type
+--   annotations and actions (ADR 0075).
 -- * "Peg.Grammar.Labels" warns about labels that may change the language
 --   (ADR 0028).
 -- * "Peg.Grammar.Lint" warns about mistakes that are not errors (ADR 0033).
