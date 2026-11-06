@@ -22,6 +22,11 @@ module Peg.Grammar.Outline
   , DeclarationKind (..)
   , Reference (..)
   , outline
+  , outlineFromTree
+  , OutlinePart
+  , outlinePart
+  , shiftOutlinePart
+  , joinOutline
   , recoveredText
   ) where
 
@@ -97,17 +102,65 @@ data Reference = Reference
 -- | The outline of a grammar. Every text has one, whether or not it is a
 -- valid grammar.
 outline :: Text -> Outline
-outline src =
-  let (root, errors) = S.parseSyntaxRecover src
-      hs = treeHighlights root
-   in Outline
-        { outlineHighlights = hs
-        , outlineDeclarations = declarations root
-        , outlineReferences = [Reference (slice h) (hlStart h) (hlEnd h) | h <- hs, hlKind h == HRuleReference] ++ directiveReferences hs
-        , outlineSyntaxErrors = map (syntaxError src) (distinct errors)
-        }
+outline src = outlineFromTree src (S.parseSyntaxRecover src)
+
+-- | The outline of a grammar from its syntax tree with recovery and the
+-- errors that recovery found, as the recovering parse of the notation's
+-- grammar returns them.
+outlineFromTree :: Text -> (SyntaxNode, [SyntaxError]) -> Outline
+outlineFromTree src (root, errors) = joinOutline src [outlinePart src root] errors
+
+-- | What 'outline' finds in a part of a grammar made of whole top-level
+-- items, apart from the syntax errors. "Peg.Grammar.Incremental" keeps one
+-- for each top-level fragment, and joins those of a version with
+-- 'joinOutline' (ADR 0071).
+data OutlinePart = OutlinePart
+  { partHighlights :: [Highlight]
+  , partDeclarations :: [Declaration]
+  , partRuleReferences :: [Reference]
+  , partDirectiveReferences :: [Reference]
+  }
+
+-- | The outline part of a text from its syntax tree with recovery.
+outlinePart :: Text -> SyntaxNode -> OutlinePart
+outlinePart src root =
+  OutlinePart
+    { partHighlights = hs
+    , partDeclarations = declarations root
+    , partRuleReferences = [Reference (slice h) (hlStart h) (hlEnd h) | h <- hs, hlKind h == HRuleReference]
+    , -- The rule names in the arguments of directives (ADR 0069).
+      partDirectiveReferences = [Reference (slice h) (hlStart h) (hlEnd h) | h <- hs, hlKind h == HDirectiveRule]
+    }
   where
+    hs = treeHighlights root
     lines' = T.lines src
+    slice h = sliceText lines' (hlStart h) (hlEnd h)
+
+-- | An outline part moved down by a number of lines. A part that starts at
+-- the start of a line keeps its columns.
+shiftOutlinePart :: Int -> OutlinePart -> OutlinePart
+shiftOutlinePart 0 p = p
+shiftOutlinePart d (OutlinePart hs ds rs drs) =
+  OutlinePart
+    [h {hlStart = down (hlStart h), hlEnd = down (hlEnd h)} | h <- hs]
+    [x {declNameStart = down (declNameStart x), declNameEnd = down (declNameEnd x), declStart = down (declStart x), declEnd = down (declEnd x)} | x <- ds]
+    (map ref rs)
+    (map ref drs)
+  where
+    down (Loc l c) = Loc (l + d) c
+    ref r = r {refStart = down (refStart r), refEnd = down (refEnd r)}
+
+-- | The outline of a text from the parts of its consecutive pieces, with
+-- their locations in the text, and the syntax errors of the text.
+joinOutline :: Text -> [OutlinePart] -> [SyntaxError] -> Outline
+joinOutline src parts errors =
+  Outline
+    { outlineHighlights = concatMap partHighlights parts
+    , outlineDeclarations = concatMap partDeclarations parts
+    , outlineReferences = concatMap partRuleReferences parts ++ concatMap partDirectiveReferences parts
+    , outlineSyntaxErrors = map (syntaxError src) (distinct errors)
+    }
+  where
     -- An error right after the range that the recovery of the previous one
     -- skipped follows from it: the construct the recovery ended is still
     -- incomplete.
@@ -116,9 +169,6 @@ outline src =
       | BC.all isSpace (BS.take (fst (syntaxErrorRange b) - snd (syntaxErrorRange a)) (BS.drop (snd (syntaxErrorRange a)) bytes)) = distinct (a : rest)
       | otherwise = a : distinct (b : rest)
     distinct es = es
-    slice h = sliceText lines' (hlStart h) (hlEnd h)
-    -- The rule names in the arguments of directives (ADR 0069).
-    directiveReferences hs = [Reference (slice h) (hlStart h) (hlEnd h) | h <- hs, hlKind h == HDirectiveRule]
 
 -- | The text of the syntax tree that recovery builds, which is always the
 -- input (ADR 0021). For tests.
