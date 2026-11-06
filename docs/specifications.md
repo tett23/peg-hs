@@ -171,6 +171,7 @@ lint や formatter のように、空白とコメントを扱う用途のため�
 - **VS Code の拡張機能**：TextMate の文法と言語サーバーの起動を含み、言語 `hpeg` の保存時の整形（`editor.formatOnSave`）を既定で有効にする。リポジトリから入れる（[ADR 0034](adr/0034-syntax-highlighting.md)、[ADR 0035](adr/0035-language-server.md)、[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）
 
 Neovim と Helix は、tree-sitter の文法と言語サーバーを設定して使う。
+Neovim では、nvim-treesitter で、tree-sitter の文法を clone せずに GitHub のリリースのタグから入れられる（[ADR 0074](adr/0074-neovim-tree-sitter-from-github.md)）。
 README の設定は、保存時に言語サーバーで整形する設定を含む（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）。
 エディタごとの手での確認の記録は `docs/editors/` に置く（[ADR 0044](adr/0044-release-v0-1-0.md)）。
 
@@ -352,6 +353,7 @@ ADR の連番は決定の順であり、実装の順ではない。
   - 一致した規則の中を見ない。一致した行が特定の文字で始まることがわからない
   - 意味述語の値（`r == h` など）を知らない。意味述語が判定する文字の範囲の宣言も、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md) が別に回したまま残っている
 - VS Code の拡張機能の vsix の作成と Marketplace への公開（[ADR 0044](adr/0044-release-v0-1-0.md)）。いまはリポジトリの `editors/` から入れる
+- Helix で、tree-sitter の文法を clone せずに git から入れる例（`[[grammar]]` の `source` の `git`、`rev`、`subpath`）。確かめていないので README に載せていない（[ADR 0074](adr/0074-neovim-tree-sitter-from-github.md)）
 
 ## 参考文献
 

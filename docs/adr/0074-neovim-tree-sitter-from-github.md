@@ -1,6 +1,6 @@
 # ADR 0074: Neovim の tree-sitter の文法を、clone せずに GitHub から入れる例を README に足す
 
-ステータス: 採択（未実装）
+ステータス: 採択
 
 ## 文脈
 
