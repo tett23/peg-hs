@@ -36,6 +36,13 @@ The first release. peg-runtime is the only dependency of the modules that
 - Builds with GHC 9.10, 9.12 and 9.14
   ([ADR 0045](https://github.com/tett23/peg-hs/blob/main/docs/adr/0045-fixes-before-v0-1-0.md)).
 
+Since v0.1.0-rc2:
+
+- `concatSyntax` of `Peg.Runtime.Syntax` joins syntax trees of
+  consecutive texts into the tree of their concatenation, sharing their
+  green nodes
+  ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).
+
 ### Changed
 
 Since v0.1.0-rc2:

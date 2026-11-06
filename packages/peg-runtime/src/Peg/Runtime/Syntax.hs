@@ -77,6 +77,8 @@ module Peg.Runtime.Syntax
   , Child (..)
   , setLabel
   , syntaxRoot
+    -- * Joining trees
+  , concatSyntax
   ) where
 
 import Data.Maybe (listToMaybe)
@@ -365,3 +367,30 @@ build input c = case c of
     childRange (CToken _ s e _) = (s, e)
     childLabel (CNode _ _ _ _ l) = l
     childLabel (CToken _ _ _ l) = l
+
+-- Joining trees -----------------------------------------------------------------
+
+-- | The tree of a text made of the texts of several trees: a root of the
+-- given kind whose children are the children of the given roots, in order,
+-- over the concatenation of their texts. A text token at the end of one
+-- root and one at the start of the next become one token, as a parse of
+-- the whole text makes them.
+--
+-- The language server parses the top-level items of a document one by one
+-- and reuses the trees of the items that did not change (ADR 0071); green
+-- nodes have no positions, so the trees are joined without copying them.
+--
+-- @
+-- syntaxText (concatSyntax k [a, b]) == syntaxText a <> syntaxText b
+-- @
+concatSyntax :: SyntaxKind -> [SyntaxNode] -> SyntaxNode
+concatSyntax k roots = SyntaxNode green 0 Nothing Nothing (Source input (lineIndex input))
+  where
+    input = T.concat (map syntaxText' roots)
+    syntaxText' n = let (s, e) = syntaxRange n in TU.takeWord8 (e - s) (TU.dropWord8 s (srcText (snSource n)))
+    green = GreenNode k (TU.lengthWord8 input) (joinText (concatMap (gnChildren . snGreen) roots))
+    joinText ((Nothing, GreenTokenElement a) : (Nothing, GreenTokenElement b) : rest)
+      | gtKind a == textKind && gtKind b == textKind =
+          joinText ((Nothing, GreenTokenElement (GreenToken textKind (gtText a <> gtText b))) : rest)
+    joinText (x : rest) = x : joinText rest
+    joinText [] = []
