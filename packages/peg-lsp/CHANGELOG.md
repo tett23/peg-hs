@@ -61,3 +61,12 @@ Since v0.1.0-rc2:
   `reparsedFragments` expose the text and the number of parsed fragments
   of a document for tests
   ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).
+
+Since v0.1.0-rc3:
+
+- The semantic tokens `enumMember` for constructor names and `type` for
+  the classes of `%deriving`; the hover of a rule shows the type inferred
+  or the declaration of the type generated for it, and the hover of a
+  constructor name its type; a code action writes out the default
+  constructor names of a rule
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
