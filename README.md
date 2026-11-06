@@ -90,7 +90,7 @@ Sp <- ' '*
 `%module` is the name of the generated module.
 Between `%{` and `}%` (a verbatim block) is Haskell that goes into the generated module as it is.
 `Expr :: Expr` is the result type of the rule `Expr`, and `Expr <- ...` defines the rule.
-A rule without a type annotation, such as `Sp`, has type `()`; rules with parameters and templates need one ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
+A rule without a type annotation and without values, such as `Sp`, has type `()`; rules with parameters and templates need one ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 `l:Expr` names a result (a binding), and `{ Add l r }` is an action.
 `$[0-9]+` takes the text it read (a `Text`) as its value.
 [docs/syntax.md](docs/syntax.md) explains the notation in detail (in Japanese).
@@ -116,11 +116,48 @@ peg-hs parse grammar/Calc.hpeg input.txt
 Add (Num 1) (Mul (Num 2) (Add (Num 3) (Num 4)))
 ```
 
-### Two styles: a syntax tree, or typed values
+### Three styles: generated types, a syntax tree, or typed values
 
-A grammar is written in one of two styles ([ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
+A grammar is written in one of three styles, and a grammar without `%syntax` can mix the first and the third rule by rule.
 The grammar above returns typed values: its rules have type annotations and actions.
-The other style writes `%syntax` and neither type annotations nor actions, and reads the results from the lossless syntax tree that `parseSyntax` returns.
+
+Without type annotations and actions, peg-hs decides the types of the values from the grammar ([ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
+```hpeg
+%module Calc.Generated
+
+Expr <- Expr '+' Sp Term @Add
+     / Term
+
+Term <- Term '*' Sp Atom @Mul
+     / Atom
+
+Atom <- Num
+     / '(' Sp Expr ')' Sp
+
+Num <- $[0-9]+ Sp
+
+Sp <- ' '*
+```
+
+A rule whose alternatives have no value but `()`, such as `Sp`, has type `()`.
+A rule whose alternatives have one value each, all of one type, has that type: `Num` returns the `Text` of `$[0-9]+`.
+Any other rule gets a type generated for it, with a constructor for each alternative and `deriving (Eq, Show)`, which `%deriving` changes: `Expr` and `Term` have alternatives with two values and one, and the values of `Atom` are a `Text` and an `Expr`.
+`@Add` names the constructor of an alternative; without it, the names are the type name and the number of the alternative (`Expr2`).
+The module declares and exports these types:
+
+```haskell
+data Expr = Add Expr Term | Expr2 Term
+  deriving (Eq, Show)
+
+data Term = Mul Term Atom | Term2 Atom
+  deriving (Eq, Show)
+
+data Atom = Atom1 Text | Atom2 Expr
+  deriving (Eq, Show)
+```
+
+The second style writes `%syntax` and neither type annotations nor actions, and reads the results from the lossless syntax tree that `parseSyntax` returns ([ADR 0068](docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
 
 ```hpeg
 %module Calc.Syntax
@@ -143,8 +180,10 @@ Sp <- ' '*
 
 In a grammar with `%syntax`, an alternative without an action of a rule without a type annotation has the value `()`, whatever the values of its elements, such as the capture `$[0-9]+`.
 Write type annotations and actions only where typed values are needed.
-The syntax tree costs time and memory: on a JSON document of 800,000 characters, the style with the tree took about 1.6 times the time and 1.1 times the memory of the typed grammar without `%syntax` ([docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)).
-When speed matters, write type annotations and actions, and leave out `%syntax`.
+
+The styles differ in cost.
+On a JSON document of 800,000 characters, compared with the typed grammar without `%syntax`, the style with generated types took about 0.97 times the time and 1.18 times the peak live memory, without converting the generated values to other types ([docs/benchmarks/2026-11-06-json-generated-types.md](docs/benchmarks/2026-11-06-json-generated-types.md)); the style with the syntax tree took about 1.2 times the time and 1.2 times the memory in the same measurement ([docs/benchmarks/2026-11-06-json-generated-types.md](docs/benchmarks/2026-11-06-json-generated-types.md); an earlier measurement gave 1.6 and 1.1 times, [docs/benchmarks/2026-11-06-json-untyped-syntax.md](docs/benchmarks/2026-11-06-json-untyped-syntax.md)).
+When speed matters, write type annotations and actions, and leave out `%syntax`; in a grammar without `%syntax`, this can be done for the rules that take the time only.
 
 ## Using a generated module
 
@@ -311,13 +350,16 @@ The settings below set up all four, and format a grammar on every save by defaul
 `editors/` has grammars for syntax highlighting and a VS Code extension ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
 The TextMate and tree-sitter grammars are also in the releases: `peg-hs-editors-<version>.tar.gz` on [Releases](https://github.com/tett23/peg-hs/releases), and `editors/` in the archive of the executable. The tree-sitter grammar there has its generated parser, so Neovim and Helix build it without the tree-sitter CLI. In the settings below, `/path/to/peg-hs/editors/tree-sitter-hpeg` can be the `tree-sitter-hpeg/` of an extracted archive ([ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)).
 Besides rules, literals and operators, they color brackets, the braces of actions, the delimiters of bindings and template arguments, and the arguments of directives by what they name: a rule, a label, the module or an extension ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
+Constructor names (`@Add`) and the classes of `%deriving` are colored as constructors and types ([ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)).
 The Haskell of a grammar (verbatim blocks, types, actions, semantic predicates, arguments) is highlighted by the editor's Haskell grammar.
 The tree-sitter grammar also has queries for folds, indents and locals: a rule folds with its type annotation, and an alternative on a new line is indented to the `<-` of its definition, as `fmt` lays it out.
 
 The language server `peg-hs lsp` reports the errors and warnings of `gen` and `lint` as a grammar is edited, and formats it with `fmt`.
 It also provides semantic tokens, go to definition, find references, hover and document symbols.
-Its semantic tokens tell the rules, labels and the module in the arguments of directives apart.
+Its semantic tokens tell the rules, labels and the module in the arguments of directives apart, and the constructor names and the classes of `%deriving`.
+Its hover shows the type of a rule, including the type inferred or the declaration of the type generated for a rule without a type annotation, and the type of a constructor.
 Its code actions add the labels of `label`, and add `%recover` with a skeleton of a recovery rule to a label without one ([ADR 0054](docs/adr/0054-automatic-label-insertion.md)).
+Another code action writes out the default constructor names of a rule as `@Name`, so that they stay when the alternatives change ([ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)).
 The skeleton's value is the typed hole `{ _ }`: GHC shows its type, and the author writes the value.
 
 None of the settings below has been checked by hand in the editor yet (**unchecked**).
