@@ -46,6 +46,7 @@ import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
+import Peg.Grammar.Types (Classification (..), RuleType (..), DataType (..), classify, typeCode)
 
 -- | Replace the template calls of a grammar with references to instances,
 -- and remove the templates. Instances are rules that cannot be named in
@@ -54,8 +55,35 @@ import Peg.Grammar
 -- A grammar with neither templates nor template calls is returned as it is.
 -- A template call in a grammar without templates is still an error, such
 -- as @rule B is not a template@ (ADR 0052).
+--
+-- The type of an instance replaces the type variables of the template by
+-- the types of the arguments. The type of a rule whose type is inferred or
+-- generated (ADR 0075) depends on the instances it calls, so the grammar is
+-- expanded again with the types of the previous expansion until they do
+-- not change.
 expandTemplates :: Grammar -> Either [Diagnostic] Grammar
 expandTemplates g
+  | not (any (not . null . ruleTemplateParams) (grammarRules g)) && not (any callsTemplate (grammarRules g)) = Right g
+  | otherwise = go (8 :: Int) M.empty
+  where
+    go k known = do
+      expanded <- expandOnce known g
+      let known' = classifiedTypes (classify expanded)
+      if known' == known || k <= 0 then Right expanded else go (k - 1) known'
+
+-- The types of the rules whose types are inferred or generated, as the
+-- generated code writes them.
+classifiedTypes :: Classification -> M.Map Text Text
+classifiedTypes c = M.fromList [(n, t) | (n, rt) <- M.toList (classRules c), Just t <- [code rt]]
+  where
+    code = \case
+      Inferred t -> Just (typeCode t)
+      Generated d -> Just (dataName d)
+      _ -> Nothing
+
+-- Expand the templates once, with the types of some rules given.
+expandOnce :: M.Map Text Text -> Grammar -> Either [Diagnostic] Grammar
+expandOnce known0 g
   | M.null templates && not (any callsTemplate (grammarRules g)) = Right g
   | not (null directiveErrors) = Left directiveErrors
   | otherwise = case runExpand (mapM expandRule ordinary >>= \rs -> (rs ++) <$> drain) (St M.empty [] [] 0 M.empty S.empty) of
@@ -71,7 +99,7 @@ expandTemplates g
   where
     templates = M.fromList [(ruleName r, r) | r <- grammarRules g, not (null (ruleTemplateParams r))]
     ordinary = [r | r <- grammarRules g, null (ruleTemplateParams r)]
-    ruleTypes = M.fromList [(ruleName r, unLoc (ruleType r)) | r <- grammarRules g]
+    ruleTypes = M.union known0 (M.fromList [(ruleName r, unLoc (ruleType r)) | r <- grammarRules g])
     usedNames = S.fromList (map ruleName (grammarRules g))
 
     directiveErrors =

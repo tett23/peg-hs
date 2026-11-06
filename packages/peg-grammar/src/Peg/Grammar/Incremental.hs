@@ -271,7 +271,7 @@ shiftTop d top = case top of
   where
     loc (Loc a b) = Loc (a + d) b
     located (Located l x) = Located (loc l) x
-    alt (Alt l is act) = Alt (loc l) (map item is) (fmap located act)
+    alt (Alt l is act c) = Alt (loc l) (map item is) (fmap located act) (fmap located c)
     item (Item l b e) = Item (loc l) b (expr e)
     expr e = case e of
       ERef l n as -> ERef (loc l) n (map located as)

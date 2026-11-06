@@ -78,6 +78,7 @@ labelMessage c = \case
   "range" -> "the range is empty"
   "hsstring" -> "unterminated string literal"
   "hschar" -> "unterminated character literal"
+  "constructor" -> "expected a constructor name after @"
   l
     | l `elem` ["action", "argcode"] -> case c of
         Just x | x `elem` (")]}" :: String) -> "unbalanced bracket in Haskell code"

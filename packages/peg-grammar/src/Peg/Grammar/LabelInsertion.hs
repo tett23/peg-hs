@@ -495,6 +495,7 @@ eraseGrammar g =
     , grammarInline = map erase (grammarInline g)
     , grammarRecovers = [(erase a, erase b) | (a, b) <- grammarRecovers g]
     , grammarSafe = map erase (grammarSafe g)
+    , grammarDeriving = fmap (\(Located _ cs) -> Located z (map erase cs)) (grammarDeriving g)
     , grammarVerbatim = map erase (grammarVerbatim g)
     , grammarRules = map rule (grammarRules g)
     }
@@ -502,7 +503,7 @@ eraseGrammar g =
     z = Loc 0 0
     erase (Located _ x) = Located z x
     rule r = r {ruleLoc = z, ruleParams = [p {paramType = erase (paramType p)} | p <- ruleParams r], ruleType = erase (ruleType r), ruleAnnotation = z <$ ruleAnnotation r, ruleAlts = map alt (ruleAlts r)}
-    alt (Alt _ is a) = Alt z (map item is) (fmap erase a)
+    alt (Alt _ is a c) = Alt z (map item is) (fmap erase a) (fmap erase c)
     item (Item _ b e) = Item z b (expr e)
     expr = \case
       ERef _ n as -> ERef z n (map erase as)

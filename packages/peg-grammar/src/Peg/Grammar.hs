@@ -110,6 +110,10 @@ data Grammar = Grammar
   -- ^ @%recover@: labels and their recovery rules.
   , grammarSafe :: [Located Text]
   -- ^ @%safe@: labels the author has checked to be safe (ADR 0028).
+  , grammarDeriving :: Maybe (Located [Located Text])
+  -- ^ @%deriving@: the classes that the generated types derive (ADR 0075),
+  -- at the location of the directive. 'Nothing' without the directive:
+  -- the types derive @Eq@ and @Show@. An empty list derives nothing.
   , grammarVerbatim :: [Located Text]
   -- ^ @%{ ... }%@ blocks, in order.
   , grammarRules :: [Rule]
@@ -151,11 +155,14 @@ data TemplateParam = TemplateParam
   }
   deriving (Eq, Show)
 
--- | An alternative of a rule: a sequence and an optional action.
+-- | An alternative of a rule: a sequence, an optional action, and an
+-- optional constructor name @\@Name@ (ADR 0075).
 data Alt = Alt
   { altLoc :: Loc
   , altItems :: [Item]
   , altAction :: Maybe (Located Text)
+  , altConstructor :: Maybe (Located Text)
+  -- ^ The name after @\@@, at the location of the name.
   }
   deriving (Eq, Show)
 

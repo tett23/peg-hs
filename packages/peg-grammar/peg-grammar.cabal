@@ -41,6 +41,7 @@ library
     Peg.Grammar
     Peg.Grammar.Assemble
     Peg.Grammar.Check
+    Peg.Grammar.Constructors
     Peg.Grammar.Format
     Peg.Grammar.Highlight
     Peg.Grammar.Incremental
@@ -50,6 +51,7 @@ library
     Peg.Grammar.Outline
     Peg.Grammar.Parser
     Peg.Grammar.Templates
+    Peg.Grammar.Types
   other-modules:
     Peg.Grammar.SelfHosted
     Peg.Grammar.SelfHostedSyntax
@@ -77,6 +79,7 @@ test-suite peg-grammar-test
     Lint
     Ranges
     Recovery
+    GeneratedTypes
     Shard
     SelfHostedNoLabels
     TemplateParams

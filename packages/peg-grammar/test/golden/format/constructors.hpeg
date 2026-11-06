@@ -1,0 +1,16 @@
+# Constructor names and %deriving, written carelessly (ADR 0075).
+%module Example.Constructors
+%deriving Eq, Ord, Show # the classes
+%entry Atom
+
+Expr <- Expr '+' Sp Atom @Add
+     / Atom @Single
+
+Atom <- Num
+     / '(' Sp Expr ')' Sp
+       @Paren # a group
+     / @Empty
+
+Num <- $[0-9]+ Sp @Num
+
+Sp <- ' '*
