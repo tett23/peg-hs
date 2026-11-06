@@ -1,0 +1,712 @@
+# A markup language for notes, written for the benchmarks of the language
+# server (ADR 0070). It has the shape of the grammar of a typesetting system
+# that is the first user of peg-hs: a lossless syntax tree, blocks nested by
+# their indentation (rules with the depth as an argument), commands with
+# arguments, an expression language, labels with recovery rules, and labels
+# whose safety the check cannot prove.
+#
+# The grammar is not generated into a parser. Only the checks of the
+# language server read it, so its size and shape matter, not its language.
+
+%module Conformance.Bench.Memo
+%syntax
+%language OverloadedStrings
+
+%token Text
+%token SlotText
+%token CellText
+%token QuoteText
+%token Escape
+%token Backslash
+%token Ws
+%trivia Ws
+%token Nl
+%token Ind
+%trivia Ind
+%token Comment
+%trivia Comment
+%token Note
+%token Ident
+%token Word
+%token Number
+%token StringLit
+%token Fence
+%token MathFence
+%token CodeLine
+%token Lang
+%token LBr
+%token RBr
+%token ExprOpen
+%token Colon
+%token Pipe
+%token Eq
+%token At
+%token HashMark
+%token BulletMark
+%token OrderedMark
+%token TaskMark
+%token QuoteMark
+%token TermMark
+%token NewDefMark
+%token AddOp
+%token MulOp
+%token PowOp
+%token CmpOp
+%token AndOp
+%token OrOp
+%token NegOp
+%token ExprIdent
+%token SetIdent
+%token Comma
+%token LBrace
+%token RBrace
+%token LParen
+%token RParen
+%token Dot
+%token Splat
+%token Delim
+%token Keyword
+%token Rest
+%token SkippedArgs
+%token SkippedExpr
+%token MetaKey
+%token MetaScalar
+%token MetaFence
+%token RefMark
+%token FootMark
+%token Url
+
+%inline Sp
+%inline ES
+%inline EOL
+%inline BlankLine
+%inline Inline
+%inline SlotInline
+%inline CellInline
+%inline QuoteInline
+%inline PosArg
+%inline KwArg
+%inline ArgValue
+%inline Primary
+%inline ParaEnd
+%inline BlockStart
+%inline Blocks
+%inline BadIndent
+%inline OrphanDef
+%inline TooDeep
+%inline BadBracket
+%inline BadBreak
+%inline HeadInline
+%inline Block
+%inline ItemTail
+%inline TableBodyRow
+%inline MetaValue
+
+%recover block SkipBlock
+%recover indent SkipBlock
+%recover heading_level SkipBlock
+%recover def_orphan SkipBlock
+%recover table_delimiter SkipBlock
+%recover table_row SkipBlock
+%recover table_cells SkipLine
+%recover code_close SkipAll
+%recover math_close SkipAll
+%recover meta_close SkipAll
+%recover close SkipParagraph
+%recover comment_close SkipParagraph
+%recover arg_order SkipArgs
+%recover expr SkipExpr
+%recover bracket SkipParagraph
+%recover hard_break SkipLine
+%recover quote_level SkipLine
+%recover ref_target SkipLine
+
+# The check of label safety cannot prove the following labels safe. The
+# reasons are those of the grammar this one is modelled on.
+#
+# After a block nested in a block command fails, the checker takes the
+# BlockCommand(ind)+ of the outer BlockGroup to be able to go on at the
+# same place. Telling them apart needs Ind(ind) and Ind(ind + 2) to read
+# different numbers of spaces, and the checker does not compare the values
+# of arguments.
+%safe block
+%safe indent
+%safe def_orphan
+%safe heading_level
+%safe code_close
+%safe math_close
+%safe meta_close
+%safe bracket
+# BadBreak has no alternative that can go on at the same place after it
+# fails.
+%safe hard_break
+%safe quote_level
+%safe ref_target
+# After a range or a call fails, the checker takes the next alternative of
+# Primary to be able to go on.
+%safe expr
+%safe arg_order
+# After *[ fails, the checker takes (Sp KwArg)* to be able to go on. It
+# uses the known *[ only against later alternatives, not after a
+# repetition.
+%safe close
+# On an unclosed %%, Comment fails at the same place as Note, which needs
+# the two loops to be compared.
+%safe comment_close
+# A table and a code block both start with Ind(ind). The checker does not
+# look into the TableRow that matched to see that its line starts with |.
+%safe table_delimiter
+%safe table_row
+# A row whose cell count differs is followed by the !(Nl Ind Pipe) check,
+# which fails on that very row. The checker does not know the value of the
+# predicate r == h.
+%safe table_cells
+
+# ---------------------------------------------------------------- file
+File <- BlankLines? FrontMatter? BlankLines? (&. Blocks(0) BlankLines?)?
+
+BlankLines <- BlankLine+
+
+BlankLine <- Ws? Nl
+          / Ws !.
+
+Blocks(ind :: Int) :: ()
+Blocks <- Block(ind) (BlankLines? &(Ind(ind) !BlankLine .) Block(ind))*
+
+Block(ind :: Int) :: ()
+Block <- (BadIndent(ind) / OrphanDef(ind) / BlockGroup(ind) / Heading(ind) / TaskList(ind) / BulletList(ind) / OrderedList(ind) / Quote(ind) / DefList(ind) / Table(ind) / CodeBlock(ind) / MathBlock(ind) / Footnote(ind) / LinkRef(ind) / Paragraph(ind)) ^block
+
+# BadIndent, OrphanDef, TooDeep and BadBracket throw their labels before
+# the offending character, which they only look at. The character after
+# the failing predicate is never read; it keeps the rule from matching the
+# empty string, and it sits inside the label so that nothing follows the
+# recovery.
+BadIndent(ind :: Int) :: ()
+BadIndent <- Ind(ind) &[ \t] (&{ False } [ \t]) ^indent
+
+OrphanDef(ind :: Int) :: ()
+OrphanDef <- Ind(ind) &'=:' (&{ False } '=:') ^def_orphan
+
+# ------------------------------------------------------------ basics
+Ind(n :: Int) :: ()
+Ind <- &{ n == 0 }
+    / ' ' Ind(n - 1)
+
+Ws <- [ \t]+
+
+Sp <- Ws?
+
+Nl <- '\n'
+
+EOL <- Sp (Nl / !.)
+
+# A line that ends a paragraph: blank, or end of input.
+ParaEnd <- Nl (BlankLine / !.)
+        / !.
+
+# Characters that start a block at the beginning of a line.
+BlockStart <- '#'
+           / '-' [ \t]
+           / '+' [ \t]
+           / '=' [ \t:]
+           / '>' [ \t]
+           / '|'
+           / '```'
+           / '$$'
+           / '@' [a-z]
+           / '[^'
+           / '[*'
+
+# ------------------------------------------------------------ front matter
+
+# The front matter is a block of keys and values between two lines of
+# three dashes, before the first block. A value is a scalar on the line of
+# its key, or a nested block of entries indented by two spaces.
+FrontMatter <- MetaFence Nl MetaEntries(0) (MetaFence EOL) ^meta_close
+
+MetaFence <- '---'
+
+MetaEntries(ind :: Int) :: ()
+MetaEntries <- (BlankLines? &(Ind(ind) [a-z]) MetaEntry(ind))*
+
+MetaEntry(ind :: Int) :: ()
+MetaEntry <- Ind(ind) MetaKey Sp Colon MetaValue(ind)
+
+MetaValue(ind :: Int) :: ()
+MetaValue <- Sp MetaList EOL
+          / Sp MetaScalar EOL
+          / Sp Nl &(Ind(ind + 2) [a-z]) MetaEntries(ind + 2)
+
+MetaKey <- [a-z] [a-z0-9_\-]*
+
+MetaScalar <- StringLit
+           / (![\n#] .)+
+
+MetaList <- LBr Sp (MetaItem Sp (Comma Sp MetaItem Sp)*)? RBr
+
+MetaItem <- StringLit
+         / Number
+         / Word
+
+# ------------------------------------------------------------ headings
+Heading(ind :: Int) :: ()
+Heading <- Ind(ind) HashMark (TooDeep / Ws HeadInline(ind)* EOL)
+
+TooDeep <- &'#' (&{ False } '#') ^heading_level
+
+HeadInline(ind :: Int) :: ()
+HeadInline <- Escape
+           / Note
+           / Comment
+           / ExprCtx
+           / InlineCommand(ind)
+           / Link
+           / BadBracket
+           / BadBreak
+           / Text
+
+HashMark <- '####'
+         / '###'
+         / '##'
+         / '#'
+
+# ------------------------------------------------------------ paragraphs
+Paragraph(ind :: Int) :: ()
+Paragraph <- Ind(ind) ![ \t] !BlockStart Inline(ind)+ (Nl / !.)
+
+LineContinuation(ind :: Int) :: ()
+LineContinuation <- Nl !BlankLine Ind(ind) !BlockStart
+
+Inline(ind :: Int) :: ()
+Inline <- Escape
+       / HardBreak(ind)
+       / Note
+       / Comment
+       / ExprCtx
+       / InlineCommand(ind)
+       / FootRef
+       / Link
+       / BadBracket
+       / BadBreak
+       / Text
+       / LineContinuation(ind)
+
+Text <- (![\[\\\n] !'%%' .)+
+
+Escape <- '\\' ![\n] .
+
+# A backslash at the end of a line breaks the line in the paragraph; the
+# next line must continue the paragraph. A newline at the end of input
+# continues nothing.
+HardBreak(ind :: Int) :: ()
+HardBreak <- Backslash LineContinuation(ind) &.
+
+Backslash <- '\\' &'\n'
+
+# a backslash that escapes nothing: before a newline that does not continue
+# the paragraph, or at the end of input
+BadBreak <- '\\' (&{ False }) ^hard_break
+
+Comment <- '%%' !'!' (!'%%' !ParaEnd .)* ('%%') ^comment_close
+
+# A note to the reader of the source, kept in the tree.
+Note <- '%%!' (!'%%' !ParaEnd .)* ('%%') ^comment_close
+
+# ------------------------------------------------------------ links
+
+# A link is [<url>] or [<url> | text]. The text is read like the slots of
+# commands.
+Link <- LBr '<' Url '>' (Sp Pipe Sp ProseSlot(0))? (Sp RBr) ^close
+
+Url <- (![>\n \t] .)+
+
+# A reference to a footnote, [*name].
+FootRef <- LBr FootMark Ident (RBr) ^close
+
+FootMark <- '*'
+
+# ------------------------------------------------------------ commands
+InlineCommand(ind :: Int) :: ()
+InlineCommand <- LBr Ident Arguments ProseSlots(ind)? (Sp RBr) ^close
+
+LBr <- '['
+
+BadBracket <- &LBr (&{ False } LBr) ^bracket
+
+RBr <- ']'
+
+Ident <- [a-z] [a-z0-9\-]*
+
+Arguments <- (Sp PosArg)* (Sp KwArg)* (!(Sp PosArg)) ^arg_order
+
+# Positional arguments and *[...] come first, then keyword arguments and
+# **[...].
+PosArg <- !(Word Eq) !'**[' SplatArgument
+       / !(Word Eq) !Splat Argument
+
+KwArg <- KeywordArgument
+      / &'**[' SplatArgument
+
+Argument <- ArgValue
+
+KeywordArgument <- Word Eq ArgValue
+
+SplatArgument <- Splat ExprBody (RBr) ^close
+
+Splat <- '**['
+      / '*['
+
+ArgValue <- StringLit
+         / ExprCtx
+         / InlineCommand(0)
+         / Word
+
+Word <- (![ \t\n\]:|=\["\\] .)+
+
+Eq <- '='
+
+StringLit <- '"' ('\\' . / !["\n] .)* '"'
+
+ProseSlots(ind :: Int) :: ()
+ProseSlots <- Sp Colon Sp ProseSlot(ind) (Sp Pipe Sp ProseSlot(ind))*
+
+Colon <- ':'
+
+Pipe <- '|'
+
+ProseSlot(ind :: Int) :: ()
+ProseSlot <- SlotInline(ind)*
+
+SlotInline(ind :: Int) :: ()
+SlotInline <- Escape
+           / HardBreak(ind)
+           / Note
+           / Comment
+           / ExprCtx
+           / InlineCommand(ind)
+           / FootRef
+           / BadBracket
+           / BadBreak
+           / SlotText
+           / LineContinuation(ind)
+
+SlotText <- (![\[\\\n|\]] !'%%' .)+
+
+# ------------------------------------------------------------ expressions
+ExprCtx <- ExprOpen ExprBody (RBr) ^close
+
+ExprOpen <- '[='
+
+ExprBody <- ES (Expr) ^expr ES
+
+ES <- Ws?
+
+Expr <- IfExpr
+     / OrExpr
+
+IfExpr <- 'if' Ws OrExpr Ws 'then' Ws Expr Ws 'else' Ws Expr
+
+OrExpr <- OrExpr ES OrOp ES AndExpr
+       / AndExpr
+
+OrOp <- '||'
+
+AndExpr <- AndExpr ES AndOp ES CompareExpr
+        / CompareExpr
+
+AndOp <- '&&'
+
+CompareExpr <- AddExpr ES CmpOp ES AddExpr
+            / AddExpr
+
+CmpOp <- '=='
+      / '!='
+      / '<='
+      / '>='
+      / '<'
+      / '>'
+
+AddExpr <- AddExpr ES AddOp ES MulExpr
+        / MulExpr
+
+AddOp <- '+'
+      / '-'
+
+MulExpr <- MulExpr ES MulOp ES UnaryExpr
+        / UnaryExpr
+
+MulOp <- '*' !'*'
+      / '/'
+      / '%' !'%'
+
+UnaryExpr <- NegOp ES UnaryExpr
+          / PowExpr
+
+NegOp <- '-'
+      / '!' !'='
+
+PowExpr <- PostfixExpr ES PowOp ES UnaryExpr
+        / PostfixExpr
+
+PowOp <- '**'
+
+PostfixExpr <- CallExpr
+            / IndexExpr
+            / Primary
+
+CallExpr <- ExprIdent LParen ES (Expr ES (Comma ES Expr ES)*)? RParen
+
+IndexExpr <- VarExpr LBr ES Expr ES RBr
+
+Primary <- NumberLiteral
+        / StringLiteral
+        / KeywordLiteral
+        / ArrayExpr
+        / HashExpr
+        / LambdaExpr
+        / ParenExpr
+        / VarExpr
+
+NumberLiteral <- Number
+
+Number <- [0-9]+ ('.' [0-9]+)? ('e' [+\-]? [0-9]+)?
+
+StringLiteral <- StringLit
+
+KeywordLiteral <- Keyword
+
+Keyword <- ('true' / 'false' / 'nil' / 'if' / 'then' / 'else' / 'fn') ![a-z0-9_]
+
+VarExpr <- !Keyword ExprIdent (Dot ExprIdent)*
+
+ExprIdent <- [a-zA-Z_] [a-zA-Z0-9_]*
+
+Dot <- '.'
+
+ArrayExpr <- LBr ES (Expr ES (Comma ES Expr ES)*)? RBr
+
+HashExpr <- LBrace ES (HashEntry ES (Comma ES HashEntry ES)*)? RBrace
+
+HashEntry <- (ExprIdent / StringLit) ES Colon ES Expr
+
+# fn(x, y) => x + y
+LambdaExpr <- 'fn' ES LParen ES (ExprIdent ES (Comma ES ExprIdent ES)*)? RParen ES '=>' ES Expr
+
+ParenExpr <- LParen ES Expr ES RParen
+
+Comma <- ','
+
+LBrace <- '{'
+
+RBrace <- '}'
+
+LParen <- '('
+
+RParen <- ')'
+
+# ------------------------------------------------------------ block commands
+BlockGroup(ind :: Int) :: ()
+BlockGroup <- BlockCommand(ind)+ (&(Ind(ind) !BlockCommandStart ![ \t] !BlankLine) AttributedBlock(ind))?
+
+BlockCommandStart <- '@' [a-z]
+
+AttributedBlock(ind :: Int) :: ()
+AttributedBlock <- Heading(ind)
+                / TaskList(ind)
+                / BulletList(ind)
+                / OrderedList(ind)
+                / Quote(ind)
+                / DefList(ind)
+                / Table(ind)
+                / CodeBlock(ind)
+                / MathBlock(ind)
+                / Paragraph(ind)
+
+BlockCommand(ind :: Int) :: ()
+BlockCommand <- Ind(ind) At SetIdent Ws SetName Sp Eq ExprBody (Nl / !.)
+             / Ind(ind) At Ident Arguments Sp (Nl / !.) CommandBody(ind)?
+
+At <- '@'
+
+SetIdent <- 'set' ![a-z0-9\-]
+
+SetName <- ExprIdent
+
+CommandBody(ind :: Int) :: ()
+CommandBody <- &(Ind(ind + 2) ![ \t] !BlankLine .) Blocks(ind + 2)
+
+# ------------------------------------------------------------ lists
+BulletList(ind :: Int) :: ()
+BulletList <- ListItem(ind, 0) (BlankLines? ListItem(ind, 0))*
+
+OrderedList(ind :: Int) :: ()
+OrderedList <- ListItem(ind, 1) (BlankLines? ListItem(ind, 1))*
+
+# A task list is a bullet list whose items start with [ ] or [x].
+TaskList(ind :: Int) :: ()
+TaskList <- TaskItem(ind) (BlankLines? TaskItem(ind))*
+
+ListItem(ind :: Int, ordered :: Int) :: ()
+ListItem <- Ind(ind) ListMark(ordered) Ws !TaskMark Inline(ind + 2)+ (Nl / !.) ItemTail(ind + 2)
+
+TaskItem(ind :: Int) :: ()
+TaskItem <- Ind(ind) BulletMark Ws TaskMark Ws Inline(ind + 2)+ (Nl / !.) ItemTail(ind + 2)
+
+ListMark(ordered :: Int) :: ()
+ListMark <- &{ ordered == 0 } BulletMark
+         / &{ ordered == 1 } OrderedMark
+
+BulletMark <- '-'
+
+OrderedMark <- '+'
+
+TaskMark <- '[' [ x] ']'
+
+ItemTail(ind :: Int) :: ()
+ItemTail <- (BlankLines? &(Ind(ind) ![ \t] !BlankLine .) Block(ind))*
+
+# ------------------------------------------------------------ quotes
+
+# A quote is a run of lines that start with > and a space. A quote can
+# hold another quote, up to the depth of three; a deeper one throws
+# quote_level before its marks, which it only looks at.
+Quote(ind :: Int) :: ()
+Quote <- QuoteLine(ind, 1) (Nl QuoteLine(ind, 1))* (Nl / !.)
+
+QuoteLine(ind :: Int, depth :: Int) :: ()
+QuoteLine <- Ind(ind) QuoteMark Ws QuoteBody(depth)
+
+QuoteBody(depth :: Int) :: ()
+QuoteBody <- &{ depth >= 3 } &'>' (&{ False } '>') ^quote_level
+          / &{ depth < 3 } QuoteMark Ws QuoteBody(depth + 1)
+          / QuoteInline*
+
+QuoteMark <- '>'
+
+QuoteInline <- Escape
+            / Note
+            / Comment
+            / ExprCtx
+            / InlineCommand(0)
+            / FootRef
+            / Link
+            / BadBracket
+            / BadBreak
+            / QuoteText
+
+QuoteText <- (![\[\\\n] !'%%' .)+
+
+# ------------------------------------------------------------ definition lists
+DefList(ind :: Int) :: ()
+DefList <- DefGroup(ind) (BlankLines? &(Ind(ind) '=' [ \t]) DefGroup(ind))*
+
+DefGroup(ind :: Int) :: ()
+DefGroup <- DefTerm(ind)+ DefBody(ind) (BlankLines? DefNew(ind) DefBody(ind))*
+
+DefTerm(ind :: Int) :: ()
+DefTerm <- Ind(ind) TermMark Ws HeadInline(ind + 2)+ (Nl / !.)
+
+TermMark <- '='
+
+DefNew(ind :: Int) :: ()
+DefNew <- Ind(ind) NewDefMark Sp (Nl / !.)
+
+NewDefMark <- '=:'
+
+DefBody(ind :: Int) :: ()
+DefBody <- &(Ind(ind + 2) ![ \t] !BlankLine .) Block(ind + 2) (BlankLines? &(Ind(ind + 2) ![ \t] !BlankLine .) Block(ind + 2))*
+
+# ------------------------------------------------------------ tables
+Table(ind :: Int) :: ()
+Table <- h:TableRow(ind) Nl (TableDelimiter(ind)) ^table_delimiter
+        TableBodyRow(ind, h)* (!(Nl Ind(ind) Pipe)) ^table_row (Nl / !.)
+
+TableBodyRow(ind :: Int, h :: Int) :: ()
+TableBodyRow <- Nl r:TableRow(ind) (&{ r == h }) ^table_cells
+
+TableRow(ind :: Int) :: Int
+TableRow <- Ind(ind) cs:TableCellAndPipe+ Pipe Sp RowBreak? { length cs }
+
+# a backslash at the end of a table row: tables have no hard breaks; it
+# throws hard_break so that the row stays a row
+RowBreak <- &('\\' ('\n' / !.)) BadBreak
+
+TableCellAndPipe <- Pipe TableCell &(Pipe)
+
+TableCell <- CellInline*
+
+CellInline <- Escape
+           / Comment
+           / ExprCtx
+           / InlineCommand(0)
+           / Link
+           / BadBracket
+           / BadBreak
+           / CellText
+
+CellText <- (![\[\\\n|] !'%%' .)+
+
+TableDelimiter(ind :: Int) :: ()
+TableDelimiter <- Ind(ind) (Pipe Delim)+ Pipe Sp
+
+Delim <- Sp ':'? '-'+ ':'? Sp
+
+# ------------------------------------------------------------ code blocks
+CodeBlock(ind :: Int) :: ()
+CodeBlock <- Ind(ind) Fence Lang? Arguments Sp Nl
+            (!CodeClose(ind) CodeLine)*
+            (CodeClose(ind)) ^code_close
+
+Fence <- '```'
+
+Lang <- [a-zA-Z0-9_+\-]+
+
+CodeLine <- (![\n] .)* Nl
+
+CodeClose(ind :: Int) :: ()
+CodeClose <- Ind(ind) Fence Sp (Nl / !.)
+
+# A block of mathematics between two lines of $$. Its lines are read as
+# they are, as the lines of code are.
+MathBlock(ind :: Int) :: ()
+MathBlock <- Ind(ind) MathFence Sp Nl
+            (!MathClose(ind) CodeLine)*
+            (MathClose(ind)) ^math_close
+
+MathFence <- '$$'
+
+MathClose(ind :: Int) :: ()
+MathClose <- Ind(ind) MathFence Sp (Nl / !.)
+
+# ------------------------------------------------------------ notes and references
+
+# A footnote: [^name] at the start of a line, then its text, and blocks
+# indented by two spaces.
+Footnote(ind :: Int) :: ()
+Footnote <- Ind(ind) LBr '^' Ident RBr Colon Ws Inline(ind + 2)+ (Nl / !.) ItemTail(ind + 2)
+
+# A link reference: [*name]: <url>. The target must be a URL in angle
+# brackets.
+LinkRef(ind :: Int) :: ()
+LinkRef <- Ind(ind) LBr RefMark Ident RBr Colon Sp ('<' Url '>') ^ref_target EOL
+
+RefMark <- '*'
+
+# ------------------------------------------------------------ recovery
+SkipBlock <- Rest
+
+Rest <- (!ParaEnd .)*
+
+SkipParagraph <- Rest
+
+SkipLine <- (![\n] .)*
+
+SkipAll <- .*
+
+SkipArgs <- SkippedArgs
+
+SkippedArgs <- (Sp PosArg)+
+
+SkipExpr <- SkippedExpr
+
+SkippedExpr <- (!']' !ParaEnd .)*

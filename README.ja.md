@@ -303,6 +303,8 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 
 `lsp` は、標準入出力で Language Server Protocol を話す言語サーバーである（[ADR 0035](docs/adr/0035-language-server.md)）。
 エディタが起動するもので、手で動かすことはない。設定は次の節にある。
+打鍵が検査より速く、変更が続けて届いたときは、最後の版だけを検査して診断を送る（[ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)）。
+エディタは文書の変わった部分だけを送り、言語サーバーは変わった最上位の要素だけを解析し直す（[ADR 0071](docs/adr/0071-incremental-parsing-in-the-language-server.md)）。
 
 ## エディタ
 

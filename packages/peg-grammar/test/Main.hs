@@ -14,6 +14,7 @@ import Peg.Grammar.Check
 import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Format (formatTests)
+import Incremental (incrementalTests)
 import Labels (labelTests)
 import LabelInsertion (labelInsertionTests)
 import Lint (lintTests)
@@ -73,6 +74,7 @@ main = do
       , lintTests files
       , shardTests
       , recoveryTests files
+      , incrementalTests files
       , documentExampleTests
       , testGroup "editor grammars" [if editors then rangeTests files else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
       , testCaseInfo "the grammars of the repository" (pure (unlines' [ "skipped: " <> d <> " is not in a source archive" | d <- missing ]))

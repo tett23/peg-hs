@@ -118,6 +118,7 @@ benchmark peg-bench
     , peg-codegen
     , peg-conformance
     , peg-grammar
+    , peg-lsp
     , peg-runtime
     , text
   default-language: GHC2021

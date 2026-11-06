@@ -88,6 +88,13 @@ Since v0.1.0-rc2:
   directives into the rule names, the labels and the module they name;
   the other arguments stay `HDirectiveArgument`
   ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).
+- `Peg.Grammar.Incremental` parses a grammar by its top-level fragments
+  (`splitFragments`, `parseFragments`), reusing the fragments of the
+  previous version; the results are those of `parseTops`, of the
+  recovering parse and of `outline` of the whole text. `outlineFromTree`,
+  `OutlinePart`, `outlinePart`, `shiftOutlinePart` and `joinOutline` of
+  `Peg.Grammar.Outline` build an outline from parts
+  ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).
 
 ### Changed
 

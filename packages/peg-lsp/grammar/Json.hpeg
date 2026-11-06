@@ -1,5 +1,11 @@
 # JSON (RFC 8259) の文法。ADR 0010 の適合性テストに使う。
 %module Peg.Lsp.JsonParser
+%nomemo Ws
+%nomemo Unit
+%nomemo Hex
+%nomemo IntPart
+%nomemo Frac
+%nomemo Exp
 %export Value(..)
 
 %{

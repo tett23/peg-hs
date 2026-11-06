@@ -368,10 +368,10 @@ variantTests =
           variant <- TIO.readFile "../peg-grammar/grammar/PegSyntax.hpeg"
           assertBool "regenerate with scripts/regen-fixtures.sh: grammar/PegSyntax.hpeg" (syntaxVariant src extra == variant)
     , check "JSON parser of the language server" "../peg-lsp" "grammar/Json.hpeg" "src/Peg/Lsp/JsonParser.hs" Nothing
-    , skippedWithout "../../conformance/json/Json.hpeg" "the JSON grammar of the language server is derived from the conformance one" $ do
+    , skippedWithout "../../conformance/json/Json.hpeg" "the JSON grammar of the language server is the conformance one without memoising its lexical rules (ADR 0070)" $ do
           src <- TIO.readFile "../../conformance/json/Json.hpeg"
           derived <- TIO.readFile "../peg-lsp/grammar/Json.hpeg"
-          assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.hpeg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n" src == derived)
+          assertBool "regenerate with scripts/regen-fixtures.sh: packages/peg-lsp/grammar/Json.hpeg" (T.replace "%module Conformance.Json.Parser\n" "%module Peg.Lsp.JsonParser\n%nomemo Ws\n%nomemo Unit\n%nomemo Hex\n%nomemo IntPart\n%nomemo Frac\n%nomemo Exp\n" src == derived)
     , check "self-hosted parser without labels" "../peg-grammar" "grammar/Peg.hpeg" "test/generated/SelfHostedNoLabels.hs" (Just "SelfHostedNoLabels")
     , check "Recover without labels" "." "test/fixtures/Recover.hpeg" "test/generated/Fixture/RecoverNoLabels.hs" (Just "Fixture.RecoverNoLabels")
       -- Every rule of the fixture is a recovery rule, is called inside the

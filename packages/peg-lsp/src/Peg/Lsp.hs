@@ -2,6 +2,12 @@
 -- output (ADR 0035). The handling of messages is in "Peg.Lsp.Server"; this
 -- module only reads and writes the framed messages ("Peg.Lsp.Rpc").
 --
+-- The diagnostics of changes are coalesced (ADR 0070): after handling the
+-- messages read so far, the server sends the diagnostics of the changed
+-- documents only when no more input is waiting, so that a run of changes
+-- typed faster than the checks run is checked once, at its last version.
+-- Messages are still handled, and requests answered, in order.
+--
 -- @peg-hs lsp@ is this function applied to the standard handles:
 --
 -- @
@@ -18,6 +24,7 @@ module Peg.Lsp
   ( runServer
   ) where
 
+import Control.Exception (IOException, try)
 import qualified Data.ByteString as BS
 import Peg.Lsp.Rpc (decodeFrames, encodeMessage)
 import Peg.Lsp.Server
@@ -42,12 +49,22 @@ runServer input output = do
           let (frames, rest) = decodeFrames (buf <> chunk)
           handleAll st frames >>= \case
             Left code -> pure code
-            Right st' -> loop st' rest
+            Right st' -> do
+              -- A message is on its way when part of it has been read or
+              -- more input is waiting; its diagnostics would be stale.
+              waiting <- if BS.null rest then inputWaiting else pure True
+              st'' <- if waiting then pure st' else send (publishPending st')
+              loop st'' rest
     handleAll st [] = pure (Right st)
     handleAll st (f : fs) = do
-      let step = handleFrame st f
-      mapM_ (BS.hPut output . encodeMessage) (stepOutput step)
-      hFlush output
+      let step = receiveFrame st f
+      st' <- send step
       case stepExit step of
         Just code -> pure (Left code)
-        Nothing -> handleAll (stepState step) fs
+        Nothing -> handleAll st' fs
+    send step = do
+      mapM_ (BS.hPut output . encodeMessage) (stepOutput step)
+      hFlush output
+      pure (stepState step)
+    -- At the end of the input, nothing is waiting.
+    inputWaiting = either (\(_ :: IOException) -> False) id <$> try (hWaitForInput input 0)

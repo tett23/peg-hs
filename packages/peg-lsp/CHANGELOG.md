@@ -32,9 +32,32 @@ Since v0.1.0-rc2:
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 - The hover of a rule without a type annotation shows its type `()`
   ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).
+- Changes that arrive faster than the server checks them are coalesced:
+  the server sends the diagnostics of a changed document when no more
+  input is waiting, for its latest version only. Requests are still
+  answered in order, for the latest version. `receiveFrame`,
+  `receiveMessage` and `publishPending` expose this; `handleFrame` and
+  `handleMessage` still send the diagnostics with each change
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
+- An edit is checked faster: the grammar is parsed once per version, the
+  outline and the diagnostics of a version are computed once and shared,
+  lines are looked up in logarithmic time, JSON strings are written by
+  runs, and the lexical rules of the JSON parser are not memoised. The
+  diagnostics are unchanged
+  ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
 - Semantic tokens for the arguments of directives: the rule names of
   `%start`, `%entry`, `%nomemo`, `%token`, `%trivia`, `%inline` and
   `%recover` are `function`, the labels of `%recover` and `%safe` are
   `decorator`, and the argument of `%module` is `namespace`, a new token
   type of the legend
   ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).
+- Text synchronisation is incremental (`TextDocumentSyncKind.Incremental`):
+  a change carries a range in the position encoding of the server, UTF-16
+  or UTF-8, and its text; several changes of one notification apply in
+  order, and a position past the end of a line or of the document is its
+  end. Each version is parsed by its top-level items, reusing the results
+  of the items that did not change; the diagnostics and the outline are
+  those of parsing the whole document. `documentText` and
+  `reparsedFragments` expose the text and the number of parsed fragments
+  of a document for tests
+  ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).

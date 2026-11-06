@@ -43,6 +43,7 @@ library
     Peg.Grammar.Check
     Peg.Grammar.Format
     Peg.Grammar.Highlight
+    Peg.Grammar.Incremental
     Peg.Grammar.LabelInsertion
     Peg.Grammar.Labels
     Peg.Grammar.Lint
@@ -70,6 +71,7 @@ test-suite peg-grammar-test
   hs-source-dirs:   test test/generated
   other-modules:
     Format
+    Incremental
     LabelInsertion
     Labels
     Lint
