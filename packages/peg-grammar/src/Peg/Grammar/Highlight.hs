@@ -34,7 +34,18 @@ data HighlightKind
   = HComment
   | -- | @%name@.
     HDirective
-  | HDirectiveArgument
+  | -- | The argument of @%export@, @%env@, @%tabstop@, @%language@ and
+    -- other directives, and a word of the arguments below that is not what
+    -- its directive expects there.
+    HDirectiveArgument
+  | -- | The name of a rule in the argument of a directive: @%start@,
+    -- @%entry@, @%nomemo@, @%token@, @%trivia@, @%inline@ and the second
+    -- argument of @%recover@ (ADR 0069).
+    HDirectiveRule
+  | -- | The label in the argument of @%recover@ and @%safe@ (ADR 0069).
+    HDirectiveLabel
+  | -- | The argument of @%module@ (ADR 0069).
+    HModuleName
   | -- | The name of a rule in its annotation or definition.
     HRuleName
   | HRuleReference
@@ -172,9 +183,42 @@ directive root n =
       argText = T.stripEnd arg
       argEnd = argStart + bytes argText
       commentStart = argStart + bytes arg
+      argument
+        | name `elem` wordDirectives =
+            [ range root (wordKind name k w) (argStart + off, argStart + off + bytes w)
+            | (k, (off, w)) <- zip [0 :: Int ..] (byteWords argText)
+            ]
+        | otherwise = [range root HDirectiveArgument (argStart, argEnd) | not (T.null argText)]
    in [range root HDirective (start, nameEnd)]
-        ++ [range root HDirectiveArgument (argStart, argEnd) | not (T.null argText)]
+        ++ argument
         ++ [range root HComment (commentStart, commentStart + bytes (T.stripEnd comment)) | not (T.null comment)]
+
+-- The directives whose arguments are read word by word (ADR 0069).
+wordDirectives :: [Text]
+wordDirectives = ["module", "start", "entry", "nomemo", "token", "trivia", "inline", "recover", "safe"]
+
+-- The kind of the k-th word of the argument of a directive; a word that
+-- cannot be what the directive expects there stays an argument.
+wordKind :: Text -> Int -> Text -> HighlightKind
+wordKind name k w
+  | name == "module", k == 0 = HModuleName
+  | not (T.all isIdentChar w) = HDirectiveArgument
+  | name `elem` ["start", "entry", "nomemo", "token", "trivia", "inline"] = HDirectiveRule
+  | name == "recover", k == 0 = HDirectiveLabel
+  | name == "recover", k == 1 = HDirectiveRule
+  | name == "safe", k == 0 = HDirectiveLabel
+  | otherwise = HDirectiveArgument
+
+-- The words of a text separated by spaces and tabs, with their offsets in
+-- bytes.
+byteWords :: Text -> [(Int, Text)]
+byteWords = go 0
+  where
+    blank c = c == ' ' || c == '\t'
+    go off t
+      | T.null t = []
+      | blank (T.head t) = let (s, rest) = T.span blank t in go (off + bytes s) rest
+      | otherwise = let (w, rest) = T.break blank t in (off, w) : go (off + bytes w) rest
 
 -- The reserved bindings in the code of a node.
 reserved :: SyntaxNode -> SyntaxNode -> [Highlight]

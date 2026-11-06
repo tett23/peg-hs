@@ -44,6 +44,11 @@
         }
       }
     ],
+    "configurationDefaults": {
+      "[hpeg]": {
+        "editor.formatOnSave": true
+      }
+    },
     "configuration": {
       "title": "peg-hs",
       "properties": {

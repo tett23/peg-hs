@@ -1,161 +1,190 @@
 1:1-40 "# Every token of the table of ADR 0034." comment.line.number-sign.hpeg
 2:1-8 "%module" keyword.other.directive.hpeg
 2:8-9 " "
-2:9-23 "Example.Sample" string.unquoted.directive.hpeg
+2:9-23 "Example.Sample" entity.name.namespace.hpeg
 2:23-24 " "
 2:24-36 "# the module" comment.line.number-sign.hpeg
 3:1-8 "%syntax" keyword.other.directive.hpeg
-4:1-3 "%{" meta.embedded.block.haskell punctuation.section.embedded.begin.hpeg
-5:1-24 "import Data.Text (Text)" meta.embedded.block.haskell source.haskell
-6:1-3 "}%" meta.embedded.block.haskell punctuation.section.embedded.end.hpeg
-8:1-5 "Expr" entity.name.function.rule.hpeg
-8:5-6 "(" punctuation.section.parameters.begin.hpeg
-8:6-14 "n :: Int" meta.embedded.parameters.hpeg source.haskell
-8:14-15 ")" punctuation.section.parameters.end.hpeg
-8:15-16 " "
-8:16-18 "::" keyword.operator.definition.hpeg
-8:18-19 " "
-8:19-25 "[Text]" meta.embedded.type.hpeg source.haskell
-9:1-5 "Expr" entity.name.function.rule.hpeg
-9:5-6 " "
-9:6-8 "<-" keyword.operator.definition.hpeg
-9:8-9 " "
-9:9-11 "l:" variable.parameter.binding.hpeg
-9:11-15 "Expr" variable.other.rule.hpeg
-9:15-16 " "
-9:16-17 "'" string.quoted.single.hpeg
-9:17-18 "+" string.quoted.single.hpeg
-9:18-19 "'" string.quoted.single.hpeg
-9:19-20 " "
-9:20-22 "r:" variable.parameter.binding.hpeg
-9:22-26 "Term" variable.other.rule.hpeg
-9:26-27 " "
-9:27-32 "^term" entity.name.tag.label.hpeg
-9:32-33 " "
-9:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-9:34-42 " l <> r " meta.embedded.action.hpeg source.haskell
-9:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
-10:1-6 "     "
-10:6-7 "/" keyword.operator.choice.hpeg
-10:7-8 " "
-10:8-9 "!" keyword.operator.hpeg
-10:9-10 "'" string.quoted.single.hpeg
-10:10-11 "-" string.quoted.single.hpeg
-10:11-12 "'" string.quoted.single.hpeg
-10:12-13 " "
-10:13-14 "\"" string.quoted.double.hpeg
-10:14-15 "a" string.quoted.double.hpeg
-10:15-17 "\\\"" string.quoted.double.hpeg constant.character.escape.hpeg
-10:17-18 "b" string.quoted.double.hpeg
-10:18-19 "\"" string.quoted.double.hpeg
-10:19-20 " "
-10:20-21 "[" string.regexp.class.hpeg
-10:21-24 "0-9" string.regexp.class.hpeg
-10:24-26 "\\]" string.regexp.class.hpeg constant.character.escape.hpeg
-10:26-27 "]" string.regexp.class.hpeg
-10:27-28 "+" keyword.operator.hpeg
-10:28-29 " "
-10:29-30 "." constant.language.any.hpeg
-10:30-31 " "
-10:31-32 "&" meta.embedded.predicate.hpeg keyword.operator.hpeg
-10:32-33 "{" meta.embedded.predicate.hpeg punctuation.section.predicate.begin.hpeg
-10:33-40 " n > 0 " meta.embedded.predicate.hpeg source.haskell
-10:40-41 "}" meta.embedded.predicate.hpeg punctuation.section.predicate.end.hpeg
-10:41-42 " "
-10:42-43 "$" keyword.operator.hpeg
-10:43-47 "Term" variable.other.rule.hpeg
-10:47-48 "?" keyword.operator.hpeg
-10:48-49 " "
-10:49-53 "Call" variable.other.rule.hpeg
-10:53-54 "(" punctuation.section.arguments.begin.hpeg
-10:54-59 "n + 1" meta.embedded.arguments.hpeg source.haskell
-10:59-60 ")" punctuation.section.arguments.end.hpeg
-10:60-61 " "
-10:61-62 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-10:62-63 " " meta.embedded.action.hpeg source.haskell
-10:63-64 "[" meta.embedded.action.hpeg source.haskell
-10:64-65 "]" meta.embedded.action.hpeg source.haskell
-10:65-66 " " meta.embedded.action.hpeg source.haskell
-10:66-67 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
-11:1-6 "     "
-11:6-7 "/" keyword.operator.choice.hpeg
-11:7-8 " "
-11:8-12 "List" variable.other.rule.hpeg
-11:12-13 "<" punctuation.definition.template.hpeg
-11:13-14 "$" keyword.operator.hpeg
-11:14-15 "'" string.quoted.single.hpeg
-11:15-16 "x" string.quoted.single.hpeg
-11:16-17 "'" string.quoted.single.hpeg
-11:17-18 "," punctuation.separator.template.hpeg
-11:18-19 " "
-11:19-20 "'" string.quoted.single.hpeg
-11:20-21 "," string.quoted.single.hpeg
-11:21-22 "'" string.quoted.single.hpeg
-11:22-23 ">" punctuation.definition.template.hpeg
-11:23-24 " "
-11:24-25 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-11:25-26 " " meta.embedded.action.hpeg source.haskell
-11:26-31 "_span" meta.embedded.action.hpeg source.haskell variable.language.hpeg
-11:31-38 " `seq` " meta.embedded.action.hpeg source.haskell
-11:38-39 "[" meta.embedded.action.hpeg source.haskell
-11:39-40 "]" meta.embedded.action.hpeg source.haskell
-11:40-41 " " meta.embedded.action.hpeg source.haskell
-11:41-42 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
-12:1-6 "     "
-12:6-7 "/" keyword.operator.choice.hpeg
-12:7-8 " "
-12:8-16 "Indented" variable.other.rule.hpeg
-12:16-17 "<" punctuation.definition.template.hpeg
-12:17-21 "Term" variable.other.rule.hpeg
-12:21-22 ">" punctuation.definition.template.hpeg
-12:22-23 "(" punctuation.section.arguments.begin.hpeg
-12:23-28 "n + 2" meta.embedded.arguments.hpeg source.haskell
-12:28-29 ")" punctuation.section.arguments.end.hpeg
-12:29-30 " "
-12:30-31 "(" punctuation.section.group.hpeg
-12:31-35 "Term" variable.other.rule.hpeg
-12:35-36 ")" punctuation.section.group.hpeg
-12:36-37 " "
-12:37-38 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-12:38-39 " " meta.embedded.action.hpeg source.haskell
-12:39-40 "[" meta.embedded.action.hpeg source.haskell
-12:40-41 "]" meta.embedded.action.hpeg source.haskell
-12:41-42 " " meta.embedded.action.hpeg source.haskell
-12:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
-14:1-5 "List" entity.name.function.rule.hpeg
-14:5-6 "<" punctuation.definition.template.hpeg
-14:6-7 "p" variable.parameter.template.hpeg
-14:7-8 " "
-14:8-10 "::" keyword.operator.definition.hpeg
-14:10-11 " "
-14:11-12 "a" variable.parameter.template.hpeg
-14:12-14 ", "
-14:14-17 "sep" variable.parameter.template.hpeg
-14:17-18 ">" punctuation.definition.template.hpeg
-14:18-19 " "
-14:19-21 "::" keyword.operator.definition.hpeg
-14:21-22 " "
-14:22-25 "[a]" meta.embedded.type.hpeg source.haskell
-15:1-5 "List" entity.name.function.rule.hpeg
-15:5-6 "<" punctuation.definition.template.hpeg
-15:6-7 "p" variable.parameter.template.hpeg
-15:7-9 ", "
-15:9-12 "sep" variable.parameter.template.hpeg
-15:12-13 ">" punctuation.definition.template.hpeg
-15:13-14 " "
-15:14-16 "<-" keyword.operator.definition.hpeg
-15:16-17 " "
-15:17-19 "x:" variable.parameter.binding.hpeg
-15:19-20 "p" variable.other.rule.hpeg
-15:20-21 " "
-15:21-24 "xs:" variable.parameter.binding.hpeg
-15:24-25 "(" punctuation.section.group.hpeg
-15:25-28 "sep" variable.other.rule.hpeg
+4:1-10 "%language" keyword.other.directive.hpeg
+4:10-11 " "
+4:11-28 "OverloadedStrings" constant.language.extension.hpeg
+4:28-29 "," punctuation.separator.comma.hpeg
+4:29-30 " "
+4:30-40 "LambdaCase" constant.language.extension.hpeg
+5:1-7 "%entry" keyword.other.directive.hpeg
+5:7-8 " "
+5:8-12 "List" variable.other.rule.directive.hpeg
+6:1-9 "%recover" keyword.other.directive.hpeg
+6:9-10 " "
+6:10-14 "term" entity.name.tag.label.directive.hpeg
+6:14-15 " "
+6:15-19 "Skip" variable.other.rule.directive.hpeg
+6:19-20 " "
+6:20-34 "# the recovery" comment.line.number-sign.hpeg
+7:1-6 "%safe" keyword.other.directive.hpeg
+7:6-7 " "
+7:7-11 "term" entity.name.tag.label.directive.hpeg
+8:1-8 "%export" keyword.other.directive.hpeg
+8:8-9 " "
+8:9-17 "Expr(..)" string.unquoted.directive.hpeg
+9:1-3 "%{" meta.embedded.block.haskell punctuation.section.embedded.begin.hpeg
+10:1-24 "import Data.Text (Text)" meta.embedded.block.haskell source.haskell
+11:1-3 "}%" meta.embedded.block.haskell punctuation.section.embedded.end.hpeg
+13:1-5 "Expr" entity.name.function.rule.hpeg
+13:5-6 "(" punctuation.section.parameters.begin.hpeg
+13:6-14 "n :: Int" meta.embedded.parameters.hpeg source.haskell
+13:14-15 ")" punctuation.section.parameters.end.hpeg
+13:15-16 " "
+13:16-18 "::" keyword.operator.definition.hpeg
+13:18-19 " "
+13:19-25 "[Text]" meta.embedded.type.hpeg source.haskell
+14:1-5 "Expr" entity.name.function.rule.hpeg
+14:5-6 " "
+14:6-8 "<-" keyword.operator.definition.hpeg
+14:8-9 " "
+14:9-10 "l" variable.parameter.binding.hpeg
+14:10-11 ":" variable.parameter.binding.hpeg punctuation.separator.binding.hpeg
+14:11-15 "Expr" variable.other.rule.hpeg
+14:15-16 " "
+14:16-17 "'" string.quoted.single.hpeg
+14:17-18 "+" string.quoted.single.hpeg
+14:18-19 "'" string.quoted.single.hpeg
+14:19-20 " "
+14:20-21 "r" variable.parameter.binding.hpeg
+14:21-22 ":" variable.parameter.binding.hpeg punctuation.separator.binding.hpeg
+14:22-26 "Term" variable.other.rule.hpeg
+14:26-27 " "
+14:27-28 "^" entity.name.tag.label.hpeg keyword.operator.label.hpeg
+14:28-32 "term" entity.name.tag.label.hpeg
+14:32-33 " "
+14:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+14:34-42 " l <> r " meta.embedded.action.hpeg source.haskell
+14:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+15:1-6 "     "
+15:6-7 "/" keyword.operator.choice.hpeg
+15:7-8 " "
+15:8-9 "!" keyword.operator.hpeg
+15:9-10 "'" string.quoted.single.hpeg
+15:10-11 "-" string.quoted.single.hpeg
+15:11-12 "'" string.quoted.single.hpeg
+15:12-13 " "
+15:13-14 "\"" string.quoted.double.hpeg
+15:14-15 "a" string.quoted.double.hpeg
+15:15-17 "\\\"" string.quoted.double.hpeg constant.character.escape.hpeg
+15:17-18 "b" string.quoted.double.hpeg
+15:18-19 "\"" string.quoted.double.hpeg
+15:19-20 " "
+15:20-21 "[" string.regexp.class.hpeg
+15:21-24 "0-9" string.regexp.class.hpeg
+15:24-26 "\\]" string.regexp.class.hpeg constant.character.escape.hpeg
+15:26-27 "]" string.regexp.class.hpeg
+15:27-28 "+" keyword.operator.hpeg
 15:28-29 " "
-15:29-30 "p" variable.other.rule.hpeg
-15:30-31 ")" punctuation.section.group.hpeg
-15:31-32 "*" keyword.operator.hpeg
-15:32-33 " "
-15:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
-15:34-42 " x : xs " meta.embedded.action.hpeg source.haskell
-15:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+15:29-30 "." constant.language.any.hpeg
+15:30-31 " "
+15:31-32 "&" meta.embedded.predicate.hpeg keyword.operator.hpeg
+15:32-33 "{" meta.embedded.predicate.hpeg punctuation.section.predicate.begin.hpeg
+15:33-40 " n > 0 " meta.embedded.predicate.hpeg source.haskell
+15:40-41 "}" meta.embedded.predicate.hpeg punctuation.section.predicate.end.hpeg
+15:41-42 " "
+15:42-43 "$" keyword.operator.hpeg
+15:43-47 "Term" variable.other.rule.hpeg
+15:47-48 "?" keyword.operator.hpeg
+15:48-49 " "
+15:49-53 "Call" variable.other.rule.hpeg
+15:53-54 "(" punctuation.section.arguments.begin.hpeg
+15:54-59 "n + 1" meta.embedded.arguments.hpeg source.haskell
+15:59-60 ")" punctuation.section.arguments.end.hpeg
+15:60-61 " "
+15:61-62 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+15:62-63 " " meta.embedded.action.hpeg source.haskell
+15:63-64 "[" meta.embedded.action.hpeg source.haskell
+15:64-65 "]" meta.embedded.action.hpeg source.haskell
+15:65-66 " " meta.embedded.action.hpeg source.haskell
+15:66-67 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+16:1-6 "     "
+16:6-7 "/" keyword.operator.choice.hpeg
+16:7-8 " "
+16:8-12 "List" variable.other.rule.hpeg
+16:12-13 "<" punctuation.definition.template.hpeg
+16:13-14 "$" keyword.operator.hpeg
+16:14-15 "'" string.quoted.single.hpeg
+16:15-16 "x" string.quoted.single.hpeg
+16:16-17 "'" string.quoted.single.hpeg
+16:17-18 "," punctuation.separator.template.hpeg
+16:18-19 " "
+16:19-20 "'" string.quoted.single.hpeg
+16:20-21 "," string.quoted.single.hpeg
+16:21-22 "'" string.quoted.single.hpeg
+16:22-23 ">" punctuation.definition.template.hpeg
+16:23-24 " "
+16:24-25 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+16:25-26 " " meta.embedded.action.hpeg source.haskell
+16:26-31 "_span" meta.embedded.action.hpeg source.haskell variable.language.hpeg
+16:31-38 " `seq` " meta.embedded.action.hpeg source.haskell
+16:38-39 "[" meta.embedded.action.hpeg source.haskell
+16:39-40 "]" meta.embedded.action.hpeg source.haskell
+16:40-41 " " meta.embedded.action.hpeg source.haskell
+16:41-42 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+17:1-6 "     "
+17:6-7 "/" keyword.operator.choice.hpeg
+17:7-8 " "
+17:8-16 "Indented" variable.other.rule.hpeg
+17:16-17 "<" punctuation.definition.template.hpeg
+17:17-21 "Term" variable.other.rule.hpeg
+17:21-22 ">" punctuation.definition.template.hpeg
+17:22-23 "(" punctuation.section.arguments.begin.hpeg
+17:23-28 "n + 2" meta.embedded.arguments.hpeg source.haskell
+17:28-29 ")" punctuation.section.arguments.end.hpeg
+17:29-30 " "
+17:30-31 "(" punctuation.section.group.hpeg
+17:31-35 "Term" variable.other.rule.hpeg
+17:35-36 ")" punctuation.section.group.hpeg
+17:36-37 " "
+17:37-38 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+17:38-39 " " meta.embedded.action.hpeg source.haskell
+17:39-40 "[" meta.embedded.action.hpeg source.haskell
+17:40-41 "]" meta.embedded.action.hpeg source.haskell
+17:41-42 " " meta.embedded.action.hpeg source.haskell
+17:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg
+19:1-5 "List" entity.name.function.rule.hpeg
+19:5-6 "<" punctuation.definition.template.hpeg
+19:6-7 "p" variable.parameter.template.hpeg
+19:7-8 " "
+19:8-10 "::" keyword.operator.definition.hpeg
+19:10-11 " "
+19:11-12 "a" variable.parameter.template.hpeg
+19:12-13 "," punctuation.separator.template.hpeg
+19:13-14 " "
+19:14-17 "sep" variable.parameter.template.hpeg
+19:17-18 ">" punctuation.definition.template.hpeg
+19:18-19 " "
+19:19-21 "::" keyword.operator.definition.hpeg
+19:21-22 " "
+19:22-25 "[a]" meta.embedded.type.hpeg source.haskell
+20:1-5 "List" entity.name.function.rule.hpeg
+20:5-6 "<" punctuation.definition.template.hpeg
+20:6-7 "p" variable.parameter.template.hpeg
+20:7-8 "," punctuation.separator.template.hpeg
+20:8-9 " "
+20:9-12 "sep" variable.parameter.template.hpeg
+20:12-13 ">" punctuation.definition.template.hpeg
+20:13-14 " "
+20:14-16 "<-" keyword.operator.definition.hpeg
+20:16-17 " "
+20:17-18 "x" variable.parameter.binding.hpeg
+20:18-19 ":" variable.parameter.binding.hpeg punctuation.separator.binding.hpeg
+20:19-20 "p" variable.other.rule.hpeg
+20:20-21 " "
+20:21-23 "xs" variable.parameter.binding.hpeg
+20:23-24 ":" variable.parameter.binding.hpeg punctuation.separator.binding.hpeg
+20:24-25 "(" punctuation.section.group.hpeg
+20:25-28 "sep" variable.other.rule.hpeg
+20:28-29 " "
+20:29-30 "p" variable.other.rule.hpeg
+20:30-31 ")" punctuation.section.group.hpeg
+20:31-32 "*" keyword.operator.hpeg
+20:32-33 " "
+20:33-34 "{" meta.embedded.action.hpeg punctuation.section.action.begin.hpeg
+20:34-42 " x : xs " meta.embedded.action.hpeg source.haskell
+20:42-43 "}" meta.embedded.action.hpeg punctuation.section.action.end.hpeg

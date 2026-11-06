@@ -91,6 +91,13 @@ main = do
           drop 2 results @?= [object [("uri", String uri), ("range", rangeOf (6, 0) (6, 1))]]
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose src]
             @?= [(4, 6, "the template T takes no value arguments")]
+      , testCase "the arguments of directives: rules are functions, labels decorators and the module a namespace (ADR 0069)" $ do
+          let src = "%module M\n%entry E\n%recover l R\n\nS :: ()\nS <- E ^l\n\nE :: ()\nE <- 'e'\n\nR :: ()\nR <- 'r'\n"
+              out = session [initialize False, open src, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])])]
+              typed = decodeTypedTokens src (fromMaybe [] (lastResult out >>= member "data" >>= asArray))
+          [(locLine a, locColumn a, locColumn b, ty) | (a, b, ty) <- typed, locLine a <= 3]
+            @?= [(1, 1, 8, "keyword"), (1, 9, 10, "namespace"), (2, 1, 7, "keyword"), (2, 8, 9, "function"), (3, 1, 9, "keyword"), (3, 10, 11, "decorator"), (3, 12, 13, "function")]
+          assertBool "namespace in the legend" ("namespace" `elem` tokenTypes)
       , testGroup
           "code actions (ADR 0054)"
           [ testCase "the server offers code actions" $

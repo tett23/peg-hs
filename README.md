@@ -303,11 +303,17 @@ When changes arrive faster than it checks them, it checks only the last version 
 
 ## Editors
 
+An editor gets four tools for grammars: the language server, lint, formatting and syntax highlighting.
+The settings below set up all four, and format a grammar on every save by default, since `fmt` has only one style ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
+
 `editors/` has grammars for syntax highlighting and a VS Code extension ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
+Besides rules, literals and operators, they color brackets, the braces of actions, the delimiters of bindings and template arguments, and the arguments of directives by what they name: a rule, a label, the module or an extension ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
 The Haskell of a grammar (verbatim blocks, types, actions, semantic predicates, arguments) is highlighted by the editor's Haskell grammar.
+The tree-sitter grammar also has queries for folds, indents and locals: a rule folds with its type annotation, and an alternative on a new line is indented to the `<-` of its definition, as `fmt` lays it out.
 
 The language server `peg-hs lsp` reports the errors and warnings of `gen` and `lint` as a grammar is edited, and formats it with `fmt`.
 It also provides semantic tokens, go to definition, find references, hover and document symbols.
+Its semantic tokens tell the rules, labels and the module in the arguments of directives apart.
 Its code actions add the labels of `label`, and add `%recover` with a skeleton of a recovery rule to a label without one ([ADR 0054](docs/adr/0054-automatic-label-insertion.md)).
 The skeleton's value is the typed hole `{ _ }`: GHC shows its type, and the author writes the value.
 
@@ -319,6 +325,8 @@ The results of checks go to `docs/editors/`, and an editor loses this mark when 
 `editors/vscode` is an extension with the TextMate grammar (`editors/textmate/hpeg.tmLanguage.json`) that starts the language server.
 It is not on the Marketplace yet, so install it from the repository: install its dependencies, link it into the directory of extensions, and restart VS Code.
 If `peg-hs` is not on `PATH`, the setting `peg-hs.path` points at the executable.
+The extension turns on `editor.formatOnSave` for the language `hpeg`, so a grammar is formatted on every save.
+To turn it off, set `"[hpeg]": { "editor.formatOnSave": false }` in your settings.
 
 ```sh
 (cd editors/vscode && npm ci)
@@ -337,18 +345,16 @@ vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 #### Language server
 
 The language server is set up with `vim.lsp.config` of Neovim 0.11 or later; no plugin is needed.
+The autocommand formats a grammar with `fmt` on every save.
 
 ```lua
 vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
 vim.lsp.enable('peg_hs')
+vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
 ```
 
 As a grammar is edited, it reports the errors of `gen` as errors, the warnings of `lint` as warnings, and the infos of `lint` as hints, which Neovim shows faintly.
-It also formats with `fmt`: `vim.lsp.buf.format()`, or on every save:
-
-```lua
-vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
-```
+`vim.lsp.buf.format()` also formats it at any time.
 
 #### Lint without the language server
 
@@ -383,6 +389,7 @@ For highlighting, register the tree-sitter grammar `editors/tree-sitter-hpeg` wi
 A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall hpeg` in Neovim.
 Building the grammar needs the tree-sitter CLI.
 nvim-treesitter does not turn highlighting on by itself, so a `FileType` autocommand calls `vim.treesitter.start()`.
+The same autocommand sets the folds of Neovim and the indents of nvim-treesitter from the queries.
 
 ```lua
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
@@ -390,7 +397,12 @@ vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function(
     install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
   }
 end })
-vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() vim.treesitter.start() end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function()
+  vim.treesitter.start()
+  vim.wo.foldmethod = 'expr'
+  vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+  vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+end })
 ```
 
 With the old version of nvim-treesitter (the master branch), register it with `get_parser_configs()`.
@@ -406,7 +418,9 @@ require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
 ### Helix (unchecked)
 
 Add the language, the grammar and the language server to `languages.toml`, and run `hx --grammar build`.
-Copy the queries to `runtime/queries/hpeg/`.
+Copy the queries `highlights.scm`, `injections.scm` and `locals.scm` to `runtime/queries/hpeg/`; `folds.scm` and `indents.scm` are written for Neovim.
+With `auto-format = true`, Helix formats a grammar with the language server on every save.
+Formatting on save is one of the things to check by hand in Helix ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
 
 ```toml
 [[language]]
@@ -415,12 +429,13 @@ scope = "source.hpeg"
 file-types = ["hpeg"]
 comment-token = "#"
 language-servers = ["peg-hs"]
+auto-format = true
 
 [[grammar]]
 name = "hpeg"
 source = { path = "/path/to/peg-hs/editors/tree-sitter-hpeg" }
 
-[language-server.hpeg-hs]
+[language-server.peg-hs]
 command = "peg-hs"
 args = ["lsp"]
 ```

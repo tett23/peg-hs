@@ -306,11 +306,17 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 
 ## エディタ
 
+エディタでは、文法のための四つの道具、言語サーバー、lint、整形、シンタックスハイライトがそろう。
+下の設定は四つをすべて設定し、既定で保存のたびに文法を整形する。`fmt` の流儀は一つしかないからである（[ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)）。
+
 `editors/` に、シンタックスハイライトの文法と VS Code の拡張機能を置いている（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）。
+規則、リテラル、演算子のほか、括弧、アクションの波括弧、束縛と雛形の引数の区切り、指示の引数にも色を付ける。指示の引数は、規則、ラベル、モジュール、言語拡張のどれを指すかで色を分ける（[ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)）。
 Haskell の断片（verbatim ブロック、型、アクション、意味述語、引数）は、エディタの Haskell の文法がハイライトする。
+tree-sitter の文法には、折り畳み、字下げ、名前の定義と参照の問い合わせもある。規則は型注釈とまとめて畳め、新しい行の選択肢は `fmt` と同じく定義の `<-` の桁に字下げされる。
 
 言語サーバー `peg-hs lsp` は、編集のたびに `gen` と `lint` の誤りと警告を報告し、`fmt` で整形する。
 semantic tokens、定義への移動、参照の検索、ホバー、文書の記号も提供する。
+semantic tokens は、指示の引数の規則、ラベル、モジュールも区別する。
 コードアクションとして、`label` と同じラベルを付ける「ラベルを付ける」と、回復の規則を持たないラベルに `%recover` と回復の規則の雛形を加える「`%recover` を加える」がある（[ADR 0054](docs/adr/0054-automatic-label-insertion.md)）。
 雛形の値は型の穴 `{ _ }` なので、GHC が示す型を見て作者が書き入れる。
 
@@ -323,6 +329,8 @@ semantic tokens、定義への移動、参照の検索、ホバー、文書の�
 Marketplace にはまだ公開していないので、リポジトリから入れる。
 依存を入れ、拡張機能のディレクトリにリンクを張り、VS Code を再起動する。
 `peg-hs` が `PATH` にない場合は、設定 `peg-hs.path` で実行ファイルを指す。
+拡張機能は言語 `hpeg` の `editor.formatOnSave` を有効にするので、保存のたびに文法が整形される。
+無効にするには、設定に `"[hpeg]": { "editor.formatOnSave": false }` を書く。
 
 ```sh
 (cd editors/vscode && npm ci)
@@ -341,18 +349,16 @@ vim.filetype.add({ extension = { hpeg = 'hpeg' } })
 #### 言語サーバー
 
 言語サーバーは、Neovim 0.11 以降の `vim.lsp.config` で設定する。プラグインは要らない。
+自動コマンドは、保存のたびに文法を `fmt` で整形する。
 
 ```lua
 vim.lsp.config('peg_hs', { cmd = { 'peg-hs', 'lsp' }, filetypes = { 'hpeg' }, root_markers = { '.git' } })
 vim.lsp.enable('peg_hs')
+vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
 ```
 
 編集のたびに、`gen` の誤りを誤りとして、`lint` の警告を警告として、`lint` の info をヒントとして報告する。ヒントは Neovim が淡く示す。
-`fmt` での整形もできる。`vim.lsp.buf.format()` を呼ぶか、保存のたびに整形するなら次のようにする。
-
-```lua
-vim.api.nvim_create_autocmd('BufWritePre', { pattern = '*.hpeg', callback = function() vim.lsp.buf.format() end })
-```
+`vim.lsp.buf.format()` を呼べば、いつでも整形できる。
 
 #### 言語サーバーを使わない lint
 
@@ -387,6 +393,7 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave' }, { pattern = '*.hp
 `User TSUpdate` の自動コマンドで文法の場所と問い合わせのディレクトリを渡し、Neovim で `:TSInstall hpeg` を実行する。
 文法のビルドには tree-sitter の CLI が要る。
 nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
+同じ自動コマンドで、問い合わせによる Neovim の折り畳みと nvim-treesitter の字下げも設定する。
 
 ```lua
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
@@ -394,7 +401,12 @@ vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function(
     install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
   }
 end })
-vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function() vim.treesitter.start() end })
+vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function()
+  vim.treesitter.start()
+  vim.wo.foldmethod = 'expr'
+  vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+  vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+end })
 ```
 
 nvim-treesitter の旧版（master ブランチ）では、`get_parser_configs()` に登録する。
@@ -410,7 +422,9 @@ require('nvim-treesitter.parsers').get_parser_configs().hpeg = {
 ### Helix（未確認）
 
 `languages.toml` に言語、文法、言語サーバーを加え、`hx --grammar build` を実行する。
-問い合わせは `runtime/queries/hpeg/` に写す。
+問い合わせのうち `highlights.scm`、`injections.scm`、`locals.scm` を `runtime/queries/hpeg/` に写す。`folds.scm` と `indents.scm` は Neovim 向けに書いている。
+`auto-format = true` により、Helix は保存のたびに言語サーバーで文法を整形する。
+保存時の整形は、Helix で手で確かめる項目の一つである（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。
 
 ```toml
 [[language]]
@@ -419,12 +433,13 @@ scope = "source.hpeg"
 file-types = ["hpeg"]
 comment-token = "#"
 language-servers = ["peg-hs"]
+auto-format = true
 
 [[grammar]]
 name = "hpeg"
 source = { path = "/path/to/peg-hs/editors/tree-sitter-hpeg" }
 
-[language-server.hpeg-hs]
+[language-server.peg-hs]
 command = "peg-hs"
 args = ["lsp"]
 ```

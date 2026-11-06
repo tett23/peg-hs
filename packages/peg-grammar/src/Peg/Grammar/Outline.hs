@@ -32,7 +32,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Peg.Grammar (Diagnostic (..), Loc (..))
-import Peg.Grammar.Assemble (isIdentChar)
 import Peg.Grammar.Highlight
 import Peg.Grammar.Parser (labelMessage)
 import qualified Peg.Grammar.SelfHostedSyntax as S
@@ -118,34 +117,13 @@ outline src =
       | otherwise = a : distinct (b : rest)
     distinct es = es
     slice h = sliceText lines' (hlStart h) (hlEnd h)
-    directiveReferences hs =
-      concat
-        [ [ Reference w (Loc l (c + off)) (Loc l (c + off + T.length w))
-          | (k, (off, w)) <- zip [0 :: Int ..] (wordsAt (slice a))
-          , T.all isIdentChar w
-          , if name == "%recover" then k == 1 else name /= "%recover"
-          ]
-        | (d, a) <- zip hs (drop 1 hs)
-        , hlKind d == HDirective
-        , hlKind a == HDirectiveArgument
-        , let name = slice d
-        , name `elem` ["%start", "%entry", "%nomemo", "%token", "%trivia", "%inline", "%recover"]
-        , let Loc l c = hlStart a
-        ]
+    -- The rule names in the arguments of directives (ADR 0069).
+    directiveReferences hs = [Reference (slice h) (hlStart h) (hlEnd h) | h <- hs, hlKind h == HDirectiveRule]
 
 -- | The text of the syntax tree that recovery builds, which is always the
 -- input (ADR 0021). For tests.
 recoveredText :: Text -> Text
 recoveredText = syntaxText . fst . S.parseSyntaxRecover
-
--- The words of a text with their offsets in code points.
-wordsAt :: Text -> [(Int, Text)]
-wordsAt = go 0
-  where
-    go off t
-      | T.null t = []
-      | isSpace (T.head t) = let (s, rest) = T.span isSpace t in go (off + T.length s) rest
-      | otherwise = let (w, rest) = T.break isSpace t in (off, w) : go (off + T.length w) rest
 
 sliceText :: [Text] -> Loc -> Loc -> Text
 sliceText ls (Loc l1 c1) (Loc l2 c2)

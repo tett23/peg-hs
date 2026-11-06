@@ -159,13 +159,17 @@ lint や formatter のように、空白とコメントを扱う用途のため�
 - **オプション**：値を取るオプションは `--name value` と `--name=value` の両方の形を受け付ける
 - **ヘルプと誤りの文言**：各コマンドのヘルプは、使い方、説明、オプション、例の順に書き、例を一つ以上含む。使い方の誤りには `peg-hs help COMMAND` の案内を添える。知らないコマンドが既知のコマンドに近い綴りなら、候補を示す
 
+エディタでは、言語サーバー、lint、整形、シンタックスハイライトの四つがそろう。
+整形の流儀は一つに固定しているので、保存のたびに整形するのを既定とする（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）。
 エディタの支援として、リポジトリの `editors/` に次のものを置く。
 
-- **シンタックスハイライト**：TextMate と tree-sitter の文法。アクションや verbatim ブロックの中の Haskell の断片は、Haskell の文法に任せて色を付ける（[ADR 0034](adr/0034-syntax-highlighting.md)）。tree-sitter の文法は、verbatim ブロックの中身を `peg-hs gen` と同じ境界で読む（[ADR 0045](adr/0045-fixes-before-v0-1-0.md)）
-- **semantic tokens**：言語サーバーが、規則、束縛、ラベルなどの種類を返す（[ADR 0035](adr/0035-language-server.md)）
-- **VS Code の拡張機能**：TextMate の文法と言語サーバーの起動を含む。リポジトリから入れる（[ADR 0034](adr/0034-syntax-highlighting.md)、[ADR 0035](adr/0035-language-server.md)）
+- **シンタックスハイライト**：TextMate と tree-sitter の文法。アクションや verbatim ブロックの中の Haskell の断片は、Haskell の文法に任せて色を付ける（[ADR 0034](adr/0034-syntax-highlighting.md)）。tree-sitter の文法は、verbatim ブロックの中身を `peg-hs gen` と同じ境界で読む（[ADR 0045](adr/0045-fixes-before-v0-1-0.md)）。括弧、アクションと verbatim ブロックの区切り、束縛の `:`、雛形の引数の `,`、ラベルの `^` にも色を付け、指示の引数は、規則の名前、ラベル、モジュールの名前、言語拡張の名前を区別する。capture の名前は nvim-treesitter と Helix の慣用に合わせる（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）
+- **折り畳み、字下げ、名前の定義と参照**：tree-sitter の問い合わせ。型注釈と定義をまとめた規則、verbatim ブロック、複数行のアクションを畳み、続きの選択肢の行を定義の `<-` の桁に字下げする。規則の定義と参照、束縛を名前の定義と参照とする（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）
+- **semantic tokens**：言語サーバーが、規則、束縛、ラベルなどの種類を返す（[ADR 0035](adr/0035-language-server.md)）。指示の引数の規則の名前は `function`、ラベルは `decorator`、`%module` の引数は `namespace` とし、括弧や区切りには返さない（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）
+- **VS Code の拡張機能**：TextMate の文法と言語サーバーの起動を含み、言語 `hpeg` の保存時の整形（`editor.formatOnSave`）を既定で有効にする。リポジトリから入れる（[ADR 0034](adr/0034-syntax-highlighting.md)、[ADR 0035](adr/0035-language-server.md)、[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）
 
 Neovim と Helix は、tree-sitter の文法と言語サーバーを設定して使う。
+README の設定は、保存時に言語サーバーで整形する設定を含む（[ADR 0069](adr/0069-richer-highlighting-and-format-on-save.md)）。
 エディタごとの手での確認の記録は `docs/editors/` に置く（[ADR 0044](adr/0044-release-v0-1-0.md)）。
 
 ## 文法定義の記法

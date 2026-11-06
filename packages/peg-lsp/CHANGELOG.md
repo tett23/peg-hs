@@ -45,3 +45,9 @@ Since v0.1.0-rc2:
   runs, and the lexical rules of the JSON parser are not memoised. The
   diagnostics are unchanged
   ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
+- Semantic tokens for the arguments of directives: the rule names of
+  `%start`, `%entry`, `%nomemo`, `%token`, `%trivia`, `%inline` and
+  `%recover` are `function`, the labels of `%recover` and `%safe` are
+  `decorator`, and the argument of `%module` is `namespace`, a new token
+  type of the legend
+  ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).

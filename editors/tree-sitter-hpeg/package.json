@@ -16,6 +16,7 @@
       ],
       "highlights": "queries/highlights.scm",
       "injections": "queries/injections.scm",
+      "locals": "queries/locals.scm",
       "injection-regex": "^hpeg$"
     }
   ]
