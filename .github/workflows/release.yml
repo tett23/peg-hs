@@ -114,6 +114,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/$name" "$RUNNER_TEMP/out"
           cp "$(cabal list-bin exe:peg-hs)" "$RUNNER_TEMP/$name/peg-hs"
           cp LICENSE README.md README.ja.md "$RUNNER_TEMP/$name/"
+          scripts/pack-editors.sh "$RUNNER_TEMP/$name/editors"
           "$RUNNER_TEMP/$name/peg-hs" --version
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/out/$name.tar.gz" "$name"
       - uses: actions/upload-artifact@v7
@@ -122,8 +123,31 @@ jobs:
           path: ${{ runner.temp }}/out/*
           if-no-files-found: error
 
+  # The TextMate and tree-sitter grammars, for every platform (ADR 0073).
+  editors:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Archive
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          name="peg-hs-editors-${TAG#v}"
+          mkdir -p "$RUNNER_TEMP/out"
+          scripts/pack-editors.sh "$RUNNER_TEMP/$name"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/out/$name.tar.gz" "$name"
+          tar -tzf "$RUNNER_TEMP/out/$name.tar.gz"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: editors
+          path: ${{ runner.temp }}/out/*
+          if-no-files-found: error
+
   release:
-    needs: [check, packages, executable]
+    needs: [check, packages, executable, editors]
     runs-on: ubuntu-latest
     permissions:
       contents: write
