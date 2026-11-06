@@ -389,16 +389,26 @@ Use either the language server or nvim-lint: both report the same warnings, so w
 #### Highlighting
 
 For highlighting, register the tree-sitter grammar `editors/tree-sitter-hpeg` with nvim-treesitter (the main branch).
-A `User TSUpdate` autocommand gives the path of the grammar and its directory of queries; then run `:TSInstall hpeg` in Neovim.
+A `User TSUpdate` autocommand gives the place of the grammar and its directory of queries; then run `:TSInstall hpeg` in Neovim.
 Building the grammar needs the tree-sitter CLI.
 nvim-treesitter does not turn highlighting on by itself, so a `FileType` autocommand calls `vim.treesitter.start()`.
 The same autocommand sets the folds of Neovim and the indents of nvim-treesitter from the queries.
 
+The grammar can be installed from GitHub, without a clone ([ADR 0074](docs/adr/0074-neovim-tree-sitter-from-github.md)).
+It installs the grammar of the release tag in `revision`.
+With the tag of the same version as the language server (`peg-hs lsp`), highlighting and diagnostics follow the same version of the notation.
+With `revision`, `:TSUpdate` does not install it again until the tag changes.
+Without `revision`, it installs the head of main, and `:TSUpdate` installs it again every time.
+With `url`, `queries` is a path from the root of the repository, not from `location`.
+
 ```lua
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
-  require('nvim-treesitter.parsers').hpeg = {
-    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
-  }
+  require('nvim-treesitter.parsers').hpeg = { install_info = {
+    url = 'https://github.com/tett23/peg-hs',
+    location = 'editors/tree-sitter-hpeg',
+    queries = 'editors/tree-sitter-hpeg/queries',
+    revision = 'v0.1.0-rc3',
+  } }
 end })
 vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function()
   vim.treesitter.start()
@@ -407,6 +417,18 @@ vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function(
   vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 end })
 ```
+
+To install it from a clone, or from an extracted archive of a release ([Installation](#installation)), register it in the `TSUpdate` autocommand above with `path` instead:
+With `path`, `queries` is a path from `path`.
+
+```lua
+require('nvim-treesitter.parsers').hpeg = {
+  install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
+}
+```
+
+To highlight the Haskell fragments, such as actions and verbatim blocks, install the haskell parser too (`:TSInstall haskell`).
+Without it, the Haskell fragments are not highlighted.
 
 With the old version of nvim-treesitter (the master branch), register it with `get_parser_configs()`.
 The grammar has an external scanner (`src/scanner.c`), so `files` lists two files; copy the queries to `queries/hpeg/` on the runtime path.

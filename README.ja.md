@@ -398,11 +398,21 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave' }, { pattern = '*.hp
 nvim-treesitter は、ハイライトを自動では有効にしないので、`FileType` の自動コマンドで `vim.treesitter.start()` を呼ぶ。
 同じ自動コマンドで、問い合わせによる Neovim の折り畳みと nvim-treesitter の字下げも設定する。
 
+手元に clone しなくても、GitHub から入れられる（[ADR 0074](docs/adr/0074-neovim-tree-sitter-from-github.md)）。
+`revision` に書いたリリースのタグの文法を入れる。
+言語サーバー（`peg-hs lsp`）と同じ版のタグを書くと、ハイライトと診断の記法の版がそろう。
+`revision` を書くと、`:TSUpdate` は、タグを変えるまで入れ直さない。
+`revision` を消すと main の先頭を入れ、`:TSUpdate` のたびに入れ直す。
+`url` のときの `queries` は、リポジトリのルートからのパスで書く。`location` からのパスではない。
+
 ```lua
 vim.api.nvim_create_autocmd('User', { pattern = 'TSUpdate', callback = function()
-  require('nvim-treesitter.parsers').hpeg = {
-    install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
-  }
+  require('nvim-treesitter.parsers').hpeg = { install_info = {
+    url = 'https://github.com/tett23/peg-hs',
+    location = 'editors/tree-sitter-hpeg',
+    queries = 'editors/tree-sitter-hpeg/queries',
+    revision = 'v0.1.0-rc3',
+  } }
 end })
 vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function()
   vim.treesitter.start()
@@ -411,6 +421,18 @@ vim.api.nvim_create_autocmd('FileType', { pattern = 'hpeg', callback = function(
   vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 end })
 ```
+
+手元の clone や、リリースのアーカイブ（[導入](#導入)）を展開した場所から入れるときは、上の `TSUpdate` の自動コマンドの中の登録を、`path` を書いた次の形にする。
+`path` のときの `queries` は、`path` からのパスで書く。
+
+```lua
+require('nvim-treesitter.parsers').hpeg = {
+  install_info = { path = '/path/to/peg-hs/editors/tree-sitter-hpeg', queries = 'queries' },
+}
+```
+
+アクションや verbatim ブロックなどの Haskell の断片に色を付けるには、haskell のパーサーも入れる（`:TSInstall haskell`）。
+haskell のパーサーがなければ、Haskell の断片には色が付かない。
 
 nvim-treesitter の旧版（master ブランチ）では、`get_parser_configs()` に登録する。
 文法は外部のスキャナー（`src/scanner.c`）を持つので、`files` に二つのファイルを書き、問い合わせをランタイムパスの `queries/hpeg/` に写す。
