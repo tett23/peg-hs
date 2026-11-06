@@ -213,6 +213,7 @@ peg-lsp は peg-cli が依存するので、peg-cli を Hackage から入れる�
 そのため、言語サーバーの API も PVP の対象になる。
 適合性テストのパッケージ peg-conformance は公開しない。
 エディタの文法と VS Code の拡張機能は、リポジトリの `editors/` で配布する。
+TextMate と tree-sitter の文法は、GitHub の Releases の文法のアーカイブ（`peg-hs-editors-<版>.tar.gz`）と、実行ファイルのアーカイブの `editors/` にも入れる。tree-sitter の文法は生成済みのパーサー（`src/`）と問い合わせを含む。アーカイブの中身は `scripts/pack-editors.sh` が作る（[ADR 0073](adr/0073-editor-grammars-in-releases.md)）。
 
 版は PVP（Haskell Package Versioning Policy）に従う。
 1.0 までは 0.x とし、互換の崩れる変更は x を上げて示す（[ADR 0009](adr/0009-hackage-publication.md)）。
@@ -299,6 +300,7 @@ editors/
   textmate         -- TextMate の文法
   tree-sitter-hpeg  -- tree-sitter の文法
   vscode           -- VS Code の拡張機能
+  README.md        -- リリースのアーカイブに入れる、文法の説明
 ```
 
 依存は `peg-cli → peg-codegen → peg-grammar → peg-runtime` と `peg-cli → peg-lsp → peg-grammar` の一方向とし、peg-runtime は他のどのパッケージにも依存しない。

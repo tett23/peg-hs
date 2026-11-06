@@ -36,6 +36,7 @@ It is not on Hackage yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
 GitHub [Releases](https://github.com/tett23/peg-hs/releases) has `peg-hs` for Linux (x86-64) and macOS (arm64).
 Extract the archive and put `peg-hs` in a directory on `PATH`.
 `SHA256SUMS` of the same release checks that the archive is intact.
+The archive also has the editor grammars in `editors/` ([Editors](#editors)).
 
 ```sh
 tar xzf peg-hs-0.1.0-rc2-x86_64-linux.tar.gz
@@ -306,6 +307,7 @@ An editor gets four tools for grammars: the language server, lint, formatting an
 The settings below set up all four, and format a grammar on every save by default, since `fmt` has only one style ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
 
 `editors/` has grammars for syntax highlighting and a VS Code extension ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
+The TextMate and tree-sitter grammars are also in the releases: `peg-hs-editors-<version>.tar.gz` on [Releases](https://github.com/tett23/peg-hs/releases), and `editors/` in the archive of the executable. The tree-sitter grammar there has its generated parser, so Neovim and Helix build it without the tree-sitter CLI. In the settings below, `/path/to/peg-hs/editors/tree-sitter-hpeg` can be the `tree-sitter-hpeg/` of an extracted archive ([ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)).
 Besides rules, literals and operators, they color brackets, the braces of actions, the delimiters of bindings and template arguments, and the arguments of directives by what they name: a rule, a label, the module or an extension ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
 The Haskell of a grammar (verbatim blocks, types, actions, semantic predicates, arguments) is highlighted by the editor's Haskell grammar.
 The tree-sitter grammar also has queries for folds, indents and locals: a rule folds with its type annotation, and an alternative on a new line is indented to the `<-` of its definition, as `fmt` lays it out.
