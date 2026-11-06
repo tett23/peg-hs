@@ -254,12 +254,12 @@ classify g = Classification ruleTypes (S.intersection units defined) dataTypes u
     resolve gen =
       let types = inferFix gen
           conflicts = S.fromList [n | (n, Conflict) <- M.toList types]
-          unknown = S.fromList [n | (n, Unknown) <- M.toList types]
+          unresolved = S.fromList [n | (n, Unknown) <- M.toList types]
        in if not (S.null conflicts)
             then resolve (S.union gen conflicts)
             else
-              if not (S.null unknown)
-                then resolve (S.union gen unknown)
+              if not (S.null unresolved)
+                then resolve (S.union gen unresolved)
                 else (gen, M.fromList [(n, t) | (n, Known t) <- M.toList types])
     candidatesOf gen = [r | r <- valued, not (S.member (ruleName r) gen)]
     -- The types of the candidates, from all unknown. A candidate whose

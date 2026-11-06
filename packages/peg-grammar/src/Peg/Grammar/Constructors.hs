@@ -41,7 +41,7 @@ constructorNameEdits src = case (parseGrammar src >>= expandTemplates, S.parseSy
         | (name, alts) <- definitions root
         , Just d <- [M.lookup name types]
         , length alts == length (dataConstructors d)
-        , let edits = [Edit at (" @" <> conName c) | ((at, named), c) <- zip alts (dataConstructors d), not named]
+        , let edits = [Edit at (" @" <> conName con) | ((at, named), con) <- zip alts (dataConstructors d), not named]
         , not (null edits)
         ]
   _ -> []
