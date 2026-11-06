@@ -1,0 +1,22 @@
+-- | The value of the rule @Doc@.
+data Doc
+  = Doc [(PegRt.Text)] Wrapped [Rule'値] Unit
+  deriving (Eq, Ord, Show)
+
+-- | The value of the rule @Wrapped@.
+newtype Wrapped = Wrapped [Flag]
+  deriving (Eq, Ord, Show)
+
+-- | The value of the rule @Flag@.
+data Flag
+  = Yes
+  | No
+  | Level PegRt.Text
+  deriving (Eq, Ord, Show)
+
+-- | The value of the rule @値@.
+data Rule'値
+  = Rule'値1 PegRt.Text
+  | Rule'値2 Int
+  deriving (Eq, Ord, Show)
+

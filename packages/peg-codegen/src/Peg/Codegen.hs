@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Generate a Haskell module from a grammar.
@@ -44,13 +45,14 @@ module Peg.Codegen
 import Data.Char (toLower, toUpper)
 import Data.List (intersperse)
 import qualified Data.Map.Strict as M
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, listToMaybe)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
+import Peg.Grammar.Types (Classification (..), Constructor (..), DataType (..), RuleType (..), ValueType (..), defaultDeriving, fieldItems, typeAtom, typeCode)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 
@@ -233,7 +235,8 @@ render opts g an =
       Nothing -> False
       Just names -> Just names /= keptDecls opts {optExports = Just (map selectable (generatedNames g an))} g an
     decls =
-      entryDecls
+      dataDecls
+        ++ entryDecls
         ++ syntaxEntryDecls
         ++ recoverEntryDecls
         ++ debugDecls
@@ -246,9 +249,20 @@ render opts g an =
     usesPegPrelude = isNothing kept || any ("PegPrelude." `T.isInfixOf`) decls
     exports =
       [x | x <- generatedNames g an, maybe True (elem (selectable x)) (optExports opts)]
+        ++ [dataName d <> "(..)" | d <- classDataTypes (analysisTypes an), S.member (dataName d) exportedTypes]
         ++ map unLoc (grammarExports g)
         ++ debugNames opts g
     recovering = isRecovering g
+    -- The generated types (ADR 0075): those that the generated rules use,
+    -- and of them, those reachable from the types of the entry points
+    -- exported.
+    dataTypes = classDataTypes (analysisTypes an)
+    declaredTypes = typesFrom an [ruleName r | r <- grammarRules g, keep (ruleVar (ruleName r))]
+    exportedTypes = case optExports opts of
+      Nothing -> S.fromList (map dataName dataTypes)
+      Just names -> typesFrom an [n | (k, n) <- entries, any (`elem` names) (entryNamesOf k)]
+    entryNamesOf k = [entryName k, "parseSyntax" <> maybe "" id k, "parseRecover" <> maybe "" id k, "parseSyntaxRecover" <> maybe "" id k]
+    dataDecls = [dataDecl d | d <- dataTypes, S.member (dataName d) declaredTypes]
     -- In syntax mode a rule returns its value with its tree children.
     valueOf = if syntax then "PegPrelude.fmap PegPrelude.fst " else ""
     wrapValue e = if syntax then valueOf <> "(" <> e <> ")" else e
@@ -257,7 +271,7 @@ render opts g an =
     -- it, so that the import is never reported as redundant.
     fstName = if importsPrelude g then "PegPrelude.fst" else "Prelude.fst"
     envType = maybe "()" (fragment opts) (grammarEnv g)
-    resultType n = maybe "()" (ruleTypeFragment opts) (M.lookup n (envRules env))
+    resultType n = maybe "()" (ruleTypeFragment env) (M.lookup n (envRules env))
     verbatimBlock (Located (Loc l _) t) =
       T.concat ["{-# LINE ", showT l, " ", T.pack (show (optSourceName opts)), " #-}\n", t, "\n", restoreMarker, "\n"]
     envArg = if hasEnv then " peg'env" else ""
@@ -403,6 +417,46 @@ render opts g an =
         , ""
         ]
     newTable r = if null (ruleParams r) then "PegRt.newTable" else "PegRt.newArgTable"
+
+-- Generated types (ADR 0075) ---------------------------------------------------
+
+-- The declaration of a generated type, with a constructor on each line.
+dataDecl :: DataType -> Text
+dataDecl d =
+  T.intercalate "\n" $
+    ["-- | The value of the rule @" <> dataRule d <> "@."]
+      ++ ( case dataConstructors d of
+             [c] | [_] <- conFields c -> [keyword "newtype" <> " = " <> con c]
+             cs -> keyword "data" : zipWith (\k c -> "  " <> k <> " " <> con c) ("=" : repeat "|") cs
+         )
+      ++ ["  deriving (" <> T.intercalate ", " (map derived (dataDeriving d)) <> ")" | not (null (dataDeriving d))]
+      ++ [""]
+  where
+    keyword k = k <> " " <> dataName d
+    con c = T.unwords (conName c : map (typeAtom . typeCode) (conFields c))
+    -- The default classes are those of the qualified Prelude; the classes
+    -- of %deriving are written as given.
+    derived c = if dataDeriving d == defaultDeriving then "PegPrelude." <> c else c
+
+-- The generated types that the types of the given rules refer to.
+typesFrom :: Analysis -> [Text] -> Set Text
+typesFrom an = go S.empty . concatMap ruleTypes
+  where
+    cls = analysisTypes an
+    byName = M.fromList [(dataName d, d) | d <- classDataTypes cls]
+    ruleTypes n = case M.lookup n (classRules cls) of
+      Just (Inferred t) -> named t
+      Just (Generated d) -> [dataName d]
+      _ -> []
+    named = \case
+      TList t -> named t
+      TMaybe t -> named t
+      TNamed t -> [t | M.member t byName]
+      TText -> []
+    go seen [] = seen
+    go seen (t : ts)
+      | S.member t seen = go seen ts
+      | otherwise = go (S.insert t seen) (maybe [] (concatMap named . concatMap conFields . dataConstructors) (M.lookup t byName) ++ ts)
 
 -- Selecting the exports (ADR 0061) -------------------------------------------
 
@@ -572,15 +626,18 @@ resultTypeText env r
   | envSyntax env = "((" <> ty <> "), [PegRt.Child])"
   | otherwise = "(" <> ty <> ")"
   where
-    ty = ruleTypeFragment (envOpts env) r
+    ty = ruleTypeFragment env r
 
 -- The type of a rule as written, pointing at the grammar. A rule without a
--- type annotation has type () (ADR 0066), which no line of the grammar
--- states.
-ruleTypeFragment :: Options -> Rule -> Text
-ruleTypeFragment opts r = case ruleAnnotation r of
-  Just _ -> fragment opts (ruleType r)
-  Nothing -> "()"
+-- type annotation has type () (ADR 0066), the type inferred for it, or the
+-- type generated for it (ADR 0075), which no line of the grammar states.
+ruleTypeFragment :: Env -> Rule -> Text
+ruleTypeFragment env r = case ruleAnnotation r of
+  Just _ -> fragment (envOpts env) (ruleType r)
+  Nothing -> case M.lookup (ruleName r) (classRules (classes env)) of
+    Just (Inferred t) -> typeCode t
+    Just (Generated d) -> dataName d
+    _ -> "()"
 
 ruleDecl :: Env -> Rule -> Text
 ruleDecl env r =
@@ -657,9 +714,41 @@ altCode env rule a = do
       | omitsUnitAction (units env) rule items -> do
           stmts <- mapM (itemStmt env True) items
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
+      -- An alternative of a rule whose type is generated: the constructor
+      -- applied to the values of the elements (ADR 0075).
+      | Just (Generated d) <- M.lookup rule (classRules (classes env)) -> do
+          let con = [c | c <- dataConstructors d, conAltLoc c == altLoc a]
+              fields = fieldItems (units env) items
+          (stmts, vs) <- applied env fields items
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> parenthesise (T.unwords (maybe (dataName d) conName (listToMaybe con) : vs))]))
+      -- An alternative of a rule whose type is inferred returns its only
+      -- value other than unit (ADR 0075).
+      | Just (Inferred _) <- M.lookup rule (classRules (classes env)) -> do
+          (stmts, result) <- passThroughOf env True (listToMaybe (fieldItems (units env) items)) items
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
       | otherwise -> do
           (stmts, result) <- passThrough env True items
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
+
+-- Statements for a sequence whose values of the given items are the
+-- arguments of a constructor, and the names of the values.
+applied :: Env -> [Item] -> [Item] -> Gen ([Text], [Text])
+applied env fields = go
+  where
+    go [] = pure ([], [])
+    go (i : is)
+      | i `elem` fields = do
+          e <- exprCode env (itemExpr i)
+          v <- maybe fresh pure (itemBind i)
+          (rest, vs) <- go is
+          pure ((v <> " <- " <> e) : rest, v : vs)
+      | otherwise = do
+          s' <- itemStmt env True i
+          (rest, vs) <- go is
+          pure (s' : rest, vs)
+
+parenthesise :: Text -> Text
+parenthesise t = if T.any (== ' ') t then "(" <> t <> ")" else t
 
 -- The item whose value a sequence without an action returns (ADR 0030).
 passedItem :: Env -> [Item] -> Maybe Item
@@ -667,14 +756,20 @@ passedItem env items = case countedItems (units env) items of
   [i] -> Just i
   _ -> Nothing
 
+classes :: Env -> Classification
+classes = analysisTypes . envAnalysis
+
 units :: Env -> Set Text
 units = analysisUnit . envAnalysis
 
 -- Statements for a sequence whose single value is returned unchanged.
 passThrough :: Env -> Bool -> [Item] -> Gen ([Text], Text)
-passThrough env honorBind items = go items
+passThrough env honorBind items = passThroughOf env honorBind (passedItem env items) items
+
+-- 'passThrough' of the given item.
+passThroughOf :: Env -> Bool -> Maybe Item -> [Item] -> Gen ([Text], Text)
+passThroughOf env honorBind chosen items = go items
   where
-    chosen = passedItem env items
     go [] = pure ([], "()")
     go (i : is)
       | Just i == chosen = do

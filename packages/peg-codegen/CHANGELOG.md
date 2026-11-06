@@ -56,6 +56,16 @@ Since v0.1.0-rc2:
   arguments. Grammars without `%syntax` are generated as before
   ([ADR 0068](https://github.com/tett23/peg-hs/blob/main/docs/adr/0068-untyped-rules-in-syntax-grammars.md)).
 
+Since v0.1.0-rc3:
+
+- The rules whose types are inferred return their values, and the rules
+  whose types are generated return a constructor applied to the values
+  of their elements. The generated types are declared and exported with
+  their constructors (`Expr(..)`), with `deriving (Eq, Show)` or the
+  classes of `%deriving`; with `optExports`, only the types that the
+  types of the exported entry points refer to are exported
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
 ### Fixed
 
 Since v0.1.0-rc1:

@@ -1,0 +1,7 @@
+# %deriving を引数なしで書くと、生成する型は何も導出しない（ADR 0075）
+%module Fixture.GeneratedPlain
+%deriving
+
+Pair <- Word ',' Word
+
+Word <- $[a-z]+

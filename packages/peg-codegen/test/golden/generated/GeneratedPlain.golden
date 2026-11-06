@@ -1,0 +1,4 @@
+-- | The value of the rule @Pair@.
+data Pair
+  = Pair PegRt.Text PegRt.Text
+
