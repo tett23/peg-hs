@@ -542,7 +542,7 @@ hover enc _ d params = do
       -- its type is inferred or generated (ADR 0075).
       value <- case (find ((== Annotation) . declKind) decls, find ((== Definition) . declKind) decls) of
         (Just x, _) -> Just (peg (T.dropWhileEnd isSpace (declText x)))
-        (Nothing, Just _) -> case docTypes d >>= M.lookup name . classRules of
+        (Nothing, Just _) -> case docTypes d >>= \c -> if Set.member name (classUnknown c) then Nothing else M.lookup name (classRules c) of
           Just (Inferred t) -> Just (peg (name <> " :: " <> typeText t))
           Just (Generated dt) -> Just (peg (name <> " :: " <> dataName dt) <> "\n\n```haskell\n" <> dataTypeText dt <> "\n```")
           Just UnitType -> Just (peg (name <> " :: ()"))

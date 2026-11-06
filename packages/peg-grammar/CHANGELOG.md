@@ -139,6 +139,12 @@ Since v0.1.0-rc3:
   `hasValue` and `countedItems` are in `Peg.Grammar.Types`, still
   exported by `Peg.Grammar.Check`
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+- A call of an undefined rule has no known value: next to `undefined rule
+  X`, the checks no longer report the number of values of the
+  alternatives that call it, nor errors of constructor names that depend
+  on it. `classUnknown` of `Classification` has the rules whose types
+  depend on undefined rules
+  ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
 ### Fixed
 

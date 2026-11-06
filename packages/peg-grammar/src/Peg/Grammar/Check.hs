@@ -122,7 +122,7 @@ checkRules g firstRule =
         ++ entryErrors
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
-        ++ concatMap (altErrors units (discardingRules g) (valuedRules g classes)) rules
+        ++ concatMap (altErrors units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
         ++ constructorErrors g classes
         ++ paramLrErrors
         ++ syntaxNameErrors g
@@ -378,8 +378,8 @@ leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
 
 -- Alternatives -------------------------------------------------------------------
 
-altErrors :: Set Text -> Set Text -> Set Text -> Rule -> [Diagnostic]
-altErrors units discarding valued r = concatMap alt (ruleAlts r)
+altErrors :: Set Text -> Set Text -> Set Text -> Set Text -> Rule -> [Diagnostic]
+altErrors units discarding valued unknown r = concatMap alt (ruleAlts r)
   where
     alt a =
       bindingErrors (altItems a)
@@ -407,6 +407,9 @@ altErrors units discarding valued r = concatMap alt (ruleAlts r)
       -- The value of an alternative of a rule whose type is inferred or
       -- generated is that of its elements (ADR 0075).
       Nothing | S.member (ruleName r) valued -> []
+      -- The values of a call of an undefined rule are not known; the error
+      -- is the undefined rule (ADR 0075).
+      Nothing | S.member (ruleName r) unknown || any (`S.member` unknown) (concatMap (valueRefs . itemExpr) (altItems a)) -> []
       Nothing -> case length (countedItems units (altItems a)) of
         1 -> []
         _ | omitsUnitAction units (ruleName r) (altItems a) -> []
@@ -445,7 +448,7 @@ constructorErrors g c =
   ]
     ++ [ Diagnostic l ("the constructor name " <> n <> " must start with an upper case letter")
        | r <- grammarRules g
-       , isGenerated (ruleName r)
+       , isGenerated (ruleName r) || S.member (ruleName r) unknown
        , a <- ruleAlts r
        , Just (Located l n) <- [altConstructor a]
        , not (startsUpper n)
@@ -460,11 +463,14 @@ constructorErrors g c =
       | Just _ <- grammarSyntax g = Just (prefix n <> "the grammar has %syntax")
       | Just _ <- ruleAnnotation r = Just (prefix n <> "rule " <> ruleName r <> " has a type annotation")
       | any (isJust . altAction) (ruleAlts r) = Just (prefix n <> "rule " <> ruleName r <> " has an action")
+      | S.member (ruleName r) unknown = Nothing
       | not (isGenerated (ruleName r)) = Just (prefix n <> "rule " <> ruleName r <> " has type (): no alternative has a value other than ()")
       | otherwise = Nothing
     prefix n = "@" <> n <> " names a constructor, but "
     startsUpper n = maybe False (isUpper . fst) (T.uncons n)
-    types = classDataTypes c
+    unknown = classUnknown c
+    -- The types of rules whose types are not known are not compared.
+    types = [d | d <- classDataTypes c, not (S.member (dataRule d) unknown)]
     -- Two rules whose types have the same name, such as expr and Expr.
     typeNameErrors =
       [ Diagnostic (ruleLocOf (dataRule d)) ("the rules " <> dataRule e <> " and " <> dataRule d <> " have the same type name " <> dataName d <> "; rename one of them")

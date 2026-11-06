@@ -219,6 +219,12 @@ errorTests =
     , testCase "a call of an undefined rule in a rule of type () reports only the undefined rule" $
         errorsIn ["Item :: Int", "Item <- Kw Name End", "Kw <- 'k' Sp", "Name :: Int", "Name <- 'n' { 1 }", "End <- Sp ';' S", "Sp <- ' '*"]
           @?= [(7, 15, "undefined rule S")]
+    , testCase "a constructor name of a rule whose only value is a call of an undefined rule" $
+        errorsIn ["S <- '[' Flags ']' T @Wrapped", "Flags <- Flag*", "T <- 't' @T1"]
+          @?= [(3, 10, "undefined rule Flag"), (4, 11, "@T1 names a constructor, but rule T has type (): no alternative has a value other than ()")]
+    , testCase "two calls of an undefined rule in a rule called from an annotated rule" $
+        errorsIn ["S :: Int", "S <- p:Pair &{ p == p } { 1 }", "Pair <- Word ',' Word"]
+          @?= [(4, 9, "undefined rule Word"), (4, 18, "undefined rule Word")]
     , testCase "a call of an undefined rule has no value in the classification" $
         typeOfRule "End" ["End <- Sp ';' S", "Sp <- ' '*"] @?= Right "()"
     , testCase "two values without an action are no longer an error" $

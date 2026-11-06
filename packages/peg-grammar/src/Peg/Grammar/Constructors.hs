@@ -16,6 +16,7 @@ module Peg.Grammar.Constructors
   ) where
 
 import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import Data.Text (Text)
 import Peg.Grammar
 import Peg.Grammar.LabelInsertion (Edit (..))
@@ -34,7 +35,8 @@ import Peg.Runtime.Syntax
 constructorNameEdits :: Text -> [(Text, [Edit])]
 constructorNameEdits src = case (parseGrammar src >>= expandTemplates, S.parseSyntax src) of
   (Right g, Right root) ->
-    let types = M.fromList [(dataRule d, d) | d <- classDataTypes (classify g)]
+    let c = classify g
+        types = M.fromList [(dataRule d, d) | d <- classDataTypes c, not (S.member (dataRule d) (classUnknown c))]
      in [ (name, edits)
         | (name, alts) <- definitions root
         , Just d <- [M.lookup name types]

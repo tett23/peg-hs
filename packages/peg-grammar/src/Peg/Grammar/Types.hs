@@ -38,6 +38,7 @@ module Peg.Grammar.Types
   , countedItems
   , isUnit
   , fieldItems
+  , valueRefs
     -- * Types of rules
   , Classification (..)
   , RuleType (..)
@@ -174,6 +175,11 @@ data Classification = Classification
   -- ignoring spaces (ADR 0030), or they are 'UnitType'.
   , classDataTypes :: [DataType]
   -- ^ The generated types, in the order of their rules.
+  , classUnknown :: Set Text
+  -- ^ The undefined rules, and the rules whose types depend on a call of
+  -- an undefined rule, through the values of their elements. Their types
+  -- are not known; the checks that depend on the types say nothing about
+  -- them, and the error is the undefined rule.
   }
   deriving (Eq, Show)
 
@@ -214,7 +220,7 @@ data Infer = Unknown | Known ValueType | Conflict
 
 -- | The types of the rules of a grammar.
 classify :: Grammar -> Classification
-classify g = Classification ruleTypes (S.intersection units defined) dataTypes
+classify g = Classification ruleTypes (S.intersection units defined) dataTypes unknown
   where
     rules = grammarRules g
     classified = [r | r <- rules, isClassified g r]
@@ -223,6 +229,12 @@ classify g = Classification ruleTypes (S.intersection units defined) dataTypes
     -- A call of an undefined rule has no value here: "undefined rule" is
     -- its error, and it must not make its caller a rule with values.
     undefinedRules = S.fromList [n | r <- rules, a <- ruleAlts r, i <- altItems a, n <- exprRefs (itemExpr i), not (S.member n defined)]
+    -- The unknown types spread to the classified rules whose values call
+    -- them.
+    unknown = unknownFix undefinedRules
+    unknownFix known =
+      let more = S.fromList [ruleName r | r <- classified, not (S.member (ruleName r) known), any (any (`S.member` known) . concatMap (valueRefs . itemExpr) . altItems) (ruleAlts r)]
+       in if S.null more then known else unknownFix (S.union known more)
     fixedUnits = S.union undefinedRules (S.fromList [ruleName r | r <- rules, annotatedUnit r || (isNothing (ruleAnnotation r) && not (isClassified g r))])
     -- Stage 1: the rules of type (). A rule leaves the set when one of its
     -- alternatives has a value other than (); the set only shrinks.
@@ -314,6 +326,19 @@ classify g = Classification ruleTypes (S.intersection units defined) dataTypes
       | Just t <- M.lookup (ruleName r) inferred = Inferred t
       | otherwise = UnitType
     ruleTypes = M.fromList [(ruleName r, typeOf r) | r <- rules]
+
+-- | The rules whose values are part of the value of an expression: the
+-- calls outside captures and lookaheads.
+valueRefs :: Expr -> [Text]
+valueRefs = \case
+  ERef _ n _ -> [n]
+  EGroup alts -> concatMap (concatMap (valueRefs . itemExpr)) alts
+  EStar x -> valueRefs x
+  EPlus x -> valueRefs x
+  EOpt x -> valueRefs x
+  ELabel _ x _ -> valueRefs x
+  ETemplate _ _ args _ -> concatMap valueRefs args
+  _ -> []
 
 -- The rules that an expression calls.
 exprRefs :: Expr -> [Text]
