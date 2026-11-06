@@ -1,6 +1,6 @@
 # ADR 0070: 言語サーバーの検査を速くする
 
-ステータス: 採択
+ステータス: 採択→言語サーバーの目安（16 ms）は [ADR 0071](0071-incremental-parsing-in-the-language-server.md)
 
 ## 文脈
 
