@@ -1,13 +1,16 @@
 name: CI
 
-# A change of documents only does not change what the code and the tests
-# do; the ADR workflow still checks it (ADR 0039).
+# A change of documents only (docs/** and **.md) does not change what the
+# code and the tests do; the ADR workflow still checks it (ADR 0039). A push
+# to main skips the workflow by paths-ignore. A pull request always runs it,
+# the job changes skips the other jobs, and the job ci reports one result,
+# the check that main requires with adr (ADR 0072). Keep the two conditions
+# the same.
 on:
   push:
     branches: [main]
     paths-ignore: ['docs/**', '**.md']
   pull_request:
-    paths-ignore: ['docs/**', '**.md']
 
 permissions:
   contents: read
@@ -29,7 +32,33 @@ env:
   GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
 
 jobs:
+  # Whether the pull request changes anything besides documents (ADR 0072).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            code=true
+          elif git diff --name-only "$BASE...$HEAD" | grep -v -e '^docs/' -e '\.md$' > /dev/null; then
+            code=true
+          else
+            code=false
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+
   haskell:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -89,6 +118,8 @@ jobs:
   # job saves.
   test:
     name: test-${{ matrix.group }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -156,6 +187,8 @@ jobs:
   # The documentation, alongside the tests (ADR 0039). Every exposed
   # module is fully documented (ADR 0044).
   haddock:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -199,6 +232,8 @@ jobs:
   # one (ADR 0051).
   sdist:
     name: sdist-${{ matrix.shard }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -258,6 +293,8 @@ jobs:
 
   # The editor grammars (ADR 0034).
   editors:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -273,3 +310,22 @@ jobs:
       - run: npm test
       # The generated parser is committed and up to date.
       - run: git diff --exit-code -- tree-sitter-hpeg/src
+
+  # One result for the branch protection of main (ADR 0072): it fails when a
+  # job failed or was cancelled, and passes when every job passed or was
+  # skipped because only documents changed. A new job goes to needs.
+  ci:
+    needs: [changes, haskell, test, haddock, sdist, editors]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
