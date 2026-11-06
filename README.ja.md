@@ -26,7 +26,7 @@ peg-hs は、PEG（Parsing Expression Grammar）で書いた文法から、Haske
 - **Lua 5.5**（Lua 5.5.1 の公式のテストスイート）：マニュアルの構文を間接の左再帰のまま書いた文法で、34 ファイルすべてを受理する。優先順位、結合性、拒否は、参照実装から作った正解と一致する
 - **TOML 1.1.0**（[toml-test](https://github.com/toml-lang/toml-test) v2.2.0）：受理すべき 214 件のすべてで期待する JSON と一致し、拒否すべき 467 件をすべて拒否する。回復するモードでは、全件でロスレスな構文木を返す
 
-**状態**：リリース候補（最新は v0.1.0-rc2）を、GitHub の [Releases](https://github.com/tett23/peg-hs/releases) で配布している。
+**状態**：リリース候補（最新は v0.1.0-rc3）を、GitHub の [Releases](https://github.com/tett23/peg-hs/releases) で配布している。
 Hackage にはまだ上げていない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。
 
 ## 導入
@@ -39,8 +39,8 @@ GitHub の [Releases](https://github.com/tett23/peg-hs/releases) に、Linux（x
 アーカイブには、エディタの文法も `editors/` に入っている（[エディタ](#エディタ)）。
 
 ```sh
-tar xzf peg-hs-0.1.0-rc2-x86_64-linux.tar.gz
-install peg-hs-0.1.0-rc2-x86_64-linux/peg-hs ~/.local/bin/
+tar xzf peg-hs-0.1.0-rc3-x86_64-linux.tar.gz
+install peg-hs-0.1.0-rc3-x86_64-linux/peg-hs ~/.local/bin/
 peg-hs --version
 ```
 
@@ -198,7 +198,7 @@ packages: .
 source-repository-package
   type:     git
   location: https://github.com/tett23/peg-hs
-  tag:      v0.1.0-rc2
+  tag:      v0.1.0-rc3
   subdir:   packages/peg-runtime
 ```
 
