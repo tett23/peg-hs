@@ -72,6 +72,9 @@ if [ -d conformance/json ]; then
     # Written by hand: the JSON grammar without type annotations, actions
     # and bindings (ADR 0068).
     "$peg" gen bench/JsonUntyped.hpeg -o bench/Conformance/Bench/JsonUntyped.hs --debug-entry >/dev/null
+    # Written by hand: the JSON grammar without type annotations, actions
+    # and bindings, whose types are inferred and generated (ADR 0075).
+    "$peg" gen bench/JsonGenerated.hpeg -o bench/Conformance/Bench/JsonGenerated.hs --debug-entry >/dev/null
     "$peg" gen bench/JsonCounted.hpeg -o bench/Conformance/Bench/JsonCounted.hs --debug-entry >/dev/null
     # Written by hand: the JSON grammar with labels and recovery rules (ADR 0021).
     "$peg" gen bench/JsonRecover.hpeg -o bench/Conformance/Bench/JsonRecover.hs >/dev/null

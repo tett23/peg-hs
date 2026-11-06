@@ -1,6 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
+
 -- | JSON conformance (ADR 0010), run against nst/JSONTestSuite.
 module Main (main) where
 
+import qualified Conformance.Bench.JsonGenerated as JsonGenerated
 import qualified Conformance.Bench.JsonLabeled as JsonLabeled
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonRecover as JsonRecover
@@ -10,6 +13,7 @@ import Peg.Runtime.Syntax (debugTree, syntaxText)
 import qualified Conformance.Json.Encode as Encode
 import Conformance.Json.Parser (Value (..))
 import qualified Conformance.Json.Parser as Json
+import Data.Char (chr, digitToInt, ord)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Either (isRight)
@@ -72,6 +76,15 @@ main = do
           , testCase "the same tree as the typed %syntax grammar, or the same rejection, on every file" $ do
               rs <- mapM (\f -> (,) f <$> untypedAgrees f) files
               assertBool ("different trees: " <> show [f | (f, False) <- rs]) (all snd rs)
+          ]
+      , testGroup
+          "the grammar whose types are inferred and generated (ADR 0075)"
+          [ testProperty "the same values as the typed grammar on generated documents" $
+              forAll (sized genValue) $ \v ->
+                let t = Encode.encode v in generatedResult t === typedResult t
+          , testCase "the same values and errors as the typed grammar on every file" $ do
+              rs <- mapM (\f -> (,) f <$> generatedAgrees f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
           ]
       , testGroup
           "recovery (ADR 0021)"
@@ -224,6 +237,7 @@ variantsDerived = do
     , ("bench/JsonNomemo.hpeg", "bench/Conformance/Bench/JsonNomemo.hs")
     , ("bench/JsonSyntax.hpeg", "bench/Conformance/Bench/JsonSyntax.hs")
     , ("bench/JsonUntyped.hpeg", "bench/Conformance/Bench/JsonUntyped.hs")
+    , ("bench/JsonGenerated.hpeg", "bench/Conformance/Bench/JsonGenerated.hs")
     ]
 
 -- Accept or reject the same way, with the same error.
@@ -279,6 +293,58 @@ untypedAgrees name = do
   pure $ case TE.decodeUtf8' bytes of
     Left _ -> True
     Right t -> untypedTree t == typedTree t
+
+-- The value of the grammar whose types are inferred and generated (ADR
+-- 0075), mapped to the value of the typed grammar, and the value of the
+-- typed grammar, with the errors as shown.
+generatedResult, typedResult :: Text -> Either String Value
+generatedResult = either (Left . show) (Right . fromGenerated) . JsonGenerated.parse
+typedResult = either (Left . show) Right . Json.parse
+
+generatedAgrees :: FilePath -> IO Bool
+generatedAgrees name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> generatedResult t == typedResult t
+
+-- The generated types of JsonGenerated as the type of json/Json.hpeg. The
+-- strings are decoded as the actions of json/Json.hpeg decode them.
+fromGenerated :: JsonGenerated.Value -> Value
+fromGenerated = \case
+  JsonGenerated.Value1 -> Null
+  JsonGenerated.Value2 -> Bool True
+  JsonGenerated.Value3 -> Bool False
+  JsonGenerated.Value4 n -> Number n
+  JsonGenerated.Value5 us -> String (string us)
+  JsonGenerated.Value6 (JsonGenerated.Array1 (JsonGenerated.Elements e es)) -> Array (map fromGenerated (e : es))
+  JsonGenerated.Value6 JsonGenerated.Array2 -> Array []
+  JsonGenerated.Value7 (JsonGenerated.Object1 (JsonGenerated.Members m ms)) -> Object [(string k, fromGenerated v) | JsonGenerated.Member k v <- m : ms]
+  JsonGenerated.Value7 JsonGenerated.Object2 -> Object []
+  where
+    string = T.pack . decodeUnits . map unit
+    unit = \case
+      JsonGenerated.Unit1 e -> escape e
+      JsonGenerated.Unit2 c -> ord (T.foldr const ' ' c)
+    escape = \case
+      JsonGenerated.Escape1 -> 0x22
+      JsonGenerated.Escape2 -> 0x5C
+      JsonGenerated.Escape3 -> 0x2F
+      JsonGenerated.Escape4 -> 0x08
+      JsonGenerated.Escape5 -> 0x0C
+      JsonGenerated.Escape6 -> 0x0A
+      JsonGenerated.Escape7 -> 0x0D
+      JsonGenerated.Escape8 -> 0x09
+      JsonGenerated.Escape9 h -> T.foldl' (\n c -> n * 16 + digitToInt c) 0 h
+    -- As in json/Json.hpeg: UTF-16 surrogate pairs are joined, and a lone
+    -- surrogate becomes U+FFFD.
+    decodeUnits (hi : lo : rest)
+      | 0xD800 <= hi && hi <= 0xDBFF && 0xDC00 <= lo && lo <= 0xDFFF =
+          chr (0x10000 + (hi - 0xD800) * 0x400 + (lo - 0xDC00)) : decodeUnits rest
+    decodeUnits (u : rest)
+      | 0xD800 <= u && u <= 0xDFFF = '\xFFFD' : decodeUnits rest
+      | otherwise = chr u : decodeUnits rest
+    decodeUnits [] = []
 
 -- The labelled grammar differs from the base grammar only by its header,
 -- its labels and its recovery rules.
