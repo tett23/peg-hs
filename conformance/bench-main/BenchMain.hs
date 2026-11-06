@@ -34,6 +34,7 @@ import Peg.Grammar.Check (check)
 import Peg.Grammar.LabelInsertion (insertLabels, recoverProposals)
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Lint (lintGrammar)
+import Peg.Grammar.Incremental (Parsed (..), noFragments, parseFragments)
 import Peg.Grammar.Outline (outline)
 import Peg.Grammar.Parser (parseGrammar, parseTops)
 import Peg.Grammar.Templates (expandTemplates)
@@ -102,6 +103,8 @@ main = do
     ["--memory", variant, n] -> memory variant (read n)
     ["--lsp-session", file, out] -> lspSession file out
     ["--lsp-messages", file, dir] -> lspMessages file dir
+    ["--lsp-session", file, out, place, sync] -> lspSessionAt place sync file out
+    ["--lsp-messages", file, dir, place, sync] -> lspMessagesAt place sync file dir
     _ -> benchmarks
 
 benchmarks :: IO ()
@@ -165,10 +168,14 @@ lspStages src = do
   let opened = stepState (handleMessage (stepState (handleMessage initialState initializeMsg)) (didOpenMsg src))
       tokensOf st = sum (map (B.length . encodeMessage) (stepOutput (handleMessage st semanticTokensMsg)))
   _ <- evaluate (tokensOf opened)
+  let edited = sum . map (B.length . encodeMessage) . stepOutput
+      parsed = parseFragments noFragments src
+      table = parsedFragments parsed
+  _ <- evaluate (length (show (parsedTops parsed, parsedOutline parsed)))
   pure $
     bgroup
       ("lsp (" <> show (length (T.lines src)) <> " lines)")
-      [ bench "outline" (nf (\t -> T.pack (show (outline t))) src)
+      $ [ bench "outline" (nf (\t -> T.pack (show (outline t))) src)
       , bench "parse" (nf (\t -> either (const 0) (length . show) (parseTops t)) src)
       , bench "parse and expand templates" (nf (\t -> either (const 0) (length . show) (parseGrammar t >>= expandTemplates)) src)
       , bench "check" (nf (either (const 0) (length . show) . check) g)
@@ -183,6 +190,20 @@ lspStages src = do
       , bench "an edit: didChange and its diagnostics" (nf (\t -> sum (map (B.length . encodeMessage) (stepOutput (handleMessage opened (didChangeMsg 2 t))))) src)
       , bench "an edit and its semantic tokens" (nf (\t -> let s = handleMessage opened (didChangeMsg 2 t) in sum (map (B.length . encodeMessage) (stepOutput s)) + tokensOf (stepState s)) src)
       ]
+        ++ concat
+          [ [ bench ("an edit at the " <> place <> ", full text: decode, check, encode") (nf (edited . handleFrame opened . Right) (J.renderJson (didChangeMsg 2 new)))
+            , bench ("an edit at the " <> place <> ", full text, and the semantic tokens") (nf (\b -> let s = handleFrame opened (Right b) in edited s + tokensOf (stepState s)) (J.renderJson (didChangeMsg 2 new)))
+            , bench ("an edit at the " <> place <> ", range: decode, check, encode") (nf (edited . handleFrame opened . Right) (J.renderJson ranged))
+            , bench ("an edit at the " <> place <> ", range, and the semantic tokens") (nf (\b -> let s = handleFrame opened (Right b) in edited s + tokensOf (stepState s)) (J.renderJson ranged))
+            , bench ("an edit at the " <> place <> ": decode the range didChange (JSON)") (nf (\b -> maybe 0 (length . show) (J.parseJson b)) (J.renderJson ranged))
+            , bench ("an edit at the " <> place <> ": parse by fragments") (nf (\t -> either (const 0) (length . show) (parsedTops (parseFragments table t))) new)
+            , bench ("an edit at the " <> place <> ": outline by fragments") (nf (\t -> T.pack (show (parsedOutline (parseFragments table t)))) new)
+            ]
+          | place <- ["start", "middle", "end"]
+          , let n = editLine place src
+                new = insertLine n (T.pack "#") src
+                ranged = rangeChangeMsg 2 (n, 0) (T.pack "#\n")
+          ]
 
 lspUri :: Text
 lspUri = T.pack "file:///bench.hpeg"
@@ -230,6 +251,67 @@ lspMessages file dir = do
   msgs <- sessionMessages file
   forM_ (zip [0 :: Int ..] msgs) $ \(k, m) ->
     B.writeFile (dir </> reverse (take 3 (reverse ("00" <> show k)))) (encodeMessage m)
+
+-- The places of the edits of ADR 0071: the line of the first, the middle
+-- and the last definition of a rule (0-based).
+editLine :: String -> Text -> Int
+editLine place src =
+  let defs = [i | (i, l) <- zip [0 ..] (T.lines src), T.pack " <- " `T.isInfixOf` l]
+   in case place of
+        "start" -> defs !! 0
+        "middle" -> defs !! (length defs `div` 2)
+        _ -> last defs
+
+-- Insert a line before a line (0-based).
+insertLine :: Int -> Text -> Text -> Text
+insertLine n l src =
+  let (a, b) = splitAt n (T.splitOn (T.pack "\n") src)
+   in T.intercalate (T.pack "\n") (a ++ [l] ++ b)
+
+-- A session that types into a new comment line before a definition
+-- (ADR 0071): the first change inserts the line "#", and each later one an
+-- x at its end. With the sync "full" the changes carry the full text, with
+-- "range" only the inserted text and its range.
+-- --lsp-session GRAMMAR OUT PLACE SYNC.
+lspSessionAt :: String -> String -> FilePath -> FilePath -> IO ()
+lspSessionAt place sync file out = B.writeFile out . B.concat . map encodeMessage =<< sessionMessagesAt place sync file
+
+-- The messages of a session at a place, one file each:
+-- --lsp-messages GRAMMAR DIR PLACE SYNC.
+lspMessagesAt :: String -> String -> FilePath -> FilePath -> IO ()
+lspMessagesAt place sync file dir = do
+  msgs <- sessionMessagesAt place sync file
+  forM_ (zip [0 :: Int ..] msgs) $ \(k, m) ->
+    B.writeFile (dir </> reverse (take 3 (reverse ("00" <> show k)))) (encodeMessage m)
+
+sessionMessagesAt :: String -> String -> FilePath -> IO [J.Value]
+sessionMessagesAt place sync file = do
+  src <- TIO.readFile file
+  let n = editLine place src
+      version k = insertLine n (T.pack "#" <> T.replicate (k - 2) (T.pack "x")) src
+      change k
+        | sync == "range" && k == 2 = rangeChangeMsg k (n, 0) (T.pack "#\n")
+        | sync == "range" = rangeChangeMsg k (n, k - 2) (T.pack "x")
+        | otherwise = didChangeMsg k (version k)
+      shutdown = lspMessage [(T.pack "id", J.int 2), (T.pack "method", J.String (T.pack "shutdown"))]
+      exit = lspMessage [(T.pack "method", J.String (T.pack "exit"))]
+  pure ([initializeMsg, didOpenMsg src] ++ [change k | k <- [2 .. 51 :: Int]] ++ [shutdown, exit])
+
+-- A didChange with one change of a range (TextDocumentSyncKind.Incremental,
+-- ADR 0071): the text inserted at a position (0-based line and character).
+rangeChangeMsg :: Int -> (Int, Int) -> Text -> J.Value
+rangeChangeMsg v (l, c) t =
+  lspMessage
+    [ (T.pack "method", J.String (T.pack "textDocument/didChange"))
+    , ( T.pack "params"
+      , J.object
+          [ (T.pack "textDocument", J.object [(T.pack "uri", J.String lspUri), (T.pack "version", J.int v)])
+          , (T.pack "contentChanges", J.Array [J.object [(T.pack "range", J.object [(T.pack "start", pos), (T.pack "end", pos)]), (T.pack "text", J.String t)]])
+          ]
+      )
+    ]
+  where
+    pos = J.object [(T.pack "line", J.int l), (T.pack "character", J.int c)]
 
 sessionMessages :: FilePath -> IO [J.Value]
 sessionMessages file = do
