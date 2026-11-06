@@ -36,6 +36,7 @@ Hackage にはまだ上げていない（[ADR 0044](docs/adr/0044-release-v0-1-0
 GitHub の [Releases](https://github.com/tett23/peg-hs/releases) に、Linux（x86-64）と macOS（arm64）の `peg-hs` を置いている。
 アーカイブを展開し、`peg-hs` を `PATH` の通ったディレクトリに置く。
 アーカイブが壊れていないことは、同じ Release の `SHA256SUMS` で確かめられる。
+アーカイブには、エディタの文法も `editors/` に入っている（[エディタ](#エディタ)）。
 
 ```sh
 tar xzf peg-hs-0.1.0-rc2-x86_64-linux.tar.gz
@@ -309,6 +310,7 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 下の設定は四つをすべて設定し、既定で保存のたびに文法を整形する。`fmt` の流儀は一つしかないからである（[ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)）。
 
 `editors/` に、シンタックスハイライトの文法と VS Code の拡張機能を置いている（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）。
+TextMate と tree-sitter の文法は、リリースにも入れている。[Releases](https://github.com/tett23/peg-hs/releases) の `peg-hs-editors-<版>.tar.gz` と、実行ファイルのアーカイブの `editors/` である。そこにある tree-sitter の文法は生成済みのパーサーを含むので、Neovim と Helix は tree-sitter の CLI なしでビルドできる。下の設定の `/path/to/peg-hs/editors/tree-sitter-hpeg` には、展開したアーカイブの `tree-sitter-hpeg/` を指定してもよい（[ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)）。
 規則、リテラル、演算子のほか、括弧、アクションの波括弧、束縛と雛形の引数の区切り、指示の引数にも色を付ける。指示の引数は、規則、ラベル、モジュール、言語拡張のどれを指すかで色を分ける（[ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)）。
 Haskell の断片（verbatim ブロック、型、アクション、意味述語、引数）は、エディタの Haskell の文法がハイライトする。
 tree-sitter の文法には、折り畳み、字下げ、名前の定義と参照の問い合わせもある。規則は型注釈とまとめて畳め、新しい行の選択肢は `fmt` と同じく定義の `<-` の桁に字下げされる。
