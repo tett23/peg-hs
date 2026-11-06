@@ -51,3 +51,13 @@ Since v0.1.0-rc2:
   `decorator`, and the argument of `%module` is `namespace`, a new token
   type of the legend
   ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).
+- Text synchronisation is incremental (`TextDocumentSyncKind.Incremental`):
+  a change carries a range in the position encoding of the server, UTF-16
+  or UTF-8, and its text; several changes of one notification apply in
+  order, and a position past the end of a line or of the document is its
+  end. Each version is parsed by its top-level items, reusing the results
+  of the items that did not change; the diagnostics and the outline are
+  those of parsing the whole document. `documentText` and
+  `reparsedFragments` expose the text and the number of parsed fragments
+  of a document for tests
+  ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).

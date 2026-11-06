@@ -36,6 +36,7 @@ main = do
     testGroup
       "peg-lsp"
       [ fasterChecksTests grammars
+      , incrementalTests grammars
       , testGroup
           "framing and JSON"
           [ testProperty "framed messages read back in any chunks" $
@@ -381,6 +382,57 @@ fasterChecksTests grammars =
     memoGrammar = "../../conformance/bench/Memo.hpeg"
     isPublish m = member "method" m == Just (String "textDocument/publishDiagnostics")
     lastResultOf i out = listToMaybe [r | m <- out, (member "id" m >>= asInt) == Just i, Just r <- [member "result" m]]
+
+-- Tests of ADR 0071 ------------------------------------------------------------
+
+incrementalTests :: [FilePath] -> TestTree
+incrementalTests grammars =
+  testGroup
+    "incremental parsing and sync (ADR 0071)"
+    [ testCase "the server asks for incremental changes" $
+        (lastResult (session [initialize False]) >>= path ["capabilities", "textDocumentSync", "change"]) @?= Just (int 2)
+    , testCase "a range in UTF-16 code units" $
+        textAfter False "a\x1D465\&b\nc" [[edit (0, 3) (0, 3) "X"]] @?= Just "a\x1D465Xb\nc"
+    , testCase "a range in bytes, with utf-8" $
+        textAfter True "a\x1D465\&b\nc" [[edit (0, 5) (0, 5) "X"]] @?= Just "a\x1D465Xb\nc"
+    , testCase "several changes in one notification apply in order" $
+        textAfter False "ab\ncd\n" [[edit (0, 0) (0, 0) "X\n", edit (1, 0) (1, 1) "", edit (2, 1) (2, 2) "Y"]] @?= Just "X\nb\ncY\n"
+    , testCase "a change of the full text among changes of ranges" $
+        textAfter False "ab" [[edit (0, 0) (0, 1) "x", object [("text", String "new\n")], edit (1, 0) (1, 0) "z"]] @?= Just "new\nz"
+    , testCase "a range beyond the end of a line or of the document" $ do
+        textAfter False "ab\ncd" [[edit (0, 100) (1, 0) ""]] @?= Just "abcd"
+        textAfter False "ab\ncd" [[edit (7, 3) (9, 0) "!"]] @?= Just "ab\ncd!"
+        textAfter False "ab\r\ncd" [[edit (0, 10) (0, 10) "!"]] @?= Just "ab!\r\ncd"
+    , testCase "changes in several notifications" $
+        textAfter False "ab\n" [[edit (0, 1) (0, 1) "1"], [edit (0, 0) (1, 0) ""], [edit (0, 0) (0, 0) "%module M\n"]] @?= Just "%module M\n"
+    , skippedWithout memoGrammar "a change of one character inside a rule parses one or two fragments" $ do
+        src <- TIO.readFile memoGrammar
+        let ls = T.splitOn "\n" src
+            line = length (takeWhile (not . T.isInfixOf " <- ") ls) + 40
+            n = length (takeWhile (not . T.isInfixOf " <- ") (drop line ls)) + line
+            st = sessionState [initialize False, open src, notify "textDocument/didChange" (object [("textDocument", object [("uri", String uri), ("version", int 2)]), ("contentChanges", Array [edit (n, 0) (n, 0) "X"])])]
+        assertBool "a rule" (n < length ls)
+        let k = reparsedFragments st uri
+        assertBool ("reparsed: " <> show k) (k `elem` [Just 1, Just 2])
+    , testGroup
+        "the diagnostics of a change from the grammar to each of its mutants are those of the mutant alone"
+        [ testCase f $ do
+            src <- TIO.readFile f
+            let diagnosticsOf msgs = [m | m <- session msgs, member "method" m == Just (String "textDocument/publishDiagnostics")]
+                bad = [m | m <- mutants src, drop 1 (diagnosticsOf [initialize False, open src, change m]) /= diagnosticsOf [initialize False, open m]]
+            assertBool (show (length bad) <> " mutants differ, the first:\n" <> concatMap T.unpack (take 1 bad)) (null bad)
+        | f <- grammars
+        ]
+    ]
+  where
+    memoGrammar = "../../conformance/bench/Memo.hpeg"
+    edit (a, b) (c, d) t = object [("range", rangeOf (a, b) (c, d)), ("text", String t)]
+    textAfter utf8 t changes =
+      documentText (sessionState ([initialize utf8, open t] ++ [notify "textDocument/didChange" (object [("textDocument", object [("uri", String uri), ("version", int v)]), ("contentChanges", Array cs)]) | (v, cs) <- zip [2 ..] changes])) uri
+
+-- The state of the server after messages.
+sessionState :: [Value] -> State
+sessionState = foldl (\st m -> stepState (handleMessage st m)) initialState
 
 -- Run the server over a file of messages, as peg-hs lsp does over standard
 -- input, and read back what it wrote. The input ends without exit, so the

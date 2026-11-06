@@ -2,7 +2,7 @@
 -- the new state and the messages to send (ADR 0035).
 --
 -- The server supports diagnostics (pushed on @didOpen@ and @didChange@,
--- with full text synchronisation), formatting, semantic tokens, go to
+-- with incremental text synchronisation, ADR 0071), formatting, semantic tokens, go to
 -- definition, references, hover, document symbols, and code actions that
 -- insert safe labels and add recovery rules (ADR 0054). Positions are
 -- counted in UTF-16 code units, or in bytes when the client offers
@@ -30,6 +30,10 @@
 -- changed document once no more input is waiting. "Peg.Lsp" does this over
 -- handles. Requests are answered for the latest version either way.
 --
+-- Each version of a document is parsed by its top-level items, reusing the
+-- results of the items that did not change ("Peg.Grammar.Incremental",
+-- ADR 0071); the results are those of parsing the whole document.
+--
 -- 'diagnose' is the analysis behind the diagnostics, usable on its own.
 module Peg.Lsp.Server
   ( State
@@ -44,6 +48,8 @@ module Peg.Lsp.Server
   , diagnose
   , tokenTypes
   , tokenModifiers
+  , documentText
+  , reparsedFragments
   ) where
 
 import Data.Bits (shiftL, (.|.))
@@ -61,7 +67,9 @@ import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Assemble (assemble, isIdentChar)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Format (formatGrammar)
+import Peg.Grammar.Assemble (Top)
 import Peg.Grammar.Highlight
+import Peg.Grammar.Incremental (Fragments, Parsed (..), noFragments, parseFragments)
 import Peg.Grammar.LabelInsertion (Edit (..), Insertion (..), RecoverProposal (..), insertLabels, recoverProposals)
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar)
@@ -87,6 +95,10 @@ data Document = Document
   -- ^ The labels that can be inserted (ADR 0054), computed when first used.
   , docRecovers :: [RecoverProposal]
   -- ^ The recovery rules to propose (ADR 0054), computed when first used.
+  , docFragments :: !Fragments
+  -- ^ The parsed top-level fragments, for the next version (ADR 0071).
+  , docParsed :: Int
+  -- ^ How many fragments this version parsed, not found in the previous one.
   }
 
 -- | The state of the server: the open documents, the position encoding
@@ -193,19 +205,20 @@ notification st method params = case method of
   "textDocument/didOpen"
     | Just uri <- path ["textDocument", "uri"] params >>= asText
     , Just text <- path ["textDocument", "text"] params >>= asText ->
-        open uri text
+        open uri noFragments text
+  -- Changes of ranges or of the full text, applied in order (ADR 0071).
   "textDocument/didChange"
     | Just uri <- path ["textDocument", "uri"] params >>= asText
-    , Just changes <- member "contentChanges" params >>= asArray
-    , Just text <- listToMaybe (reverse (mapMaybe (\c -> member "text" c >>= asText) changes)) ->
-        open uri text
+    , Just changes <- member "contentChanges" params >>= asArray ->
+        let d = M.lookup uri (stDocuments st)
+         in open uri (maybe noFragments docFragments d) (foldl (applyChange (stEncoding st)) (maybe "" docText d) changes)
   "textDocument/didClose"
     | Just uri <- path ["textDocument", "uri"] params >>= asText ->
         Step st {stDocuments = M.delete uri (stDocuments st), stPending = Set.delete uri (stPending st)} [publish uri []] Nothing
   _ -> Step st [] Nothing
   where
-    open uri text =
-      Step st {stDocuments = M.insert uri (newDocument text) (stDocuments st), stPending = Set.insert uri (stPending st)} [] Nothing
+    open uri table text =
+      Step st {stDocuments = M.insert uri (newDocument table text) (stDocuments st), stPending = Set.insert uri (stPending st)} [] Nothing
 
 -- | Send the diagnostics of the latest version of each document opened or
 -- changed since they were last sent, in the order of their URIs.
@@ -219,17 +232,55 @@ publishPending st =
     ]
     Nothing
 
-newDocument :: Text -> Document
-newDocument text =
-  let o = outline text
+-- A version of a document, parsed with the fragments of the previous one.
+newDocument :: Fragments -> Text -> Document
+newDocument table text =
+  let p = parseFragments table text
+      o = parsedOutline p
    in Document
     { docText = text
     , docLines = Seq.fromList (T.splitOn "\n" text)
     , docOutline = o
-    , docChecks = diagnoseWith o text
+    , docChecks = diagnoseTops o (parsedTops p)
     , docLabels = either (const []) fst (insertLabels [] text)
     , docRecovers = either (const []) id (recoverProposals text)
+    , docFragments = parsedFragments p
+    , docParsed = parsedNew p
     }
+
+-- | The text of an open document. For tests.
+documentText :: State -> Text -> Maybe Text
+documentText st uri = docText <$> M.lookup uri (stDocuments st)
+
+-- | How many top-level fragments the latest version of an open document
+-- parsed, not found in the previous version (ADR 0071). For tests.
+reparsedFragments :: State -> Text -> Maybe Int
+reparsedFragments st uri = docParsed <$> M.lookup uri (stDocuments st)
+
+-- Apply a change of @didChange@: the full text, or a range and its text.
+-- A position past the end of a line is the end of the line, and a line
+-- past the end of the document the end of the document (LSP 3.17).
+applyChange :: Encoding -> Text -> Value -> Text
+applyChange enc text c = fromMaybe text $ do
+  new <- member "text" c >>= asText
+  case member "range" c of
+    Nothing -> pure new
+    Just r -> do
+      a <- member "start" r >>= offsetOf
+      b <- member "end" r >>= offsetOf
+      pure (T.take a text <> new <> T.drop (max a b) text)
+  where
+    ls = T.splitOn "\n" text
+    offsetOf v = do
+      line <- member "line" v >>= asInt
+      ch <- member "character" v >>= asInt
+      pure $ case drop (max 0 line) ls of
+        [] -> T.length text
+        l : _ ->
+          let go k n t = case T.uncons t of
+                Just (x, rest) | n + units enc (T.singleton x) <= ch -> go (k + 1) (n + units enc (T.singleton x)) rest
+                _ -> k
+           in sum (map ((+ 1) . T.length) (take (max 0 line) ls)) + go 0 0 (fromMaybe l (T.stripSuffix "\r" l))
 
 -- Messages ----------------------------------------------------------------------
 
@@ -253,7 +304,7 @@ initializeResult enc =
     [ ( "capabilities"
       , object
           [ ("positionEncoding", String (if enc == Utf8 then "utf-8" else "utf-16"))
-          , ("textDocumentSync", object [("openClose", Bool True), ("change", int 1)])
+          , ("textDocumentSync", object [("openClose", Bool True), ("change", int 2)])
           , ("documentFormattingProvider", Bool True)
           , ("semanticTokensProvider", object [("legend", object [("tokenTypes", Array (map String tokenTypes)), ("tokenModifiers", Array (map String tokenModifiers))]), ("full", Bool True)])
           , ("definitionProvider", Bool True)
@@ -287,12 +338,12 @@ data Severity
 -- A grammar with a syntax error has only its syntax errors: the first is the one of
 -- @peg-hs gen@, followed by those that recovery finds on later lines.
 diagnose :: Text -> [(Severity, Diagnostic, Maybe Text)]
-diagnose src = diagnoseWith (outline src) src
+diagnose src = diagnoseTops (outline src) (parseTops src)
 
--- 'diagnose' with the outline of the text, which only a grammar with a
--- syntax error needs.
-diagnoseWith :: Outline -> Text -> [(Severity, Diagnostic, Maybe Text)]
-diagnoseWith o src = case parseTops src of
+-- 'diagnose' from the outline of the text, which only a grammar with a
+-- syntax error needs, and its top-level items.
+diagnoseTops :: Outline -> Either [Diagnostic] [Top] -> [(Severity, Diagnostic, Maybe Text)]
+diagnoseTops o parsed = case parsed of
   Left ds@(d : _) ->
     map (\x -> (Error, x, Nothing)) ds
       ++ [(Error, e, Nothing) | e <- outlineSyntaxErrors o, locLine (diagLoc e) > locLine (diagLoc d)]
