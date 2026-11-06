@@ -216,6 +216,11 @@ errorTests =
         errorsIn ["%deriving Eq, show", "S <- $'a' $'b'"] @?= [(2, 15, "%deriving expects class names, but got show")]
     , testCase "%deriving with a qualified class name" $
         errorsIn ["%deriving GHC.Generics.Generic", "S <- $'a' $'b'"] @?= []
+    , testCase "a call of an undefined rule in a rule of type () reports only the undefined rule" $
+        errorsIn ["Item :: Int", "Item <- Kw Name End", "Kw <- 'k' Sp", "Name :: Int", "Name <- 'n' { 1 }", "End <- Sp ';' S", "Sp <- ' '*"]
+          @?= [(7, 15, "undefined rule S")]
+    , testCase "a call of an undefined rule has no value in the classification" $
+        typeOfRule "End" ["End <- Sp ';' S", "Sp <- ' '*"] @?= Right "()"
     , testCase "two values without an action are no longer an error" $
         errorsIn ["S <- $'a' $'b'"] @?= []
     , testCase "an empty alternative of a generated rule is a constructor without arguments" $

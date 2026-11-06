@@ -214,12 +214,16 @@ data Infer = Unknown | Known ValueType | Conflict
 
 -- | The types of the rules of a grammar.
 classify :: Grammar -> Classification
-classify g = Classification ruleTypes units dataTypes
+classify g = Classification ruleTypes (S.intersection units defined) dataTypes
   where
     rules = grammarRules g
     classified = [r | r <- rules, isClassified g r]
     annotatedUnit r = isJust (ruleAnnotation r) && T.filter (not . isSpace) (unLoc (ruleType r)) == "()"
-    fixedUnits = S.fromList [ruleName r | r <- rules, annotatedUnit r || (isNothing (ruleAnnotation r) && not (isClassified g r))]
+    defined = S.fromList (map ruleName rules)
+    -- A call of an undefined rule has no value here: "undefined rule" is
+    -- its error, and it must not make its caller a rule with values.
+    undefinedRules = S.fromList [n | r <- rules, a <- ruleAlts r, i <- altItems a, n <- exprRefs (itemExpr i), not (S.member n defined)]
+    fixedUnits = S.union undefinedRules (S.fromList [ruleName r | r <- rules, annotatedUnit r || (isNothing (ruleAnnotation r) && not (isClassified g r))])
     -- Stage 1: the rules of type (). A rule leaves the set when one of its
     -- alternatives has a value other than (); the set only shrinks.
     units = unitFix (S.fromList (map ruleName classified))
@@ -310,6 +314,22 @@ classify g = Classification ruleTypes units dataTypes
       | Just t <- M.lookup (ruleName r) inferred = Inferred t
       | otherwise = UnitType
     ruleTypes = M.fromList [(ruleName r, typeOf r) | r <- rules]
+
+-- The rules that an expression calls.
+exprRefs :: Expr -> [Text]
+exprRefs = \case
+  ERef _ n _ -> [n]
+  EGroup alts -> concatMap (concatMap (exprRefs . itemExpr)) alts
+  EStar x -> exprRefs x
+  EPlus x -> exprRefs x
+  EOpt x -> exprRefs x
+  EAnd x -> exprRefs x
+  ENot x -> exprRefs x
+  ECapture x -> exprRefs x
+  ELabel _ x _ -> exprRefs x
+  EDiscard x -> exprRefs x
+  ETemplate _ _ args _ -> concatMap exprRefs args
+  _ -> []
 
 -- Writing -------------------------------------------------------------------------
 
