@@ -15,6 +15,10 @@ import Data.Char (isDigit)
 #              ^ @function.call
 %safe skip
 #      ^ @label
+%deriving Eq, Show
+#         ^ @type
+#             ^ @type
+%entry Pair
 %nomemo Skip
 
 Expr :: Int
@@ -58,6 +62,11 @@ Term <- !'-' [0-9]+ . T<'x'> { _span }
 
 Skip :: Int
 Skip <- (!'\n' .)* { 0 }
+
+Pair <- Term ',' Term @Pair
+     #                ^ @punctuation.special
+     #                 ^ @constructor
+     / '-' Term
 
 V<p, q>(n :: Int) :: Int
 #  ^ @punctuation.delimiter

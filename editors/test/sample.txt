@@ -6,6 +6,7 @@
 %recover term Skip # the recovery
 %safe term
 %export Expr(..)
+%deriving Eq, GHC.Generics.Generic # the classes
 %{
 import Data.Text (Text)
 }%
@@ -18,3 +19,6 @@ Expr <- l:Expr '+' r:Term ^term { l <> r }
 
 List<p :: a, sep> :: [a]
 List<p, sep> <- x:p xs:(sep p)* { x : xs }
+
+Pair <- Term ',' Term @Pair
+     / Term       @Single # the name

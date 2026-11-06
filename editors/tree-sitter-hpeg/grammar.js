@@ -87,6 +87,20 @@ module.exports = grammar({
           )),
         )),
       ),
+      // The classes that the generated types derive (ADR 0075).
+      seq(
+        field('name', alias('%deriving', $.directive_name)),
+        optional(seq(
+          $._directive_space,
+          field('argument', $.class_name),
+          repeat(seq(
+            optional($._directive_space),
+            token.immediate(','),
+            optional($._directive_space),
+            field('argument', $.class_name),
+          )),
+        )),
+      ),
       seq(
         field('name', $.directive_name),
         optional(field('argument', $.directive_argument)),
@@ -102,6 +116,9 @@ module.exports = grammar({
     label_argument: _ => token.immediate(IDENT),
 
     extension_name: _ => token.immediate(IDENT),
+
+    // A class name, which may be qualified.
+    class_name: _ => token.immediate(/[\p{L}_][\p{L}\p{N}_'.]*/u),
 
     // The rest of the line up to a comment.
     directive_argument: _ => token.immediate(/[ \t]*[^ \t\n#][^\n#]*/),
@@ -140,10 +157,16 @@ module.exports = grammar({
 
     alternatives: $ => seq($.alternative, repeat(seq('/', $.alternative))),
 
+    // The constructor name @Name goes where an action goes (ADR 0075).
     alternative: $ => choice(
-      seq(repeat1($.item), optional($.action)),
-      $.action,
+      seq(repeat1($.item), optional($.action), optional($._constructor)),
+      seq($.action, optional($._constructor)),
+      $._constructor,
     ),
+
+    _constructor: $ => seq('@', $.constructor_name),
+
+    constructor_name: _ => token.immediate(IDENT),
 
     item: $ => seq(optional($.binding), $._prefix),
 

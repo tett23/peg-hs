@@ -52,7 +52,7 @@
       ]
     },
     "directive": {
-      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069).",
+      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069), and so do the classes of %deriving (ADR 0075).",
       "patterns": [
         {
           "match": "^\\s*(%module)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_'.]*))?[ \\t]*(#.*)?$",
@@ -124,6 +124,29 @@
                 {
                   "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
                   "name": "constant.language.extension.hpeg"
+                },
+                {
+                  "match": ",",
+                  "name": "punctuation.separator.comma.hpeg"
+                }
+              ]
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%deriving)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "match": "[\\p{L}_][\\p{L}\\p{N}_'.]*",
+                  "name": "storage.type.class.hpeg"
                 },
                 {
                   "match": ",",
@@ -284,6 +307,9 @@
         },
         {
           "include": "#label"
+        },
+        {
+          "include": "#constructor"
         },
         {
           "include": "#binding"
@@ -493,6 +519,18 @@
       "captures": {
         "1": {
           "name": "keyword.operator.label.hpeg"
+        }
+      }
+    },
+    "constructor": {
+      "comment": "A constructor name, with the scopes of the constructors of the Haskell grammar of VS Code (ADR 0075).",
+      "match": "(@)([\\p{L}_][\\p{L}\\p{N}_']*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.constructor.hpeg"
+        },
+        "2": {
+          "name": "constant.other.constructor.hpeg"
         }
       }
     },

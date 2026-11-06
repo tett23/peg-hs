@@ -37,6 +37,7 @@ const textmateKinds = [
   ['label', (s) => s === 'entity.name.tag.label.hpeg'],
   ['directive-rule', (s) => s === 'variable.other.rule.directive.hpeg'],
   ['directive-label', (s) => s === 'entity.name.tag.label.directive.hpeg'],
+  ['constructor-name', (s) => s === 'constant.other.constructor.hpeg'],
 ];
 
 /**
@@ -87,6 +88,7 @@ const treeSitterKinds = new Map([
   ['label', 'label'],
   ['rule_name_argument', 'directive-rule'],
   ['label_argument', 'directive-label'],
+  ['constructor_name', 'constructor-name'],
 ]);
 
 /**

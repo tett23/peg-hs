@@ -27,6 +27,10 @@
           "named": true
         },
         {
+          "type": "constructor_name",
+          "named": true
+        },
+        {
           "type": "item",
           "named": true
         }
@@ -205,6 +209,16 @@
     }
   },
   {
+    "type": "class_name",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "constructor_name",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "definition",
     "named": true,
     "fields": {
@@ -242,6 +256,10 @@
         "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "class_name",
+            "named": true
+          },
           {
             "type": "directive_argument",
             "named": true
@@ -521,6 +539,11 @@
         }
       ]
     }
+  },
+  {
+    "type": "module_name",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "parameters",
@@ -840,6 +863,10 @@
     "named": false
   },
   {
+    "type": "@",
+    "named": false
+  },
+  {
     "type": "[",
     "named": false
   },
@@ -874,10 +901,6 @@
   },
   {
     "type": "identifier",
-    "named": true
-  },
-  {
-    "type": "module_name",
     "named": true
   },
   {
