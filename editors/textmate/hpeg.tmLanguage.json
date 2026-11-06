@@ -52,18 +52,105 @@
       ]
     },
     "directive": {
-      "match": "^\\s*(%[\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
-      "captures": {
-        "1": {
-          "name": "keyword.other.directive.hpeg"
+      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069).",
+      "patterns": [
+        {
+          "match": "^\\s*(%module)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_'.]*))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "entity.name.namespace.hpeg"
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
         },
-        "2": {
-          "name": "string.unquoted.directive.hpeg"
+        {
+          "match": "^\\s*(%(?:start|entry|nomemo|token|trivia|inline))(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "variable.other.rule.directive.hpeg"
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
         },
-        "3": {
-          "name": "comment.line.number-sign.hpeg"
+        {
+          "match": "^\\s*(%recover)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*))?)?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "entity.name.tag.label.directive.hpeg"
+            },
+            "3": {
+              "name": "variable.other.rule.directive.hpeg"
+            },
+            "4": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%safe)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "entity.name.tag.label.directive.hpeg"
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%language)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
+                  "name": "constant.language.extension.hpeg"
+                },
+                {
+                  "match": ",",
+                  "name": "punctuation.separator.comma.hpeg"
+                }
+              ]
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%[\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "string.unquoted.directive.hpeg"
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
         }
-      }
+      ]
     },
     "annotation": {
       "begin": "^([\\p{L}_][\\p{L}\\p{N}_']*)(?=(?:\\s*<[^>\\n]*>)?(?:\\s*\\([^\\n]*\\))?\\s*::)",
@@ -168,6 +255,10 @@
         {
           "match": "[\\p{L}_][\\p{L}\\p{N}_']*",
           "name": "variable.parameter.template.hpeg"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.template.hpeg"
         }
       ]
     },
@@ -398,11 +489,21 @@
     },
     "label": {
       "name": "entity.name.tag.label.hpeg",
-      "match": "\\^\\s*[\\p{L}_][\\p{L}\\p{N}_']*"
+      "match": "(\\^)\\s*[\\p{L}_][\\p{L}\\p{N}_']*",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.label.hpeg"
+        }
+      }
     },
     "binding": {
       "name": "variable.parameter.binding.hpeg",
-      "match": "[\\p{L}_][\\p{L}\\p{N}_']*:(?!:)"
+      "match": "[\\p{L}_][\\p{L}\\p{N}_']*(:)(?!:)",
+      "captures": {
+        "1": {
+          "name": "punctuation.separator.binding.hpeg"
+        }
+      }
     },
     "reserved-binding": {
       "name": "variable.language.hpeg",

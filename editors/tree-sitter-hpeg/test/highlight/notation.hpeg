@@ -1,17 +1,34 @@
 %module Example # the module
 # <- @keyword.directive
-#        ^ @string.special
+#        ^ @module
 #                ^ @comment
+%{
+import Data.Char (isDigit)
+}%
+# <- @punctuation.special
 %language OverloadedStrings
+#          ^ @constant
+%entry Term
+#       ^ @function.call
+%recover term Skip
+#         ^ @label
+#              ^ @function.call
+%safe skip
+#      ^ @label
+%nomemo Skip
 
 Expr :: Int
 # <- @function
 #    ^ @keyword.operator
 Expr <- l:Expr '+' r:Term ^term { l + r }
      #  ^ @variable.parameter
+     #   ^ @punctuation.delimiter
      #    ^ @function.call
      #         ^ @string
-     #                    ^ @label
+     #                    ^ @operator
+     #                     ^ @label
+     #                          ^ @punctuation.special
+     #                                  ^ @punctuation.special
      / Term
 
 Term :: Int
@@ -24,16 +41,27 @@ Term <- !'-' [0-9]+ . T<'x'> { _span }
      #                ^ @function.call
      #                 ^ @punctuation.bracket
      #                         ^ @variable.builtin
-     / V<'z'>(1) { 2 }
+     / V<'z', 'w'>(1) { 2 }
      # ^ @function.call
      #  ^ @punctuation.bracket
-     #      ^ @punctuation.bracket
+     #      ^ @punctuation.delimiter
+     #            ^ @punctuation.bracket
+     #              ^ @punctuation.bracket
      / '\n' { 0 }
      #  ^ @string.escape
-     / 'y' { 1 }
+     / ('y' / &{ True } . ^skip) { 1 }
+     # ^ @punctuation.bracket
+     #         ^ @punctuation.special
+     #                ^ @punctuation.special
+     #                         ^ @punctuation.bracket
+     / 'z' { 2 }
 
-V<p>(n :: Int) :: Int
-V<p> <- p { n }
+Skip :: Int
+Skip <- (!'\n' .)* { 0 }
+
+V<p, q>(n :: Int) :: Int
+#  ^ @punctuation.delimiter
+V<p, q> <- p q { n }
 
 T<p> :: Int
 T<p> <- p { 0 }

@@ -32,3 +32,9 @@ Since v0.1.0-rc2:
   [ADR 0067](https://github.com/tett23/peg-hs/blob/main/docs/adr/0067-lint-info-with-verbose.md)).
 - The hover of a rule without a type annotation shows its type `()`
   ([ADR 0066](https://github.com/tett23/peg-hs/blob/main/docs/adr/0066-omit-unit-type-annotations.md)).
+- Semantic tokens for the arguments of directives: the rule names of
+  `%start`, `%entry`, `%nomemo`, `%token`, `%trivia`, `%inline` and
+  `%recover` are `function`, the labels of `%recover` and `%safe` are
+  `decorator`, and the argument of `%module` is `namespace`, a new token
+  type of the legend
+  ([ADR 0069](https://github.com/tett23/peg-hs/blob/main/docs/adr/0069-richer-highlighting-and-format-on-save.md)).

@@ -14,12 +14,83 @@ f = \x -> case x of { _ -> x }
 (source_file
   (directive
     (directive_name)
-    (directive_argument))
+    (module_name))
   (comment)
   (directive
     (directive_name))
   (verbatim
     (haskell)))
+
+========================================================================
+the arguments of directives (ADR 0069)
+========================================================================
+
+%start Expr
+%entry Term
+%nomemo A
+%token B
+%trivia C
+%inline D
+%recover lbl R # a comment
+%safe lbl
+%language OverloadedStrings, LambdaCase
+%export Expr(..)
+%env Set Text
+%tabstop 4
+%start
+A <- 'a'
+
+------------------------------------------------------------------------
+
+(source_file
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (directive
+    (directive_name)
+    (label_argument)
+    (rule_name_argument))
+  (comment)
+  (directive
+    (directive_name)
+    (label_argument))
+  (directive
+    (directive_name)
+    (extension_name)
+    (extension_name))
+  (directive
+    (directive_name)
+    (directive_argument))
+  (directive
+    (directive_name)
+    (directive_argument))
+  (directive
+    (directive_name)
+    (directive_argument))
+  (directive
+    (directive_name))
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (literal))))))
 
 ========================================================================
 annotations

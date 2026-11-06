@@ -1,5 +1,6 @@
 // The editor grammars find the same comments, literals, classes, actions,
-// rule names and labels as the notation's own grammar (ADR 0034).
+// rule names and labels as the notation's own grammar (ADR 0034), and the
+// rule names and labels in the arguments of directives (ADR 0069).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
