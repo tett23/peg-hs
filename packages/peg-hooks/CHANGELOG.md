@@ -10,7 +10,7 @@ cabal package in its build.
 
 ### Added
 
-Since v0.1.0-rc5:
+Since v0.1.0-rc6:
 
 - `Peg.Hooks.pegSetupHooks`, the setup hooks of a package with
   `build-type: Hooks`: before each component is built, a rule generates
