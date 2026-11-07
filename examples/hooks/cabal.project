@@ -1,0 +1,10 @@
+-- The example builds against the packages of this repository. A package of
+-- its own names them with source-repository-package (README).
+with-compiler: ghc-9.10.3
+
+packages:
+  .
+  ../../packages/peg-runtime
+  ../../packages/peg-grammar
+  ../../packages/peg-codegen
+  ../../packages/peg-hooks
