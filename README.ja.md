@@ -306,6 +306,9 @@ peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKin
 以前の拡張子 `.peg` は、ほかの PEG の道具と重なるので探さない。ファイルを直接渡せば、拡張子によらず扱う（[ADR 0050](docs/adr/0050-hpeg-extension.md)）。
 引数を省くと、現在のディレクトリの下の `.hpeg` ファイルをすべて対象にする。
 どちらの場合も、名前が `.` で始まるディレクトリと `dist-newstyle` はたどらない。
+探索はシンボリックリンクを、ファイルへのものもディレクトリへのものもたどらない。そのため、探索は始めたディレクトリの中だけを見て、循環するリンクがあっても終わる（[ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)）。
+引数で名指ししたファイルは、リンクでもリンクの先を読み書きする。名指ししたディレクトリは、リンクでもその先を探索するが、その中のリンクはたどらない。
+リンクで置いた文法を整形するには、そのファイルを名指しする。
 
 ### lint
 
@@ -317,7 +320,7 @@ peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKin
 `omittable-identity-action` は、`'(' e:Expr ')' { e }` のように束縛した値をそのまま返すアクションを指す。束縛とアクションを消しても、選択肢は同じ値を返す。`%syntax` の文法では、束縛が構文木の取り出し関数の名前にもなるので出さない（[ADR 0065](docs/adr/0065-omittable-identity-actions.md)）。
 `omittable-unit-annotation` は、型注釈 `A :: ()` を指す。型注釈のない規則の型も `()` なので、行ごと省ける。引数付き規則と雛形の型注釈には出さない（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 言語サーバーは info を重大度 Hint で報告する。多くのエディタは Hint を淡く示す。
-対象のファイルの選び方は `fmt` と同じである。
+対象のファイルの選び方は `fmt` と同じで、探索はシンボリックリンクをたどらない（[ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)）。
 
 ### label
 
@@ -384,6 +387,11 @@ Marketplace にはまだ公開していないので、リポジトリから入�
 (cd editors/vscode && npm ci)
 ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 ```
+
+`editors/vscode/package.json` は、vscode-languageclient が依存する minimatch の版を `^11.0.1` に上書きする（`overrides`）。11.0.1 は、DoS の [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) を直した版で、vscode-languageclient 自身はまだ `^10.2.6` を求める（[ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)）。
+minimatch 11 は `makeRe()` を削った。vscode-languageclient がこれを呼ぶのは、言語サーバーが glob のパターンを送ってきたとき（ファイル操作、診断のフィルター、ノートブックの文書）だけである。
+`peg-hs lsp` はこれらの機能を宣言しない。宣言するように変えると、peg-lsp のテストが落ちる。
+vscode-languageclient が修正版の minimatch を許すようになったら、上書きを外す。
 
 ### Neovim（未確認）
 
