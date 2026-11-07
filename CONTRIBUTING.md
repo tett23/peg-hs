@@ -159,7 +159,7 @@ ADRs live in `docs/adr/`.
 - Do not commit a new ADR; it is reviewed first
 - Once adopted, set its status to 採択 (adopted) and commit it
 - An ADR that is adopted but not yet implemented (for example, when its implementation is split into several pull requests) is committed with the status 採択（未実装） (adopted, not implemented), and its status is changed to 採択 when the implementation is done. `adr-guard unimplemented` lists the ADRs whose status is 採択（未実装） ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md))
-- When adopting an ADR that changes the notation, update `docs/syntax.md` in the same commit and add the ADR to the list of reflected ADRs at its top
+- When adopting an ADR that changes the notation, update both `docs/syntax.md` and `docs/syntax.en.md` in the same commit, and add the ADR to the lists of reflected ADRs at their tops
 - When an ADR changes the specification, update `docs/specifications.md` and the README (both the English and the Japanese version) at the same time. These three must always be up to date on main
 - When the way of development changes, update this document (both the Japanese and the English version) at the same time
 
@@ -225,7 +225,8 @@ Record the version and the source in `SOURCE`, and the license in `LICENSE`.
 
 ### Languages of the documents
 
-- ADRs, the specification (`docs/specifications.md`) and the notation guide (`docs/syntax.md`) are written in Japanese
+- ADRs and the specification (`docs/specifications.md`) are written in Japanese
+- The notation guide has a Japanese version (`docs/syntax.md`) and an English version (`docs/syntax.en.md`)
 - Haddock of public modules is written in English
 - The `CHANGELOG.md` of each package and the release notes are written in English
 - Update both the English and the Japanese version of the README and of this document, with the same content
