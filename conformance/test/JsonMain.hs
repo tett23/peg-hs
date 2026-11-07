@@ -69,15 +69,16 @@ main = do
               forAll (sized genValue) $ \v ->
                 let t = Encode.encode v in fmap syntaxText (JsonSyntax.parseSyntax t) === Right t
           -- The invariants of Peg.Runtime.Syntax (ADR 0081).
-          , testCase "the trees of every file keep the invariants, with and without recovery" $ do
-              ts <- mapM (\f -> (,) f . TE.decodeUtf8' <$> B.readFile (dataDir </> f)) files
-              let bad =
-                    [ (f, take 3 vs)
-                    | (f, Right t) <- ts
-                    , let vs = either (const []) (violations t) (JsonSyntax.parseSyntax t) ++ violations t (fst (JsonRecover.parseSyntaxRecover t))
-                    , not (null vs)
-                    ]
-              take 3 bad @?= []
+          -- One test per file, so that they run in parallel (ADR 0039).
+          , testGroup
+              "the trees of every file keep the invariants, with and without recovery"
+              [ testCase f $ do
+                  r <- TE.decodeUtf8' <$> B.readFile (dataDir </> f)
+                  case r of
+                    Left _ -> pure ()
+                    Right t -> take 3 (either (const []) (violations t) (JsonSyntax.parseSyntax t) ++ violations t (fst (JsonRecover.parseSyntaxRecover t))) @?= []
+              | f <- files
+              ]
           , testCase "the join of the trees of two files keeps the invariants" $ do
               ts <- mapM (\f -> TE.decodeUtf8' <$> B.readFile (dataDir </> f)) (named "y_")
               let trees = [tree | Right t <- ts, Right tree <- [JsonSyntax.parseSyntax t]]

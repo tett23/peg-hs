@@ -92,5 +92,9 @@ concatViolations k a b =
   where
     joined = concatSyntax k [a, b]
 
+-- The nodes of a tree, in order. An accumulator keeps this linear in the
+-- depth of deeply nested trees.
 nodes :: SyntaxNode -> [SyntaxNode]
-nodes n = n : concatMap nodes (syntaxChildren n)
+nodes root = go root []
+  where
+    go n acc = n : foldr go acc (syntaxChildren n)
