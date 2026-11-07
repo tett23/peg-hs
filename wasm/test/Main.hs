@@ -1,6 +1,7 @@
 -- | Tests of the JSON functions of the wasm reactor (ADR 0078).
 module Main (main) where
 
+import Control.Monad (forM_)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.List (sort)
@@ -36,6 +37,7 @@ main = do
       , astTests conformance
       , formatTests conformance
       , requestTests
+      , auditFixTests
       ]
 
 -- The grammar files under a directory, without the test data of the
@@ -393,3 +395,34 @@ requestTests =
              , ("a debugEntry that is not a boolean", "{\"grammar\": \"%module A\\nS <- 'a'\\n\", \"debugEntry\": \"yes\"}")
              ]
          ]
+
+-- The fixes of the security audit of 2026-11-07 (ADR 0080).
+auditFixTests :: TestTree
+auditFixTests =
+  testGroup
+    "security fixes (ADR 0080)"
+    [ testCase "the request of the audit with a newline in sourceName gets a diagnostic and no module (SEC-05)" $ do
+        exists <- doesFileExist "../docs/audits/2026-11-07-srcname-req.json"
+        if not exists
+          then pure ()
+          else do
+            req <- TIO.readFile "../docs/audits/2026-11-07-srcname-req.json"
+            let r = response (analyzeJson req)
+            map diagnostic (diagnostics r) @?= [("error", 1, 1, "the file name contains a control character")]
+            field "module" r @?= Null
+    , testCase "an outputName with a control character gets a diagnostic and no module (SEC-05)" $ do
+        let r = analyze [("grammar", String "%module A\nS <- 'a'\n"), ("outputName", String "A.hs\r")]
+        map diagnostic (diagnostics r) @?= [("error", 1, 1, "the file name contains a control character")]
+        field "module" r @?= Null
+    , testCase "a grammar of 257 levels gets a diagnostic from analyze and format (SEC-06)" $ do
+        let g = "%module A\nS <- " <> T.replicate 257 "(" <> "'a'" <> T.replicate 257 ")" <> "\n"
+            expected = [("error", 2, 262, "the expression nests deeper than 256")]
+        map diagnostic (diagnostics (analyzeGrammar g)) @?= expected
+        map diagnostic (diagnostics (format g)) @?= expected
+        field "text" (format g) @?= Null
+    , testCase "a request whose grammar is an array of 257 levels gets only an error (SEC-06)" $
+        forM_ [analyzeJson, formatJson] $ \f ->
+          case response (f ("{\"grammar\": " <> T.replicate 257 "[" <> T.replicate 257 "]" <> "}")) of
+            Object [("error", String e)] -> e @?= "the request is not JSON"
+            v -> assertFailure (T.unpack (renderJson v))
+    ]

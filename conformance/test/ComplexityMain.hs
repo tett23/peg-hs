@@ -6,7 +6,8 @@ import qualified Conformance.Bench.NestedLR2 as NestedLR2
 import qualified Conformance.Bench.NestedLR4 as NestedLR4
 import qualified Conformance.Bench.NestedLR8 as NestedLR8
 import qualified Conformance.Bench.Pathological as Pathological
-import Peg.Runtime (ParseError)
+import qualified Conformance.Bench.PegCounted as PegCounted
+import Peg.Runtime (ParseError (..))
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
@@ -61,6 +62,20 @@ main =
               e4 = evalCount NestedLR4.peg'parseWith (nested 0)
               e8 = evalCount NestedLR8.peg'parseWith (nested 0)
           assertBool ("2: " <> show e2 <> ", 4: " <> show e4 <> ", 8: " <> show e8) (fromIntegral e8 <= (2.5 :: Double) * fromIntegral e4 && fromIntegral e4 <= (2.5 :: Double) * fromIntegral e2)
+      , testCase "the counted parser of the notation is up to date" $ do
+          src <- TIO.readFile "bench/PegCounted.txt"
+          committed <- B.readFile "bench/Conformance/Bench/PegCounted.hs"
+          case generateFromSource (Options "bench/PegCounted.txt" "bench/Conformance/Bench/PegCounted.hs" True Nothing) src of
+            Left ds -> assertFailure (show ds)
+            Right code -> assertBool "regenerate with scripts/regen-fixtures.sh" (TE.encodeUtf8 code == committed)
+      , testCase "a nesting of 100,000 levels is rejected in evaluations linear in its length (ADR 0080)" $ do
+          let run n = PegCounted.peg'parseWith defaultConfig {cfgCount = True} (deepGrammar n)
+              count n = sum (M.elems (statsEvaluations (snd (run n))))
+              e1 = count 50000
+              e2 = count 100000
+          fmap parseErrorLabel (either Just (const Nothing) (fst (run 100000))) @?= Just (Just (T.pack "nest"))
+          assertBool ("50,000: " <> show e1 <> ", 100,000: " <> show e2) (fromIntegral e2 <= (2.5 :: Double) * fromIntegral e1)
+          assertBool ("100,000: " <> show e2) (e2 <= 10 * T.length (deepGrammar 100000))
       , testCase "the pathological grammar is really quadratic" $ do
           let countFor m = sum (M.elems (statsEvaluations (snd (Pathological.peg'parseWith defaultConfig {cfgCount = True} (input m m)))))
           assertBool "doubling the input should roughly quadruple the evaluations" (countFor 200 > 3 * countFor 100)
@@ -68,6 +83,8 @@ main =
   where
     input k n = T.replicate k (T.pack "a") <> T.replicate n (T.pack "b")
     nested d = T.replicate d (T.pack "(") <> T.pack "x" <> T.replicate d (T.pack ")")
+    -- A grammar whose expression nests groups n levels deep (ADR 0080).
+    deepGrammar n = T.pack "%module M\nS <- " <> T.replicate n (T.pack "(") <> T.pack "'a'" <> T.replicate n (T.pack ")") <> T.pack "\n"
 
 evalCount :: (Config -> T.Text -> (Either ParseError (), Stats)) -> T.Text -> Int
 evalCount run t = sum (M.elems (statsEvaluations (snd (run defaultConfig {cfgCount = True} t))))

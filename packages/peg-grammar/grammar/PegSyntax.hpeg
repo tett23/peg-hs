@@ -33,6 +33,11 @@
 %safe hschar
 %safe constructor
 
+# 入れ子の深さの上限のラベル（ADR 0080）は、上限を超える文法を拒むためにある。
+# 検査は、深さの意味述語が失敗した後に別の選択肢が成功しうるとみなすが、
+# 上限の内側の文法の受理は変えない。
+%safe nest
+
 %{
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)
 import Data.Text (Text)
@@ -94,6 +99,18 @@ paramError l c = either Just (const Nothing) (toParam (Located l c))
 
 param :: Loc -> Text -> Param
 param l c = either (const (Param T.empty (Located l c))) id (toParam (Located l c))
+
+-- The limit on the nesting of expressions (ADR 0080).
+maxDepth :: Int
+maxDepth = 256
+
+-- A construct one level deeper than what it contains.
+deeper :: (a -> Expr) -> (a, Int) -> (Expr, Int)
+deeper f (x, n) = (f x, n + 1)
+
+-- The items of the sequences of a group, and the levels of the deepest.
+withDepth :: [[(Item, Int)]] -> ([[Item]], Int)
+withDepth ss = (map (map fst) ss, maximum (0 : map snd (concat ss)))
 
 applyOp :: Expr -> Char -> Expr
 applyOp e c = case c of
@@ -174,67 +191,79 @@ MoreAlt :: Alt
 MoreAlt <- Ws '/' Alt
 
 Alt :: Alt
-Alt <- Ws l:Here is:Item* Ws act:Action? c:Constructor? { Alt l is act c }
+Alt <- Ws l:Here is:Item(0)* Ws act:Action? c:Constructor? { Alt l (map fst is) act c }
 
 # 構築子の名前（ADR 0075）。アクションを書く位置に置く
 Constructor :: Located Text
 Constructor <- Ws '@' l:Here n:(Ident ^constructor) { Located l n }
 
-Item :: Item
-Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE ^expression) { Item l (Just b) e }
-     / Ws !DeclStart l:Here e:PrefixE { Item l Nothing e }
+# 式の入れ子の深さは 256 段まで（ADR 0080）。
+# 式の規則は、外側の群、前置の演算子、雛形の引数の段数を引数 d に受け取り、
+# 式とその内側の段数の組を返す。後置の演算子とラベルは式を読んだ後に現れるので、
+# 内側の段数を足して数える。上限を超える段に入る手前で ^nest を送出するので、
+# 深い入れ子の解析は上限の段で止まる
+Item(d :: Int) :: (Item, Int)
+Item <- Ws !DeclStart l:Here b:Binding e:(PrefixE(d) ^expression) { (Item l (Just b) (fst e), snd e) }
+     / Ws !DeclStart l:Here e:PrefixE(d) { (Item l Nothing (fst e), snd e) }
 
 DeclStart <- Ident TemplateParams? HsParen? Ws ('::' / '<-') { () }
 
 Binding :: Text
 Binding <- Ident ':' !':'
 
-PrefixE :: Expr
-PrefixE <- Ws '&' Ws '{' c:PredCode { EPred True c }
-        / Ws '&' Ws e:(PrefixE ^expression) { EAnd e }
-        / Ws '!' Ws '{' c:PredCode { EPred False c }
-        / Ws '!' Ws e:(PrefixE ^expression) { ENot e }
-        / Ws '$' e:(PrefixE ^expression) { ECapture e }
-        / Labeled
+# 先読みの選択肢を意味述語の選択肢より先に試す。
+# 意味述語の選択肢が { の位置で失敗すると、深さの誤りがその位置で報告されるためである
+PrefixE(d :: Int) :: (Expr, Int)
+PrefixE <- Ws &'&' !('&' Ws '{') (&{ d < maxDepth }) ^nest '&' Ws e:(PrefixE(d + 1) ^expression) { deeper EAnd e }
+        / Ws '&' Ws '{' c:PredCode { (EPred True c, 0) }
+        / Ws &'!' !('!' Ws '{') (&{ d < maxDepth }) ^nest '!' Ws e:(PrefixE(d + 1) ^expression) { deeper ENot e }
+        / Ws '!' Ws '{' c:PredCode { (EPred False c, 0) }
+        / Ws &'$' (&{ d < maxDepth }) ^nest '$' e:(PrefixE(d + 1) ^expression) { deeper ECapture e }
+        / Labeled(d)
 
-Labeled :: Expr
-Labeled <- e:SuffixE lab:LabelPart? { maybe e (\(l, n) -> ELabel l e n) lab }
+Labeled(d :: Int) :: (Expr, Int)
+Labeled <- e:SuffixE(d) lab:LabelPart(d + snd e)? { maybe e (\(l, n) -> deeper (\x -> ELabel l x n) e) lab }
 
-LabelPart :: (Loc, Text)
-LabelPart <- Ws l:Here '^' n:Ident { (l, n) }
+LabelPart(d :: Int) :: (Loc, Text)
+LabelPart <- Ws l:Here &'^' (&{ d < maxDepth }) ^nest '^' n:Ident { (l, n) }
 
-SuffixE :: Expr
-SuffixE <- p:Primary ops:PostOp* { foldl applyOp p ops }
+SuffixE(d :: Int) :: (Expr, Int)
+SuffixE <- p:Primary(d) ops:PostOps(d + snd p) { (foldl applyOp (fst p) ops, snd p + length ops) }
 
-PostOp :: Char
-PostOp <- Ws c:$[*+?] { firstChar c }
+# 後置の演算子の列。一つごとに一段深くなる
+PostOps(d :: Int) :: [Char]
+PostOps <- c:PostOp(d) cs:PostOps(d + 1) { c : cs }
+        / { [] }
 
-Primary :: Expr
-Primary <- Ws o:$Lit1 { ELit (decodeLiteral o) o }
-        / Ws o:$Lit2 { ELit (decodeLiteral o) o }
-        / Ws o:$ClassLit { EClass (classRanges o) o }
-        / Ws '.' { EAny }
-        / Ws '(' g:GroupAlts Ws (!'{') ^groupaction (')' ^paren) { EGroup g }
-        / Ws l:Here n:Ident args:CallArgs { ERef l n args }
-        / Ws l:Here n:Ident as:TemplateArgs vs:CallArgs? { ETemplate l n as (maybe [] id vs) }
-        / Ws l:Here n:Ident !'(' { ERef l n [] }
+PostOp(d :: Int) :: Char
+PostOp <- Ws &[*+?] (&{ d < maxDepth }) ^nest c:$[*+?] { firstChar c }
+
+Primary(d :: Int) :: (Expr, Int)
+Primary <- Ws o:$Lit1 { (ELit (decodeLiteral o) o, 0) }
+        / Ws o:$Lit2 { (ELit (decodeLiteral o) o, 0) }
+        / Ws o:$ClassLit { (EClass (classRanges o) o, 0) }
+        / Ws '.' { (EAny, 0) }
+        / Ws &'(' (&{ d < maxDepth }) ^nest '(' g:GroupAlts(d + 1) Ws (!'{') ^groupaction (')' ^paren) { deeper EGroup g }
+        / Ws l:Here n:Ident args:CallArgs { (ERef l n args, 0) }
+        / Ws l:Here n:Ident as:TemplateArgs(d) vs:CallArgs? { deeper (\x -> ETemplate l n x (maybe [] id vs)) as }
+        / Ws l:Here n:Ident !'(' { (ERef l n [], 0) }
 
 # 雛形の呼び出しの引数。引数は選択と逐次を含む式であり、, か > で終わる。
 # > の直後に空白なしで ( が続けば、値の引数である（ADR 0055）
-TemplateArgs :: [Expr]
-TemplateArgs <- '<' !'-' a:TemplateArg as:(Ws ',' TemplateArg)* Ws '>' { a : as }
+TemplateArgs(d :: Int) :: ([Expr], Int)
+TemplateArgs <- &('<' !'-') (&{ d < maxDepth }) ^nest '<' a:TemplateArg(d + 1) as:(Ws ',' TemplateArg(d + 1))* Ws '>' { (map fst (a : as), maximum (map snd (a : as))) }
 
-TemplateArg :: Expr
-TemplateArg <- g:GroupAlts { case g of { [[Item _ Nothing e]] -> e; _ -> EGroup g } }
+TemplateArg(d :: Int) :: (Expr, Int)
+TemplateArg <- g:GroupAlts(d) { case fst g of { [[Item _ Nothing e]] -> (e, snd g); gs -> (EGroup gs, snd g) } }
 
 CallArgs :: [Located Text]
 CallArgs <- '(' ArgChunks
 
-GroupAlts :: [[Item]]
-GroupAlts <- s:Item* ss:MoreGroup* { s : ss }
+GroupAlts(d :: Int) :: ([[Item]], Int)
+GroupAlts <- s:Item(d)* ss:MoreGroup(d)* { withDepth (s : ss) }
 
-MoreGroup :: [Item]
-MoreGroup <- Ws '/' Item*
+MoreGroup(d :: Int) :: [(Item, Int)]
+MoreGroup <- Ws '/' Item(d)*
 
 # リテラルと文字クラス -------------------------------------------------------------------
 Lit1 <- '\'' (Escape / !['\\\n] .)* ('\'' ^literal)
@@ -350,6 +379,9 @@ HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar*
 %recover hsstring SkipToTop
 %recover hschar SkipToTop
 %recover constructor RecoverText
+%recover nest SkipToTop
+# 後置の演算子の列（ADR 0080）は、構文木では今までどおり SuffixE の子に並べる
+%inline PostOps
 
 # 回復の規則（ADR 0035）。どのラベルの送出からも、次の最上位の要素の手前まで
 # 読み飛ばす。行頭の空白、/、# でない文字を、最上位の要素の始まりとみなす
@@ -361,5 +393,5 @@ RecoverTop <- SkipToTop { TVerbatim (Loc 0 0) T.empty }
 RecoverText :: Text
 RecoverText <- SkipToTop { T.empty }
 
-RecoverExpr :: Expr
-RecoverExpr <- SkipToTop { EAny }
+RecoverExpr :: (Expr, Int)
+RecoverExpr <- SkipToTop { (EAny, 0) }

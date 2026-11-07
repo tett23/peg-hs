@@ -50,6 +50,8 @@ executable peg-hs-wasm
       , bytestring
       , peg-wasm
       , text
+    -- The size of the linear memory, for the check of a request (ADR 0080).
+    c-sources:        reactor/memory.c
     -- A reactor: the caller runs _initialize and hs_init once, then calls
     -- the exports (ADR 0078).
     ghc-options:

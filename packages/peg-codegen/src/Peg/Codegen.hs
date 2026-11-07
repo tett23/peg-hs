@@ -125,13 +125,26 @@ generateFromSource opts src = parseGrammar src >>= generate opts
 -- defines for the grammar; each one that is not is an error at line 1,
 -- column 1, in the order given:
 -- @the generator does not define NAME@ (ADR 0061).
+--
+-- The file names of 'optSourceName' and 'optOutputName' are written into
+-- the module, so a name with a control character (U+0000 to U+001F, and
+-- U+007F), which could end the comment of the first line, is an error at
+-- line 1, column 1: @the file name contains a control character@
+-- (ADR 0080).
 generate :: Options -> Grammar -> Either [Diagnostic] Text
 generate opts g0 = do
+  if any (any isControlChar) [optSourceName opts, optOutputName opts]
+    then Left [Diagnostic (Loc 1 1) "the file name contains a control character"]
+    else pure ()
   g <- either (Left . templateNotes g0) Right (expandTemplates g0)
   analysis <- either (Left . templateNotes g0) Right (check g)
   case undefinedExports opts g analysis of
     [] -> Right (finalize opts (render opts g analysis))
     missing -> Left [Diagnostic (Loc 1 1) ("the generator does not define " <> n) | n <- missing]
+
+-- The control characters of ADR 0080.
+isControlChar :: Char -> Bool
+isControlChar c = c < '\x20' || c == '\x7F'
 
 -- Labels written anywhere in the grammar (ADR 0021).
 grammarLabels :: Grammar -> [Text]

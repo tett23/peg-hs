@@ -73,3 +73,14 @@ Since v0.1.0-rc1:
 - With `%syntax`, a rule name that starts with a letter without upper
   case (kanji, kana, `_`) gets `Rule'` before its type name, so the module
   compiles ([ADR 0053](https://github.com/tett23/peg-hs/blob/main/docs/adr/0053-type-names-of-rules-without-case.md)).
+
+### Security
+
+Since v0.1.0-rc5:
+
+- `generate` returns the error `the file name contains a control
+  character` at line 1, column 1 when `optSourceName` or `optOutputName`
+  has a control character (U+0000 to U+001F, or U+007F), which could end
+  the comment of the first line of the module. Other names generate the
+  same bytes as before
+  ([ADR 0080](https://github.com/tett23/peg-hs/blob/main/docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).

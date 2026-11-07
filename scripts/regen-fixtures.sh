@@ -84,6 +84,12 @@ if [ -d conformance/json ]; then
     "$peg" gen bench/JsonLabeled.hpeg -o bench/Conformance/Bench/JsonLabeled.hs >/dev/null
     "$peg" gen bench/JsonNomemo.hpeg -o bench/Conformance/Bench/JsonNomemo.hs --debug-entry >/dev/null
     "$peg" gen bench/Pathological.hpeg -o bench/Conformance/Bench/Pathological.hs --debug-entry >/dev/null
+    # The parser of the notation with the evaluation counts, for the test of
+    # the limit on the nesting (ADR 0080). The copy of the grammar is a .txt
+    # file, so that the tests of every grammar of the repository do not take
+    # the grammar of the notation twice.
+    sed 's/^%module Peg.Grammar.SelfHosted$/%module Conformance.Bench.PegCounted/' ../packages/peg-grammar/grammar/Peg.hpeg > bench/PegCounted.txt
+    "$peg" gen bench/PegCounted.txt -o bench/Conformance/Bench/PegCounted.hs --debug-entry >/dev/null
     for n in 2 4 8; do
       "$peg" gen bench/NestedLR$n.hpeg -o bench/Conformance/Bench/NestedLR$n.hs --debug-entry >/dev/null
     done

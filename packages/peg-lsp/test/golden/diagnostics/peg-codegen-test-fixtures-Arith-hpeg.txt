@@ -1,9 +1,9 @@
 {"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":"file:///grammar.hpeg","diagnostics":[]}}
 0 32acc1b58b298c6d
 1 5502bc51a9008da8
-2 3c5c04bfb8e03e4b
+2 600a3f72877425f9
 3 3c5c04bfb8e03e4b
-4 3c5c04bfb8e03e4b
+4 92c0ab1b6aac363d
 5 3c5c04bfb8e03e4b
 6 d493f6d52631cd82
 7 a209fdbbd9411852
