@@ -1,6 +1,6 @@
 # ADR 0082: 束縛の参照を生成の前に検査する
 
-ステータス: 採択
+ステータス: 採択→群の内側の束縛の見え方は [ADR 0083](0083-bindings-inside-a-group-are-not-visible.md)
 
 ## 文脈
 
