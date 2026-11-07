@@ -182,6 +182,7 @@ README の設定は、保存時に言語サーバーで整形する設定を含�
 
 記法は Ford の PEG 表記を基礎に、型注釈とセマンティックアクションを加える。
 確定した記法は [ADR 0004](adr/0004-peg-notation.md) に定め、利用者向けの解説は [docs/syntax.md](syntax.md) に置く。
+解説の英語版は [docs/syntax.en.md](syntax.en.md) に置く。
 
 ```
 %module Example.Parser
