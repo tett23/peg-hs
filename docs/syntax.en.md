@@ -8,7 +8,7 @@ The norms are in the ADRs, and this document puts them together in a form that c
 Where the description disagrees with an ADR, the ADR takes precedence.
 
 This document reflects only the content of adopted ADRs.
-The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0082](adr/0082-static-check-of-binding-references.md) and [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md).
+The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md) and [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md).
 
 Among the code blocks of this document, those that start with `%module` are complete grammars, and `peg-hs gen` can generate code from them as they are.
 The others are fragments taken out of a grammar.
@@ -112,6 +112,19 @@ A directive is a line that starts with `%`, and specifies something about the wh
 `%entry`, `%export`, `%language`, `%nomemo`, `%token`, `%trivia`, `%inline`, `%recover` and `%safe` can be written any number of times.
 For directives that take one rule per line (`%entry`, `%nomemo` and so on), write one line for each rule.
 
+The value of `%module` and the items of `%export` are written into the generated module as they are.
+peg-hs therefore rejects values that would read as Haskell declarations ([ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
+The value of `%module` is a module name of parts separated by dots.
+Each part starts with an upper case letter, followed by letters, digits, `_` and `'` only.
+An item of `%export` takes one of the following forms.
+Spaces may separate the items and stand inside the parentheses.
+
+- A variable or type name, which may be qualified (`evalExpr`, `Expr`, `M.f`)
+- A type name followed by `(..)`, or by `( ... )` with names and operators in parentheses separated by commas (`Expr(..)`, `Expr(Add, Mul)`)
+- An operator in parentheses (`(+++)`)
+- Any of these after `type` or `pattern` (`type (:+)`, `pattern P`)
+- `module` and a module name (`module Data.Text`)
+
 The use of each directive is explained in the section it concerns.
 
 Common mistakes:
@@ -125,6 +138,8 @@ Common mistakes:
 | Wrote something that is not a rule name (`%entry A B`) | `error: %entry expects a rule name` |
 | Wrote a rule that is not defined | `error: undefined rule Name` |
 | `%tabstop 0` | `error: %tabstop expects a positive integer` |
+| Wrote something that is not a module name (`%module m`, `%module M where x = 1`) | `error: %module expects a module name, but got m` |
+| Wrote something that is not an export item (`%export f) where`, `%export f -- x`) | `error: %export expects export items, but got f) where` |
 
 ### Verbatim blocks
 
@@ -350,6 +365,14 @@ The operators are as follows, from the most tightly binding.
 Suffixes bind more tightly than prefixes, so `$[0-9]+` reads as `$([0-9]+)`.
 Enclosing an expression in parentheses `( ... )` changes the binding.
 
+An expression nests at most 256 levels deep ([ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
+The parentheses of a group, a prefix or suffix operator, a failure label and the arguments of a template call each count as one level.
+`!('a'*)` has three levels: `!`, the parentheses and `*`.
+The levels of expressions side by side are not added.
+`('a') ('b')` has one level.
+An expression deeper than the limit is an error at the level that goes over it.
+The limit cannot be changed.
+
 The lookaheads `&e` and `!e` only check whether `e` matches (or does not), and do not consume input.
 `!.` succeeds only at the end of the input.
 
@@ -369,6 +392,7 @@ Common mistakes:
 | A repetition of an expression that can match the empty string (`('a'?)*`) | `error: the repeated expression can match the empty string, which would loop forever` |
 | Forgot to close the parentheses of a group (the line ends with `('a' / 'b'`) | `error: expected ')'` |
 | No expression after an operator or a binding (`'a' ! / 'b'`, `x:`) | `error: expected an expression` |
+| An expression nests deeper than 256 levels (257 nested parentheses) | `error: the expression nests deeper than 256` |
 | An earlier alternative always succeeds (`'a'? / 'b'`) | lint: `warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]` |
 | An earlier alternative matches a prefix (`'=' / '=='`) | lint: `warning: the alternative never succeeds: the alternative at 3:7 matches its prefix '=' first [unreachable-alternative]` |
 | Wrote the same alternative twice | lint: `warning: the alternative never succeeds: it is the same as the alternative at 3:7 [duplicate-alternative]` |
