@@ -268,6 +268,26 @@ Deno.test("a label that may reject valid input is a warning, and the module is g
   assert(r.module !== null);
 });
 
+// The three tests below are those of wasm/test/Main.hs, for the wasm
+// (ADR 0081).
+Deno.test("an error of a template body notes the call", () => {
+  const r = analyze({ grammar: "%module A\n\nS <- T<'a'>\n\nT<p> :: ()\nT<p> <- p U\n" });
+  assertEquals(r.diagnostics.length, 1);
+  assertEquals(r.diagnostics[0].severity, "error");
+  const m = r.diagnostics[0].message;
+  assert(m.includes("undefined rule U") && m.includes("3:6"), m);
+  assertEquals(r.module, null);
+});
+
+Deno.test("an empty types for a grammar without generated types", () => {
+  assertEquals(analyze({ grammar: "%module A\nS <- 'a'\n" }).types, "");
+});
+
+Deno.test("a column counts code points, a tab as one", () => {
+  const r = analyze({ grammar: "%module A\n\n数式 <-\t'a' T\n" });
+  assertEquals(r.diagnostics, [{ severity: "error", line: 3, column: 11, message: "undefined rule T" }]);
+});
+
 Deno.test("non-ASCII names and comments come back as written", () => {
   const grammar = "%module A\n\n# 数式の文法\n数式 <- 項 ('+' 項)*\n\n項 <- [0-9]+\n";
   const r = analyze({ grammar });

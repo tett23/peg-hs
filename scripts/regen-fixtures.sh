@@ -47,6 +47,11 @@ peg=$("$cabal" list-bin exe:peg-hs)
   sed 's/^%module Fixture.Recover$/%module Fixture.RecoverExports/' test/fixtures/Recover.hpeg > test/derived/RecoverExports.hpeg
   "$peg" gen test/derived/RecoverExports.hpeg -o test/generated/Fixture/RecoverExports.hs \
     --export parseSyntaxRecover --export nameOfSyntaxKind >/dev/null
+  # A fixture with %recover and the labels that peg-hs label inserts outside
+  # the recovered label (ADR 0054, ADR 0081).
+  sed 's/^%module Fixture.RecoverInsert$/%module Fixture.RecoverInsertLabeled/' test/fixtures/RecoverInsert.hpeg > test/derived/RecoverInsertLabeled.hpeg
+  "$peg" label --write test/derived/RecoverInsertLabeled.hpeg >/dev/null
+  "$peg" gen test/derived/RecoverInsertLabeled.hpeg -o test/generated/Fixture/RecoverInsertLabeled.hs >/dev/null
 )
 # The notation's grammar without its labels, for the label safety tests (ADR 0028).
 (

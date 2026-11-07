@@ -27,6 +27,8 @@ import qualified Fixture.Misc as Misc
 import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverExports as RecoverExports
+import qualified Fixture.RecoverInsert as RecoverInsert
+import qualified Fixture.RecoverInsertLabeled as RecoverInsertLabeled
 import qualified Fixture.RecoverNoLabels as RecoverNoLabels
 import qualified Fixture.RecoverSharedNoLabels as RecoverSharedNoLabels
 import qualified Fixture.Runs as Runs
@@ -70,7 +72,7 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (Gen, Property, checkCoverage, choose, cover, elements, forAll, frequency, listOf, oneof, sized, testProperty, vectorOf, (.&&.), (===), withNumTests)
+import Test.Tasty.QuickCheck (Gen, Property, checkCoverage, choose, counterexample, cover, elements, forAll, frequency, listOf, listOf1, oneof, sized, testProperty, vectorOf, (.&&.), (===), withNumTests)
 
 main :: IO ()
 main =
@@ -150,7 +152,7 @@ main =
       ]
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
+fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -456,9 +458,39 @@ variantTests =
         derived <- TIO.readFile "test/derived/RecoverExports.hpeg"
         assertBool "regenerate with scripts/regen-fixtures.sh: test/derived/RecoverExports.hpeg" (T.replace "%module Fixture.Recover\n" "%module Fixture.RecoverExports\n" src == derived)
     , check' "Recover with the exports of Golem (ADR 0061)" "." "test/derived/RecoverExports.hpeg" "test/generated/Fixture/RecoverExports.hs" (Just golemExports)
+    , skippedWithout "test/derived/RecoverInsertLabeled.hpeg" "the grammar of RecoverInsertLabeled is RecoverInsert with the labels of peg-hs label (ADR 0054, ADR 0081)" $ do
+        src <- TIO.readFile "test/fixtures/RecoverInsert.hpeg"
+        derived <- TIO.readFile "test/derived/RecoverInsertLabeled.hpeg"
+        let renamed = T.replace "%module Fixture.RecoverInsert\n" "%module Fixture.RecoverInsertLabeled\n" src
+        fmap snd (insertLabels [] renamed) @?= Right derived
+        assertBool "labels are inserted" (derived /= renamed)
+    , check' "RecoverInsert with the labels of peg-hs label" "." "test/derived/RecoverInsertLabeled.hpeg" "test/generated/Fixture/RecoverInsertLabeled.hs" Nothing
+      -- The labels are inserted in the title, outside the label block,
+      -- which has a recovery rule. The values, the trees and the syntax
+      -- errors of recovery do not change, but for the name of an inserted
+      -- label in an error of the title, which is what the insertion is for
+      -- (ADR 0054, ADR 0081).
+    , testProperty "the labels inserted outside a recovered label do not change parseRecover and parseSyntaxRecover" $
+        withNumTests 2000 $ forAll genRecoverInsert $ \t ->
+          let (v, e) = RecoverInsert.parseRecover t
+              (v', e') = RecoverInsertLabeled.parseRecover t
+              (tree, se) = RecoverInsert.parseSyntaxRecover t
+              (tree', se') = RecoverInsertLabeled.parseSyntaxRecover t
+              inserted = filter (`notElem` [Nothing, Just "block"]) (map syntaxErrorLabel (e' ++ se'))
+              withoutInserted = map (\x -> if syntaxErrorLabel x == Just "block" then x else x {syntaxErrorLabel = Nothing})
+           in (show v, e, debugTree RecoverInsert.nameOfSyntaxKind tree, se)
+                === (show v', withoutInserted e', debugTree RecoverInsertLabeled.nameOfSyntaxKind tree', withoutInserted se')
+                .&&. counterexample "an inserted label after a valid title" (not (validTitle t) || null inserted)
     , testProperty "the Recover fixture accepts the same inputs without its labels" $
         withNumTests 3000 $ forAll (T.pack <$> listOf (elements "ab[] \n")) $ \t ->
           either (const False) (const True) (Recover.parse t) === either (const False) (const True) (RecoverNoLabels.parse t)
+      -- As the conformance tests of JSON and TOML do (ADR 0028, ADR 0081).
+    , testCase "the Recover fixture accepts the same inputs without its labels, on every deletion and duplication of a character of valid inputs" $ do
+        let valid = ["a [b c] d\n\ne [f]", "x", "x\n\ny", "[a]", "[a [b c] d]\n", "good one\n\ngood two", "see [b x [c]] y\n\n\nnext [d e]\n"]
+            mutants t = concat [[T.take i t <> T.drop (i + 1) t, T.take (i + 1) t <> T.drop i t] | i <- [0 .. T.length t - 1]]
+            accepts p t = either (const False) (const True) (p t)
+        [t | t <- valid, not (accepts Recover.parse t)] @?= []
+        [m | t <- valid, m <- mutants t, accepts Recover.parse m /= accepts RecoverNoLabels.parse m] @?= []
     ]
   where
     check name dir src out strip = checkWith name dir src out strip Nothing
@@ -637,6 +669,12 @@ indentTests =
     [ testCase "nested by indentation, with a tab stop of 2" $
         Indent.parse "a\n  b\n\tc\n    d\ne\n"
           @?= Right [Indent.Node "a" [Indent.Node "b" [], Indent.Node "c" [Indent.Node "d" []]], Indent.Node "e" []]
+    , testCase "%tabstop changes _col, not the column of the error position (ADR 0081)" $ do
+        -- The tab moves _col to 2, so b is a child of a; in the error at
+        -- the !, the tab is one column.
+        fmap (map (\(Indent.Node n cs) -> (n, length cs))) (Indent.parse "a\n\tb\n") @?= Right [("a", 1)]
+        fmap parseErrorPos (flipE (Indent.parse "a\n\tb\n\t!\n")) @?= Right (Pos 6 3 2)
+        fmap parseErrorPos (flipE (Indent.parse "a\n  b\n  !\n")) @?= Right (Pos 8 3 3)
     , testCase "odd indentation is rejected" $
         assertBool "should fail" (either (const True) (const False) (Indent.parse "a\n b\n"))
     , testCase "the same rule at the same offset with different arguments" $ do
@@ -1118,6 +1156,27 @@ errorRanges = map (\e -> (syntaxErrorLabel e, syntaxErrorRange e))
 
 errorNodes :: SyntaxNode -> [(Int, Int)]
 errorNodes n = [syntaxRange n | syntaxKind n == errorKind] ++ concatMap errorNodes (syntaxChildren n)
+
+-- Whether an input of the RecoverInsert fixture starts with a valid title.
+validTitle :: Text -> Bool
+validTitle t = case T.stripPrefix "%title " t of
+  Just rest -> let (w, eol) = T.breakOn "\n" rest in not (T.null w) && T.all (`elem` ['a' .. 'z']) w && not (T.null eol)
+  Nothing -> False
+
+-- Inputs of the RecoverInsert fixture: mostly a title and items, with
+-- characters deleted, duplicated or added here and there.
+genRecoverInsert :: Gen Text
+genRecoverInsert = do
+  title <- T.pack <$> listOf1 (elements "abc")
+  items <- listOf (T.pack <$> listOf (elements "- ab\n"))
+  let doc = "%title " <> title <> "\n" <> T.intercalate "\n" items
+  edits <- listOf ((,,) <$> choose (0, T.length doc) <*> elements [0, 1, 2 :: Int] <*> elements "%tile -ab\n")
+  pure (foldr edit doc edits)
+  where
+    edit (i, k, c) t = case k of
+      0 -> T.take i t <> T.drop (i + 1) t
+      1 -> T.take (i + 1) t <> T.drop i t
+      _ -> T.take i t <> T.singleton c <> T.drop i t
 
 recoveryTests :: TestTree
 recoveryTests =

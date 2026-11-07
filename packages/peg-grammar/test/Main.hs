@@ -273,6 +273,11 @@ notationTests =
     , testCase "comments" $ do
         g <- parseOk "# top\n%module M # trailing\nA :: () \nA <- '#' # not the literal\n  { () } # after\n"
         exprs' g @?= [ELit "#" "'#'"]
+    , testCase "a # in a character class is not a comment (ADR 0081)" $
+        exprs "[#] 'a'" >>= (@?= [EClass [('#', '#')] "[#]", ELit "a" "'a'"])
+    , testCase "a # in an action is not a comment (ADR 0081)" $ do
+        g <- parseOk "%module M\nA :: Text\nA <- 'a' { \"#\" <> \"x\" } # a comment\n"
+        fmap unLoc (altAction (firstAlt g)) @?= Just " \"#\" <> \"x\" "
     , testCase "precedence: suffix binds tighter than prefix" $
         exprs "$[0-9]+" >>= (@?= [ECapture (EPlus (EClass [('0', '9')] "[0-9]"))])
     , testCase "precedence: label between suffix and prefix" $ do
@@ -532,6 +537,8 @@ checkTests =
         errorsOf "%module M\n%language RebindableSyntax\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 11)]
     , testCase "%nomemo on a left-recursive rule" $
         errorsOf "%module M\n%nomemo A\nA :: ()\nA <- A 'a' { () } / 'a' { () }\n" @?= [(2, 1)]
+    , testCase "%nomemo of an undefined rule (ADR 0081)" $
+        messagesOf "%module M\n%nomemo Missing\nA :: ()\nA <- 'a' { () }\n" @?= ["undefined rule Missing"]
     , testCase "%token requires %syntax" $
         errorsOf "%module M\n%token A\nA :: ()\nA <- 'a' { () }\n" @?= [(2, 1)]
     , testCase "%syntax takes no argument" $

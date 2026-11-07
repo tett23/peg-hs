@@ -36,6 +36,7 @@ import Test.Tasty.QuickCheck
 import Test.QuickCheck.Gen (unGen)
 import Test.QuickCheck.Random (mkQCGen)
 import Data.List (nub)
+import Text.Read (readMaybe)
 import Shard (chunkedProperty, chunks)
 
 labelTests :: [FilePath] -> TestTree
@@ -74,6 +75,10 @@ labelTests files =
             assertBool (show (length differ) <> " mutants differ, the first ones:\n" <> unlines (map T.unpack (take 3 differ))) (null differ)
         | f <- files
         ]
+    , testCase "the interpreter passes integer arguments and compares them in predicates (ADR 0081)" $
+        fmap (\g -> map (run True g) ["", " ", "  ", "   "]) (parseGrammar countGrammar) @?= Right [Just False, Just False, Just True, Just False]
+    , testCase "in the interpreter, a binding hides a parameter of the same name (ADR 0081)" $
+        fmap (\g -> map (run True g) ["a", " a", "  a"]) (parseGrammar shadowGrammar) @?= Right [Just False, Just True, Just False]
     , testGroup "precise in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- preciseSnippets]
     , testGroup "still unsafe in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- stillUnsafeSnippets]
     , testCase "the recovery rules become entries once each (ADR 0038)" $
@@ -93,6 +98,16 @@ labelTests files =
                       bad = filter (not . sameOn) paramInputs
                    in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
         )
+      ++ chunkedProperty "with calls that pass arguments through rules, a grammar without warnings accepts the same language without its labels (ADR 0081)" 1000 (\part ->
+          forAll (variant part genCallGrammar) $ \src -> case parseGrammar src >>= check >> parseGrammar src of
+            Left _ -> discard
+            Right g
+              | not (null (labelWarnings g)) -> label "warned" True
+              | otherwise ->
+                  let sameOn s = run True g s == run False g s || isNothing (run True g s) || isNothing (run False g s)
+                      bad = filter (not . sameOn) callInputs
+                   in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
+        )
       ++ chunkedProperty "a grammar without warnings accepts the same language without its labels" 3000 (\part ->
           forAll (variant part genGrammar) $ \src -> case parseGrammar src >>= check >> parseGrammar src of
             Left _ -> discard
@@ -108,6 +123,7 @@ labelTests files =
             let firsts g = [unGen (variant part g) (mkQCGen 42) 30 | part <- [1 .. chunks]]
             length (nub (firsts genGrammar)) @?= chunks
             length (nub (firsts genGrammarWithParams)) @?= chunks
+            length (nub (firsts genCallGrammar)) @?= chunks
          ]
     )
   where
@@ -276,6 +292,27 @@ stillUnsafeSnippets =
     )
   ]
 
+-- Exactly two spaces: the argument counts down to 0.
+countGrammar :: Text
+countGrammar =
+  grammar
+    [ "S :: ()"
+    , "S <- I(2) !. { () }"
+    , "I(n :: Int) :: ()"
+    , "I <- &{ n == 0 } { () } / &{ n > 0 } ' ' I(n - 1) { () }"
+    ]
+
+-- One space and an a: the binding n is the length of the spaces, not the
+-- argument 0.
+shadowGrammar :: Text
+shadowGrammar =
+  grammar
+    [ "S :: ()"
+    , "S <- A(0) !. { () }"
+    , "A(n :: Int) :: ()"
+    , "A <- n:$' '* &{ n == 1 } 'a' { () }"
+    ]
+
 -- Two labels with one recovery rule (ADR 0038).
 sharedRecovery :: Text
 sharedRecovery =
@@ -324,70 +361,110 @@ hasLabels g = any (any (any (exprHasLabel . itemExpr) . altItems) . ruleAlts) (g
 data Res = Ok Int | Fail | Throw
   deriving (Eq, Show)
 
+-- The values of the parameters and bindings in scope. 'Nothing' is a value
+-- that the interpreter does not know, such as that of an argument it cannot
+-- evaluate.
+type Env = M.Map Text (Maybe Int)
+
 -- Whether the start rule matches the whole input, with or without labels.
 -- 'Nothing' when the evaluation ran out of fuel.
+--
+-- A call passes its integer arguments to the parameters of the rule
+-- (ADR 0038): an argument is an integer, a name in scope, or one of them
+-- plus or minus another. A predicate that compares a name with an integer
+-- (@n == 0@, @n > 0@ and the like) is evaluated, as are @True@ and
+-- @False@; the other predicates succeed, and the check must not rely on
+-- their values. A binding gives its name the number of characters that its
+-- item consumed, and hides a parameter of the same name in the rest of its
+-- sequence.
 run :: Bool -> Grammar -> String -> Maybe Bool
 run withLabels g input = case grammarRules g of
   [] -> Nothing
-  start : _ -> fmap (== Ok (length input)) (rule (ruleName start) 0 200)
+  start : _ -> fmap (== Ok (length input)) (rule (ruleName start) [] 0 200)
   where
     rules = M.fromList [(ruleName r, r) | r <- grammarRules g]
-    rule n i fuel
+    rule n args i fuel
       | fuel <= (0 :: Int) = Nothing
       | otherwise = case M.lookup n rules of
-          Just r -> choice (map altItems (ruleAlts r)) i (fuel - 1)
+          Just r ->
+            let env = M.fromList (zip (map paramName (ruleParams r)) (args ++ repeat Nothing))
+             in choice env (map altItems (ruleAlts r)) i (fuel - 1)
           Nothing -> Just Fail
-    choice [] _ _ = Just Fail
-    choice (a : as) i fuel =
-      sequ a i fuel >>= \case
-        Fail -> choice as i fuel
+    choice _ [] _ _ = Just Fail
+    choice env (a : as) i fuel =
+      sequ env a i fuel >>= \case
+        Fail -> choice env as i fuel
         r -> Just r
-    sequ [] i _ = Just (Ok i)
-    sequ (x : xs) i fuel =
-      expr (itemExpr x) i fuel >>= \case
-        Ok j -> sequ xs j fuel
+    sequ _ [] i _ = Just (Ok i)
+    sequ env (x : xs) i fuel =
+      expr env (itemExpr x) i fuel >>= \case
+        Ok j -> sequ (maybe env (\b -> M.insert b (Just (j - i)) env) (itemBind x)) xs j fuel
         r -> Just r
     at i = if i < length input then Just (input !! i) else Nothing
-    expr e i fuel = case e of
+    expr env e i fuel = case e of
       ELit t _ -> Just (if T.unpack t == take (T.length t) (drop i input) then Ok (i + T.length t) else Fail)
       EClass rs _ -> Just (case at i of Just c | any (\(a, b) -> a <= c && c <= b) rs -> Ok (i + 1); _ -> Fail)
       EAny -> Just (if i < length input then Ok (i + 1) else Fail)
-      ERef _ n _ -> rule n i fuel
-      EGroup alts -> choice alts i fuel
-      EStar x -> star x i fuel
+      ERef _ n as -> rule n (map (intValue env . unLoc) as) i fuel
+      -- The bindings of a group are not visible after it (ADR 0083).
+      EGroup alts -> choice env alts i fuel
+      EStar x -> star env x i fuel
       EPlus x ->
-        expr x i fuel >>= \case
-          Ok j -> star x j fuel
+        expr env x i fuel >>= \case
+          Ok j -> star env x j fuel
           r -> Just r
       EOpt x ->
-        expr x i fuel >>= \case
+        expr env x i fuel >>= \case
           Fail -> Just (Ok i)
           r -> Just r
       EAnd x ->
-        expr x i fuel >>= \case
+        expr env x i fuel >>= \case
           Ok _ -> Just (Ok i)
           _ -> Just Fail
       ENot x ->
-        expr x i fuel >>= \case
+        expr env x i fuel >>= \case
           Ok _ -> Just Fail
           _ -> Just (Ok i)
-      ECapture x -> expr x i fuel
+      ECapture x -> expr env x i fuel
       ELabel _ x _ ->
-        expr x i fuel >>= \case
+        expr env x i fuel >>= \case
           Fail | withLabels -> Just Throw
           r -> Just r
-      EPred b (Located _ c)
-        | T.strip c == "False" -> Just (if b then Fail else Ok i)
-        | T.strip c == "True" -> Just (if b then Ok i else Fail)
-        | otherwise -> Just (Ok i)
-      EDiscard x -> expr x i fuel
+      EPred b (Located _ c) -> Just $ case predValue env c of
+        Just v -> if v == b then Ok i else Fail
+        Nothing -> Ok i
+      EDiscard x -> expr env x i fuel
       ETemplate {} -> Nothing
-    star x i fuel =
-      expr x i fuel >>= \case
-        Ok j | j > i -> star x j fuel
+    star env x i fuel =
+      expr env x i fuel >>= \case
+        Ok j | j > i -> star env x j fuel
         Ok _ -> Just (Ok i)
         Fail -> Just (Ok i)
         Throw -> Just Throw
+
+-- The value of an argument: an integer, a name, or one of them plus or minus
+-- another. 'Nothing' for other code, and for a name whose value is not known.
+intValue :: Env -> Text -> Maybe Int
+intValue env code = case T.words code of
+  [a] -> atom a
+  [a, "+", b] -> (+) <$> atom a <*> atom b
+  [a, "-", b] -> (-) <$> atom a <*> atom b
+  _ -> Nothing
+  where
+    atom w
+      | Just k <- readMaybe (T.unpack w) = Just k
+      | otherwise = M.lookup w env >>= id
+
+-- The value of the code of a predicate: @True@, @False@, or a comparison of
+-- two arguments. 'Nothing' for other code.
+predValue :: Env -> Text -> Maybe Bool
+predValue env code = case T.words code of
+  ["True"] -> Just True
+  ["False"] -> Just False
+  [a, op, b] | Just f <- lookup op ops -> f <$> intValue env a <*> intValue env b
+  _ -> Nothing
+  where
+    ops = [("==", (==)), ("/=", (/=)), ("<", (<)), ("<=", (<=)), (">", (>)), (">=", (>=))]
 
 inputs :: [String]
 inputs = concatMap (\n -> sequence (replicate n "abc")) [0 .. 4]
@@ -438,8 +515,10 @@ genExpr n d
         ]
 
 -- Random grammars with parameters, constant predicates and literals of two
--- characters (ADR 0038). The predicates that are not constant succeed in the
--- interpreter; the check must not rely on their values.
+-- characters (ADR 0038). The rules with a parameter compare it with
+-- integers in predicates, pass it on changed, and bind its name to hide it.
+-- The interpreter evaluates these; the predicates on other code succeed in
+-- it, and the check must not rely on their values.
 genGrammarWithParams :: Gen Text
 genGrammarWithParams = do
   s <- genAltsP False
@@ -463,7 +542,11 @@ genGrammarWithParams = do
       pure (T.intercalate " / " [x <> " { () }" | x <- alts])
     genSeqP p d = do
       k <- choose (1, 3)
-      T.unwords <$> vectorOf k (genExprP p d)
+      xs <- vectorOf k (genExprP p d)
+      -- A binding that hides the parameter, first in an alternative of a
+      -- rule, so that the predicates after it read it.
+      hide <- if p && d == 2 then frequency [(1, elements ["n:$' '", "n:$'a'", "n:$(' ' ' ')"] >>= pure . Just), (5, pure Nothing)] else pure Nothing
+      pure (T.unwords (maybe xs (: xs) hide))
     genExprP p d
       | d <= 0 = atom p
       | otherwise =
@@ -481,9 +564,42 @@ genGrammarWithParams = do
       frequency $
         [ (4, elements ["'a'", "' '", "'['", "'[='", "'%%'", "'%'", "'=a'"])
         , (1, elements ["[a=]", ".", "&{ False }", "&{ True }", "&{ x }", "!{ False }"])
-        , (2, elements ["A(0)", "B(1)"])
+        , (3, elements ["A(0)", "A(1)", "B(0)", "B(1)"])
         ]
-          ++ [(3, elements ["I(n)", "A(n)", "B(n)", "A(n + 1)", "I(n - 1)"]) | p]
+          ++ [(4, elements ["I(n)", "I(n)", "A(n)", "B(n)", "A(n + 1)", "I(n - 1)", "B(n - 1)"]) | p]
+          ++ [(2, elements ["&{ n == 0 }", "&{ n > 0 }", "!{ n == 1 }", "&{ n < 2 }"]) | p]
+
+-- Grammars of the shape of the calls of ADR 0038: two rules that start
+-- with the same call of I with their parameter, called with arguments that
+-- may differ (ADR 0081). The check must replace the parameters by the
+-- arguments to tell the calls apart.
+genCallGrammar :: Gen Text
+genCallGrammar = do
+  k <- elements ["0", "1", "2"]
+  a <- elements args
+  b <- elements args
+  sep <- elements ["' '", "'='", "'a'", "[ =]"]
+  item <- elements ["&{ False }", "'a'", "'='", "' '"]
+  rest <- elements ["'=:'", "' ' 'a'", "'a'", "[ =]", "':'"]
+  end <- elements ["", " 'a'", " !."]
+  pure $
+    grammar
+      [ "S :: ()"
+      , "S <- B(" <> k <> ")" <> end <> " { () }"
+      , "B(n :: Int) :: ()"
+      , "B <- P(" <> a <> ") { () } / Q(" <> b <> ") { () }"
+      , "P(n :: Int) :: ()"
+      , "P <- I(n) " <> sep <> " (" <> item <> ")^l { () }"
+      , "Q(n :: Int) :: ()"
+      , "Q <- I(n) " <> rest <> " { () }"
+      , "I(n :: Int) :: ()"
+      , "I <- &{ n == 0 } { () } / ' ' I(n - 1) { () }"
+      ]
+  where
+    args = ["n", "n + 1", "n - 1", "0", "1"]
+
+callInputs :: [String]
+callInputs = concatMap (\n -> sequence (replicate n " =:a")) [0 .. 5]
 
 paramInputs :: [String]
 paramInputs = concatMap (\n -> sequence (replicate n " a[=%")) [0 .. 4]

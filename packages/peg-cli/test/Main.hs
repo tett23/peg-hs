@@ -38,7 +38,7 @@ import Control.Exception (bracket_)
 import qualified Control.Exception
 import System.IO (hClose, hSetBinaryMode)
 import System.Process (CreateProcess (..), StdStream (..), createProcess, waitForProcess)
-import System.Directory (doesPathExist, emptyPermissions)
+import System.Directory (doesPathExist, emptyPermissions, setOwnerWritable)
 import FileIO (utf8ErrorOffset, decodeUtf8File)
 import GhcVersion (supportedGhc)
 import EditDistance (editDistance)
@@ -341,6 +341,10 @@ main = do
           , testCase "usage errors of lsp, parse and fmt" $ do
               codes <- mapM (fmap (\(c, _, _) -> c) . pegHs) [["lsp", "x"], ["parse", "G.hpeg"], ["parse", "--format", "xml", "G.hpeg", "in.txt"], ["fmt", "--frobnicate"], ["lint", "--frobnicate"]]
               codes @?= replicate 5 (ExitFailure 2)
+          , testCase "help with two commands is a usage error (ADR 0081)" $ do
+              (code, out, err) <- pegHs ["help", "gen", "fmt"]
+              (code, out) @?= (ExitFailure 2, "")
+              assertBool err (not (null err))
           , testCase "a missing argument is a usage error" $ do
               (code, _, _) <- pegHs ["gen"]
               code @?= ExitFailure 2
@@ -429,6 +433,10 @@ main = do
               doesFileExist (dir </> "G.hs") >>= assertBool "G.hs"
               (codeLint, _, _) <- pegHsIn dir ["lint", "G.peg"]
               codeLint @?= ExitSuccess
+          , testCase "parse takes a .peg grammar as the other commands do (ADR 0081)" $ do
+              dir <- treeWith "hpeg-parse" [("G.peg", exprGrammar), ("in.txt", "1 + 22")]
+              (code, out, err) <- parseIn dir ["parse", "G.peg", "in.txt"]
+              (code, out, err) @?= (ExitSuccess, "Add (Num 1) (Num 2)\n", "")
           , testCase "a grammar without a command points to gen, with either extension" $
               forM_ ["Grammar.hpeg", "Grammar.peg"] $ \g -> do
                 (code, _, err) <- pegHs [g]
@@ -741,6 +749,45 @@ main = do
               (code, out, err) <- pegHsIn dir ["gen", "G.hpeg", "-o", "out/M.hs"]
               (code, out) @?= (ExitFailure 1, "")
               lines err @?= ["peg-hs: cannot write out/M.hs: directory out does not exist", "hint: peg-hs does not create directories; create out first"]
+          , testCase "gen -o to a directory (ADR 0081)" $ do
+              dir <- treeWith "file-write-dir" [("G.hpeg", formatted), ("out/.keep", "")]
+              (code, out, err) <- pegHsIn dir ["gen", "G.hpeg", "-o", "out"]
+              (code, out) @?= (ExitFailure 1, "")
+              lines err @?= ["peg-hs: cannot write out: is a directory", "hint: give the path of a file to write"]
+          , testCase "gen -o to a place without permission to write (ADR 0081)" $ do
+              dir <- treeWith "file-write-permission" [("G.hpeg", formatted), ("ro/.keep", "")]
+              withoutWrite (dir </> "ro") $ \denied -> when denied $ do
+                (code, out, err) <- pegHsIn dir ["gen", "G.hpeg", "-o", "ro/M.hs"]
+                (code, out) @?= (ExitFailure 1, "")
+                lines err @?= ["peg-hs: cannot write ro/M.hs: permission denied"]
+          , testCase "fmt reports a read-only file, and formats the others (ADR 0081)" $ do
+              dir <- treeWith "file-fmt-read-only" [("A.hpeg", unformatted), ("B.hpeg", unformatted)]
+              withoutWrite (dir </> "A.hpeg") $ \denied -> when denied $ do
+                (code, out, err) <- pegHsIn dir ["fmt", "A.hpeg", "B.hpeg"]
+                (code, out) @?= (ExitFailure 1, "")
+                lines err @?= ["peg-hs: cannot write A.hpeg: permission denied"]
+                readFile (dir </> "A.hpeg") >>= (@?= unformatted)
+                readFile (dir </> "B.hpeg") >>= (@?= formatted)
+          , testCase "label --write reports a read-only file (ADR 0081)" $ do
+              dir <- treeWith "file-label-read-only" [("G.hpeg", labelGrammar)]
+              withoutWrite (dir </> "G.hpeg") $ \denied -> when denied $ do
+                (code, out, err) <- pegHsIn dir ["label", "--write", "G.hpeg"]
+                (code, out) @?= (ExitFailure 1, "")
+                lines err @?= ["peg-hs: cannot write G.hpeg: permission denied"]
+                readFile (dir </> "G.hpeg") >>= (@?= labelGrammar)
+          , testCase "fmt, lint and parse report a grammar that is not UTF-8 (ADR 0081)" $ do
+              dir <- treeWith "file-utf8-commands" [("in.txt", "a")]
+              BS.writeFile (dir </> "bad.hpeg") (BS.pack (map (fromIntegral . fromEnum) "%module M\n" ++ [0xC3, 0x28]))
+              forM_ [["fmt", "bad.hpeg"], ["lint", "bad.hpeg"], ["parse", "bad.hpeg", "in.txt"]] $ \args -> do
+                (code, out, err) <- pegHsIn dir args
+                (code, out) @?= (ExitFailure 1, "")
+                lines err @?= ["peg-hs: cannot read bad.hpeg: not UTF-8 (at byte 11)", "hint: peg-hs reads grammars and inputs as UTF-8; convert the file to UTF-8"]
+          , testCase "parse reports an input that is not UTF-8 (ADR 0081)" $ do
+              dir <- treeWith "file-utf8-input" [("G.hpeg", formatted)]
+              BS.writeFile (dir </> "in.txt") (BS.pack [0x61, 0xFF])
+              (code, out, err) <- pegHsIn dir ["parse", "G.hpeg", "in.txt"]
+              (code, out) @?= (ExitFailure 1, "")
+              lines err @?= ["peg-hs: cannot read in.txt: not UTF-8 (at byte 2)", "hint: peg-hs reads grammars and inputs as UTF-8; convert the file to UTF-8"]
           , testCase "fmt and lint report a missing file and go on with the others" $ do
               dir <- treeWith "file-go-on" [("B.hpeg", unformatted)]
               (code, _, err) <- pegHsIn dir ["fmt", "nope.hpeg", "B.hpeg"]
@@ -918,6 +965,19 @@ exportLines :: String -> [String]
 exportLines code = case break (== "  ) where") (dropWhile (not . isPrefixOf "module ") (lines code)) of
   (before, end : _) -> before ++ [end]
   (before, []) -> before
+
+-- Run an action with a file or directory without permission to write, and
+-- give it whether writing is denied: a user such as root may write anyway,
+-- and then the test has nothing to check. The permissions are restored.
+withoutWrite :: FilePath -> (Bool -> IO ()) -> IO ()
+withoutWrite path act = do
+  old <- getPermissions path
+  isDir <- doesDirectoryExist path
+  let probe = if isDir then path </> ".probe" else path
+      tryWrite = (True <$ (if isDir then writeFile probe "" >> removeFile probe else appendFile probe "")) `catchIOAny` pure False
+  bracket_ (setPermissions path (setOwnerWritable False old)) (setPermissions path old) $ do
+    canWrite <- tryWrite
+    act (not canWrite)
 
 catchIOAny :: IO a -> IO a -> IO a
 catchIOAny act fallback = act `catchIOError'` const fallback

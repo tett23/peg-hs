@@ -55,6 +55,17 @@ positionTests =
     , testCase "span of an alternative" $
         parse0 (lit "a\n" "a" >> getOffset >>= \o -> lit "bc" "bc" >> spanFrom o) "a\nbc"
           @?= Right (Span (Pos 2 2 1) (Pos 4 2 3))
+    -- The generated code takes _span from the offset at the start of the
+    -- sequence to the offset after it (ADR 0008).
+    , testCase "a lookahead does not move the span (ADR 0081)" $ do
+        let spanOf :: (forall s. P (NoStore s) s ()) -> Either ParseError Span
+            spanOf p = parse0 (getOffset >>= \o -> p >> spanFrom o >>= \s -> skipMany anyChar >> pure s) "abc"
+        spanOf (lit "a" "'a'" >> andP (lit "bc" "'bc'")) @?= Right (Span (Pos 0 1 1) (Pos 1 1 2))
+        spanOf (lit "a" "'a'" >> notP (lit "x" "'x'")) @?= Right (Span (Pos 0 1 1) (Pos 1 1 2))
+        spanOf (andP (lit "ab" "'ab'") >> notP (lit "b" "'b'")) @?= Right (Span (Pos 0 1 1) (Pos 0 1 1))
+    , testCase "a span across multibyte characters is in bytes (ADR 0081)" $
+        parse0 (lit "あ" "'あ'" >> getOffset >>= \o -> lit "い\x1F600" "'い\x1F600'" >> andP (lit "う" "'う'") >> spanFrom o >>= \s -> skipMany anyChar >> pure s) "あい\x1F600う"
+          @?= Right (Span (Pos 3 1 2) (Pos 10 1 4))
     ]
 
 -- Errors -----------------------------------------------------------------------

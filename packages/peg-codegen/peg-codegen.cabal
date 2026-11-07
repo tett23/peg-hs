@@ -74,6 +74,8 @@ test-suite peg-codegen-test
     Fixture.NoMemo
     Fixture.Recover
     Fixture.RecoverExports
+    Fixture.RecoverInsert
+    Fixture.RecoverInsertLabeled
     Fixture.RecoverNoLabels
     Fixture.RecoverShared
     Fixture.RecoverSharedNoLabels

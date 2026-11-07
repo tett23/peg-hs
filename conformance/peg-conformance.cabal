@@ -61,6 +61,7 @@ test-suite json-conformance
   import:           warnings
   type:             exitcode-stdio-1.0
   main-is:          JsonMain.hs
+  other-modules:    SyntaxInvariants
   hs-source-dirs:   test
   ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
@@ -170,6 +171,7 @@ test-suite toml-conformance
   import:           warnings
   type:             exitcode-stdio-1.0
   main-is:          TomlMain.hs
+  other-modules:    SyntaxInvariants
   hs-source-dirs:   test
   ghc-options:      -Werror -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:

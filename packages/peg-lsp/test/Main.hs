@@ -45,6 +45,22 @@ main = do
                 readAll chunks === map (Right . renderJson) vs
           , testProperty "JSON reads back what it writes" $
               forAll genValue $ \v -> parseJson (renderJson v) === Just v
+          -- Any bytes from a client end in a value or an error, without an
+          -- exception (ADR 0035, ADR 0081).
+          , testProperty "parseJson and decodeFrames end on any bytes" $
+              forAll genBytes $ \bs -> ioProperty $ do
+                let text = TE.decodeUtf8With (\_ _ -> Just '\xFFFD') bs
+                    (frames, rest) = decodeFrames bs
+                r <- try (evaluate (length (show (parseJson text)) + length (show frames) + either (length . show) BS.length rest))
+                pure $ case r of
+                  Left (e :: SomeException) -> counterexample (show e) False
+                  Right n -> n === n
+          , testProperty "parseJson ends on any text near JSON" $
+              forAll (T.pack <$> listOf (elements "[]{},:\"\\0123456789.eE+-truefalsn \n\x3042")) $ \t -> ioProperty $ do
+                r <- try (evaluate (length (show (parseJson t))))
+                pure $ case r of
+                  Left (e :: SomeException) -> counterexample (show e) False
+                  Right n -> n === n
           , testCase "a header without a length is an error, and the next message is read" $
               fst (decodeFrames ("X: 1\r\n\r\n" <> encodeMessage Null)) @?= [Left "a message header without Content-Length", Right "null"]
           ]
@@ -241,6 +257,19 @@ readAll = go BS.empty
     go buf [] = fst (decodeFrames buf)
     go buf (c : cs) = let (ms, rest) = decodeFrames (buf <> c) in ms ++ go (either (error . show) id rest) cs
 
+-- Bytes with pieces of headers and JSON among bytes of any value.
+genBytes :: Gen BS.ByteString
+genBytes =
+  BS.concat
+    <$> listOf
+      ( oneof
+          [ BS.pack <$> listOf arbitrary
+          , (\n -> BC.pack ("Content-Length: " <> show (n :: Int))) <$> choose (-5, 40)
+          , elements ["\r\n\r\n", "\r\n", "Content-Length:", "{\"a\":", "[1,-0,2.5e-3", "\"\\u12", "\xEF\xBB\xBF", "\xC3", "\xED\xA0\x80"]
+          , TE.encodeUtf8 . renderJson <$> genValue
+          ]
+      )
+
 genSplits :: BS.ByteString -> Gen [BS.ByteString]
 genSplits b
   | BS.null b = pure []
@@ -259,7 +288,14 @@ genValue = sized go
             , (1, Array <$> resize (n `div` 2) (listOf (go (n `div` 3))))
             , (1, Object <$> resize (n `div` 2) (listOf ((,) <$> text <*> go (n `div` 3))))
             ]
-    leaf = oneof [pure Null, Bool <$> arbitrary, int <$> arbitrary, pure (Number "-1.5e3"), String <$> text]
+    leaf = oneof [pure Null, Bool <$> arbitrary, int <$> arbitrary, pure (Number "-1.5e3"), Number <$> number, String <$> text]
+    -- Numbers with fractions, exponents and -0 (ADR 0081).
+    number = do
+      sign <- elements ["", "-"]
+      digits <- oneof [pure "0", (:) <$> elements "123456789" <*> listOf (elements "0123456789")]
+      frac <- oneof [pure "", ('.' :) <$> listOf1 (elements "0123456789")]
+      ex <- oneof [pure "", (\e s ds -> e : s <> ds) <$> elements "eE" <*> elements ["", "+", "-"] <*> listOf1 (elements "0123456789")]
+      pure (T.pack (sign <> digits <> frac <> ex))
     text = T.pack <$> listOf (elements "ab \"\\\n\t\1\x7f\233\128512")
 
 -- Messages -----------------------------------------------------------------------
@@ -444,6 +480,17 @@ incrementalTests grammars =
         textAfter False "a\x1D465\&b\nc" [[edit (0, 3) (0, 3) "X"]] @?= Just "a\x1D465Xb\nc"
     , testCase "a range in bytes, with utf-8" $
         textAfter True "a\x1D465\&b\nc" [[edit (0, 5) (0, 5) "X"]] @?= Just "a\x1D465Xb\nc"
+    -- The test turns an offset into a line and a column in UTF-16 code
+    -- units (or in bytes), and the server turns them back into the offset
+    -- where it inserts (ADR 0081).
+    , testProperty "a position from an offset goes back to the offset, in UTF-16 and in bytes" $
+        forAll (T.pack <$> listOf (elements "ab\n\x3042\x1D465\x1F600\t")) $ \t ->
+          forAll (choose (0, T.length t)) $ \k ->
+            forAll arbitrary $ \utf8 ->
+              let before = T.take k t
+                  line = T.count "\n" before
+                  col = unitsOf utf8 (last (T.splitOn "\n" before))
+               in textAfter utf8 t [[edit (line, col) (line, col) "X"]] === Just (before <> "X" <> T.drop k t)
     , testCase "several changes in one notification apply in order" $
         textAfter False "ab\ncd\n" [[edit (0, 0) (0, 0) "X\n", edit (1, 0) (1, 1) "", edit (2, 1) (2, 2) "Y"]] @?= Just "X\nb\ncY\n"
     , testCase "a change of the full text among changes of ranges" $
@@ -476,6 +523,9 @@ incrementalTests grammars =
   where
     memoGrammar = "../../conformance/bench/Memo.hpeg"
     edit (a, b) (c, d) t = object [("range", rangeOf (a, b) (c, d)), ("text", String t)]
+    unitsOf utf8 x
+      | utf8 = BS.length (TE.encodeUtf8 x)
+      | otherwise = sum [if fromEnum c > 0xFFFF then 2 else 1 | c <- T.unpack x]
     textAfter utf8 t changes =
       documentText (sessionState ([initialize utf8, open t] ++ [notify "textDocument/didChange" (object [("textDocument", object [("uri", String uri), ("version", int v)]), ("contentChanges", Array cs)]) | (v, cs) <- zip [2 ..] changes])) uri
 

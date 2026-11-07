@@ -4,7 +4,7 @@ This document describes how peg-hs is developed.
 The Japanese version ([CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)) is canonical.
 This English version is a translation; where the two differ, the Japanese version applies.
 
-The release candidates of peg-hs (the latest is `v0.1.0-rc2`) are distributed through GitHub Releases.
+The release candidates of peg-hs are distributed through GitHub [Releases](https://github.com/tett23/peg-hs/releases), which has the latest one.
 peg-hs is not yet published on Hackage.
 It goes to Hackage from `v0.1.0`, once rc is dropped ([ADR 0044](docs/adr/0044-release-v0-1-0.md), [ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md)).
 
