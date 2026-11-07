@@ -1,0 +1,8 @@
+{
+  "case": "directory symlink escape",
+  "exit": 0,
+  "outside_changed": true,
+  "before": "%module M\nS :: ()\nS <-   'a'    { () }\n",
+  "after": "%module M\n\nS :: ()\nS <- 'a' { () }\n",
+  "stderr": ""
+}
