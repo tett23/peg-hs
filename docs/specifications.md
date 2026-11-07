@@ -9,7 +9,7 @@ peg-hs は、PEG（Parsing Expression Grammar）の定義から Haskell のパ�
 ADR は `docs/adr/` に連番で置く。
 コミットした ADR は、ステータスの行の変更とリンクだけの変更を除いて変更しない。
 性能の判断の根拠にした計測の記録は `docs/benchmarks/` に置き、これもコミットした後は変更しない。
-この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.8.3 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)、[ADR 0060](adr/0060-adr-guard-v0.8.3.md)）。
+この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.10.0 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)、[ADR 0060](adr/0060-adr-guard-v0.8.3.md)、[ADR 0076](adr/0076-adr-guard-v0.10.0.md)）。
 プルリクエストは、main の必須のチェック（`adr` と `ci`）が通ると自動でマージする。
 `ci` は CI のジョブの結果をまとめるジョブで、文書（`docs/` の下と `.md` のファイル）だけの変更では、ほかのジョブを飛ばして成功する（[ADR 0072](adr/0072-required-checks-for-auto-merge.md)）。
 

@@ -34,12 +34,12 @@ clone した後に、[adr-guard](https://github.com/tett23/adr-guard) を入れ�
 adr-guard は、コミットした ADR とベンチマークの記録が変わっていないことを検査する道具である（「ADR と adr-guard」の節）。
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.3
+cargo install --git https://github.com/tett23/adr-guard --tag v0.10.0
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` は clone ごとに要る。
-adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）。
+adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)）。
 
 エディタの文法のテスト（「エディタの文法のテスト」の節）には Node の LTS が要る。
 
@@ -184,6 +184,9 @@ adr-guard links
 
 `adr-guard links` が終了コード 0 で終われば、すべての参照にリンクがある。
 
+ほかのリポジトリの ADR への参照（Golem の `golem-parser ADR 0002` など）は、修飾子（`golem-parser`）をリンクのテキストに含めた外部リンク `[golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md)` にする。
+adr-guard は `-` を含む修飾子をこのリポジトリのモジュールの ADR とみなし、そのディレクトリが無い参照と、リンクの外に出た修飾子を報告する（[ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)）。
+
 ### 変えない記録
 
 ベンチマークの記録（`docs/benchmarks/`）、適合率のスナップショット（`docs/conformance/`）、言語サーバーの手での確認の記録（`docs/editors/`）は、コミットした後に変更しない。
@@ -261,7 +264,7 @@ pull request に続けて push すると、前の push の実行は止まる。
 各スイートが実行環境のすべてのコアを使えるようにするためである（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）。
 新しいテストスイートは、`docs/benchmarks/` の最新の CI の時間をもとに、ジョブの時間がそろうジョブに加える。
 
-`.github/workflows/adr.yml` の **adr** のジョブは、文書だけの変更も含むすべての変更で動き、adr-guard で ADR とベンチマークの記録を検査する（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）。
+`.github/workflows/adr.yml` の **adr** のジョブは、文書だけの変更も含むすべての変更で動き、adr-guard で ADR とベンチマークの記録、ADR の番号の重複を検査する（[ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)）。
 
 `.github/workflows/release.yml` は、`v` で始まるタグの push で動き、Release を作る。
 内容は「リリースの手順」の節に書く。
