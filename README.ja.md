@@ -522,6 +522,146 @@ command = "peg-hs"
 args = ["lsp"]
 ```
 
+## WebAssembly
+
+リリースには、`peg-hs.wasm` を添付している（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)）。
+WASI preview1 の reactor で、ブラウザや Deno の中で文法を解析し、生成し、整形する。
+名前に版は入れない。版はリリースのタグで区別し、チェックサムは同じ Release の `SHA256SUMS` にある。
+できるのは、テキストで渡した文法に `peg-hs gen` と `peg-hs fmt` がすることだけである。
+文法で入力を解析することはできない。生成したモジュールを GHC でコンパイルする必要があるからである。
+`scripts/build-wasm.sh` が、コミットを固定した [ghc-wasm-meta](https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta) のツールチェーンでビルドする。ツールチェーンは `nix shell` で用意する。
+
+```sh
+nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff0765532625474?host=gitlab.haskell.org#all_9_10" \
+  -c scripts/build-wasm.sh peg-hs.wasm
+```
+
+### エクスポート
+
+| 名前 | 型 | 働き |
+| --- | --- | --- |
+| `memory` | メモリ | 線形メモリ |
+| `_initialize` | `() -> ()` | reactor の初期化。最初に一度だけ呼ぶ |
+| `hs_init` | `(i32, i32) -> ()` | Haskell のランタイムの初期化。`_initialize` の次に `hs_init(0, 0)` を一度だけ呼ぶ |
+| `malloc` | `(i32) -> i32` | 線形メモリを確保する |
+| `free` | `(i32) -> ()` | `malloc` で確保した領域と、`analyze` と `format` の返した領域を解放する |
+| `analyze` | `(i32, i32) -> i32` | 文法を解析して生成する |
+| `format` | `(i32, i32) -> i32` | 文法を整形する |
+
+`analyze` と `format` は、要求の JSON を UTF-8 で書いた領域の先頭と長さ（バイト）を受け取る。
+返すのは、新しく確保した領域の先頭である。
+その領域は、先頭の 4 バイトが応答の長さ（バイト、リトルエンディアンの符号なし整数）で、その後に応答の JSON が UTF-8 で続く。
+要求の領域は関数が戻る前に写し終えるので、戻った後に解放してよい。応答の領域は、読んだ後に `free` で解放する。
+Haskell の例外が起きても wasm は止まらず、`{"error": "internal error: ..."}` を返す。
+
+```js
+const { instance } = await WebAssembly.instantiateStreaming(fetch("peg-hs.wasm"), { wasi_snapshot_preview1: wasi });
+const ex = instance.exports;
+ex._initialize();
+ex.hs_init(0, 0);
+
+const call = (name, request) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(request));
+  const p = ex.malloc(bytes.length);
+  new Uint8Array(ex.memory.buffer, p, bytes.length).set(bytes);
+  const r = ex[name](p, bytes.length);
+  ex.free(p);
+  const n = new DataView(ex.memory.buffer).getUint32(r, true);
+  const response = JSON.parse(new TextDecoder().decode(new Uint8Array(ex.memory.buffer, r + 4, n)));
+  ex.free(r);
+  return response;
+};
+call("analyze", { grammar: "%module Calc\n..." });
+```
+
+### 要求と応答
+
+`analyze` の要求は、次の形である。
+
+```json
+{"grammar": "%module Calc\n...", "sourceName": "Calc.hpeg", "outputName": "Calc.hs", "debugEntry": false}
+```
+
+- `grammar`（必須）：文法のテキスト。
+- `sourceName`（既定は `Grammar.hpeg`）：`LINE` プラグマに書く文法のファイル名。`peg-hs gen` に渡すパスにあたる。
+- `outputName`（既定は `sourceName` の拡張子を `.hs` にしたもの）：生成するファイルの名前。`gen` の `-o` にあたる。
+- `debugEntry`（既定は `false`）：`gen` の `--debug-entry` にあたる。
+
+応答は、次の形である。
+
+```json
+{
+  "diagnostics": [{"severity": "error", "line": 3, "column": 7, "message": "undefined rule Term"}],
+  "ast": {"kind": "Grammar", "line": 1, "column": 1, "text": null, "children": []},
+  "types": "data Expr = Add Expr Term | Expr2 Term\n  deriving (Eq, Show)",
+  "module": null
+}
+```
+
+- `diagnostics`：誤りと警告。`severity` は `"error"` か `"warning"` である。`line` と `column` は 1 から数え、`column` はコードポイントで数える（タブも 1 桁、`peg-hs` の表示と同じ）。`message` は、`peg-hs gen` の表示から `ファイル名:行:桁: error: ` を除いたものである。警告は `gen` の出すラベルの警告だけで、`peg-hs lint` の警告は含まない。
+- `ast`：書いたとおりの（テンプレートを展開する前の）文法の構文木。文法を読めなければ `null`。
+- `types`：生成した型の宣言（[ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)）を規則の順に並べ、空行でつないだもの。生成した型がなければ空の文字列で、テンプレートを展開できなければ `null`。検査で誤りが見つかっても出す。
+- `module`：生成したモジュール。同じ要求の `peg-hs gen` が書くファイルと、バイト単位で一致する。誤りがあれば `null`。
+
+`format` の要求は `{"grammar": "..."}` で、応答は `{"text": "...", "diagnostics": [...]}` である。
+`text` は `peg-hs fmt` が書くものと同じで、整形できなければ `null` になり、`diagnostics` に誤りが入る。
+要求が JSON でない、UTF-8 でない、`grammar` がない、欄の型が違う、のどれかのときは、`{"error": "..."}` だけを返す。
+
+### 構文木
+
+木として表示できるように、`ast` のノードはすべて同じ形にしている。
+
+```json
+{"kind": "Rule", "line": 5, "column": 1, "text": "Expr", "children": [...]}
+```
+
+構文木が位置を持たないノード（式のほとんど）は、`line` と `column` が `null` である。近い祖先の位置で代える。
+短い文字列を持たないノードは、`text` が `null` である。
+
+| `kind` | `text` | 位置 | `children` |
+| --- | --- | --- | --- |
+| `Grammar` | `null` | 1 行 1 桁 | 指示、`Verbatim`、規則を、位置の順に並べたもの |
+| `Directive` | `%module` などの指示の名前 | 指示 | `Value`（`%export`、`%language`、`%deriving`、`%recover` は名前ごとに一つ。`%syntax` にはない） |
+| `Verbatim` | `%{ ... }%` の中の Haskell のコード | コード | なし |
+| `Value` | 指示の値 | 値 | なし |
+| `Rule` | 規則の名前 | 定義 | `Parameter`、`TemplateParameter`、`Type`、`Alternative` |
+| `Parameter` | `名前 :: 型` | 型 | なし |
+| `TemplateParameter` | 名前、型があれば `名前 :: 型` | `null` | なし |
+| `Type` | 型注釈の型（型注釈を書いた規則だけ） | 型 | なし |
+| `Alternative` | `null` | 選択肢 | `Item`、`Action`、`Constructor` を、位置の順に並べたもの |
+| `Action` | Haskell のコード | コード | なし |
+| `Constructor` | `@` の後の名前 | 名前 | なし |
+| `Item` | 束縛の名前、なければ `null` | 要素 | 式のノード一つ |
+| `Literal` | 書いたとおりのリテラル | `null` | なし |
+| `Class` | 書いたとおりの文字クラス | `null` | なし |
+| `Any` | `.` | `null` | なし |
+| `Reference` | 規則の名前 | 参照 | `Argument` |
+| `Argument` | 引数の Haskell のコード | 引数 | なし |
+| `Group` | `null` | `null` | `Sequence` |
+| `Sequence` | `null` | `null` | `Item` |
+| `Star`、`Plus`、`Optional`、`And`、`Not`、`Capture`、`Discard` | `null` | `null` | 式のノード一つ |
+| `Label` | ラベル | ラベル | 式のノード一つ |
+| `AndPredicate`、`NotPredicate` | Haskell のコード | コード | なし |
+| `Template` | テンプレートの名前 | 呼び出し | 式の引数のノードの後に `Argument` |
+
+`Discard` は書いた文法には現れない。式の構成子をすべて覆うために、表に入れている。
+
+### import
+
+wasm が import するのは、`wasi_snapshot_preview1` の次の関数だけで、ほかのモジュールからは import しない。
+`args_get`、`args_sizes_get`、`environ_get`、`environ_sizes_get`、`clock_time_get`、`clock_res_get`、`random_get`、`fd_write`（標準出力と標準エラーだけ）、`proc_exit` である。
+いまのビルドが import するのは、このうちの `environ_get`、`environ_sizes_get`、`clock_time_get`、`fd_write`、`proc_exit` である。
+
+GHC のランタイムと C ライブラリは、ほかにファイルとポーリングの関数を 13 個 import する。
+[ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md) で測った呼び出しでは、どれも呼ばれなかった。
+`scripts/build-wasm.sh` は、これらを wasm の中の関数（`wasm/stubs.wat`）で置きかえる。どの関数も引数を読まず、すぐに誤りの番号を返す。
+こうして、上の一覧の関数だけを持つ WASI でも読み込めるようにしている。
+
+| 関数 | 返す値 |
+| --- | --- |
+| `fd_prestat_get` | `8`（`EBADF`）。前もって開いたディレクトリはない |
+| `fd_close`、`fd_fdstat_get`、`fd_fdstat_set_flags`、`fd_filestat_get`、`fd_filestat_set_size`、`fd_prestat_dir_name`、`fd_read`、`fd_seek`、`path_create_directory`、`path_filestat_get`、`path_open`、`poll_oneoff` | `52`（`ENOSYS`） |
+
 ## 拡張子 .peg からの移行
 
 文法ファイルの拡張子は、v0.1.0-rc1 までは `.peg` で、いまは `.hpeg` である。エディタの言語の名前も `hpeg` になった（[ADR 0050](docs/adr/0050-hpeg-extension.md)）。

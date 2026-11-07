@@ -1,0 +1,84 @@
+cabal-version:      3.0
+name:               peg-wasm
+version:            0.1.0.0
+synopsis:           The grammar analysis and generation of peg-hs for WebAssembly
+description:
+  Not published. The analysis of a grammar (its diagnostics, its syntax
+  tree, the generated types and module) and its formatting as functions
+  from a JSON request to a JSON response, and a WASI reactor that exports
+  them (ADR 0078, ADR 0079).
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+category:           Parsing
+build-type:         Simple
+
+-- The reactor is built only for wasm32, with cabal.project.wasm.
+flag reactor
+  description: Build the WASI reactor peg-hs-wasm
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+library
+  import:           warnings
+  exposed-modules:  Peg.Wasm
+  build-depends:
+    , base
+    , containers
+    , filepath
+    , peg-codegen
+    , peg-grammar
+    , peg-lsp
+    , text
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions: LambdaCase OverloadedStrings
+
+executable peg-hs-wasm
+  import:           warnings
+  main-is:          Reactor.hs
+  hs-source-dirs:   reactor
+  default-language: GHC2021
+  default-extensions: LambdaCase OverloadedStrings
+  if flag(reactor)
+    build-depends:
+      , base
+      , bytestring
+      , peg-wasm
+      , text
+    -- A reactor: the caller runs _initialize and hs_init once, then calls
+    -- the exports (ADR 0078).
+    ghc-options:
+      -no-hs-main -optl-mexec-model=reactor
+      "-optl-Wl,--export=hs_init,--export=malloc,--export=free,--export=analyze,--export=format"
+  else
+    buildable: False
+
+test-suite peg-wasm-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
+  -- The generated modules are compared with those of peg-hs gen.
+  build-tool-depends: peg-cli:peg-hs
+  build-depends:
+    , base
+    , bytestring
+    , directory
+    , filepath
+    , peg-grammar
+    , peg-lsp
+    , peg-wasm
+    , process
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , temporary
+    , text
+  default-language: GHC2021
+  default-extensions: LambdaCase OverloadedStrings

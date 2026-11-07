@@ -146,8 +146,35 @@ jobs:
           path: ${{ runner.temp }}/out/*
           if-no-files-found: error
 
+  # The wasm reactor, as peg-hs.wasm in every release: the name has no
+  # version, so that the page that loads it keeps one name (ADR 0078). It is
+  # built by scripts/build-wasm.sh with the toolchain of the ghc-wasm-meta
+  # flake at a fixed commit (ADR 0079).
+  wasm:
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      GHC_WASM_META: gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff0765532625474?host=gitlab.haskell.org#all_9_10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          determinate: false
+      - name: Build
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          nix shell "$GHC_WASM_META" -c wasm32-wasi-cabal update
+          nix shell "$GHC_WASM_META" -c scripts/build-wasm.sh "$RUNNER_TEMP/out/peg-hs.wasm"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wasm
+          path: ${{ runner.temp }}/out/*
+          if-no-files-found: error
+
   release:
-    needs: [check, packages, executable, editors]
+    needs: [check, packages, executable, editors, wasm]
     runs-on: ubuntu-latest
     permissions:
       contents: write

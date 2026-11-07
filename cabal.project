@@ -8,6 +8,9 @@ packages:
   packages/peg-cli
   packages/peg-lsp
   conformance
+  -- The library and tests of the wasm reactor (ADR 0078). The reactor
+  -- itself is built with cabal.project.wasm.
+  wasm
 
 tests: True
 benchmarks: True

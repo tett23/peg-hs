@@ -255,10 +255,11 @@ A new push to a pull request stops the run of the previous push.
 - **haskell**: builds every package, and checks the grammars of the repository with `peg-hs fmt --check` and `peg-hs lint`, that the five packages have one version (`python3 scripts/versions.py check`), and each package with `cabal check`
 - **test-grammar-1, test-grammar-2, test-grammar-3**: run peg-grammar-test in parts, `--shard 1/3` to `--shard 3/3` ([ADR 0042](docs/adr/0042-shard-peg-grammar-test.md))
 - **test-conformance**: runs the conformance tests (Lua, TOML, JSON and CommonMark) and the complexity tests
-- **test-packages**: runs the tests of peg-cli, peg-lsp, peg-codegen and peg-runtime
+- **test-packages**: runs the tests of peg-cli, peg-lsp, peg-codegen, peg-runtime and peg-wasm
 - **haddock**: generates the Haddock of the four published libraries, and checks with `scripts/haddock-coverage.sh` that every exposed module is fully documented ([ADR 0044](docs/adr/0044-release-v0-1-0.md))
 - **sdist-1** to **sdist-3**: each makes the sdists of the five published packages, and builds and tests them from the unpacked tarballs alone. Each runs a third of peg-grammar-test with `--shard i/3`, and `sdist-2` also runs the other four suites. Each prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md), [ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md))
 - **editors**: runs the tests of the editor grammars, and checks that the committed tree-sitter parser is up to date ([ADR 0034](docs/adr/0034-syntax-highlighting.md))
+- **wasm**: builds the wasm reactor with `scripts/build-wasm.sh` in the pinned `nix shell` of ghc-wasm-meta, builds the native `peg-hs`, and runs the Deno tests of `wasm/test` ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md), [ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md))
 
 In a test job (`test-*`), the suites run one at a time.
 This gives each suite all the cores of the runner ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)).
@@ -362,7 +363,8 @@ Pushing the tag runs `.github/workflows/release.yml`, which does the following.
 - Checks that the version of the tag matches the versions of the five `.cabal` files. If not, it fails and makes no Release
 - Makes the sdists and the Haddock tarballs of the five packages, in the form that Hackage takes. The Haddock of peg-cli, which has executables only, is made with `--haddock-executables` ([ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md))
 - Builds the `peg-hs` executable for Linux (x86-64) and macOS (arm64)
-- Creates a GitHub Release with the tarballs, the executables and `SHA256SUMS` attached, and publishes it. A tag containing `-` is published as a pre-release
+- Builds the wasm reactor `peg-hs.wasm` with `scripts/build-wasm.sh` ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md))
+- Creates a GitHub Release with the tarballs, the executables, `peg-hs.wasm` and `SHA256SUMS` attached, and publishes it. A tag containing `-` is published as a pre-release
 - Puts GitHub's generated release notes (the pull requests merged since the previous tag) in the body as a placeholder
 
 Running the workflow again for the same tag replaces the files of the existing Release.
@@ -405,7 +407,7 @@ Format:
   https://github.com/tett23/peg-hs/blob/main/README.md#known-limitations
 - A section "Assets" that names the attached files: the sdists and Haddock
   tarballs of the packages, the peg-hs executables for x86_64-linux and
-  aarch64-macos, and SHA256SUMS.
+  aarch64-macos, peg-hs.wasm, and SHA256SUMS.
 
 If there is no previous tag (the first release), do not list changes; write
 the features of each package, each with absolute links to the ADRs that

@@ -515,6 +515,140 @@ command = "peg-hs"
 args = ["lsp"]
 ```
 
+## WebAssembly
+
+Every release has `peg-hs.wasm`, a WASI preview1 reactor that analyses, generates and formats grammars in a browser or in Deno ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)).
+The name has no version; the tag of the release tells the version, and `SHA256SUMS` of the same release has its checksum.
+It does what `peg-hs gen` and `peg-hs fmt` do with a grammar given as text: it does not parse inputs with the grammar, which needs GHC to compile the generated module.
+`scripts/build-wasm.sh` builds it with the toolchain of [ghc-wasm-meta](https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta) at a fixed commit, which `nix shell` provides:
+
+```sh
+nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff0765532625474?host=gitlab.haskell.org#all_9_10" \
+  -c scripts/build-wasm.sh peg-hs.wasm
+```
+
+### Exports
+
+| Name | Type | Use |
+| --- | --- | --- |
+| `memory` | memory | The linear memory |
+| `_initialize` | `() -> ()` | Initialises the reactor; call it once, first |
+| `hs_init` | `(i32, i32) -> ()` | Initialises the Haskell runtime; call `hs_init(0, 0)` once, after `_initialize` |
+| `malloc` | `(i32) -> i32` | Allocates linear memory |
+| `free` | `(i32) -> ()` | Frees a block of `malloc`, or one that `analyze` or `format` returned |
+| `analyze` | `(i32, i32) -> i32` | Analyses a grammar and generates its module |
+| `format` | `(i32, i32) -> i32` | Formats a grammar |
+
+`analyze` and `format` take the address and the length in bytes of a request: JSON in UTF-8.
+They return the address of a new block, whose first 4 bytes are the length in bytes of the response (an unsigned little-endian integer), followed by the response, JSON in UTF-8.
+The request is copied before the function returns, so it can be freed then; free the response after reading it.
+An exception in Haskell does not stop the wasm: the response is `{"error": "internal error: ..."}`.
+
+```js
+const { instance } = await WebAssembly.instantiateStreaming(fetch("peg-hs.wasm"), { wasi_snapshot_preview1: wasi });
+const ex = instance.exports;
+ex._initialize();
+ex.hs_init(0, 0);
+
+const call = (name, request) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(request));
+  const p = ex.malloc(bytes.length);
+  new Uint8Array(ex.memory.buffer, p, bytes.length).set(bytes);
+  const r = ex[name](p, bytes.length);
+  ex.free(p);
+  const n = new DataView(ex.memory.buffer).getUint32(r, true);
+  const response = JSON.parse(new TextDecoder().decode(new Uint8Array(ex.memory.buffer, r + 4, n)));
+  ex.free(r);
+  return response;
+};
+call("analyze", { grammar: "%module Calc\n..." });
+```
+
+### Requests and responses
+
+The request of `analyze`:
+
+```json
+{"grammar": "%module Calc\n...", "sourceName": "Calc.hpeg", "outputName": "Calc.hs", "debugEntry": false}
+```
+
+- `grammar` (required): the text of the grammar.
+- `sourceName` (default `Grammar.hpeg`): the name of the grammar file that the `LINE` pragmas name, the path given to `peg-hs gen`.
+- `outputName` (default `sourceName` with the extension `.hs`): the name of the generated file, the `-o` of `gen`.
+- `debugEntry` (default `false`): the `--debug-entry` of `gen`.
+
+The response:
+
+```json
+{
+  "diagnostics": [{"severity": "error", "line": 3, "column": 7, "message": "undefined rule Term"}],
+  "ast": {"kind": "Grammar", "line": 1, "column": 1, "text": null, "children": []},
+  "types": "data Expr = Add Expr Term | Expr2 Term\n  deriving (Eq, Show)",
+  "module": null
+}
+```
+
+- `diagnostics`: the errors and warnings, with `severity` `"error"` or `"warning"`. `line` and `column` start at 1, and a column counts code points (a tab is one), as `peg-hs` writes them. `message` is what `peg-hs gen` writes after `file:line:column: error: `. The warnings are those of the labels that `gen` reports; the warnings of `peg-hs lint` are not there.
+- `ast`: the syntax tree of the grammar as written, before the templates are expanded, or `null` when the grammar does not parse.
+- `types`: the declarations of the generated types ([ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)) in the order of their rules, separated by blank lines; the empty string when the grammar has none, and `null` when its templates do not expand. It is there even when the checks find errors.
+- `module`: the generated module, byte for byte the file that `peg-hs gen` writes for the same request, or `null` when there are errors.
+
+The request of `format` is `{"grammar": "..."}`, and its response is `{"text": "...", "diagnostics": [...]}`.
+`text` is what `peg-hs fmt` writes, or `null` with errors in `diagnostics`.
+A request that is not JSON or not UTF-8, has no `grammar`, or has a member of another type gets `{"error": "..."}` only.
+
+### The syntax tree
+
+Every node of `ast` has the same shape, for a tree view:
+
+```json
+{"kind": "Rule", "line": 5, "column": 1, "text": "Expr", "children": [...]}
+```
+
+`line` and `column` are `null` for the nodes whose location the syntax tree does not keep (most expressions); use the location of the nearest ancestor.
+`text` is `null` for the nodes without one.
+
+| `kind` | `text` | Location | `children` |
+| --- | --- | --- | --- |
+| `Grammar` | `null` | 1:1 | The directives, `Verbatim` and the rules, in the order of their locations |
+| `Directive` | The name of the directive, such as `%module` | The directive | `Value`s (one for each name of `%export`, `%language`, `%deriving` and `%recover`; none for `%syntax`) |
+| `Verbatim` | The Haskell code of `%{ ... }%` | The code | none |
+| `Value` | The value of a directive | The value | none |
+| `Rule` | The name of the rule | The definition | `Parameter`, `TemplateParameter`, `Type`, `Alternative` |
+| `Parameter` | `name :: Type` | The type | none |
+| `TemplateParameter` | `name`, or `name :: a` with a type | `null` | none |
+| `Type` | The type of a type annotation (only for rules with one) | The type | none |
+| `Alternative` | `null` | The alternative | `Item`, `Action` and `Constructor`, in the order of their locations |
+| `Action` | The Haskell code | The code | none |
+| `Constructor` | The name after `@` | The name | none |
+| `Item` | The name of the binding, or `null` | The element | One expression |
+| `Literal` | The literal as written | `null` | none |
+| `Class` | The character class as written | `null` | none |
+| `Any` | `.` | `null` | none |
+| `Reference` | The name of the rule | The reference | `Argument`s |
+| `Argument` | The Haskell code of an argument | The argument | none |
+| `Group` | `null` | `null` | `Sequence`s |
+| `Sequence` | `null` | `null` | `Item`s |
+| `Star`, `Plus`, `Optional`, `And`, `Not`, `Capture`, `Discard` | `null` | `null` | One expression |
+| `Label` | The label | The label | One expression |
+| `AndPredicate`, `NotPredicate` | The Haskell code | The code | none |
+| `Template` | The name of the template | The call | The expressions of the arguments, then `Argument`s |
+
+`Discard` does not appear in a grammar as written; it is in the table to cover every constructor of the expressions.
+
+### Imports
+
+The wasm imports only these functions of `wasi_snapshot_preview1`, and nothing of other modules:
+`args_get`, `args_sizes_get`, `environ_get`, `environ_sizes_get`, `clock_time_get`, `clock_res_get`, `random_get`, `fd_write` (standard output and standard error only) and `proc_exit`.
+The build now imports `environ_get`, `environ_sizes_get`, `clock_time_get`, `fd_write` and `proc_exit` of them.
+The runtime of GHC and the C library also import 13 functions of files and polling, which none of the calls measured in [ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md) used.
+`scripts/build-wasm.sh` replaces them with functions in the wasm (`wasm/stubs.wat`) that read no argument and return an error at once, so that a WASI with only the functions above loads it ([ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md)):
+
+| Function | Returns |
+| --- | --- |
+| `fd_prestat_get` | `8` (`EBADF`): no directory is preopened |
+| `fd_close`, `fd_fdstat_get`, `fd_fdstat_set_flags`, `fd_filestat_get`, `fd_filestat_set_size`, `fd_prestat_dir_name`, `fd_read`, `fd_seek`, `path_create_directory`, `path_filestat_get`, `path_open`, `poll_oneoff` | `52` (`ENOSYS`) |
+
 ## Migrating from the extension .peg
 
 Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the language of the editors is `hpeg` ([ADR 0050](docs/adr/0050-hpeg-extension.md)).
