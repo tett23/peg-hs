@@ -4,7 +4,8 @@
 日本語版（この文書）を正とする。
 英語版（[CONTRIBUTING.md](CONTRIBUTING.md)）は翻訳であり、内容が食い違う場合は日本語版に従う。
 
-peg-hs のリリース候補（最新は `v0.1.0-rc2`）は、GitHub の Release で配布している。
+peg-hs のリリース候補は、GitHub の [Releases](https://github.com/tett23/peg-hs/releases) で配布している。
+最新の版は Releases を見てほしい。
 Hackage にはまだ公開していない。
 Hackage には、rc が取れた `v0.1.0` から上げる（[ADR 0044](docs/adr/0044-release-v0-1-0.md)、[ADR 0058](docs/adr/0058-no-hackage-candidates-for-pre-releases.md)）。
 

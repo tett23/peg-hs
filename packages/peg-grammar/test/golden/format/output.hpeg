@@ -1,4 +1,5 @@
-# A grammar written carelessly, for the formatter (ADR 0032).
+# A grammar written carelessly, for the formatter (ADR 0032). Some lines end
+# with CRLF or spaces, and blank lines follow the end (ADR 0081).
 %module Example.Format # the module
 %language OverloadedStrings
 %{

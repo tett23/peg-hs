@@ -9,7 +9,8 @@ import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonRecover as JsonRecover
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
 import qualified Conformance.Bench.JsonUntyped as JsonUntyped
-import Peg.Runtime.Syntax (debugTree, syntaxText)
+import Peg.Runtime.Syntax (debugTree, syntaxKind, syntaxText)
+import SyntaxInvariants (concatViolations, violations)
 import qualified Conformance.Json.Encode as Encode
 import Conformance.Json.Parser (Value (..))
 import qualified Conformance.Json.Parser as Json
@@ -67,6 +68,31 @@ main = do
           , testProperty "lossless on generated documents" $
               forAll (sized genValue) $ \v ->
                 let t = Encode.encode v in fmap syntaxText (JsonSyntax.parseSyntax t) === Right t
+          -- The invariants of Peg.Runtime.Syntax (ADR 0081).
+          -- One test per file, so that they run in parallel (ADR 0039).
+          , testGroup
+              "the trees of every file keep the invariants, with and without recovery"
+              [ testCase f $ do
+                  r <- TE.decodeUtf8' <$> B.readFile (dataDir </> f)
+                  case r of
+                    Left _ -> pure ()
+                    Right t -> take 3 (either (const []) (violations t) (JsonSyntax.parseSyntax t) ++ violations t (fst (JsonRecover.parseSyntaxRecover t))) @?= []
+              | f <- files
+              ]
+          , testCase "the join of the trees of two files keeps the invariants" $ do
+              ts <- mapM (\f -> TE.decodeUtf8' <$> B.readFile (dataDir </> f)) (named "y_")
+              let trees = [tree | Right t <- ts, Right tree <- [JsonSyntax.parseSyntax t]]
+                  bad = [vs | (a, b) <- zip trees (drop 1 trees), let vs = concatViolations (syntaxKind a) a b, not (null vs)]
+              take 1 bad @?= []
+          , testProperty "the trees of generated documents and of any text keep the invariants" $
+              forAll (sized genValue) $ \v -> forAll (T.pack <$> listOf (elements "[]{},:\"\\0123456789.eE+-truefalsn \n\x3042")) $ \noise ->
+                let t = Encode.encode v
+                    near = T.take (T.length t `div` 2) t <> noise <> T.drop (T.length t `div` 2) t
+                    vs =
+                      either (const ["rejected"]) (violations t) (JsonSyntax.parseSyntax t)
+                        ++ violations near (fst (JsonRecover.parseSyntaxRecover near))
+                        ++ either (const []) (\a -> either (const []) (concatViolations (syntaxKind a) a) (JsonSyntax.parseSyntax t)) (JsonSyntax.parseSyntax t)
+                 in counterexample (unlines vs) (null vs)
           ]
       , testGroup
           "the grammar without type annotations, actions and bindings (ADR 0068)"

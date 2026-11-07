@@ -1,0 +1,38 @@
+# peg-hs label で、%recover のラベルを持つ文法にラベルを挿入するテスト用の文法（ADR 0054、ADR 0081）。
+# 見出しの行は回復の規則に覆われていないので、挿入の候補がある。
+# 項目は回復の規則を持つラベル block の内側にあるので、挿入しない。
+%module Fixture.RecoverInsert
+%syntax
+%token Sep
+%trivia Sep
+%recover block SkipBlock
+%export Block(..)
+
+%{
+import Data.Text (Text)
+
+data Block = Item Text | ErrorBlock
+  deriving (Eq, Show)
+}%
+
+Doc :: (Text, [Block])
+Doc <- t:Title Sep? bs:Entry* { (t, bs) }
+
+Title :: Text
+Title <- '%' 'title' ' ' t:$[a-z]+ '\n' { t }
+
+# 入力が残っているときだけ項目を試す
+Entry :: Block
+Entry <- &. b:(Item ^block) Sep? { b }
+
+Item :: Block
+Item <- '-' ' ' t:$[a-z]+ &End { Item t }
+
+End <- '\n'
+    / !.
+
+Sep <- '\n'+
+
+# 回復の規則
+SkipBlock :: Block
+SkipBlock <- (!'\n' .)* { ErrorBlock }
