@@ -10,6 +10,17 @@
 -- 'Peg.Grammar.Labels.labelSafeAt' shows its label to be safe. Every label
 -- inserted therefore keeps the language of the grammar.
 --
+-- The result is then checked as @peg-hs gen@ checks it (ADR 0086): the
+-- check of 'Peg.Grammar.Labels.labelWarnings' is made on the grammar with
+-- the labels inserted, the labels it warns about are taken out of the
+-- candidates, and the labels are inserted again, until the check warns
+-- about none of them. 'Peg.Grammar.Labels.labelSafeAt' judges each label
+-- in the grammar without the others, but the check of a labelled grammar
+-- can be less precise: unfolding a label in a later alternative, to
+-- compare it with what has matched, takes one of the levels of unfolding
+-- that the check allows, so other labels can make it give up sooner. No
+-- label inserted is thus warned about by @peg-hs gen@.
+--
 -- 'insertLabels' is what @peg-hs label@ runs: it returns the labels and the
 -- source with them written in. Only @ ^name@ is inserted after each
 -- expression; comments, spaces and line breaks are kept.
@@ -56,7 +67,7 @@ import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Assemble (isIdentChar)
 import Peg.Grammar.Check (check)
-import Peg.Grammar.Labels (labelSafeAt, matchesEmpty)
+import Peg.Grammar.Labels (labelSafeAt, labelWarnings, matchesEmpty)
 import Peg.Grammar.Parser (parseGrammar)
 import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
@@ -354,8 +365,10 @@ data Insertion = Insertion
 
 -- | The safe labels of a grammar ('safeCandidates', named by
 -- 'nameCandidates') and the source with them inserted. With rule names,
--- only the candidates in those rules are inserted. CRLF line breaks are
--- kept.
+-- only the candidates in those rules are inserted. A label that
+-- 'Peg.Grammar.Labels.labelWarnings' warns about in the grammar with the
+-- labels inserted is not inserted (ADR 0086), and the warnings of the
+-- labels already in the grammar stay. CRLF line breaks are kept.
 --
 -- A grammar with an error (of the notation, of the templates or of
 -- 'Peg.Grammar.Check.check') gives its errors, and so does a rule name
@@ -371,23 +384,48 @@ insertLabels only src = do
     [] -> pure ()
     missing -> Left [Diagnostic (Loc 1 1) ("undefined rule " <> r) | r <- missing]
   root <- either (const (Left [internalError "the syntax tree parser rejected the grammar"])) Right (S.parseSyntax src)
-  let chosen = [c | c <- safeCandidates g0 g, null only || candidateRule c `elem` only]
-      named = nameCandidates g chosen
+  named <- passing g0 g [c | c <- safeCandidates g0 g, null only || candidateRule c `elem` only]
   located <- maybe (Left [internalError "an expression was not found in the syntax tree"]) Right (mapM (locate root) named)
   let out = insertAt [(end, " ^" <> name) | (_, name, _, end) <- located] root
-      expected = foldl (\acc (c, name) -> addLabel c name acc) g0 named
+      expected = labelled g0 named
   case parseGrammar out of
     Right g' | eraseGrammar g' == eraseGrammar expected -> pure ()
     _ -> Left [internalError "inserting the labels would change the grammar"]
   pure ([Insertion name (candidateRule c) (loc root start) (loc root end) | (c, name, start, end) <- located], out)
   where
-    internalError m = Diagnostic (Loc 1 1) ("internal error of label: " <> m)
     locate root (c, name) = do
       item <- itemNode root (candidateRule c) (candidatePath c)
       expr <- listToMaybe [n | n <- syntaxChildren item, kindOf n == "PrefixE"]
       start <- listToMaybe (significant expr)
       end <- listToMaybe (reverse (significant item))
       pure (c, name, fst (tokenRange start), snd (tokenRange end))
+
+internalError :: Text -> Diagnostic
+internalError m = Diagnostic (Loc 1 1) ("internal error of label: " <> m)
+
+-- The candidates, named, without those whose labels the check of
+-- @peg-hs gen@ ('Peg.Grammar.Labels.labelWarnings') warns about in the
+-- grammar with all of them inserted (ADR 0086). Without them the check can
+-- judge the others differently, so it is made again until it warns about
+-- none of the labels inserted. Each round removes a candidate at least, so
+-- the rounds end. The warnings of the labels already in the grammar are not
+-- looked at.
+passing :: Grammar -> Grammar -> [Candidate] -> Either [Diagnostic] [(Candidate, Text)]
+passing g0 g cs = do
+  let named = nameCandidates g cs
+      inserted = S.fromList (map snd named)
+  checked <- either (const (Left [internalError "the grammar with the labels inserted has an error"])) Right (expandTemplates (labelled g0 named) >>= \g' -> g' <$ check g')
+  let warned = S.fromList [n | d <- labelWarnings checked, Just n <- [warnedLabel (diagMessage d)], S.member n inserted]
+  if S.null warned
+    then pure named
+    else passing g0 g [c | (c, n) <- named, not (S.member n warned)]
+  where
+    -- The messages of 'labelWarnings' begin with @the label NAME@.
+    warnedLabel m = T.takeWhile (/= ' ') <$> T.stripPrefix "the label " m
+
+-- The grammar with the labels of candidates.
+labelled :: Grammar -> [(Candidate, Text)] -> Grammar
+labelled = foldl (\acc (c, name) -> addLabel c name acc)
 
 -- The tokens of a node that are not spaces or comments.
 significant :: SyntaxNode -> [SyntaxToken]

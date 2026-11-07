@@ -61,6 +61,17 @@ labelInsertionTests files =
               fmap (map insertionRule . fst) (insertLabels [] (unlabel indirect)) @?= Right []
           ]
       , testGroup
+          "the labels inserted pass the label check (ADR 0086)"
+          [ testGroup
+              n
+              [ testCase "no label inserted is warned about" $
+                  fmap (\(is, out) -> filter (`elem` map insertionName is) <$> warnedLabels out) (insertLabels [] src) @?= Right (Right [])
+              , testCase "the labelled grammar accepts the same language" $
+                  fmap (differingInputs src . snd) (insertLabels [] src) @?= Right []
+              ]
+          | (n, src) <- recursiveCounterexamples
+          ]
+      , testGroup
           "covered positions"
           [ testCase "not inside a label with %recover and the rules it calls" $
               namesOf covered @?= Right ["S_z", "S_C", "S_D", "C_d", "D_w"]
@@ -191,6 +202,23 @@ labelsIn g = concatMap (concatMap (concatMap (go . itemExpr) . altItems) . ruleA
       ECapture x -> go x
       EDiscard x -> go x
       _ -> []
+
+-- The inputs on which a grammar and the grammar with labels inserted give
+-- different results, by the interpreter of the label check.
+differingInputs :: Text -> Text -> [String]
+differingInputs src out = case (parseGrammar src, parseGrammar out) of
+  (Right g, Right g') -> [s | s <- inputs, let r = run False g s; r' = run True g' s, r /= r', not (isNothing r || isNothing r')]
+  _ -> ["not parsed"]
+
+-- The counterexamples of ADR 0086, where the labels inserted were warned
+-- about by the label check of the labelled grammar.
+recursiveCounterexamples :: [(TestName, Text)]
+recursiveCounterexamples =
+  [ ("the counterexample of the CI", grammar ["S :: ()", "S <- ((&(!.) &('a')) 'a' ('a' &(S 'b') .)) (((S 'b') ('b' 'b') / (S) S)) { () }"])
+  , ( "the counterexample of ADR 0081"
+    , grammar ["S :: ()", "S <- (!. (('a' 'b' 'c') ('b' 'c') S)* 'b') ((('a' S 'c') !('a' 'a') / ('b' 'a' 'a' / 'c') ('c' S 'b')) !.) &((('b' 'c')?)? ((S . / 'b' 'b' S) &('a' 'b' [ab]) ('c') / S 'a')) { () }"]
+    )
+  ]
 
 -- The random grammars of the label check, without their labels.
 genPlain :: Gen Text

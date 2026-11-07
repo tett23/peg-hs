@@ -180,6 +180,18 @@ Since v0.1.0-rc1:
   argument passed on to a template call is passed as it is, so a template
   that calls itself expands ([ADR 0056](https://github.com/tett23/peg-hs/blob/main/docs/adr/0056-label-insertion-and-template-deviations.md)).
 
+Since v0.1.0-rc6:
+
+- `insertLabels` checks the grammar with the labels inserted with
+  `labelWarnings`, as `peg-hs gen` does, and leaves out the labels it
+  warns about, until it warns about none of the labels inserted. The
+  warnings of the labels already in the grammar stay. `peg-hs gen` warned
+  about some labels that `peg-hs label` inserted in rules that call
+  themselves: the check unfolds a later alternative to compare it with
+  what has matched, and unfolding a label takes one of its levels, so the
+  labels inserted made it give up sooner than on the grammar without them
+  ([ADR 0086](https://github.com/tett23/peg-hs/blob/main/docs/adr/0086-inserted-labels-pass-the-label-check.md)).
+
 ### Security
 
 Since v0.1.0-rc5:
