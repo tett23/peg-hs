@@ -1,6 +1,6 @@
 # ADR 0078: 文法の解析と生成を wasm にしてリリースに添付する
 
-ステータス: 採択（未実装）→約束の外の import の扱いは [ADR 0079](0079-stub-wasi-imports-outside-the-contract.md)
+ステータス: 採択→約束の外の import の扱いは [ADR 0079](0079-stub-wasi-imports-outside-the-contract.md)
 
 ## 文脈
 

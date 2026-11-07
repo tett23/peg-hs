@@ -148,6 +148,7 @@ jobs:
               peg-lsp:test:peg-lsp-test
               peg-codegen:test:peg-codegen-test
               peg-runtime:test:peg-runtime-test
+              peg-wasm:test:peg-wasm-test
     steps:
       - uses: actions/checkout@v7
         with:
@@ -311,11 +312,74 @@ jobs:
       # The generated parser is committed and up to date.
       - run: git diff --exit-code -- tree-sitter-hpeg/src
 
+  # The wasm reactor (ADR 0078, ADR 0079): built with the toolchain of the
+  # ghc-wasm-meta flake at a fixed commit, and tested with Deno against the
+  # native peg-hs built in this job.
+  wasm:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    env:
+      GHC_WASM_META: gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff0765532625474?host=gitlab.haskell.org#all_9_10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Install GHC and cabal
+        id: toolchain
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          # Without a config file, cabal also prints a note before the path.
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v6
+        with:
+          path: dist-newstyle
+          key: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ hashFiles('cabal.project', '**/*.cabal', '**/*.hs', '**/*.hpeg') }}
+          restore-keys: dist-${{ runner.os }}-${{ env.GHC_VERSION }}-
+      - name: Resolve dependencies
+        run: |
+          cabal update
+          cabal build all --dry-run
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.toolchain.outputs.store }}
+          key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-
+      - name: Build the native peg-hs
+        run: |
+          cabal build exe:peg-hs
+          echo "PEG_HS=$(cabal list-bin exe:peg-hs)" >> "$GITHUB_ENV"
+      # Upstream Nix, which checks the downloads of the flake against
+      # flake.lock and the hashes of the flake.
+      - uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          determinate: false
+      - name: Build the wasm
+        run: |
+          nix shell "$GHC_WASM_META" -c wasm32-wasi-cabal update
+          nix shell "$GHC_WASM_META" -c scripts/build-wasm.sh "$RUNNER_TEMP/peg-hs.wasm" "$RUNNER_TEMP/raw.wasm"
+          ls -l "$RUNNER_TEMP/peg-hs.wasm" "$RUNNER_TEMP/raw.wasm"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test the wasm
+        env:
+          PEG_HS_WASM: ${{ runner.temp }}/peg-hs.wasm
+          PEG_HS_WASM_RAW: ${{ runner.temp }}/raw.wasm
+        run: deno test --allow-read --allow-write --allow-env --allow-run wasm/test
+
   # One result for the branch protection of main (ADR 0072): it fails when a
   # job failed or was cancelled, and passes when every job passed or was
   # skipped because only documents changed. A new job goes to needs.
   ci:
-    needs: [changes, haskell, test, haddock, sdist, editors]
+    needs: [changes, haskell, test, haddock, sdist, editors, wasm]
     if: always()
     runs-on: ubuntu-latest
     steps:

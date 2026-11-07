@@ -231,7 +231,7 @@ TextMate と tree-sitter の文法は、GitHub の Releases の文法のアー�
 プレリリースのタグは `v0.1.0-rc1` のように `-` の後に印を付け、cabal の版は `-` の前と同じ（`0.1.0.0`）とする。
 PVP の版は rc を表せないためである。
 
-リリースは GitHub の Release として公開し、五つのパッケージのソースのアーカイブと Haddock のアーカイブ（実行ファイルだけの peg-cli も含む。[ADR 0048](adr/0048-release-commands-and-haddock-of-peg-cli.md)）、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、それらのチェックサムを添付する。
+リリースは GitHub の Release として公開し、五つのパッケージのソースのアーカイブと Haddock のアーカイブ（実行ファイルだけの peg-cli も含む。[ADR 0048](adr/0048-release-commands-and-haddock-of-peg-cli.md)）、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、エディタの文法のアーカイブ、wasm（`peg-hs.wasm`）、それらのチェックサムを添付する。
 リリースノートは変更を「追加」「変更」「削除」「修正」などに分け、各変更にコミットと ADR へのリンクを添える。
 各パッケージは、版ごとの変更を英語の `CHANGELOG.md` に記録する。
 
@@ -240,6 +240,21 @@ Hackage の資格情報を CI に置かないためである。
 プレリリースは Hackage に上げない。候補も上げない（[ADR 0058](adr/0058-no-hackage-candidates-for-pre-releases.md)）。
 正式な版を公開する前に、候補として上げて表示を確かめる。
 Hackage に一度公開した版は取り消せないためである。
+
+### wasm
+
+文法の解析、生成、整形を、WASI preview1 の reactor の wasm にして、リリースに `peg-hs.wasm` という名前で添付する（[ADR 0078](adr/0078-grammar-analysis-in-wasm.md)）。
+名前に版は入れない。版はタグで区別する。
+ブラウザの Web Worker や Deno で、テキストで渡した文法に `peg-hs gen` と `peg-hs fmt` と同じことをする。入力のテキストは解析しない。
+
+- **エクスポート**：`memory`、`_initialize`、`hs_init`、`malloc`、`free`、`analyze`、`format`。呼ぶ側は `_initialize`、`hs_init(0, 0)` の順に一度ずつ呼んでから、`analyze` と `format` を呼ぶ。
+- **受け渡し**：要求は JSON を UTF-8 で書いた領域の先頭と長さで渡す。応答は新しく確保した領域で、先頭の 4 バイトが長さ（リトルエンディアン）、その後に JSON が続く。呼んだ側が `free` で解放する。Haskell の例外は捕まえて `{"error": ...}` で返す。
+- **`analyze`**：誤りと警告、書いたとおりの文法の構文木、生成した型の宣言、生成したモジュールを返す。モジュールは同じ要求の `peg-hs gen` が書くファイルとバイト単位で一致する。構文木のノードは、種類、位置、短い文字列、子の並びを持つ同じ形のオブジェクトである。
+- **`format`**：`peg-hs fmt` と同じ整形の結果を返す。
+- **import**：`wasi_snapshot_preview1` の `args_get`、`args_sizes_get`、`environ_get`、`environ_sizes_get`、`clock_time_get`、`clock_res_get`、`random_get`、`fd_write`（標準出力と標準エラーだけ）、`proc_exit` だけを import してよい。GHC のランタイムと C ライブラリが import する、この一覧の外の 13 個の関数（ファイルとポーリング）は、ビルドの後に wasm の中の関数で置きかえる。置きかえた関数は引数を読まずに誤りの番号を返す。`fd_prestat_get` は `EBADF`（8）、ほかは `ENOSYS`（52）である（[ADR 0079](adr/0079-stub-wasi-imports-outside-the-contract.md)）。
+
+wasm は非公開のパッケージ `peg-wasm`（`wasm/`）から、コミットを固定した ghc-wasm-meta のツールチェーンで `scripts/build-wasm.sh` がビルドする。
+要求と応答の JSON の形は、README の WebAssembly の節に書く。
 
 ## 意図的に採用しなかったもの
 
@@ -317,6 +332,13 @@ conformance/
 ```
 
 peg-conformance は公開パッケージ群とは分けて置き、Hackage には公開しない。
+
+```
+wasm/
+  peg-wasm  -- 文法の解析と生成を JSON で受け渡す関数と、それをエクスポートする wasm の reactor（非公開）
+```
+
+peg-wasm も Hackage には公開しない（[ADR 0078](adr/0078-grammar-analysis-in-wasm.md)）。
 
 ## 適合性テスト
 

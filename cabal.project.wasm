@@ -1,0 +1,11 @@
+-- The wasm reactor of ADR 0078, built by scripts/build-wasm.sh with the
+-- wasm32-wasi-cabal of ghc-wasm-meta.
+packages:
+  packages/peg-runtime
+  packages/peg-grammar
+  packages/peg-codegen
+  packages/peg-lsp
+  wasm
+
+package peg-wasm
+  flags: +reactor

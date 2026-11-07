@@ -255,10 +255,11 @@ pull request に続けて push すると、前の push の実行は止まる。
 - **haskell**：すべてのパッケージをビルドし、リポジトリの文法の `peg-hs fmt --check` と `peg-hs lint`、五つのパッケージの版の一致（`python3 scripts/versions.py check`）、各パッケージの `cabal check` を検査する
 - **test-grammar-1、test-grammar-2、test-grammar-3**：peg-grammar-test を `--shard 1/3` から `--shard 3/3` に分けて動かす（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）
 - **test-conformance**：適合性テスト（Lua、TOML、JSON、CommonMark）と計算量のテストを動かす
-- **test-packages**：peg-cli、peg-lsp、peg-codegen、peg-runtime のテストを動かす
+- **test-packages**：peg-cli、peg-lsp、peg-codegen、peg-runtime、peg-wasm のテストを動かす
 - **haddock**：公開する四つのライブラリの Haddock を生成し、公開モジュールがすべて文書化されていることを `scripts/haddock-coverage.sh` で検査する（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
 - **sdist-1** から **sdist-3**：それぞれ、公開する五つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。peg-grammar-test を `--shard i/3` で三つに分けて動かし、`sdist-2` はほかの四つのスイートも動かす。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)、[ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
+- **wasm**：固定した ghc-wasm-meta の `nix shell` の中で `scripts/build-wasm.sh` により wasm の reactor をビルドし、ネイティブの `peg-hs` もビルドして、`wasm/test` の Deno のテストを動かす（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)、[ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md)）
 
 テストのジョブ（`test-*`）の中では、スイートを一つずつ動かす。
 各スイートが実行環境のすべてのコアを使えるようにするためである（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）。
@@ -362,7 +363,8 @@ git push origin v0.1.0-rc1
 - タグの版と五つの `.cabal` の版が一致することを確かめる。一致しなければ失敗し、Release を作らない
 - 五つのパッケージの sdist と Haddock の tarball（Hackage にそのまま上げられる形）を作る。実行ファイルだけの peg-cli は `--haddock-executables` で作る（[ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md)）
 - `peg-hs` の実行ファイルを、Linux（x86-64）と macOS（arm64）で作る
-- GitHub の Release を作り、tarball、実行ファイル、`SHA256SUMS` を添付して公開する。`-` を含むタグでは、プレリリースとして公開する
+- wasm の reactor `peg-hs.wasm` を `scripts/build-wasm.sh` で作る（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)）
+- GitHub の Release を作り、tarball、実行ファイル、`peg-hs.wasm`、`SHA256SUMS` を添付して公開する。`-` を含むタグでは、プレリリースとして公開する
 - Release の本文には、仮の本文として GitHub が自動で作るリリースノート（前のタグからマージした pull request の一覧）を入れる
 
 同じタグでワークフローを再実行すると、既存の Release の添付を置き換える。
@@ -405,7 +407,7 @@ Format:
   https://github.com/tett23/peg-hs/blob/main/README.md#known-limitations
 - A section "Assets" that names the attached files: the sdists and Haddock
   tarballs of the packages, the peg-hs executables for x86_64-linux and
-  aarch64-macos, and SHA256SUMS.
+  aarch64-macos, peg-hs.wasm, and SHA256SUMS.
 
 If there is no previous tag (the first release), do not list changes; write
 the features of each package, each with absolute links to the ADRs that
