@@ -911,7 +911,43 @@ main = do
               assertBool out ("--export NAME" `isInfixOf` out)
           ]
       , securityTests
+      , auditFixTests
       ]
+
+-- The fixes of the security audit of 2026-11-07 (ADR 0080).
+auditFixTests :: TestTree
+auditFixTests =
+  testGroup
+    "security fixes (ADR 0080)"
+    [ skippedWithout "../../docs/audits/2026-11-07-inj-module.hpeg.txt" "the grammar of the audit is an error, and gen writes nothing (SEC-05)" $ do
+        grammar <- readFile "../../docs/audits/2026-11-07-inj-module.hpeg.txt"
+        dir <- treeWith "sec-inj-module" [("inj-module.hpeg", grammar)]
+        (code, _, err) <- pegHsIn dir ["gen", "inj-module.hpeg", "-o", "M.hs"]
+        (code, lines err)
+          @?= ( ExitFailure 1
+              , [ "inj-module.hpeg:1:9: error: %module expects a module name, but got M (parse) where evil = 1 {-"
+                , "inj-module.hpeg:2:9: error: %export expects export items, but got evil2) where evil2 = 2 {-"
+                ]
+              )
+        doesFileExist (dir </> "M.hs") >>= assertBool "M.hs is not written" . not
+    , testCase "a file name with a newline is an error, and gen writes nothing (SEC-05)" $ do
+#if defined(mingw32_HOST_OS)
+        pure ()
+#else
+        let name = "x.hpeg\nimport Evil\n--"
+        dir <- treeWith "sec-file-name" [(name, "%module M\nS :: ()\nS <- 'a' { () }\n")]
+        (code, _, err) <- pegHsIn dir ["gen", name, "-o", "M.hs"]
+        (code, err) @?= (ExitFailure 1, name <> ":1:1: error: the file name contains a control character\n")
+        doesFileExist (dir </> "M.hs") >>= assertBool "M.hs is not written" . not
+#endif
+    , testCase "a nesting of 100,000 groups is an error of gen, fmt and lint in 10 seconds (SEC-06)" $ do
+        let deep = "%module M\nS <- " <> replicate 100000 '(' <> "'a'" <> replicate 100000 ')' <> "\n"
+        dir <- treeWith "sec-deep" [("Deep.hpeg", deep)]
+        r <- timeout (10 * 1000000) $ mapM (pegHsIn dir) [["gen", "Deep.hpeg", "-o", "Deep.hs"], ["fmt", "--check", "Deep.hpeg"], ["lint", "Deep.hpeg"]]
+        case r of
+          Nothing -> assertFailure "they did not end in 10 seconds"
+          Just rs -> [(code, lines err) | (code, _, err) <- rs] @?= replicate 3 (ExitFailure 1, ["Deep.hpeg:2:262: error: the expression nests deeper than 256"])
+    ]
 
 -- The export list of a generated module: from the module line to ") where".
 exportLines :: String -> [String]

@@ -4,6 +4,8 @@
 -- of a new block: the length in bytes of the response (4 bytes, little
 -- endian, unsigned), then the response in UTF-8. The caller frees the
 -- block with @free@. The request is copied before the function returns.
+-- A length that is negative or reaches past the end of the linear memory
+-- gets @{\"error\": \"the request is outside the memory\"}@ (ADR 0080).
 module Main (main) where
 
 import Control.Exception (SomeException, displayException, evaluate, try)
@@ -13,8 +15,8 @@ import Data.Bits (shiftR)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Foreign (Ptr, Word8, castPtr, copyBytes, mallocBytes, plusPtr, pokeByteOff)
-import Foreign.C.Types (CInt (..))
+import Foreign (Ptr, Word8, castPtr, copyBytes, mallocBytes, plusPtr, pokeByteOff, ptrToWordPtr)
+import Foreign.C.Types (CInt (..), CULLong (..))
 import Peg.Wasm (analyzeJson, errorJson, formatJson)
 
 -- | A reactor has no main; GHC needs one for an executable.
@@ -31,12 +33,23 @@ analyze = serve analyzeJson
 format :: Ptr Word8 -> CInt -> IO (Ptr Word8)
 format = serve formatJson
 
+-- The size of the linear memory in bytes (reactor/memory.c).
+foreign import ccall unsafe "peg_memory_size" memorySize :: IO CULLong
+
 -- Copy the request, answer it, and catch every exception, so that the
--- wasm keeps running.
+-- wasm keeps running. A request whose length is negative or reaches past
+-- the end of the linear memory is not read (ADR 0080).
 serve :: (Text -> Text) -> Ptr Word8 -> CInt -> IO (Ptr Word8)
 serve f p n = do
-  request <- BS.packCStringLen (castPtr p, fromIntegral n)
-  result <- try (evaluate (forced (either (const (errorJson "the request is not UTF-8")) f (TE.decodeUtf8' request))))
+  size <- memorySize
+  let outside = n < 0 || toInteger (ptrToWordPtr p) + toInteger n > toInteger size
+  result <-
+    try $
+      if outside
+        then evaluate (forced (errorJson "the request is outside the memory"))
+        else do
+          request <- BS.packCStringLen (castPtr p, fromIntegral n)
+          evaluate (forced (either (const (errorJson "the request is not UTF-8")) f (TE.decodeUtf8' request)))
   block $ case result of
     Right bytes -> bytes
     Left e -> TE.encodeUtf8 (errorJson ("internal error: " <> T.pack (displayException (e :: SomeException))))

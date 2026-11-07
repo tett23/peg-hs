@@ -179,3 +179,19 @@ Since v0.1.0-rc1:
   removed, so a label does not change the judgement of another; a template
   argument passed on to a template call is passed as it is, so a template
   that calls itself expands ([ADR 0056](https://github.com/tett23/peg-hs/blob/main/docs/adr/0056-label-insertion-and-template-deviations.md)).
+
+### Security
+
+Since v0.1.0-rc5:
+
+- The value of `%module` must be a module name, and the items of `%export`
+  items of an export list; other values, which the generated module would
+  have as written, are errors at the value: `%module expects a module
+  name, but got X` and `%export expects export items, but got X`
+  ([ADR 0080](https://github.com/tett23/peg-hs/blob/main/docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
+- An expression nests at most 256 levels deep: each group, prefix and
+  postfix operator, label and template call is a level. The parser of the
+  notation stops before a level over the limit with the error `the
+  expression nests deeper than 256`, so a deeper grammar is rejected in
+  time linear in its length, by every path through `parseTops`
+  ([ADR 0080](https://github.com/tett23/peg-hs/blob/main/docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).

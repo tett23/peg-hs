@@ -47,6 +47,9 @@
 %recover hsstring SkipToTop
 %recover hschar SkipToTop
 %recover constructor RecoverText
+%recover nest SkipToTop
+# 後置の演算子の列（ADR 0080）は、構文木では今までどおり SuffixE の子に並べる
+%inline PostOps
 
 # 回復の規則（ADR 0035）。どのラベルの送出からも、次の最上位の要素の手前まで
 # 読み飛ばす。行頭の空白、/、# でない文字を、最上位の要素の始まりとみなす
@@ -58,5 +61,5 @@ RecoverTop <- SkipToTop { TVerbatim (Loc 0 0) T.empty }
 RecoverText :: Text
 RecoverText <- SkipToTop { T.empty }
 
-RecoverExpr :: Expr
-RecoverExpr <- SkipToTop { EAny }
+RecoverExpr :: (Expr, Int)
+RecoverExpr <- SkipToTop { (EAny, 0) }

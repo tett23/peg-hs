@@ -290,6 +290,13 @@ A name that the generator does not define is an error of the grammar, reported a
 peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKind -o src/Doc/Parser.hs
 ```
 
+A grammar is code: the Haskell of its blocks, actions and predicates runs with your rights when the generated module is compiled and used, so generate only grammars you trust as you would trust their Haskell.
+Values outside those blocks go into the module too: the value of `%module`, the items of `%export` and the names of the grammar file and of the output.
+peg-hs checks them and rejects values that would read as Haskell declarations ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
+`%module` takes a module name (`A.B.C`), and `%export` takes items of an export list: a name that may be qualified (`evalExpr`, `Expr`, `M.f`), a type name with `(..)` or with names and operators in parentheses (`Expr(..)`, `Expr(Add, Mul)`), an operator in parentheses (`(+++)`), any of these after `type` or `pattern` (`type (:+)`, `pattern P`), and `module` with a module name (`module Data.Text`).
+An item outside these forms, such as one with `--`, `{-` or `where`, is an error at the item.
+A file name with a control character (U+0000 to U+001F, or U+007F), such as a newline, is an error at line 1, column 1, and nothing is written.
+
 ### fmt
 
 `fmt` formats grammars in place, in one fixed style ([ADR 0032](docs/adr/0032-grammar-formatter.md)).
@@ -344,6 +351,7 @@ It compiles the generated parser with the `ghc` on `PATH` and caches the executa
 Editors run it; the next section has their settings.
 When changes arrive faster than it checks them, it checks only the last version and sends its diagnostics ([ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)).
 Editors send only the changed parts of a document, and the server parses again only the top-level items that changed ([ADR 0071](docs/adr/0071-incremental-parsing-in-the-language-server.md)).
+A message whose JSON nests arrays and objects deeper than 256 levels is answered with the parse error -32700, and the server goes on with the next message ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 
 ## Editors
 
@@ -373,6 +381,8 @@ The results of checks go to `docs/editors/`, and an editor loses this mark when 
 `editors/vscode` is an extension with the TextMate grammar (`editors/textmate/hpeg.tmLanguage.json`) that starts the language server.
 It is not on the Marketplace yet, so install it from the repository: install its dependencies, link it into the directory of extensions, and restart VS Code.
 If `peg-hs` is not on `PATH`, the setting `peg-hs.path` points at the executable.
+Write `peg-hs.path` in your user settings: it has the scope `machine`, so the settings of a workspace (`.vscode/settings.json`) cannot change it, and a repository cannot make VS Code run an executable of its choosing ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
+The extension works in an untrusted workspace too (Restricted Mode), with the `peg-hs.path` of your user settings, since the language server only reads grammars and does not run their Haskell.
 The extension turns on `editor.formatOnSave` for the language `hpeg`, so a grammar is formatted on every save.
 To turn it off, set `"[hpeg]": { "editor.formatOnSave": false }` in your settings.
 
@@ -543,6 +553,7 @@ nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff07655326
 They return the address of a new block, whose first 4 bytes are the length in bytes of the response (an unsigned little-endian integer), followed by the response, JSON in UTF-8.
 The request is copied before the function returns, so it can be freed then; free the response after reading it.
 An exception in Haskell does not stop the wasm: the response is `{"error": "internal error: ..."}`.
+A length that is negative, or that reaches past the end of the linear memory from the address, is not read: the response is `{"error": "the request is outside the memory"}` ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 
 ```js
 const { instance } = await WebAssembly.instantiateStreaming(fetch("peg-hs.wasm"), { wasi_snapshot_preview1: wasi });
@@ -596,6 +607,7 @@ The response:
 The request of `format` is `{"grammar": "..."}`, and its response is `{"text": "...", "diagnostics": [...]}`.
 `text` is what `peg-hs fmt` writes, or `null` with errors in `diagnostics`.
 A request that is not JSON or not UTF-8, has no `grammar`, or has a member of another type gets `{"error": "..."}` only.
+JSON whose arrays and objects nest deeper than 256 levels is not taken as JSON ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 
 ### The syntax tree
 
@@ -665,8 +677,9 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 - **`peg-hs parse` and `%env`**: `parse` cannot handle grammars with `%env` (the read-only parse environment), since it has no way to give the value of the environment. Check such grammars by calling the generated module from a program ([ADR 0036](docs/adr/0036-parse-command.md)).
 - **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **Rules whose type names collide**: with `%syntax`, each rule has a type named after it, so two rules such as `expr` and `Expr` are an error. `peg-hs parse` always generates the syntax tree too, so it rejects such grammars even without `%syntax` ([ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)).
-- **The check of labels is conservative**: it does not miss labels that may reject valid input, and in exchange it may warn of labels that are in fact safe. `%safe` silences the warning of a label that the author checked. The grammar of the notation itself has 21 `%safe` ([ADR 0028](docs/adr/0028-label-safety-check.md), [ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)).
+- **The check of labels is conservative**: it does not miss labels that may reject valid input, and in exchange it may warn of labels that are in fact safe. `%safe` silences the warning of a label that the author checked. The grammar of the notation itself has 23 `%safe` ([ADR 0028](docs/adr/0028-label-safety-check.md), [ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)).
 - **Rule templates**: the arguments of a template may use the parameters of the caller, but not its bindings; pass the value of a binding as a value argument. A template cannot be a rule of `%entry`, `%start` or `%recover` ([ADR 0031](docs/adr/0031-rule-templates.md), [ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
+- **The nesting of expressions**: an expression nests at most 256 levels deep. Each group, prefix and postfix operator, label and template call is a level, and a deeper expression is an error at the level that goes over the limit. The limit cannot be changed ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 - **The tree-sitter grammar**: an alternative with neither elements nor an action (`S <- 'a' /`) is an error. Such an alternative has no value, so `peg-hs gen` always rejects it too, and no valid grammar is shown as an error ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **The TextMate grammar**: its rules are regular expressions, so distinctions that depend on the context (the call `A(x)` and the sequence `A (x)`) are approximate. The semantic tokens of the language server distinguish them exactly ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
 - **Editor settings**: the settings of the three editors above are not checked by hand yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)). The VS Code extension is not on the Marketplace.

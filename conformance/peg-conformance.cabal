@@ -31,6 +31,7 @@ library
     Conformance.Bench.NestedLR4
     Conformance.Bench.NestedLR8
     Conformance.Bench.Pathological
+    Conformance.Bench.PegCounted
     Conformance.CommonMark
     Conformance.CommonMark.Block
     Conformance.CommonMark.Emphasis
@@ -53,6 +54,8 @@ library
     , base
     , bytestring
     , containers
+    -- The actions of the counted parser of the notation (ADR 0080).
+    , peg-grammar
     , peg-runtime
     , text
   default-language: GHC2021
@@ -93,6 +96,7 @@ test-suite complexity
     , containers
     , peg-codegen
     , peg-conformance
+    , peg-grammar
     , peg-runtime
     , tasty
     , tasty-hunit

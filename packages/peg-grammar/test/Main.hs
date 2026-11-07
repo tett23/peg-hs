@@ -25,6 +25,7 @@ import Test.Tasty.Options (OptionDescription (Option))
 import Ranges (rangeTests)
 import Recovery (recoveryTests)
 import TemplateParams (templateParamTests)
+import Security (securityTests)
 import Variables (variableTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
@@ -56,6 +57,7 @@ main = do
       , analysisTests
       , bindingReferenceTests files
       , variableTests
+      , securityTests
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files

@@ -55,9 +55,19 @@
         "peg-hs.path": {
           "type": "string",
           "default": "peg-hs",
-          "description": "The peg-hs executable, which runs the language server with `peg-hs lsp`."
+          "scope": "machine",
+          "description": "The peg-hs executable, which runs the language server with `peg-hs lsp`. Only the user settings can set it; the settings of a workspace cannot."
         }
       }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "restrictedConfigurations": [
+        "peg-hs.path"
+      ],
+      "description": "The language server only reads grammars and does not run their Haskell, so it runs in an untrusted workspace too, with the peg-hs executable of the user settings."
     }
   },
   "main": "./extension.js",

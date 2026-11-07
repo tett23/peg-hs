@@ -8,7 +8,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -112,6 +112,19 @@ Hash <- '#' # リテラルの '#' はコメントではない
 `%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe` は何度でも書ける。
 一行に一つの規則を書くディレクティブ（`%entry`、`%nomemo` など）は、規則ごとに一行を書く。
 
+`%module` の値と `%export` の項目は、生成モジュールにそのまま書き出される。
+そのため peg-hs は、Haskell の宣言として読める値を拒む（[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
+`%module` の値は、ドットで区切ったモジュール名である。
+各部分は大文字で始まり、その後は文字、数字、`_`、`'` だけからなる。
+`%export` の項目は、次の形のどれかである。
+項目の間と括弧の内側には空白を置ける。
+
+- 修飾してもよい変数名か型の名前（`evalExpr`、`Expr`、`M.f`）
+- 型の名前に `(..)` か、名前と括弧で囲んだ演算子をカンマで区切った `( ... )` を続けたもの（`Expr(..)`、`Expr(Add, Mul)`）
+- 括弧で囲んだ演算子（`(+++)`）
+- これらの前に `type` か `pattern` を付けたもの（`type (:+)`、`pattern P`）
+- `module` とモジュール名（`module Data.Text`）
+
 各ディレクティブの使い方は、関係する節で説明する。
 
 よくある誤り：
@@ -125,6 +138,8 @@ Hash <- '#' # リテラルの '#' はコメントではない
 | 規則名でないものを書いた（`%entry A B`） | `error: %entry expects a rule name` |
 | 定義していない規則を書いた | `error: undefined rule Name` |
 | `%tabstop 0` | `error: %tabstop expects a positive integer` |
+| モジュール名でないものを書いた（`%module m`、`%module M where x = 1`） | `error: %module expects a module name, but got m` |
+| エクスポートの項目でないものを書いた（`%export f) where`、`%export f -- x`） | `error: %export expects export items, but got f) where` |
 
 ### verbatim ブロック
 
@@ -350,6 +365,14 @@ Quoted <- '\'' $(!['\n] .)* '\''
 接尾辞は接頭辞より強く結合するので、`$[0-9]+` は `$([0-9]+)` と読む。
 括弧 `( ... )` で囲むと、結合を変えられる。
 
+式の入れ子は 256 段までである（[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
+群の括弧、接頭辞と接尾辞の演算子、失敗ラベル、雛形の呼び出しの引数が、それぞれ一段ずつ数える。
+`!('a'*)` は、`!`、括弧、`*` の三段である。
+並べた式の段は足さない。
+`('a') ('b')` は一段である。
+上限を超えた式は、超えた段の位置で誤りになる。
+上限は変えられない。
+
 先読み `&e` と `!e` は、`e` が一致するか（しないか）だけを確かめ、入力を消費しない。
 `!.` は入力の終わりでだけ成功する。
 
@@ -369,6 +392,7 @@ Quoted <- '\'' $(!['\n] .)* '\''
 | 空文字列に一致しうる式の繰り返し（`('a'?)*`） | `error: the repeated expression can match the empty string, which would loop forever` |
 | グループの括弧を閉じ忘れた（`('a' / 'b'` で行が終わる） | `error: expected ')'` |
 | 演算子や束縛の後に式がない（`'a' ! / 'b'`、`x:`） | `error: expected an expression` |
+| 式の入れ子が 256 段を超えた（括弧を 257 重に書いた） | `error: the expression nests deeper than 256` |
 | 前の選択肢が必ず成功する（`'a'? / 'b'`） | lint：`warning: the alternative is never tried: the alternative at 3:6 always succeeds [unreachable-alternative]` |
 | 前の選択肢が接頭辞に一致する（`'=' / '=='`） | lint：`warning: the alternative never succeeds: the alternative at 3:7 matches its prefix '=' first [unreachable-alternative]` |
 | 同じ選択肢を二度書いた | lint：`warning: the alternative never succeeds: it is the same as the alternative at 3:7 [duplicate-alternative]` |

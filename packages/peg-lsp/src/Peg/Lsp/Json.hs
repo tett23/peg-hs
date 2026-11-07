@@ -35,9 +35,35 @@ import Numeric (showHex)
 import Peg.Lsp.JsonParser (Value (..), parse)
 import Text.Read (readMaybe)
 
--- | Parse a JSON text. 'Nothing' if it is not JSON.
+-- | Parse a JSON text. 'Nothing' if it is not JSON, or if its arrays and
+-- objects nest deeper than 256 levels (ADR 0080): such a text is rejected
+-- by a scan in linear time before it is parsed.
 parseJson :: Text -> Maybe Value
-parseJson = either (const Nothing) Just . parse
+parseJson t
+  | nestsDeeper maxJsonDepth t = Nothing
+  | otherwise = either (const Nothing) Just (parse t)
+
+-- The limit on the nesting of arrays and objects.
+maxJsonDepth :: Int
+maxJsonDepth = 256
+
+-- Whether the brackets outside strings nest deeper than a number of levels.
+-- A backslash in a string escapes the character after it.
+nestsDeeper :: Int -> Text -> Bool
+nestsDeeper limit = go 0 False . T.unpack
+  where
+    go :: Int -> Bool -> String -> Bool
+    go !_ _ [] = False
+    go d True (c : cs) = case c of
+      '\\' -> go d True (drop 1 cs)
+      '"' -> go d False cs
+      _ -> go d True cs
+    go d False (c : cs) = case c of
+      '"' -> go d True cs
+      _
+        | c == '[' || c == '{' -> d + 1 > limit || go (d + 1) False cs
+        | c == ']' || c == '}' -> go (d - 1) False cs
+        | otherwise -> go d False cs
 
 -- | Render a value as compact JSON. A number is written as its lexeme.
 renderJson :: Value -> Text

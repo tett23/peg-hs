@@ -79,6 +79,7 @@ labelMessage c = \case
   "hsstring" -> "unterminated string literal"
   "hschar" -> "unterminated character literal"
   "constructor" -> "expected a constructor name after @"
+  "nest" -> "the expression nests deeper than 256"
   l
     | l `elem` ["action", "argcode"] -> case c of
         Just x | x `elem` (")]}" :: String) -> "unbalanced bracket in Haskell code"
