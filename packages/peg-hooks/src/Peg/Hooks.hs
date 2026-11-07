@@ -31,7 +31,7 @@
 -- @grammar\/Calc.hpeg:3:5: error: ...@; the warnings about labels are
 -- written as @grammar\/Calc.hpeg:3:5: warning: ...@ and do not stop it. The
 -- @LINE@ pragmas of the module name the grammar by the path given in
--- 'Grammar', so GHC reports type errors of actions at the lines of the
+-- t'Grammar', so GHC reports type errors of actions at the lines of the
 -- grammar.
 module Peg.Hooks
   ( Grammar (..)

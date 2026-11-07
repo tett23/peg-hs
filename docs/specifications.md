@@ -115,6 +115,8 @@ GHC の誤りの位置を `.hpeg` の行で示すためである。
 ラベルの警告は `peg-hs gen` と同じ形で出し、ビルドは続ける。
 文法の `%module` が `Grammar` のモジュールの名前と違うときは、`%module` の位置の誤りとしてビルドを止める。
 `--Werror`、`--strip-labels`、`--export`、`--debug-entry` に当たるものはない。
+規則は、モジュールを `autogen-modules` に書いたコンポーネントにだけ登録する。
+peg-hooks の版が変わると、cabal は setup スクリプトをビルドし直し、規則はモジュールを生成し直す。
 
 文法のファイルは `.cabal` の `extra-source-files` に書く。
 書かないと、cabal は文法の変更を見ず、古いモジュールのままビルドする。
