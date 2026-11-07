@@ -101,7 +101,7 @@ jobs:
       # The grammars of the repository have no warnings of the linter (ADR 0033).
       - name: Lint grammars
         run: $(cabal list-bin exe:peg-hs) lint
-      # The five published packages have one version (ADR 0044).
+      # The six published packages have one version (ADR 0044, ADR 0085).
       - name: Check versions
         run: |
           python3 scripts/versions.py self-test
@@ -224,7 +224,7 @@ jobs:
           restore-keys: cabal-${{ runner.os }}-
       - name: Haddock
         shell: bash
-        run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp 2>&1 | scripts/haddock-coverage.sh
+        run: cabal haddock peg-runtime peg-grammar peg-codegen peg-lsp peg-hooks 2>&1 | scripts/haddock-coverage.sh
 
   # Each published package builds and passes its tests from its source
   # tarball alone (ADR 0009, ADR 0046). Tests of files outside a package
@@ -280,7 +280,7 @@ jobs:
       - name: Test from source tarballs
         shell: bash
         run: |
-          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-lsp packages/peg-cli --output-directory "$RUNNER_TEMP/sdist"
+          cabal sdist packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-lsp packages/peg-cli packages/peg-hooks --output-directory "$RUNNER_TEMP/sdist"
           cd "$RUNNER_TEMP/sdist"
           for t in *.tar.gz; do tar xzf "$t"; done
           printf 'packages: */*.cabal\nwith-compiler: ghc-%s\ntests: True\n' "$GHC_VERSION" > cabal.project
@@ -291,6 +291,44 @@ jobs:
           fi
           echo "skipped tests: $(grep -c 'skipped:' test.log)"
           grep 'skipped:' test.log | sort | uniq -c
+
+  # A package that generates its parser in its build with peg-hooks
+  # (ADR 0085). examples/hooks/test.sh builds a copy of examples/hooks with
+  # cabal.project of the example, runs it, and checks how it is built again
+  # after changes. The setup script needs Cabal 3.14 or later, which GHC 9.10
+  # does not come with; the store of the haskell job has it.
+  hooks:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Install GHC and cabal
+        id: toolchain
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          # Without a config file, cabal also prints a note before the path.
+          echo "store=$("$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin/cabal" path --store-dir | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Resolve dependencies
+        run: |
+          cabal update
+          cabal build all --dry-run
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.toolchain.outputs.store }}
+          key: cabal-${{ runner.os }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-
+      - name: Build and test the example
+        run: examples/hooks/test.sh "$RUNNER_TEMP/hooks"
 
   # The editor grammars (ADR 0034).
   editors:
@@ -379,7 +417,7 @@ jobs:
   # job failed or was cancelled, and passes when every job passed or was
   # skipped because only documents changed. A new job goes to needs.
   ci:
-    needs: [changes, haskell, test, haddock, sdist, editors, wasm]
+    needs: [changes, haskell, test, haddock, sdist, hooks, editors, wasm]
     if: always()
     runs-on: ubuntu-latest
     steps:

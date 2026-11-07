@@ -1,0 +1,43 @@
+cabal-version:      3.0
+name:               peg-hooks
+version:            0.1.0.0
+synopsis:           Generate peg-hs parsers in the build of a cabal package
+description:
+  Setup hooks for packages with @build-type: Hooks@ that generate a
+  Haskell module from each @.hpeg@ grammar of the package when it is
+  built, with the generator of @peg-codegen@. The package then needs
+  neither the @peg-hs@ executable nor the generated modules in its
+  sources. See "Peg.Hooks" and the README at
+  <https://github.com/tett23/peg-hs> for the fields of the @.cabal@ file.
+homepage:           https://github.com/tett23/peg-hs
+bug-reports:        https://github.com/tett23/peg-hs/issues
+license:            MIT
+license-file:       LICENSE
+author:             tett23
+maintainer:         tett23@gmail.com
+copyright:          2026 tett23
+category:           Parsing, Distribution
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-doc-files:    CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  subdir:   packages/peg-hooks
+
+library
+  exposed-modules:  Peg.Hooks
+  ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+    , base          >=4.20 && <4.23
+    , Cabal         >=3.14 && <3.17
+    , Cabal-hooks   >=3.14 && <3.17
+    , Cabal-syntax  >=3.14 && <3.17
+    , directory     >=1.3  && <1.4
+    , filepath      >=1.4  && <1.6
+    , peg-codegen   >=0.1  && <0.2
+    , peg-grammar   >=0.1  && <0.2
+    , text          >=2.0  && <2.2
+  hs-source-dirs:   src
+  default-language: GHC2021

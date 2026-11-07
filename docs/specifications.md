@@ -98,6 +98,29 @@ GHC の誤りの位置を `.hpeg` の行で示すためである。
 そのため、絶対パスを渡すと機械ごとに出力が変わる。
 生成モジュールをコンパイルするパッケージのディレクトリからの相対パスで渡せば、機械によらず同じ出力になり、エディタも誤りの位置を開ける（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 
+### ビルドの中での生成
+
+コマンドで生成してコミットする代わりに、利用者の cabal パッケージのビルドの中で文法からモジュールを生成することもできる（[ADR 0085](adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）。
+パッケージ peg-hooks の `Peg.Hooks` は、`build-type: Hooks`（Cabal 3.14 からの SetupHooks）のためのフック `pegSetupHooks :: [Grammar] -> SetupHooks` を出す。
+`Grammar` は、文法のファイルのパス（パッケージの根からの相対パス）と、生成するモジュールの名前の組である。
+利用者は、この値を自分の `SetupHooks.hs` の `setupHooks` にする。
+ほかのフックとは `<>` でつなぐ。
+
+フックは、文法のそれぞれについて、ビルドの前の規則（pre-build rule）を一つ登録する。
+規則は、文法のファイルを入力とし、コンポーネントの autogen のディレクトリのモジュールを出力とする。
+規則は文法を読み、`peg-hs gen` と同じ検査をしてモジュールを書く。
+`peg-hs gen` と規則は、peg-codegen の同じ公開の関数（`generateWithWarnings`）を使う。
+モジュールの `{-# LINE #-}` は、文法を `Grammar` に書いたパスで指し、生成したモジュール自身をパッケージの根からの相対パスで指す。
+誤りは `renderDiagnostic` の形で標準エラーに出し、ビルドを止める。
+ラベルの警告は `peg-hs gen` と同じ形で出し、ビルドは続ける。
+文法の `%module` が `Grammar` のモジュールの名前と違うときは、`%module` の位置の誤りとしてビルドを止める。
+`--Werror`、`--strip-labels`、`--export`、`--debug-entry` に当たるものはない。
+
+文法のファイルは `.cabal` の `extra-source-files` に書く。
+書かないと、cabal は文法の変更を見ず、古いモジュールのままビルドする。
+利用者は `cabal-version: 3.14` 以上と、Cabal 3.14 以上を setup の依存に使える cabal-install が要る。
+GHC 9.10 に付属する Cabal は 3.12 なので、最初のビルドで Cabal をソースからビルドする。
+
 生成モジュールは GHC 9.10、9.12、9.14 でコンパイルできる（[ADR 0045](adr/0045-fixes-before-v0-1-0.md)）。CI で確かめるのは ghcup の recommended の版（9.10）だけで、9.12 と 9.14 は v0.1.0-rc2 まで確かめた（[ADR 0057](adr/0057-recommended-ghc-only.md)）。
 
 ### ロスレスな構文木
@@ -222,7 +245,7 @@ Term <- ds:$[0-9]+ { read (unpack ds) }
 
 ## 配布と版
 
-公開するパッケージは peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli の五つである（[ADR 0009](adr/0009-hackage-publication.md)、[ADR 0044](adr/0044-release-v0-1-0.md)）。
+公開するパッケージは peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli、peg-hooks の六つである（[ADR 0009](adr/0009-hackage-publication.md)、[ADR 0044](adr/0044-release-v0-1-0.md)、[ADR 0085](adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）。
 peg-lsp は peg-cli が依存するので、peg-cli を Hackage から入れるために公開する。
 そのため、言語サーバーの API も PVP の対象になる。
 適合性テストのパッケージ peg-conformance は公開しない。
@@ -234,14 +257,14 @@ TextMate と tree-sitter の文法は、GitHub の Releases の文法のアー�
 1.0 は、自己記述化の完了と Golem での実利用を条件とする。
 生成モジュールが使う `Peg.Runtime.Internal` の変更も、互換の崩れる変更として扱う（[ADR 0046](adr/0046-docs-cli-and-ci-before-v0-1-0.md)）。
 
-五つのパッケージは同じ版で出す（[ADR 0044](adr/0044-release-v0-1-0.md)）。
+六つのパッケージは同じ版で出す（[ADR 0044](adr/0044-release-v0-1-0.md)）。
 版の対応を考える手間をなくすためであり、変更のないパッケージの版も上がる。
 リリースのタグは、cabal の版の上の三つの桁に `v` を付けたもの（`0.1.0.0` なら `v0.1.0`）とする。
 四つめの桁は、タグを伴わない出し直しに使う。
 プレリリースのタグは `v0.1.0-rc1` のように `-` の後に印を付け、cabal の版は `-` の前と同じ（`0.1.0.0`）とする。
 PVP の版は rc を表せないためである。
 
-リリースは GitHub の Release として公開し、五つのパッケージのソースのアーカイブと Haddock のアーカイブ（実行ファイルだけの peg-cli も含む。[ADR 0048](adr/0048-release-commands-and-haddock-of-peg-cli.md)）、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、エディタの文法のアーカイブ、wasm（`peg-hs.wasm`）、それらのチェックサムを添付する。
+リリースは GitHub の Release として公開し、六つのパッケージのソースのアーカイブと Haddock のアーカイブ（実行ファイルだけの peg-cli も含む。[ADR 0048](adr/0048-release-commands-and-haddock-of-peg-cli.md)）、`peg-hs` の実行ファイル（Linux の x86-64 と macOS の arm64）、エディタの文法のアーカイブ、wasm（`peg-hs.wasm`）、それらのチェックサムを添付する。
 リリースノートは変更を「追加」「変更」「削除」「修正」などに分け、各変更にコミットと ADR へのリンクを添える。
 各パッケージは、版ごとの変更を英語の `CHANGELOG.md` に記録する。
 
@@ -322,6 +345,12 @@ packages/
   peg-codegen   -- 文法 AST から Haskell ソースへの純関数変換
   peg-lsp       -- 言語サーバー
   peg-cli       -- コマンド peg-hs（gen、fmt、lint、parse、lsp、help）
+  peg-hooks     -- 利用者のパッケージのビルドの中で生成する SetupHooks
+```
+
+```
+examples/
+  hooks  -- peg-hooks を使う利用者のパッケージの例。CI でビルドして動かす
 ```
 
 ```
@@ -332,7 +361,7 @@ editors/
   README.md        -- リリースのアーカイブに入れる、文法の説明
 ```
 
-依存は `peg-cli → peg-codegen → peg-grammar → peg-runtime` と `peg-cli → peg-lsp → peg-grammar` の一方向とし、peg-runtime は他のどのパッケージにも依存しない。
+依存は `peg-cli → peg-codegen → peg-grammar → peg-runtime`、`peg-cli → peg-lsp → peg-grammar`、`peg-hooks → peg-codegen` の一方向とし、peg-runtime は他のどのパッケージにも依存しない。
 peg-grammar が peg-runtime に依存するのは、自己記述の記法のパーサー（peg-hs 自身で生成したもの）を含むためである（[ADR 0015](adr/0015-implementation-deviations.md)）。
 生成されたコードが依存するのは peg-runtime だけである。構文木の実行時の部分も peg-runtime に置く（[ADR 0019](adr/0019-lossless-syntax-tree.md)）。
 

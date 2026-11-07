@@ -66,6 +66,15 @@ Since v0.1.0-rc3:
   types of the exported entry points refer to are exported
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
+Since v0.1.0-rc5:
+
+- `generateWithWarnings` and `Generation`, the steps of `peg-hs gen`
+  without reading and writing files: parse, expand the templates, check,
+  collect the warnings about labels and generate. `peg-hs gen` and
+  peg-hooks both use them. `renderWarning` renders a warning as
+  `file:line:column: warning: message`
+  ([ADR 0085](https://github.com/tett23/peg-hs/blob/main/docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
+
 ### Fixed
 
 Since v0.1.0-rc1:

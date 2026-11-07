@@ -39,6 +39,10 @@ module Peg.Codegen
   , defaultOptions
   , generate
   , generateFromSource
+    -- * The steps of @peg-hs gen@
+  , Generation (..)
+  , generateWithWarnings
+  , renderWarning
   , runtimeVersions
   ) where
 
@@ -52,6 +56,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
 import Peg.Grammar.Check
+import Peg.Grammar.Labels (labelWarnings, stripLabelsAs)
 import Peg.Grammar.Types (Classification (..), Constructor (..), DataType (..), RuleType (..), ValueType (..), defaultDeriving, fieldItems, typeAtom, typeCode)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
@@ -141,6 +146,57 @@ generate opts g0 = do
   case undefinedExports opts g analysis of
     [] -> Right (finalize opts (render opts g analysis))
     missing -> Left [Diagnostic (Loc 1 1) ("the generator does not define " <> n) | n <- missing]
+
+-- | What 'generateWithWarnings' makes of a grammar that parses and passes
+-- the checks.
+data Generation = Generation
+  { generationGrammar :: Grammar
+  -- ^ The grammar that is generated: the grammar with its templates
+  -- expanded, or without its labels when they are stripped. Its
+  -- 'grammarModule' is the name of the generated module.
+  , generationWarnings :: [Diagnostic]
+  -- ^ The warnings about labels ('Peg.Grammar.Labels.labelWarnings'), in
+  -- the grammar as written. There are none when the labels are stripped.
+  , generationModule :: Either [Diagnostic] Text
+  -- ^ The text of the module, or the errors of 'generate'. It is not
+  -- computed until it is used, so a caller that stops at the warnings does
+  -- not pay for the generation.
+  }
+
+-- | The steps of @peg-hs gen@ without reading and writing files (ADR 0085):
+-- parse the grammar, expand its templates, check it, collect the warnings
+-- about labels, and generate the module with 'generate'. @peg-hs gen@ and
+-- the setup hooks of peg-hooks both call it.
+--
+-- The second argument strips the labels of the grammar and names the module
+-- of the result, as @peg-hs gen --strip-labels MODULE@ does
+-- ('Peg.Grammar.Labels.stripLabelsAs'); 'Nothing' keeps them.
+--
+-- 'Left' has the errors of parsing and checking, located in the grammar;
+-- inside a template, they name the call that expanded it
+-- ('Peg.Grammar.Templates.templateNotes'). The errors of the generation
+-- itself are in 'generationModule'.
+--
+-- @
+-- case generateWithWarnings opts Nothing src of
+--   Left errors -> mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file) errors
+--   Right gen -> do
+--     mapM_ (TIO.hPutStrLn stderr . renderWarning file) (generationWarnings gen)
+--     either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file)) (TIO.writeFile out) (generationModule gen)
+-- @
+generateWithWarnings :: Options -> Maybe Text -> Text -> Either [Diagnostic] Generation
+generateWithWarnings opts strip src = do
+  g0 <- parseGrammar src
+  g <- either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> g <$ check g)
+  let target = maybe g (`stripLabelsAs` g) strip
+      warnings = maybe (templateNotes g0 (labelWarnings g)) (const []) strip
+  pure (Generation target warnings (generate opts target))
+
+-- | Like 'renderDiagnostic', for a warning:
+-- @file:line:column: warning: message@ (ADR 0037).
+renderWarning :: FilePath -> Diagnostic -> Text
+renderWarning file (Diagnostic (Loc l c) msg) =
+  T.pack file <> ":" <> showT l <> ":" <> showT c <> ": warning: " <> msg
 
 -- The control characters of ADR 0080.
 isControlChar :: Char -> Bool

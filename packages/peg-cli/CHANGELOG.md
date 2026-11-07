@@ -78,6 +78,12 @@ Since v0.1.0-rc2:
   of the time of an edit in `peg-hs lsp` went to garbage collection
   ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
 
+Since v0.1.0-rc5:
+
+- `peg-hs gen` uses `generateWithWarnings` of peg-codegen, which peg-hooks
+  uses too. What it writes and its exit status do not change
+  ([ADR 0085](https://github.com/tett23/peg-hs/blob/main/docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
+
 ### Security
 
 Since v0.1.0-rc4:

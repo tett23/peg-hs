@@ -253,12 +253,13 @@ CI consists of three workflows.
 It does not run for changes of `docs/` and Markdown files only ([ADR 0039](docs/adr/0039-faster-ci.md)).
 A new push to a pull request stops the run of the previous push.
 
-- **haskell**: builds every package, and checks the grammars of the repository with `peg-hs fmt --check` and `peg-hs lint`, that the five packages have one version (`python3 scripts/versions.py check`), and each package with `cabal check`
+- **haskell**: builds every package, and checks the grammars of the repository with `peg-hs fmt --check` and `peg-hs lint`, that the six packages have one version (`python3 scripts/versions.py check`), and each package with `cabal check`
 - **test-grammar-1, test-grammar-2, test-grammar-3**: run peg-grammar-test in parts, `--shard 1/3` to `--shard 3/3` ([ADR 0042](docs/adr/0042-shard-peg-grammar-test.md))
 - **test-conformance**: runs the conformance tests (Lua, TOML, JSON and CommonMark) and the complexity tests
 - **test-packages**: runs the tests of peg-cli, peg-lsp, peg-codegen, peg-runtime and peg-wasm
-- **haddock**: generates the Haddock of the four published libraries, and checks with `scripts/haddock-coverage.sh` that every exposed module is fully documented ([ADR 0044](docs/adr/0044-release-v0-1-0.md))
-- **sdist-1** to **sdist-3**: each makes the sdists of the five published packages, and builds and tests them from the unpacked tarballs alone. Each runs a third of peg-grammar-test with `--shard i/3`, and `sdist-2` also runs the other four suites. Each prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md), [ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md))
+- **haddock**: generates the Haddock of the five published libraries, and checks with `scripts/haddock-coverage.sh` that every exposed module is fully documented ([ADR 0044](docs/adr/0044-release-v0-1-0.md))
+- **sdist-1** to **sdist-3**: each makes the sdists of the six published packages, and builds and tests them from the unpacked tarballs alone. Each runs a third of peg-grammar-test with `--shard i/3`, and `sdist-2` also runs the other four suites. Each prints the number of skipped tests and their reasons ([ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md), [ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md))
+- **hooks**: builds and runs the example of a package that uses peg-hooks (`examples/hooks/`) with `examples/hooks/test.sh`. It checks the builds after changing the grammar and without changes, an error of the grammar, a type error of an action, a module name other than `%module`, `cabal check` and `cabal sdist`. The first build builds Cabal and takes a while ([ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md))
 - **editors**: runs the tests of the editor grammars, and checks that the committed tree-sitter parser is up to date ([ADR 0034](docs/adr/0034-syntax-highlighting.md))
 - **wasm**: builds the wasm reactor with `scripts/build-wasm.sh` in the pinned `nix shell` of ghc-wasm-meta, builds the native `peg-hs`, and runs the Deno tests of `wasm/test` ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md), [ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md))
 
@@ -322,14 +323,14 @@ The scope and the procedure of releases are decided in [ADR 0044](docs/adr/0044-
 
 ### Versions and tags
 
-- The published packages are peg-runtime, peg-grammar, peg-codegen, peg-lsp and peg-cli, and all five are released with the same version
+- The published packages are peg-runtime, peg-grammar, peg-codegen, peg-lsp, peg-cli and peg-hooks, and all six are released with the same version ([ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md))
 - A tag is `v` followed by the first three components of the cabal version (`v0.1.0`). The fourth component of the cabal version is for re-releases without a tag
 - A pre-release tag has a mark after `-`, as in `v0.1.0-rc1`. Its cabal version is the three components before `-` (`0.1.0.0`), because PVP versions cannot express rc
 - Tags starting with `v` are releases, and tags containing `-` are pre-releases
 
 ### 1. Raise the versions
 
-Change the `version` of the five `.cabal` files and the ranges of the dependencies between the packages (`peg-runtime >=0.1 && <0.2` and so on) in one commit.
+Change the `version` of the six `.cabal` files and the ranges of the dependencies between the packages (`peg-runtime >=0.1 && <0.2` and so on) in one commit.
 Then check that the versions agree:
 
 ```sh
@@ -361,8 +362,8 @@ git push origin v0.1.0-rc1
 
 Pushing the tag runs `.github/workflows/release.yml`, which does the following.
 
-- Checks that the version of the tag matches the versions of the five `.cabal` files. If not, it fails and makes no Release
-- Makes the sdists and the Haddock tarballs of the five packages, in the form that Hackage takes. The Haddock of peg-cli, which has executables only, is made with `--haddock-executables` ([ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md))
+- Checks that the version of the tag matches the versions of the six `.cabal` files. If not, it fails and makes no Release
+- Makes the sdists and the Haddock tarballs of the six packages, in the form that Hackage takes. The Haddock of peg-cli, which has executables only, is made with `--haddock-executables` ([ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md))
 - Builds the `peg-hs` executable for Linux (x86-64) and macOS (arm64)
 - Builds the wasm reactor `peg-hs.wasm` with `scripts/build-wasm.sh` ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md))
 - Creates a GitHub Release with the tarballs, the executables, `peg-hs.wasm` and `SHA256SUMS` attached, and publishes it. A tag containing `-` is published as a pre-release
@@ -394,7 +395,7 @@ Sources:
   `gh pr list --state merged --base main`)
 - the ADRs adopted in that range: `git diff --name-status PREV..TAG -- docs/adr/`,
   and the status lines that changed to 採択
-- the CHANGELOG.md of each of the five packages (packages/*/CHANGELOG.md)
+- the CHANGELOG.md of each of the six packages (packages/*/CHANGELOG.md)
 
 Format:
 - English.
@@ -436,11 +437,11 @@ shasum -a 256 -c SHA256SUMS
 
 Without `--publish`, `cabal upload` uploads a candidate.
 A candidate is for checking how the package looks on Hackage, and is kept apart from published versions.
-Upload the packages in the order of their dependencies (peg-runtime, peg-grammar, peg-codegen, peg-lsp, peg-cli).
+Upload the packages in the order of their dependencies (peg-runtime, peg-grammar, peg-codegen, peg-lsp, peg-cli, peg-hooks).
 
 ```sh
-cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
+cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz peg-hooks-0.1.0.0.tar.gz
+cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz peg-hooks-0.1.0.0-docs.tar.gz
 ```
 
 On the candidate pages, check the documentation of the modules, the description and examples at the top of each module, the CHANGELOG and the dependencies.
@@ -449,8 +450,8 @@ On the candidate pages, check the documentation of the modules, the description 
 - **Final versions (`v0.1.0` and so on)**: after uploading and checking the candidates, upload the same files with `--publish` to publish them
 
 ```sh
-cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
+cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz peg-hooks-0.1.0.0.tar.gz
+cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz peg-hooks-0.1.0.0-docs.tar.gz
 ```
 
 After publishing a final version, update the status at the top of the README and of this document to say that peg-hs is on Hackage.

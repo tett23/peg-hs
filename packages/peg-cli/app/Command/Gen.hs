@@ -8,10 +8,6 @@ import Diagnostics (reportErrors, reportWarnings)
 import FileIO (readUtf8, reportFileError, writeUtf8)
 import Options
 import Peg.Codegen
-import Peg.Grammar.Check (check)
-import Peg.Grammar.Labels (labelWarnings, stripLabelsAs)
-import Peg.Grammar.Parser (parseGrammar)
-import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import System.Exit (ExitCode (..))
 import System.FilePath (replaceExtension)
 
@@ -68,19 +64,18 @@ run p = case parsedArguments p of
 
 generateFrom :: FilePath -> FilePath -> Options -> Maybe String -> Parsed -> T.Text -> IO ExitCode
 generateFrom input out opts strip p src =
-    case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (Right . (,) g0) (expandTemplates g0 >>= \g -> g <$ check g) of
-      Left diags -> reportErrors input diags >> pure (ExitFailure 1)
-      Right (g0, g) -> do
-        let warnings = if strip == Nothing then templateNotes g0 (labelWarnings g) else []
-            target = maybe g (\m -> stripLabelsAs (T.pack m) g) strip
-        reportWarnings input warnings
-        if flag "Werror" p && not (null warnings)
-          then pure (ExitFailure 1)
-          else case generate opts target of
-            Left diags -> reportErrors input diags >> pure (ExitFailure 1)
-            Right code ->
-              writeUtf8 out code >>= \case
-                Left e -> reportFileError e >> pure (ExitFailure 1)
-                Right () -> do
-                  putStrLn ("wrote " <> out <> " (" <> show (T.length code) <> " characters)")
-                  pure ExitSuccess
+  case generateWithWarnings opts (T.pack <$> strip) src of
+    Left diags -> reportErrors input diags >> pure (ExitFailure 1)
+    Right gen -> do
+      let warnings = generationWarnings gen
+      reportWarnings input warnings
+      if flag "Werror" p && not (null warnings)
+        then pure (ExitFailure 1)
+        else case generationModule gen of
+          Left diags -> reportErrors input diags >> pure (ExitFailure 1)
+          Right code ->
+            writeUtf8 out code >>= \case
+              Left e -> reportFileError e >> pure (ExitFailure 1)
+              Right () -> do
+                putStrLn ("wrote " <> out <> " (" <> show (T.length code) <> " characters)")
+                pure ExitSuccess

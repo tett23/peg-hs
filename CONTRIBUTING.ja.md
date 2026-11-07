@@ -253,12 +253,13 @@ CI は三つのワークフローからなる。
 `docs/` と Markdown のファイルだけの変更では動かない（[ADR 0039](docs/adr/0039-faster-ci.md)）。
 pull request に続けて push すると、前の push の実行は止まる。
 
-- **haskell**：すべてのパッケージをビルドし、リポジトリの文法の `peg-hs fmt --check` と `peg-hs lint`、五つのパッケージの版の一致（`python3 scripts/versions.py check`）、各パッケージの `cabal check` を検査する
+- **haskell**：すべてのパッケージをビルドし、リポジトリの文法の `peg-hs fmt --check` と `peg-hs lint`、六つのパッケージの版の一致（`python3 scripts/versions.py check`）、各パッケージの `cabal check` を検査する
 - **test-grammar-1、test-grammar-2、test-grammar-3**：peg-grammar-test を `--shard 1/3` から `--shard 3/3` に分けて動かす（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）
 - **test-conformance**：適合性テスト（Lua、TOML、JSON、CommonMark）と計算量のテストを動かす
 - **test-packages**：peg-cli、peg-lsp、peg-codegen、peg-runtime、peg-wasm のテストを動かす
-- **haddock**：公開する四つのライブラリの Haddock を生成し、公開モジュールがすべて文書化されていることを `scripts/haddock-coverage.sh` で検査する（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
-- **sdist-1** から **sdist-3**：それぞれ、公開する五つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。peg-grammar-test を `--shard i/3` で三つに分けて動かし、`sdist-2` はほかの四つのスイートも動かす。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)、[ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md)）
+- **haddock**：公開する五つのライブラリの Haddock を生成し、公開モジュールがすべて文書化されていることを `scripts/haddock-coverage.sh` で検査する（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
+- **sdist-1** から **sdist-3**：それぞれ、公開する六つのパッケージの sdist を作り、展開したものだけでビルドとテストを行う。peg-grammar-test を `--shard i/3` で三つに分けて動かし、`sdist-2` はほかの四つのスイートも動かす。飛ばしたテストの数と理由を表示する（[ADR 0046](docs/adr/0046-docs-cli-and-ci-before-v0-1-0.md)、[ADR 0051](docs/adr/0051-shard-tests-from-source-tarballs.md)）
+- **hooks**：peg-hooks を使う利用者のパッケージの例（`examples/hooks/`）を、`examples/hooks/test.sh` でビルドして動かす。文法を変えたときと変えないときの再ビルド、文法の誤り、アクションの型の誤り、`%module` と違うモジュールの名前、`cabal check`、`cabal sdist` を確かめる。最初のビルドで Cabal をビルドするので時間がかかる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 - **wasm**：固定した ghc-wasm-meta の `nix shell` の中で `scripts/build-wasm.sh` により wasm の reactor をビルドし、ネイティブの `peg-hs` もビルドして、`wasm/test` の Deno のテストを動かす（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)、[ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md)）
 
@@ -322,14 +323,14 @@ CI の `editors` のジョブは、生成し直した結果とコミットした
 
 ### 版とタグ
 
-- 公開するパッケージは peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli の五つで、すべて同じ版で出す
+- 公開するパッケージは peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli、peg-hooks の六つで、すべて同じ版で出す（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）
 - タグは `v` に cabal の版の上の三つの桁を付けたもの（`v0.1.0`）とする。cabal の版の四つめの桁は、タグを伴わない出し直しに使う
 - プレリリースのタグは `v0.1.0-rc1` のように `-` の後に印を付ける。対応する cabal の版は、`-` の前の三つの桁（`0.1.0.0`）である。PVP の版は rc を表せないためである
 - `v` で始まるタグをリリースとし、`-` を含むタグはプレリリースとして扱う
 
 ### 1. 版を上げる
 
-五つの `.cabal` の `version` と、パッケージ間の依存の範囲（`peg-runtime >=0.1 && <0.2` など）を、同じコミットで変える。
+六つの `.cabal` の `version` と、パッケージ間の依存の範囲（`peg-runtime >=0.1 && <0.2` など）を、同じコミットで変える。
 変えた後に、版がそろっていることを確かめる。
 
 ```sh
@@ -361,8 +362,8 @@ git push origin v0.1.0-rc1
 
 タグの push で `.github/workflows/release.yml` が動き、次を行う。
 
-- タグの版と五つの `.cabal` の版が一致することを確かめる。一致しなければ失敗し、Release を作らない
-- 五つのパッケージの sdist と Haddock の tarball（Hackage にそのまま上げられる形）を作る。実行ファイルだけの peg-cli は `--haddock-executables` で作る（[ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md)）
+- タグの版と六つの `.cabal` の版が一致することを確かめる。一致しなければ失敗し、Release を作らない
+- 六つのパッケージの sdist と Haddock の tarball（Hackage にそのまま上げられる形）を作る。実行ファイルだけの peg-cli は `--haddock-executables` で作る（[ADR 0048](docs/adr/0048-release-commands-and-haddock-of-peg-cli.md)）
 - `peg-hs` の実行ファイルを、Linux（x86-64）と macOS（arm64）で作る
 - wasm の reactor `peg-hs.wasm` を `scripts/build-wasm.sh` で作る（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)）
 - GitHub の Release を作り、tarball、実行ファイル、`peg-hs.wasm`、`SHA256SUMS` を添付して公開する。`-` を含むタグでは、プレリリースとして公開する
@@ -394,7 +395,7 @@ Sources:
   `gh pr list --state merged --base main`)
 - the ADRs adopted in that range: `git diff --name-status PREV..TAG -- docs/adr/`,
   and the status lines that changed to 採択
-- the CHANGELOG.md of each of the five packages (packages/*/CHANGELOG.md)
+- the CHANGELOG.md of each of the six packages (packages/*/CHANGELOG.md)
 
 Format:
 - English.
@@ -437,11 +438,11 @@ shasum -a 256 -c SHA256SUMS
 
 `cabal upload` は、`--publish` を付けなければ候補（candidate）として上げる。
 候補は Hackage 上で表示を確かめるためのもので、公開した版とは別に扱われる。
-上げる順は、依存される側からとする（peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli）。
+上げる順は、依存される側からとする（peg-runtime、peg-grammar、peg-codegen、peg-lsp、peg-cli、peg-hooks）。
 
 ```sh
-cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
+cabal upload peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz peg-hooks-0.1.0.0.tar.gz
+cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz peg-hooks-0.1.0.0-docs.tar.gz
 ```
 
 候補のページで、モジュールの文書、各モジュールの先頭の説明と例、CHANGELOG、依存の表示を確かめる。
@@ -450,8 +451,8 @@ cabal upload --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0
 - **正式な版（`v0.1.0` など）**：候補として上げて確かめた後に、同じファイルを `--publish` を付けて上げ、公開する
 
 ```sh
-cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz
-cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz
+cabal upload --publish peg-runtime-0.1.0.0.tar.gz peg-grammar-0.1.0.0.tar.gz peg-codegen-0.1.0.0.tar.gz peg-lsp-0.1.0.0.tar.gz peg-cli-0.1.0.0.tar.gz peg-hooks-0.1.0.0.tar.gz
+cabal upload --publish --documentation peg-runtime-0.1.0.0-docs.tar.gz peg-grammar-0.1.0.0-docs.tar.gz peg-codegen-0.1.0.0-docs.tar.gz peg-lsp-0.1.0.0-docs.tar.gz peg-cli-0.1.0.0-docs.tar.gz peg-hooks-0.1.0.0-docs.tar.gz
 ```
 
 正式な版を公開したら、README とこの文書の冒頭の状態の表示を、Hackage に公開した状態に合わせる。
