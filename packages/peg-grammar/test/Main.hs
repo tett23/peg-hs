@@ -83,6 +83,7 @@ main = do
       , recoveryTests files
       , incrementalTests files
       , documentExampleTests
+      , translationTests
       , testGroup "editor grammars" [if editors then rangeTests files else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
       , testCaseInfo "the grammars of the repository" (pure (unlines' [ "skipped: " <> d <> " is not in a source archive" | d <- missing ]))
       ]
@@ -653,8 +654,54 @@ documentExampleTests =
             assertBool "no complete grammar" (not (null examples))
             take 1 bad @?= []
             pure (show (length examples) <> " grammars")
-    | doc <- ["docs/syntax.md", "README.md", "README.ja.md"]
+    | doc <- ["docs/syntax.md", "docs/syntax.en.md", "README.md", "README.ja.md"]
     ]
+
+-- The English notation guide is a translation of the Japanese one (ADR
+-- 0084): the same number of code blocks, the same complete grammars apart
+-- from their comments, and the same list of reflected ADRs.
+translationTests :: TestTree
+translationTests =
+  testGroup
+    "the English notation guide follows the Japanese one (ADR 0084)"
+    [ check' "the same number of code blocks" $ \ja en ->
+        length (codeBlocks en) @?= length (codeBlocks ja)
+    , check' "the same complete grammars apart from comments" $ \ja en -> do
+        let grammars = map (fmap withoutComments) . completeGrammars
+        length (grammars en) @?= length (grammars ja)
+        -- The lines of the first pair that differ, the Japanese one first,
+        -- with the first lines of the two code blocks.
+        take 1 [((nj, ne), take 1 [(x, y) | (x, y) <- zip a b, x /= y]) | ((nj, a), (ne, b)) <- zip (grammars ja) (grammars en), a /= b] @?= []
+    , check' "the same reflected ADRs" $ \ja en -> do
+        assertBool "no reflected ADR" (not (S.null (reflectedAdrs ja)))
+        reflectedAdrs en @?= reflectedAdrs ja
+    ]
+  where
+    check' :: String -> (Text -> Text -> Assertion) -> TestTree
+    check' name body = testCaseInfo name $ do
+      exists <- doesDirectoryExist "../../docs"
+      if not exists
+        then pure "skipped: ../../docs is not in a source archive"
+        else do
+          ja <- TIO.readFile "../../docs/syntax.md"
+          en <- TIO.readFile "../../docs/syntax.en.md"
+          body ja en
+          pure ""
+    -- Each line without the text from its first # and trailing spaces.
+    withoutComments = map (T.stripEnd . T.takeWhile (/= '#')) . T.lines
+    -- The ADR numbers of the first line that links an ADR.
+    reflectedAdrs text = case filter ("[ADR " `T.isInfixOf`) (T.lines text) of
+      l : _ -> S.fromList [T.take 4 x | x <- drop 1 (T.splitOn "[ADR " l)]
+      [] -> S.empty
+
+-- The bodies of the fenced code blocks of a document.
+codeBlocks :: Text -> [[Text]]
+codeBlocks = go . T.lines
+  where
+    go ls = case dropWhile (not . isFence) ls of
+      [] -> []
+      _ : rest -> let (body, rest') = break isFence rest in body : go (drop 1 rest')
+    isFence = T.isPrefixOf "```"
 
 -- The code blocks that start with %module, with the line of their start.
 completeGrammars :: Text -> [(Int, Text)]

@@ -159,7 +159,7 @@ ADR は `docs/adr/` に置く。
 - 書いた ADR はコミットせず、レビューを受ける
 - 採択されたら、ステータスを「採択」にしてコミットする
 - 採択したがまだ実装していない ADR（実装を複数の pull request に分けるときなど）は、ステータスを「採択（未実装）」にしてコミットし、実装を終えたら「採択」に変える。`adr-guard unimplemented` で、ステータスが「採択（未実装）」の ADR を一覧できる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）
-- 記法を変える ADR を採択するときは、同じコミットで `docs/syntax.md` を更新し、冒頭の「反映している ADR」の一覧に加える
+- 記法を変える ADR を採択するときは、同じコミットで `docs/syntax.md` と `docs/syntax.en.md` の両方を更新し、両方の冒頭の「反映している ADR」の一覧に加える
 - ADR で仕様が変わったら、`docs/specifications.md` と README（英語版と日本語版）も同時に更新する。この三つは main で常に最新でなければならない
 - 開発の進め方が変わったら、この文書（日本語版と英語版）も同時に更新する
 
@@ -225,7 +225,8 @@ peg-codegen のテストは、この範囲が `peg-codegen.cabal` の peg-runtim
 
 ### 文書の言語
 
-- ADR、仕様書（`docs/specifications.md`）、記法の解説（`docs/syntax.md`）は日本語で書く
+- ADR と仕様書（`docs/specifications.md`）は日本語で書く
+- 記法の解説は、日本語版（`docs/syntax.md`）と英語版（`docs/syntax.en.md`）の両方を置く
 - 公開するモジュールの Haddock は英語で書く
 - 各パッケージの `CHANGELOG.md` とリリースノートは英語で書く
 - README とこの文書は、英語版と日本語版の両方を同じ内容で更新する

@@ -93,7 +93,7 @@ Between `%{` and `}%` (a verbatim block) is Haskell that goes into the generated
 A rule without a type annotation and without values, such as `Sp`, has type `()`; rules with parameters and templates need one ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 `l:Expr` names a result (a binding), and `{ Add l r }` is an action.
 `$[0-9]+` takes the text it read (a `Text`) as its value.
-[docs/syntax.md](docs/syntax.md) explains the notation in detail (in Japanese).
+[docs/syntax.en.md](docs/syntax.en.md) explains the notation in detail.
 
 Generate the module with `peg-hs gen`.
 
@@ -686,7 +686,7 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 
 ## Documents
 
-- [docs/syntax.md](docs/syntax.md): the `.hpeg` notation, with examples (in Japanese)
+- [docs/syntax.en.md](docs/syntax.en.md): the `.hpeg` notation, with examples
 - [docs/specifications.md](docs/specifications.md): the specification of the product (in Japanese)
 - [docs/adr/](docs/adr/): the records of design decisions (ADRs), in Japanese. Each item of the specification can be traced to its decision.
 - [CONTRIBUTING.md](CONTRIBUTING.md): the development environment, tests, regenerating generated files, ADRs, commits and the release procedure
