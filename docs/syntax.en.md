@@ -269,7 +269,7 @@ The start rule is the rule specified with `%start`, or the rule defined first in
 Every rule must be reachable by following calls from the start rule, a rule of `%entry`, or a recovery rule of `%recover`.
 Leaving a rule that is not used is an error.
 
-Common mistakes:
+Common mistakes in the definitions and type annotations of rules:
 
 | Writing | Report |
 |---|---|
@@ -1071,8 +1071,10 @@ Col <- { c }
 
 Parsing `   a` gives the value `3`, the column just before `a`.
 
-In deciding indentation, there is a way of writing in which the reference column passed to a rule is "the column that the prefix would originally have consumed up to", not `_col` at a character boundary.
-Languages such as CommonMark, in which the prefix of a container consumes part of a tab, can be expressed in this way ([ADR 0018](adr/0018-tab-partial-consumption.md)).
+In deciding indentation, the reference column passed to a rule can be the logical column where a prefix ends, instead of `_col` at a character boundary.
+In CommonMark, the prefix of a container can end in the middle of a tab.
+A tab is one character, so `_col` can only be the column before or after the tab.
+If a rule computes the column where the prefix ends and passes it as an argument, the rest of the tab counts as the indentation of the content ([ADR 0018](adr/0018-tab-partial-consumption.md)).
 
 ## Turning off memoization
 
@@ -1226,7 +1228,7 @@ The name of the type is the rule name with its first letter in upper case, follo
 Haskell type names must start with an upper case letter, so a rule name that starts with a character without case, such as kanji, kana or `_`, gets `Rule'` before it (from `数式`, `Rule'数式Syntax` and `castRule'数式Syntax`).
 When two rules have the same type name (such as `expr` and `Expr`), it is an error in grammars with `%syntax` ([ADR 0053](adr/0053-type-names-of-rules-without-case.md)).
 
-| Common mistake | Report |
+| Writing | Report |
 |---|---|
 | A grammar with `%syntax` has `expr` and `Expr` | `error: the rules expr and Expr have the same type name ExprSyntax in the syntax tree; rename one of them` |
 
@@ -1285,7 +1287,8 @@ A rule meant to be used for typed values too, but whose type annotation was forg
 However, the value of that rule is `()`, so the code that uses the typed value (the action of the caller, or the user of the entry point) does not compile, and you notice it there.
 
 The cost of making the syntax tree does not change with this way of writing.
-On a JSON document of 800,000 characters, `parseSyntax` of this way of writing took about 1.6 times the time and about 1.1 times the peak live memory, compared with `parse` of a typed grammar without `%syntax` ([docs/benchmarks/2026-11-06-json-untyped-syntax.md](benchmarks/2026-11-06-json-untyped-syntax.md)).
+On a JSON document of 800,000 characters, `parseSyntax` of this way of writing took about 1.2 times both the time and the peak live memory, compared with `parse` of a typed grammar without `%syntax` ([docs/benchmarks/2026-11-06-json-generated-types.md](benchmarks/2026-11-06-json-generated-types.md)).
+An earlier measurement gave about 1.6 times the time and about 1.1 times the memory ([docs/benchmarks/2026-11-06-json-untyped-syntax.md](benchmarks/2026-11-06-json-untyped-syntax.md)).
 Since it does not build values, it is faster than `parseSyntax` of a grammar with `%syntax` that has type annotations and actions.
 When speed is needed, write type annotations and actions without `%syntax`.
 
@@ -1317,7 +1320,7 @@ Inline :: Inline
 Inline <- '[' name:$[a-z]+ (']' ^close) { Command name }
         / w:$[a-z ]+ { Words w }
 
-# Reads nothing. Regards it as closed at the end of the line
+# Reads nothing. Succeeds before the end of a line or of the input, and regards the command as closed without `]`
 CloseAtLineEnd <- &('\n' / !.)
 ```
 
@@ -1365,7 +1368,7 @@ Alternatives inside lookaheads are also checked, and the check ends where the fa
 The check is an approximation that judges mainly by the next character of the input, and may warn about safe labels.
 The following three are judged by looking further than one character ([ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)).
 
-- **Common prefixes across calls of rules**: if a later alternative starts with the same elements that the failed alternative had read so far, that part is removed before comparing. A call of a rule at the start of a later alternative is expanded into the alternatives of that rule for comparing. For parameterized rules, the formal parameters are replaced by the actual arguments, and calls whose arguments match as tokens are regarded as the same (such as when `Bad` and `Orphan` in `B(n) <- Bad(n) / Orphan(n)` both start with `Ind(n)`)
+- **Common prefixes across calls of rules**: if a later alternative starts with the same elements that the failed alternative had read so far, that part is removed before comparing. A call of a rule at the start of a later alternative is expanded into the alternatives of that rule for comparing. For parameterized rules, the formal parameters are replaced by the actual arguments, and calls whose arguments match as tokens are regarded as the same (such as when `BadIndent` and `OrphanDef` in the choice `BadIndent(ind) / OrphanDef(ind)` both start with `Ind(ind)`)
 - **Constant semantic predicates**: `&{ False }` and `!{ True }` are treated as never succeeding, and `&{ True }` and `!{ False }` as always succeeding
 - **Known prefixes**: if the failed alternative starts with a literal (or a rule whose alternatives are literals only), the fact that the input starts with that string is used to check whether a later alternative always fails on that input (`!'%%'` after `'%%'`, `'[' Ident` after `'[='`, and so on)
 
@@ -1423,7 +1426,7 @@ Near rules that judge characters with semantic predicates, and inside indirect l
 
 Inserted labels do not recover.
 For labels you want to recover, write `%recover` and a recovery rule.
-The code action "Add `%recover`" of the language server adds `%recover name Recover_name` and a template of a recovery rule that skips up to just before the next literal (or to the end of the line if there is none).
+The code action "Add `%recover`" of the language server adds `%recover name Recover_name` and a template of a recovery rule that skips up to just before the literal that follows the labelled expression in the same sequence (or up to just before the end of the line if there is none).
 The action of the template is the typed hole `{ _ }`, so compiling the generated module makes GHC show the type. Look at it and fill in the value.
 
 ### Two modes
