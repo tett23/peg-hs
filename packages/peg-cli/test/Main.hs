@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 -- | Tests of the peg-hs executable: the commands (ADR 0037), and the
 -- warnings, --Werror and --strip-labels of gen (ADR 0028).
@@ -41,6 +42,17 @@ import System.Directory (doesPathExist, emptyPermissions)
 import FileIO (utf8ErrorOffset, decodeUtf8File)
 import GhcVersion (supportedGhc)
 import EditDistance (editDistance)
+import Control.Exception (IOException, throwIO, try)
+import Data.IORef (modifyIORef', newIORef, readIORef)
+import System.Directory (createDirectory, createDirectoryLink, createFileLink, pathIsSymbolicLink)
+import System.IO (hFlush)
+import System.Process (terminateProcess)
+import System.Timeout (timeout)
+import WorkDir (createWorkDir, maxAttempts, withWorkDirIn)
+#if !defined(mingw32_HOST_OS)
+import qualified Data.Bits as Bits
+import System.Posix.Files (fileMode, getFileStatus, setFileCreationMask)
+#endif
 
 unsafe :: String
 unsafe = "%module M\nS :: ()\nS <- 'a' ('b' ^l) { () } / 'a' 'c' { () }\n"
@@ -898,6 +910,7 @@ main = do
               out <- BL.unpack <$> stdoutOf ["help", "gen"]
               assertBool out ("--export NAME" `isInfixOf` out)
           ]
+      , securityTests
       ]
 
 -- The export list of a generated module: from the module line to ") where".
@@ -926,3 +939,153 @@ skippedWithout :: FilePath -> TestName -> Assertion -> TestTree
 skippedWithout file name act = testCaseInfo name $ do
   exists <- doesPathExist file
   if exists then "" <$ act else pure ("skipped: " <> file <> " is not in a source archive")
+
+-- The fixes of the security audit of 2026-11-06 (ADR 0077).
+securityTests :: TestTree
+securityTests =
+  testGroup
+    "security fixes (ADR 0077)"
+    [ testGroup
+        "the walk of fmt and lint skips symbolic links (SEC-01)"
+        [ testCase "a link to a directory outside is not followed" $ do
+            root <- linkTree "sec-dir-link"
+            createDirectoryLink "../outside" (root </> "repo/linked")
+            assertOutsideKept root
+        , testCase "a link to a file outside is not followed" $ do
+            root <- linkTree "sec-file-link"
+            createFileLink "../outside/Victim.hpeg" (root </> "repo/Link.hpeg")
+            assertOutsideKept root
+        , testCase "with a cyclic link, fmt and lint end in 10 seconds, and take each file once" $ do
+            root <- linkTree "sec-loop"
+            let repo = root </> "repo"
+            createDirectoryLink "." (repo </> "loop")
+            r <- timeout (10 * 1000000) $ (,,) <$> pegHsIn repo ["fmt", "--check"] <*> pegHsIn repo ["lint"] <*> pegHsIn repo ["fmt"]
+            case r of
+              Nothing -> assertFailure "fmt and lint did not end in 10 seconds"
+              Just ((checkCode, checkOut, _), (lintCode, _, lintErr), (fmtCode, _, _)) -> do
+                (checkCode, checkOut) @?= (ExitFailure 1, "Own.hpeg\n")
+                (lintCode, lintErr) @?= (ExitSuccess, "")
+                fmtCode @?= ExitSuccess
+                readFile (repo </> "Own.hpeg") >>= (@?= formatted)
+        , testCase "a link given by name is followed" $ do
+            root <- linkTree "sec-named-file"
+            createFileLink "../outside/Victim.hpeg" (root </> "repo/Link.hpeg")
+            (code, _, _) <- pegHsIn (root </> "repo") ["fmt", "Link.hpeg"]
+            code @?= ExitSuccess
+            readFile (root </> "outside/Victim.hpeg") >>= (@?= lintedFormatted)
+            pathIsSymbolicLink (root </> "repo/Link.hpeg") >>= assertBool "the link stays a link"
+        , testCase "a directory given by name is walked through its link, but the links in it are not" $ do
+            root <- linkTree "sec-named-dir"
+            createDirectoryLink "../outside" (root </> "repo/linked")
+            createDirectoryIfMissing True (root </> "far")
+            writeFile (root </> "far/Far.hpeg") unformatted
+            createDirectoryLink "../far" (root </> "outside/far")
+            (code, out, _) <- pegHsIn (root </> "repo") ["fmt", "--check", "linked"]
+            (code, out) @?= (ExitFailure 1, "linked/Victim.hpeg\n")
+        ]
+    , testGroup
+        "the working directory of parse (SEC-03)"
+        [ testCase "it is made only for its owner (0700) under umask 022" $ do
+#if defined(mingw32_HOST_OS)
+            pure ()
+#else
+            parent <- treeWith "sec-workdir-mode" []
+            old <- setFileCreationMask 0o022
+            work <- createWorkDir (\_ -> pure "work") parent
+            _ <- setFileCreationMask old
+            mode <- fileMode <$> getFileStatus work
+            (mode Bits..&. 0o777) @?= 0o700
+#endif
+        , testCase "a name taken by a directory, a file or a link is not used, and another is made" $ do
+            parent <- treeWith "sec-workdir-taken" [("taken-file", "x")]
+            createDirectory (parent </> "taken-dir")
+            createDirectoryLink (parent </> "taken-dir") (parent </> "taken-link")
+            createFileLink (parent </> "nowhere") (parent </> "taken-dangling")
+            let names = ["taken-dir", "taken-file", "taken-link", "taken-dangling", "free"]
+            work <- createWorkDir (pure . (names !!)) parent
+            work @?= parent </> "free"
+            listDirectory (parent </> "taken-dir") >>= (@?= [])
+            readFile (parent </> "taken-file") >>= (@?= "x")
+            pathIsSymbolicLink (parent </> "taken-link") >>= assertBool "the link stays a link"
+            doesPathExist (parent </> "nowhere") >>= assertBool "the target of the dangling link is not made" . not
+        , testCase "when 100 names are taken, it fails" $ do
+            parent <- treeWith "sec-workdir-full" []
+            createDirectory (parent </> "taken")
+            calls <- newIORef (0 :: Int)
+            r <- try (createWorkDir (\_ -> modifyIORef' calls (+ 1) >> pure "taken") parent)
+            case r of
+              Left (_ :: IOException) -> pure ()
+              Right w -> assertFailure ("made " <> w)
+            readIORef calls >>= (@?= 100)
+            maxAttempts @?= 100
+        , testCase "it is removed after a success, a failure and an exception" $ do
+            parent <- treeWith "sec-workdir-removed" []
+            let names i = pure ("work-" <> show i)
+            ok <- withWorkDirIn names parent (\w -> writeFile (w </> "f") "x" >> pure True)
+            failed <- withWorkDirIn names parent (\w -> createDirectoryIfMissing True (w </> "src/A") >> pure False)
+            thrown <- try (withWorkDirIn names parent (\w -> writeFile (w </> "f") "x" >> throwIO (userError "boom")))
+            (ok, failed) @?= (True, False)
+            either (\(e :: IOException) -> show e) (const "no exception") thrown @?= "user error (boom)"
+            listDirectory parent >>= (@?= [])
+        , testCase "parse leaves nothing in the temporary directory when GHC fails" $ do
+            (_, e) <- parseEnv "sec-tmpdir"
+            tmp <- treeWith "sec-tmpdir-tmp" []
+            dir <- treeWith "sec-tmpdir" [("G.hpeg", filter (/= '\r') (replace "  deriving (Show)\n" "" exprGrammar)), ("in.txt", "1")]
+            let env' = ("TMPDIR", tmp) : [(k, v) | (k, v) <- e, k /= "TMPDIR"]
+            (code, _, _) <- readCreateProcessWithExitCode (proc "peg-hs" ["parse", "G.hpeg", "in.txt"]) {cwd = Just dir, env = Just env'} ""
+            code @?= ExitFailure 1
+            listDirectory tmp >>= (@?= [])
+        ]
+    , testGroup
+        "the limits of the language server (SEC-04)"
+        [ testCase "a header without its end over 64 KiB ends the server with 1, and the reason on stderr" $ do
+            r <- lspUntilExit (BC.pack ("Content-Length: 2\r\nX-Padding: " <> replicate 70000 'x'))
+            r @?= Just (ExitFailure 1, "peg-hs lsp: a message header longer than 65536 bytes\n")
+        , testCase "a Content-Length over 64 MiB ends the server with 1, and the reason on stderr" $ do
+            r <- lspUntilExit (BC.pack "Content-Length: 67108865\r\n\r\n")
+            r @?= Just (ExitFailure 1, "peg-hs lsp: a message body of 67108865 bytes, longer than 67108864 bytes\n")
+        ]
+    ]
+
+-- A directory with repo/Own.hpeg, unformatted, and outside/Victim.hpeg,
+-- unformatted and with a warning of the linter.
+linkTree :: String -> IO FilePath
+linkTree name = treeWith name [("repo/Own.hpeg", unformatted), ("outside/Victim.hpeg", linted)]
+
+-- In repo of a linkTree with a link to outside, fmt and lint without
+-- arguments see Own.hpeg only, and outside/Victim.hpeg is not changed.
+assertOutsideKept :: FilePath -> Assertion
+assertOutsideKept root = do
+  let repo = root </> "repo"
+  (checkCode, checkOut, _) <- pegHsIn repo ["fmt", "--check"]
+  (checkCode, checkOut) @?= (ExitFailure 1, "Own.hpeg\n")
+  (lintCode, _, lintErr) <- pegHsIn repo ["lint"]
+  (lintCode, lintErr) @?= (ExitSuccess, "")
+  (fmtCode, _, _) <- pegHsIn repo ["fmt"]
+  fmtCode @?= ExitSuccess
+  readFile (repo </> "Own.hpeg") >>= (@?= formatted)
+  readFile (root </> "outside/Victim.hpeg") >>= (@?= linted)
+
+-- The grammar linted, formatted.
+lintedFormatted :: String
+lintedFormatted = "%module M\n\nS :: Int\nS <- 'a'? { 1 }\n  / 'b' { 2 }\n"
+
+-- Run peg-hs lsp with bytes on its standard input, which is kept open, and
+-- wait 10 seconds for it to end: its exit code and standard error, or
+-- nothing if it did not end.
+lspUntilExit :: BS.ByteString -> IO (Maybe (ExitCode, String))
+lspUntilExit bytes = do
+  (Just i, Just o, Just er, ph) <- createProcess (proc "peg-hs" ["lsp"]) {std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
+  mapM_ (`hSetBinaryMode` True) [i, o, er]
+  -- The server may end before it has read all the bytes.
+  _ <- try (BS.hPut i bytes >> hFlush i) :: IO (Either IOException ())
+  r <- timeout (10 * 1000000) (waitForProcess ph)
+  case r of
+    Nothing -> do
+      terminateProcess ph
+      _ <- waitForProcess ph
+      pure Nothing
+    Just code -> do
+      err <- BS.hGetContents er
+      _ <- try (hClose i) :: IO (Either IOException ())
+      pure (Just (code, BC.unpack err))

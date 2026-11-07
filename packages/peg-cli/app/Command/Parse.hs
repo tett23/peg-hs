@@ -20,7 +20,6 @@ import Diagnostics (reportErrors)
 import Embedded (prettySource, runtimeSources)
 import FileIO (readUtf8, reportFileError)
 import GhcVersion (supportedGhc, supportedGhcText)
-import GHC.Clock (getMonotonicTimeNSec)
 import Numeric (showHex)
 import Options
 import Paths_peg_cli (version)
@@ -35,6 +34,7 @@ import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory, (</>))
 import System.IO (hPutStrLn, stderr, stdout)
 import ProcessBytes (readProcessBytes)
+import WorkDir (withWorkDir)
 
 parseCommand :: Command
 parseCommand =
@@ -153,14 +153,12 @@ fnv1a s =
       hex = showHex h ""
    in replicate (16 - length hex) '0' <> hex
 
--- Write the sources to a temporary directory and compile them into the
--- cache; report GHC's errors.
+-- Write the sources to a working directory of its own (ADR 0077) and
+-- compile them into the cache; report GHC's errors. The working directory
+-- is removed in any case.
 build :: FilePath -> Grammar -> FilePath -> Bool -> Maybe String -> [String] -> IO Bool
-build grammarFile g dir withAst entry ghcArgs = do
-  tmp <- getTemporaryDirectory
-  stamp <- getMonotonicTimeNSec
-  let work = tmp </> ("peg-hs-parse-" <> show stamp)
-      srcDir = work </> "src"
+build grammarFile g dir withAst entry ghcArgs = withWorkDir $ \work -> do
+  let srcDir = work </> "src"
       moduleName = T.unpack (unLoc (grammarModule g))
       modulePath = srcDir </> map (\c -> if c == '.' then '/' else c) moduleName <> ".hs"
       syntaxGrammar = g {grammarSyntax = Just (fromMaybe (Loc 1 1) (grammarSyntax g))}
@@ -182,7 +180,6 @@ build grammarFile g dir withAst entry ghcArgs = do
       -- Another peg-hs may be building the same parser: the executable
       -- appears in the cache at once, by a rename.
       when (status == ExitSuccess) $ renameFile (work </> "parser") exe
-      removeDirectoryRecursive work
       unless (status == ExitSuccess) $ do
         BS.hPut stderr (out <> err)
         let errText = T.unpack (TE.decodeUtf8Lenient err)

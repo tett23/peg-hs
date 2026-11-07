@@ -77,3 +77,19 @@ Since v0.1.0-rc2:
   Parsing a grammar allocates about 40 MB, and with the default area most
   of the time of an edit in `peg-hs lsp` went to garbage collection
   ([ADR 0070](https://github.com/tett23/peg-hs/blob/main/docs/adr/0070-faster-checks-in-the-language-server.md)).
+
+### Security
+
+Since v0.1.0-rc4:
+
+- `fmt` and `lint` without files, or with a directory, no longer follow
+  symbolic links to files or directories, so that they do not format files
+  outside the directory searched, and end on cyclic links. A file given by
+  name is still read and written through its link, and a directory given
+  by name is searched even if it is a link
+  ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
+- `peg-hs parse` makes its working directory by one `mkdir` with a random
+  name and, on POSIX, the permission 0700; a name that is taken is never
+  reused, and the directory is removed after a failure or an exception too.
+  The executable depends on `unix` on POSIX
+  ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
