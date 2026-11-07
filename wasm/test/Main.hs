@@ -146,6 +146,10 @@ analyzeTests =
           [("error", _, _, m)] -> assertBool (T.unpack m) ("undefined rule U" `T.isInfixOf` m && "3:6" `T.isInfixOf` m)
           ds -> assertFailure ("one error expected: " <> show ds)
         field "module" r @?= Null
+    , testCase "a predicate that refers to a binding on its right is an error at the name (ADR 0082)" $ do
+        let r = analyzeGrammar "%module A\nS :: Int\nS <- &{ y > 0 } y:N { y }\nN :: Int\nN <- [0-9] { 1 }\n"
+        map diagnostic (diagnostics r) @?= [("error", 3, 9, "the predicate refers to y, which is bound to its right")]
+        field "module" r @?= Null
     , testCase "an empty types for a grammar without generated types" $ do
         let r = analyzeGrammar "%module A\nS <- 'a'\n"
         textOf "types" r @?= ""

@@ -38,7 +38,7 @@ module Peg.Grammar.Templates
   , templateNotes
   ) where
 
-import Data.Char (isAlpha, isAlphaNum, isDigit, isSpace, isUpper)
+import Data.Char (isAlphaNum, isSpace)
 import Data.List (nub)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, mapMaybe)
@@ -429,42 +429,11 @@ exprChildren = \case
   EDiscard x -> [x]
   _ -> []
 
--- The variable names of a piece of Haskell code (ADR 0055). A qualified
--- name (M.x) is one name, and the text of string and character literals is
--- skipped. This is lexical: a name bound inside the code (\\x -> x) counts
--- too.
+-- The variable names of a piece of Haskell code (ADR 0055), read
+-- lexically by 'codeVariables' (ADR 0082): a name bound inside the code
+-- (\\x -> x) counts too.
 haskellIdents :: Text -> [Text]
-haskellIdents t = case T.uncons t of
-  Nothing -> []
-  Just (c, rest)
-    | c == '"' -> haskellIdents (skipString rest)
-    | c == '\'' -> haskellIdents (skipChar rest)
-    | isDigit c -> haskellIdents (T.dropWhile isIdent rest)
-    | isAlpha c || c == '_' -> let (n, rest') = qualified t in n : haskellIdents rest'
-    | otherwise -> haskellIdents rest
-  where
-    isIdent x = isAlphaNum x || x == '_' || x == '\''
-    qualified s =
-      let (n, rest) = T.span isIdent s
-       in case T.uncons rest of
-            Just ('.', after)
-              | Just (h, _) <- T.uncons n
-              , isUpper h
-              , Just (a, _) <- T.uncons after
-              , isAlpha a || a == '_' ->
-                  let (m, rest') = qualified after in (n <> "." <> m, rest')
-            _ -> (n, rest)
-    skipString s = case T.uncons s of
-      Nothing -> s
-      Just ('\\', r) -> skipString (T.drop 1 r)
-      Just ('"', r) -> r
-      Just (_, r) -> skipString r
-    -- A character literal; a quote that does not start one (a promoted
-    -- constructor or a quoted name) is skipped alone.
-    skipChar s = case T.unpack (T.take 2 s) of
-      ['\\', _] -> T.drop 1 (T.dropWhile (/= '\'') (T.drop 2 s))
-      [_, '\''] -> T.drop 2 s
-      _ -> s
+haskellIdents = map unLoc . codeVariables (Loc 1 1)
 
 -- A small state monad, so that peg-grammar keeps its dependencies.
 data St = St

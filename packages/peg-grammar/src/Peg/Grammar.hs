@@ -59,9 +59,11 @@ module Peg.Grammar
   , renderDiagnostic
     -- * Names in generated modules
   , syntaxTypeName
+    -- * Haskell code
+  , codeVariables
   ) where
 
-import Data.Char (isUpper, toUpper)
+import Data.Char (isAlpha, isAlphaNum, isDigit, isPunctuation, isSymbol, isUpper, toUpper)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -241,3 +243,102 @@ syntaxTypeName :: Text -> Text
 syntaxTypeName n = case T.uncons n of
   Just (c, rest) | isUpper (toUpper c) -> T.cons (toUpper c) rest <> "Syntax"
   _ -> "Rule'" <> n <> "Syntax"
+
+-- | The variables that a piece of Haskell code refers to, in order, with
+-- their locations, given the location of the first character of the code
+-- (ADR 0082). A variable is an identifier that does not start with an
+-- upper case letter and is not a reserved word of Haskell; a name in
+-- back quotes (@\`div\`@) counts. The reading is lexical, not a parse: a
+-- variable bound inside the code (@\\x -> x@) counts too. It skips
+--
+-- * string literals (@"..."@, with escapes) and character literals
+--   (@'a'@, @'\\n'@, @'\\''@); a quote inside an identifier (@x'@) is part
+--   of it,
+-- * line comments (@--@ to the end of the line, but not an operator such
+--   as @-->@) and nested block comments (@{- ... -}@),
+-- * qualified names (@M.x@, @Data.Map.lookup@), whose qualifier starts
+--   with an upper case letter,
+-- * the fields of a record field selection (@r.x@, with no space before
+--   the dot); the record is a variable.
+--
+-- Template Haskell quotations are read as code.
+--
+-- @
+-- codeVariables (Loc 3 8) " y > 0 " == [Located (Loc 3 9) "y"]
+-- @
+codeVariables :: Loc -> Text -> [Located Text]
+codeVariables start code = go (zip (scanl advance start chars) chars)
+  where
+    chars = T.unpack code
+    advance (Loc ln col) c
+      | c == '\n' = Loc (ln + 1) 1
+      | otherwise = Loc ln (col + 1)
+    -- The characters that remain, each with its location.
+    go [] = []
+    go s@((l, c) : rest)
+      | c == '"' = go (string rest)
+      | c == '\'' = maybe (go rest) go (charLiteral rest)
+      | c == '-', (dashes, after) <- span ((== '-') . snd) s, length dashes >= 2, not (startsSymbol after) = go (dropWhile ((/= '\n') . snd) after)
+      | c == '{', (_, '-') : after <- rest = go (blockComment (1 :: Int) after)
+      | isDigit c = go (dropWhile (isIdentChar . snd) rest)
+      | isIdentStart c =
+          let (name, after) = identifier s
+           in case after of
+                (_, '.') : after'@((_, d) : _)
+                  | isUpper c, isIdentStart d -> go (qualified after')
+                  | isUpper c, isSymbolChar d -> go (dropWhile (isSymbolChar . snd) after')
+                  | not (isUpper c), isIdentStart d, not (isUpper d) -> variable l c name ++ go (fields after')
+                _ -> variable l c name ++ go after
+      | otherwise = go rest
+    identifier s = let (xs, after) = span (isIdentChar . snd) s in (T.pack (map snd xs), after)
+    variable l c name
+      | isUpper c || name `elem` reservedWords = []
+      | otherwise = [Located l name]
+    isIdentStart c = isAlpha c || c == '_'
+    isIdentChar c = isAlphaNum c || c == '_' || c == '\''
+    isSymbolChar c = c `elem` ("!#$%&*+./<=>?@\\^|-~:" :: String) || (c > '\x7f' && (isSymbol c || isPunctuation c))
+    startsSymbol s = case s of
+      (_, c) : _ -> isSymbolChar c
+      [] -> False
+    -- The rest after the closing quote of a string literal.
+    string s = case s of
+      [] -> []
+      (_, '\\') : _ : r -> string r
+      (_, '"') : r -> r
+      _ : r -> string r
+    -- The rest after a character literal that starts after the quote, or
+    -- Nothing when the quote does not start one (a promoted constructor or
+    -- a quoted name of Template Haskell).
+    charLiteral s = case s of
+      (_, '\\') : _ : r -> Just (drop 1 (dropWhile ((/= '\'') . snd) r))
+      (_, c) : (_, '\'') : r | c /= '\n' -> Just r
+      _ -> Nothing
+    -- The rest after a block comment, given the depth of nesting.
+    blockComment depth s = case s of
+      [] -> []
+      (_, '-') : (_, '}') : r -> if depth == 1 then r else blockComment (depth - 1) r
+      (_, '{') : (_, '-') : r -> blockComment (depth + 1) r
+      _ : r -> blockComment depth r
+    -- The rest after the names and dots of a qualified name whose first
+    -- qualifier has been read, starting at the next name: M.x, M.N.x, M.+
+    qualified s@((_, c) : _) =
+      let (_, after) = identifier s
+       in case after of
+            (_, '.') : after'@((_, d) : _)
+              | isUpper c, isIdentStart d -> qualified after'
+              | isUpper c, isSymbolChar d -> dropWhile (isSymbolChar . snd) after'
+            _ -> after
+    qualified [] = []
+    -- The rest after the fields of a selection, starting at a field.
+    fields s =
+      let (_, after) = identifier s
+       in case after of
+            (_, '.') : after'@((_, d) : _) | isIdentStart d, not (isUpper d) -> fields after'
+            _ -> after
+
+-- The reserved words of Haskell 2010, which are not variables.
+reservedWords :: [Text]
+reservedWords =
+  [ "case", "class", "data", "default", "deriving", "do", "else", "foreign", "if", "import", "in"
+  , "infix", "infixl", "infixr", "instance", "let", "module", "newtype", "of", "then", "type", "where", "_"
+  ]

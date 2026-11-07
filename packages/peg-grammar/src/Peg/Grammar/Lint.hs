@@ -56,7 +56,7 @@ module Peg.Grammar.Lint
   , renderLintWarning
   ) where
 
-import Data.Char (isAlphaNum, isSpace)
+import Data.Char (isSpace)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -181,7 +181,7 @@ identityActionInfos g = case expandTemplates g of
         [bound] ->
           let unbound = [if itemLoc i == itemLoc bound then i {itemBind = Nothing} else i | i <- items]
            in all (\i -> itemBind i == Nothing || itemLoc i == itemLoc bound) items
-                && name `notElem` concatMap identifiers (concatMap (codesOf . itemExpr) items)
+                && name `notElem` concatMap variables (concatMap (codesOf . itemExpr) items)
                 && map itemLoc (countedItems units unbound) == [itemLoc bound]
         _ -> False
 
@@ -306,14 +306,14 @@ labelWarnings a = concatMap (expr False . itemExpr) (altItems a)
 -- With @%syntax@, a binding also names a child of the syntax tree and makes
 -- an accessor (ADR 0019), so no binding of such a grammar is unused.
 
--- A binding whose name is not an identifier of the action, the predicates
--- or the arguments of its alternative. Without an action, a binding that
+-- A binding whose name is not a variable of the action, the predicates or
+-- the arguments of its alternative. Without an action, a binding that
 -- chooses the value of the alternative (ADR 0030) is used, but for an
 -- alternative of a rule of type () whose value is () (ADR 0064).
 bindingWarnings :: Set Text -> Text -> Alt -> [LintWarning]
 bindingWarnings units rule a = concatMap (sequenceWarnings True) [altItems a]
   where
-    used = S.fromList (concatMap identifiers (maybe [] (pure . unLoc) (altAction a) ++ concatMap (codesOf . itemExpr) (altItems a)))
+    used = S.fromList (concatMap variables (maybe [] (pure . unLoc) (altAction a) ++ concatMap (codesOf . itemExpr) (altItems a)))
     sequenceWarnings top items =
       [ LintWarning l "unused-binding" ("the binding " <> n <> " is not used") ("remove " <> n <> ":") LevelWarning
       | (k, Item l (Just n) _) <- zip [0 :: Int ..] items
@@ -330,13 +330,10 @@ bindingWarnings units rule a = concatMap (sequenceWarnings True) [altItems a]
           positions is = map itemLoc (countedItems units is)
        in positions items == positions unbound
 
--- The identifiers of Haskell code, and the same without the quotes around
--- them. A name inside a string or a comment counts: the linter does not warn
--- when it cannot tell.
-identifiers :: Text -> [Text]
-identifiers code = concat [[t, T.dropAround (== '\'') t] | t <- T.split (not . identChar) code, not (T.null t)]
-  where
-    identChar c = isAlphaNum c || c == '_' || c == '\''
+-- The variables of Haskell code, read lexically (ADR 0082): a name inside
+-- a string, a character or a comment does not count.
+variables :: Text -> [Text]
+variables = map unLoc . codeVariables (Loc 1 1)
 
 -- The code of the predicates and arguments in an expression.
 codesOf :: Expr -> [Text]
