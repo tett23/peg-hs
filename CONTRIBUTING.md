@@ -34,12 +34,12 @@ After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enab
 adr-guard is a tool that checks that committed ADRs and benchmark records have not changed (see "ADRs and adr-guard").
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.8.3
+cargo install --git https://github.com/tett23/adr-guard --tag v0.10.0
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` is needed in every clone.
-Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)).
+Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)).
 
 The tests of the editor grammars (see "Tests of the editor grammars") need the LTS version of Node.
 
@@ -184,6 +184,9 @@ adr-guard links
 
 When `adr-guard links` exits with 0, every reference has its link.
 
+A reference to an ADR of another repository (such as `golem-parser ADR 0002` of Golem) is an external link whose text includes the qualifier (`golem-parser`): `[golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md)`.
+adr-guard takes a qualifier containing `-` as a module of this repository, and reports a reference whose module has no ADR directory and a qualifier left outside the link ([ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)).
+
 ### Records that do not change
 
 Benchmark records (`docs/benchmarks/`), conformance snapshots (`docs/conformance/`) and the records of the hand checks of the language server (`docs/editors/`) do not change after they are committed.
@@ -261,7 +264,7 @@ In a test job (`test-*`), the suites run one at a time.
 This gives each suite all the cores of the runner ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)).
 A new test suite goes to the job that keeps the jobs about the same length, from the latest CI timings in `docs/benchmarks/`.
 
-The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs and the benchmark records with adr-guard ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)).
+The **adr** job of `.github/workflows/adr.yml` runs on every change, documents included, and checks the ADRs, the benchmark records and duplicate ADR numbers with adr-guard ([ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)).
 
 `.github/workflows/release.yml` runs on a push of a tag starting with `v`, and makes a Release.
 What it does is in "Release procedure".

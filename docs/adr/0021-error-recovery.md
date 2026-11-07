@@ -11,13 +11,13 @@
 Golem の LSP の実装で、構文エラーを含む原稿からも構文木を得る必要が生まれた。
 Golem の側の要件は、Golem の ADR に次のように書かれている。
 
-- パーサーの型は `parse :: FileId -> Text -> (Node, [Diagnostic])` であり、読み込みの検査を通過した任意のテキストに対して必ず終了し、木を返す（golem-parser [ADR 0002](0002-standalone-code-generator.md) の全域性）
+- パーサーの型は `parse :: FileId -> Text -> (Node, [Diagnostic])` であり、読み込みの検査を通過した任意のテキストに対して必ず終了し、木を返す（[golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md) の全域性）
 - 木のテキストは、エラーを含む入力でも入力と一致する（同 ADR のロスレス性）
 - 構文エラーを見つけても解析を止めず、エラーの範囲を誤りのノード（`NErrorNode`）にまとめ、次のブロックの境界（空行）から再開する
 - 括弧の対応が崩れた場合は、段落の終わりで閉じたものとみなし、エラーを段落の外に広げない
-- エラーごとに Golem の診断（`G01xx` の診断コードと日本語のメッセージ）を返す（golem-syntax [ADR 0001](0001-bounded-left-recursion.md)）
+- エラーごとに Golem の診断（`G01xx` の診断コードと日本語のメッセージ）を返す（[golem-syntax ADR 0001](https://github.com/tett23/golem/blob/main/docs/golem-syntax/adr/0001-source-spans-and-diagnostics.md)）
 
-Golem は AST を peg-hs の型付きの値からではなく、構文木（CST）から自分で導出する（golem-parser [ADR 0001](0001-bounded-left-recursion.md)）。
+Golem は AST を peg-hs の型付きの値からではなく、構文木（CST）から自分で導出する（[golem-parser ADR 0001](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0001-cst-types-and-invariants.md)）。
 したがって Golem に必要なのは、誤りの範囲を誤りのノードとして含む構文木を必ず返すことである。
 型付きの値の回復は、構文木を使わない利用者のための機能として同時に定める。
 
@@ -134,7 +134,7 @@ CloseAtParagraphEnd <- &(BlankLine / !.) { () }
 
 - **全域性とロスレス性**：ラベルと回復の規則を付けた JSON の文法の派生版で、無作為な Unicode のテキストに対して `parseSyntaxRecover` が必ず終了し、構文木のテキストが入力と一致すること（プロパティテスト）
 - **言語の不変**：ラベルを付けた JSON の文法が、回復しないモードで、JSONTestSuite の受理すべき全件を受理し、拒否すべき全件を拒否すること。ラベルの付け方が安全であることの確認である
-- **回復の局所性**：Golem の段落の構造（空行で区切ったブロックと、角括弧のコマンド）を持つ fixture を用意し、正しい段落の間に壊れた段落を一つ挟んだ入力で、壊れた段落だけが `ERROR` ノードになり、前後の段落が正しく解析されること（golem-parser [ADR 0002](0002-standalone-code-generator.md) のテスト設計と同じ形）
+- **回復の局所性**：Golem の段落の構造（空行で区切ったブロックと、角括弧のコマンド）を持つ fixture を用意し、正しい段落の間に壊れた段落を一つ挟んだ入力で、壊れた段落だけが `ERROR` ノードになり、前後の段落が正しく解析されること（[golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md) のテスト設計と同じ形）
 - **挿入の回復**：閉じていない角括弧を段落の終わりで閉じたとみなし、幅が 0 の `ERROR` ノードと構文エラーが一つ記録され、後続の段落が正しく解析されること
 - **後戻りとエラー**：回復を含む選択肢が後戻りで捨てられる文法で、捨てた試行の中のエラーが報告されないこと
 - **選択と送出**：送出されたラベルで順序付き選択が次の選択肢を試さないこと。先読みの中の送出が通常の失敗になること
@@ -153,8 +153,8 @@ CloseAtParagraphEnd <- &(BlankLine / !.) { () }
 ## 実装の段階
 
 [ADR 0020](0020-unicode-identifiers-self-hosted.md) の後に置く。
-Golem の golem-parser [ADR 0002](0002-standalone-code-generator.md)（peg-hs によるパーサー本体）の前提になる。
-Golem の側は、本 ADR の API に合わせて golem-parser [ADR 0002](0002-standalone-code-generator.md) の「回復の方針」を具体化する。
+Golem の [golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md)（peg-hs によるパーサー本体）の前提になる。
+Golem の側は、本 ADR の API に合わせて [golem-parser ADR 0002](https://github.com/tett23/golem/blob/main/docs/golem-parser/adr/0002-parser-on-peg-hs.md) の「回復の方針」を具体化する。
 
 ## トレードオフ
 
