@@ -26,7 +26,8 @@ module Peg.Lsp
 
 import Control.Exception (IOException, try)
 import qualified Data.ByteString as BS
-import Peg.Lsp.Rpc (decodeFrames, encodeMessage)
+import qualified Data.Text.IO as TIO
+import Peg.Lsp.Rpc (decodeFrames, encodeMessage, renderFrameError)
 import Peg.Lsp.Server
 import System.IO
 
@@ -34,6 +35,11 @@ import System.IO
 -- or closes the input, and return the exit status: 0 after a @shutdown@
 -- request and 1 otherwise. Both handles are switched to binary mode; the
 -- messages are UTF-8.
+--
+-- A message over the limits of "Peg.Lsp.Rpc" ('Peg.Lsp.Rpc.maxHeaderLength',
+-- 'Peg.Lsp.Rpc.maxContentLength') ends the server with the status 1, after
+-- the messages before it are handled, and the reason is written to the
+-- standard error (ADR 0077).
 runServer :: Handle -> Handle -> IO Int
 runServer input output = do
   hSetBinaryMode input True
@@ -46,15 +52,17 @@ runServer input output = do
       if BS.null chunk
         then pure 1
         else do
-          let (frames, rest) = decodeFrames (buf <> chunk)
+          let (frames, decoded) = decodeFrames (buf <> chunk)
           handleAll st frames >>= \case
             Left code -> pure code
-            Right st' -> do
-              -- A message is on its way when part of it has been read or
-              -- more input is waiting; its diagnostics would be stale.
-              waiting <- if BS.null rest then inputWaiting else pure True
-              st'' <- if waiting then pure st' else send (publishPending st')
-              loop st'' rest
+            Right st' -> either stop (continue st') decoded
+    stop e = TIO.hPutStrLn stderr ("peg-hs lsp: " <> renderFrameError e) >> pure 1
+    continue st' rest = do
+      -- A message is on its way when part of it has been read or more
+      -- input is waiting; its diagnostics would be stale.
+      waiting <- if BS.null rest then inputWaiting else pure True
+      st'' <- if waiting then pure st' else send (publishPending st')
+      loop st'' rest
     handleAll st [] = pure (Right st)
     handleAll st (f : fs) = do
       let step = receiveFrame st f

@@ -70,3 +70,22 @@ Since v0.1.0-rc3:
   constructor name its type; a code action writes out the default
   constructor names of a rule
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
+### Changed
+
+Since v0.1.0-rc4:
+
+- `decodeFrames` returns the bytes left over, or a `FrameError` when a
+  message is over the limits `maxHeaderLength` (64 KiB) or
+  `maxContentLength` (64 MiB); `renderFrameError` gives its reason
+  ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
+
+### Security
+
+Since v0.1.0-rc4:
+
+- The language server keeps at most the limits of a message for a message
+  that has not arrived in full: a header without its end over 64 KiB, or a
+  `Content-Length` over 64 MiB, ends the server with the status 1 and the
+  reason on the standard error
+  ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
