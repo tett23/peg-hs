@@ -9,8 +9,11 @@ import qualified Data.Text.IO as TIO
 import Peg.Grammar
 import Peg.Grammar.Outline
 import Peg.Grammar.Parser (parseTops)
+import Control.Exception (SomeException, evaluate, try)
+import Peg.Grammar.Parser (parseGrammar)
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 
 recoveryTests :: [FilePath] -> TestTree
 recoveryTests files =
@@ -30,6 +33,26 @@ recoveryTests files =
             assertBool (show (length bad) <> " mutants, the first ones:\n" <> unlines (map T.unpack (take 2 bad))) (null bad)
         | f <- files
         ]
+    -- The mutants above are at about 50 positions of each file. These are
+    -- at any position; a failure shows the seed that finds it again
+    -- (ADR 0081).
+    , testProperty "the tree of a mutant at a random position is its text, and has its errors" $
+        withNumTests 100 $ ioProperty $ do
+          srcs <- mapM TIO.readFile files
+          pure $
+            forAll (elements (zip files srcs)) $ \(f, src) ->
+              forAll (choose (0, max 0 (T.length src - 1))) $ \i ->
+                forAll (elements [T.take i src <> T.drop (i + 1) src, T.take (i + 1) src <> T.drop i src]) $ \m ->
+                  counterexample (f <> " at " <> show i) (recovers m)
+    -- The grammar's parser and the parser with recovery end without an
+    -- exception on any text, and the tree of the latter is the text
+    -- (ADR 0035, ADR 0081).
+    , testProperty "the parsers of the notation end on any text, and the recovered tree is the text" $
+        forAll (T.pack <$> arbitrary) $ \t -> ioProperty $ do
+          r <- try (evaluate (forceGrammar (parseGrammar t) `seq` (recoveredText t, length (show (outline t)))))
+          pure $ case r of
+            Left (e :: SomeException) -> counterexample (show e) False
+            Right (text, n) -> n `seq` text === t
     , testCase "a valid grammar has no syntax errors" $ do
         srcs <- mapM TIO.readFile files
         [f | (f, src) <- zip files srcs, not (null (outlineSyntaxErrors (outline src)))] @?= []
@@ -46,6 +69,8 @@ recoveryTests files =
         [(refName r, locLine (refStart r), locColumn (refStart r)) | r <- outlineReferences o] @?= [("B", 5, 6), ("C", 5, 13), ("p", 8, 9), ("A", 2, 8)]
     ]
   where
+    recovers m = recoveredText m == m && not (either (const True) (const False) (parseTops m) && null (outlineSyntaxErrors (outline m)))
+    forceGrammar = either (\ds -> length (show ds)) (\g -> length (show g))
     broken =
       T.unlines
         [ "%module M"

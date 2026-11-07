@@ -26,7 +26,8 @@ import System.FilePath (takeExtension, (</>))
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck (counterexample, elements, forAll, testProperty, withNumTests)
+import Test.Tasty.QuickCheck (counterexample, elements, forAll, listOf, testProperty, withNumTests)
+import SyntaxInvariants (concatViolations, violations)
 
 dataDir :: FilePath
 dataDir = "data/toml-test"
@@ -96,6 +97,23 @@ main = do
           [ testCase "every input gives a lossless tree" $ do
               let bad = [f | (f, t) <- decoded, syntaxText (fst (Toml.parseSyntaxRecover t)) /= t]
               bad @?= []
+          -- The invariants of Peg.Runtime.Syntax (ADR 0081).
+          , testCase "the trees of every input keep the invariants, with and without recovery" $ do
+              let bad =
+                    [ (f, take 3 vs)
+                    | (f, t) <- decoded
+                    , let vs = either (const []) (violations t) (Toml.parseSyntax t) ++ violations t (fst (Toml.parseSyntaxRecover t))
+                    , not (null vs)
+                    ]
+              take 3 bad @?= []
+          , testCase "the join of the trees of two valid inputs keeps the invariants" $ do
+              let trees = [tree | (f, t) <- decoded, f `elem` valid, Right tree <- [Toml.parseSyntax t]]
+                  bad = [vs | (a, b) <- zip trees (drop 1 trees), let vs = concatViolations (syntaxKind a) a b, not (null vs)]
+              take 1 bad @?= []
+          , testProperty "the trees of any text near TOML keep the invariants" $
+              forAll (T.pack <$> listOf (elements "ab =.\"'[]{},#\n\r\t01-:+eE_\x3042\\")) $ \t ->
+                let vs = violations t (fst (Toml.parseSyntaxRecover t)) ++ either (const []) (violations t) (Toml.parseSyntax t)
+                 in counterexample (unlines vs) (null vs)
           , testCase "every input rejected by the grammar gives syntax errors near the failure" $ do
               let bad = [f | (f, t) <- decoded, f `elem` invalid, Left e <- [Toml.parse t], not (reportedNear t e (snd (Toml.parseSyntaxRecover t)))]
               bad @?= []

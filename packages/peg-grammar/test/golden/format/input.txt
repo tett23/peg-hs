@@ -1,6 +1,7 @@
-# A grammar written carelessly, for the formatter (ADR 0032).
+# A grammar written carelessly, for the formatter (ADR 0032). Some lines end
+# with CRLF or spaces, and blank lines follow the end (ADR 0081).
 %module   Example.Format   # the module
-%language OverloadedStrings
+%language OverloadedStrings   
 %{
 import Data.Text (Text)
 }%
@@ -10,7 +11,7 @@ import Data.Text (Text)
 # The start rule.
 Items  ::  [Text]
 Items<-is:Item*   { id is }
-Item :: Text
+Item :: Text  	
 
 Item <- w:$( [a-z]+ )  Sp   {id w}   # a word
    /  &[0-9]  n:$[0-9]+ Sp {   id n   }
@@ -26,4 +27,7 @@ Op<o> <- o  Sp {id ()}
 Rep<o>(a :: Int,b :: Int) :: ()
 Rep<o> <- o  &{ a <= b }  Sp {id ()}
 Sp <- [ \t\n]*   { id () }   # spaces
-# the end
+# the end   
+
+
+
