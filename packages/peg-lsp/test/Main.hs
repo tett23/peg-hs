@@ -4,12 +4,13 @@ module Main (main) where
 import Control.Exception (SomeException, evaluate, try)
 import Data.Bits (xor)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import Data.Char (isAlphaNum)
 import Data.List (sort, sortOn)
 import Data.Word (Word64)
 import Numeric (showHex)
-import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+import Data.Maybe (fromMaybe, isJust, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -47,6 +48,7 @@ main = do
           , testCase "a header without a length is an error, and the next message is read" $
               fst (decodeFrames ("X: 1\r\n\r\n" <> encodeMessage Null)) @?= [Left "a message header without Content-Length", Right "null"]
           ]
+      , securityTests
       , goldenVsString "a session" "test/golden/session.txt" (pure (BL.fromStrict (TE.encodeUtf8 (T.unlines (map renderJson (session sessionMessages))))))
       , testCase "UTF-16 positions count surrogate pairs" $ do
           -- U+1D465 is a letter outside the basic multilingual plane.
@@ -234,7 +236,7 @@ readAll :: [BS.ByteString] -> [Either Text Text]
 readAll = go BS.empty
   where
     go buf [] = fst (decodeFrames buf)
-    go buf (c : cs) = let (ms, rest) = decodeFrames (buf <> c) in ms ++ go rest cs
+    go buf (c : cs) = let (ms, rest) = decodeFrames (buf <> c) in ms ++ go (either (error . show) id rest) cs
 
 genSplits :: BS.ByteString -> Gen [BS.ByteString]
 genSplits b
@@ -543,3 +545,53 @@ grammarFiles = concat <$> mapM pegsIn dirs
       if exists
         then map (d </>) . sort . filter ((== ".hpeg") . takeExtension) <$> listDirectory d
         else pure []
+
+-- The fixes of the security audit of 2026-11-06 (ADR 0077).
+securityTests :: TestTree
+securityTests =
+  testGroup
+    "security fixes (ADR 0077)"
+    [ testCase "the server declares no capability that makes the client match glob patterns (SEC-02)" $ do
+        let caps = lastResult (session [initialize False]) >>= path ["capabilities"]
+        assertBool "capabilities" (isJust caps)
+        [k | k <- [["workspace", "fileOperations"], ["diagnosticProvider"], ["notebookDocumentSync"]], isJust (caps >>= path k)] @?= []
+    , testGroup
+        "the limits of a message (SEC-04)"
+        [ testCase "the limits are 64 KiB and 64 MiB" $
+            (maxHeaderLength, maxContentLength) @?= (65536, 67108864)
+        , testCase "a header of the limit, with its empty line, is read" $
+            decodeFrames (paddedHeader maxHeaderLength 2 <> "{}") @?= ([Right "{}"], Right "")
+        , testCase "a header one byte over the limit is an error" $
+            decodeFrames (paddedHeader (maxHeaderLength + 1) 2 <> "{}") @?= ([], Left HeaderTooLong)
+        , testCase "an unfinished header of the limit waits for the rest" $
+            let b = BS.take maxHeaderLength (paddedHeader (maxHeaderLength + 10) 2)
+             in decodeFrames b @?= ([], Right b)
+        , testCase "an unfinished header over the limit is an error" $
+            decodeFrames (BS.take (maxHeaderLength + 1) (paddedHeader (maxHeaderLength + 10) 2)) @?= ([], Left HeaderTooLong)
+        , testCase "a body of the limit is read, and waited for until it is complete" $ do
+            let header = "Content-Length: " <> BC.pack (show maxContentLength) <> "\r\n\r\n"
+                body = BS.replicate maxContentLength 0x61
+                (ms, rest) = decodeFrames (header <> body)
+            (map (fmap T.length) ms, rest) @?= ([Right maxContentLength], Right "")
+            let half = header <> BS.take (maxContentLength `div` 2) body
+            decodeFrames half @?= ([], Right half)
+        , testCase "a Content-Length over the limit is an error, before the body arrives" $
+            decodeFrames ("Content-Length: " <> BC.pack (show (maxContentLength + 1)) <> "\r\n\r\n") @?= ([], Left (BodyTooLong (fromIntegral maxContentLength + 1)))
+        , testCase "a Content-Length too large for an Int is an error" $
+            decodeFrames "Content-Length: 99999999999999999999999\r\n\r\n" @?= ([], Left (BodyTooLong 99999999999999999999999))
+        , testCase "the messages before an error are read" $
+            decodeFrames (encodeMessage Null <> "Content-Length: 67108865\r\n\r\n") @?= ([Right "null"], Left (BodyTooLong 67108865))
+        , testCase "the reasons name the limits" $
+            map renderFrameError [HeaderTooLong, BodyTooLong 67108865]
+              @?= [ "a message header longer than 65536 bytes"
+                  , "a message body of 67108865 bytes, longer than 67108864 bytes"
+                  ]
+        ]
+    ]
+
+-- A header of a body of a length, padded to a number of bytes with its
+-- empty line.
+paddedHeader :: Int -> Int -> BS.ByteString
+paddedHeader size len =
+  let start = "Content-Length: " <> BC.pack (show len) <> "\r\nX-Padding: "
+   in start <> BS.replicate (size - BS.length start - 4) 0x78 <> "\r\n\r\n"

@@ -48,6 +48,7 @@ executable peg-hs
     Paths_peg_cli
     Pretty
     ProcessBytes
+    WorkDir
   autogen-modules:
     Paths_peg_cli
   -- A large allocation area: parsing a grammar allocates about 40 MB, and
@@ -62,8 +63,12 @@ executable peg-hs
     , peg-codegen  >=0.1  && <0.2
     , peg-grammar  >=0.1  && <0.2
     , peg-lsp      >=0.1  && <0.2
-    , process      >=1.6  && <1.7
+    , process      >=1.6.12 && <1.7
     , text         >=2.0  && <2.2
+  -- The working directory of parse is made with the permission 0700 by
+  -- the mkdir of unix, which comes with GHC (ADR 0077).
+  if !os(windows)
+    build-depends: unix >=2.8 && <2.9
   default-language: GHC2021
   default-extensions: LambdaCase
 
@@ -77,6 +82,7 @@ test-suite peg-cli-test
     FileIO
     GhcVersion
     Pretty
+    WorkDir
   ghc-options:      -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N"
   build-tool-depends: peg-cli:peg-hs
   build-depends:
@@ -87,9 +93,11 @@ test-suite peg-cli-test
     , peg-grammar
     , peg-lsp
     , text
-    , process      >=1.6  && <1.7
+    , process      >=1.6.12 && <1.7
     , tasty        >=1.4  && <1.6
     , tasty-golden >=2.3  && <2.4
     , tasty-hunit  >=0.10 && <0.11
     , tasty-quickcheck >=0.10 && <0.12
+  if !os(windows)
+    build-depends: unix
   default-language: GHC2021

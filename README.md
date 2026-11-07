@@ -300,6 +300,9 @@ A directory among the arguments stands for the `.hpeg` files under it.
 Files with the old extension `.peg` are not looked for, since other PEG tools use it too; a file given by name is taken whatever its extension ([ADR 0050](docs/adr/0050-hpeg-extension.md)).
 Without arguments, `fmt` takes every `.hpeg` file under the current directory.
 Either way, directories whose name starts with `.` and `dist-newstyle` are skipped.
+The search does not follow symbolic links, to files or to directories, so it stays inside the directory it starts from and ends on cyclic links ([ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)).
+A file given by name is read and written through its link, and a directory given by name is searched even if it is a link, but the links inside it are skipped.
+To format a grammar placed by a link, name it.
 
 ### lint
 
@@ -312,7 +315,7 @@ Infos are shown only with `--verbose`, written with `info:` in place of `warning
 `omittable-identity-action` points at an action that only returns a binding, as in `'(' e:Expr ')' { e }`, where the alternative returns the same value without the binding and the action; it is not given in grammars with `%syntax`, where a binding also names an accessor of the syntax tree ([ADR 0065](docs/adr/0065-omittable-identity-actions.md)).
 `omittable-unit-annotation` points at a type annotation `A :: ()`, which a rule without a type annotation has anyway; it is not given for rules with parameters and templates ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 The language server reports infos with the severity Hint, which most editors show faintly.
-It chooses files as `fmt` does.
+It chooses files as `fmt` does, and its search does not follow symbolic links either ([ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)).
 
 ### label
 
@@ -377,6 +380,11 @@ To turn it off, set `"[hpeg]": { "editor.formatOnSave": false }` in your setting
 (cd editors/vscode && npm ci)
 ln -s "$PWD/editors/vscode" ~/.vscode/extensions/peg-hs
 ```
+
+`editors/vscode/package.json` overrides the version of minimatch, a dependency of vscode-languageclient, with `^11.0.1`, which fixes the denial of service [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249); vscode-languageclient itself still asks for `^10.2.6` ([ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)).
+minimatch 11 removed `makeRe()`, which vscode-languageclient calls only when the language server sends glob patterns: for file operations, diagnostic filters or notebook documents.
+`peg-hs lsp` declares none of these, and a test of peg-lsp fails if it starts to.
+The override goes away when vscode-languageclient accepts a fixed minimatch.
 
 ### Neovim (unchecked)
 
