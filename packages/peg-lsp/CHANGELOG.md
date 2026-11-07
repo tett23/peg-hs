@@ -89,3 +89,12 @@ Since v0.1.0-rc4:
   `Content-Length` over 64 MiB, ends the server with the status 1 and the
   reason on the standard error
   ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
+
+Since v0.1.0-rc5:
+
+- `parseJson` returns `Nothing` for JSON whose arrays and objects nest
+  deeper than 256 levels outside strings, found by a scan in linear time
+  before parsing; the server answers such a message with -32700 and reads
+  the next one. A grammar nested deeper than 256 levels gets its error as a
+  diagnostic, and formatting it gives no edits
+  ([ADR 0080](https://github.com/tett23/peg-hs/blob/main/docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).

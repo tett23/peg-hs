@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Turning the top-level items of a grammar file into a t'Grammar'.
@@ -91,7 +92,10 @@ directiveArg name raw = T.strip (if name == "env" then raw else T.takeWhile (/= 
 
 -- | Check the top-level items and build the grammar: the directives and
 -- their arguments, the pairing of each rule's type annotation with its
--- definition, and duplicate rules. The rules themselves are checked by
+-- definition, and duplicate rules. The values that the generated module
+-- has as written must be what they stand for: the value of @%module@ a
+-- module name, and the items of @%export@ items of an export list
+-- (ADR 0080). The rules themselves are checked by
 -- 'Peg.Grammar.Check.check'.
 assemble :: [Top] -> Either [Diagnostic] Grammar
 assemble items =
@@ -171,6 +175,17 @@ assemble items =
            , Located l x <- splitExports al a
            , not (isExtensionName x)
            ]
+        -- ADR 0080: the values that the generated module has as written
+        ++ [ Diagnostic al ("%module expects a module name, but got " <> a)
+           | ("module", al, a) <- argLocs
+           , not (T.null a)
+           , not (isModuleName a)
+           ]
+        ++ [ Diagnostic l ("%export expects export items, but got " <> x)
+           | ("export", al, a) <- argLocs
+           , Located l x <- splitExports al a
+           , not (isExportItem x)
+           ]
         -- ADR 0075
         ++ [ Diagnostic l ("%deriving expects class names, but got " <> x)
            | ("deriving", al, a) <- argLocs
@@ -231,6 +246,59 @@ isClassName t = not (T.null t) && all part (T.splitOn "." t)
     part p = case T.uncons p of
       Just (c, rest) -> isUpper c && T.all isIdentChar rest
       Nothing -> False
+
+-- A module name: parts separated by dots, each of which starts with an
+-- upper case letter, followed by letters, digits, @_@ and @'@ (ADR 0080).
+isModuleName :: Text -> Bool
+isModuleName = isClassName
+
+-- The lexical form of an item of an export list (ADR 0014, ADR 0080): a
+-- name that may be qualified, a type name followed by @(..)@ or by names
+-- and operators in parentheses, an operator in parentheses, any of them
+-- after @type@ or @pattern@, and @module@ with a module name. Spaces and
+-- tabs may separate the parts. A comment, a newline or @where@ fits none
+-- of these forms.
+isExportItem :: Text -> Bool
+isExportItem t = not (any (`T.isInfixOf` t) ["--", "{-", "-}"]) && maybe False null (item (tokens (T.unpack t)))
+  where
+    item = \case
+      "module" : m : rest | isModuleName (T.pack m) -> Just rest
+      kw : rest | kw `elem` ["type", "pattern"] -> plain rest
+      ts -> plain ts
+    -- A name with an optional list, or an operator in parentheses.
+    plain = \case
+      "(" : op : ")" : rest | isOperator op -> Just rest
+      n : "(" : ".." : ")" : rest | isTypeName n -> Just rest
+      n : "(" : rest | isTypeName n -> names rest
+      n : rest | isQualifiedName n -> Just rest
+      _ -> Nothing
+    -- The names and operators of a list, separated by commas, up to ")".
+    names ts = do
+      rest <- member ts
+      case rest of
+        "," : more -> names more
+        ")" : more -> Just more
+        _ -> Nothing
+    member = \case
+      "(" : op : ")" : rest | isOperator op -> Just rest
+      n : rest | isValidIdent (T.pack n) -> Just rest
+      _ -> Nothing
+    isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))
+    -- A variable or a type name, after a module name and a dot.
+    isQualifiedName n = case T.breakOnEnd "." (T.pack n) of
+      ("", name) -> isValidIdent name
+      (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
+    isOperator op = not (null op) && all isSymbolChar op
+    isSymbolChar c = c `elem` ("!#$%&*+./<=>?@\\^|-~:" :: String)
+    -- Parentheses and commas are tokens of their own, as is "..".
+    tokens = \case
+      [] -> []
+      c : cs
+        | c == ' ' || c == '\t' -> tokens cs
+        | c `elem` ("()," :: String) -> [c] : tokens cs
+        | otherwise ->
+            let (w, rest) = break (\x -> x `elem` (" \t()," :: String)) (c : cs)
+             in w : tokens rest
 
 -- Split export items at top-level commas.
 splitExports :: Loc -> Text -> [Located Text]

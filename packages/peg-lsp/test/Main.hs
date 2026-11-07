@@ -25,6 +25,7 @@ import Peg.Lsp.Server
 import System.Directory (doesDirectoryExist, doesPathExist, getTemporaryDirectory, listDirectory, removeFile)
 import System.FilePath (takeExtension, (</>))
 import System.IO (IOMode (..), withBinaryFile)
+import System.Timeout (timeout)
 import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
@@ -65,6 +66,7 @@ main = do
               fst (decodeFrames ("X: 1\r\n\r\n" <> encodeMessage Null)) @?= [Left "a message header without Content-Length", Right "null"]
           ]
       , securityTests
+      , auditFixTests
       , goldenVsString "a session" "test/golden/session.txt" (pure (BL.fromStrict (TE.encodeUtf8 (T.unlines (map renderJson (session sessionMessages))))))
       , testCase "UTF-16 positions count surrogate pairs" $ do
           -- U+1D465 is a letter outside the basic multilingual plane.
@@ -641,6 +643,54 @@ securityTests =
                   ]
         ]
     ]
+
+-- The fixes of the security audit of 2026-11-07 (ADR 0080).
+auditFixTests :: TestTree
+auditFixTests =
+  testGroup
+    "security fixes (ADR 0080)"
+    [ testGroup
+        "the nesting of JSON is limited to 256 levels (SEC-06)"
+        [ testCase "256 levels of arrays and objects are read" $ do
+            isJust (parseJson (arrays 256)) @?= True
+            isJust (parseJson (objects 256)) @?= True
+            isJust (parseJson (mixed 128)) @?= True
+        , testCase "257 levels are not JSON" $ do
+            parseJson (arrays 257) @?= Nothing
+            parseJson (objects 257) @?= Nothing
+            parseJson ("[" <> mixed 128 <> "]") @?= Nothing
+        , testCase "brackets in strings are not counted" $ do
+            let s = String (T.replicate 1000 "[{" <> "\"\\" <> T.replicate 1000 "{[")
+            parseJson (renderJson (Array [s])) @?= Just (Array [s])
+            parseJson ("[\"\\\"[[[\"," <> arrays 255 <> "]") @?= Just (Array [String "\"[[[", nested 255])
+        , testCase "closing brackets end the levels, and levels side by side are not added" $
+            isJust (parseJson ("[" <> T.intercalate "," (replicate 10 (arrays 255)) <> "]")) @?= True
+        , testCase "a nesting of 1,000,000 levels is not JSON, in a second" $ do
+            let deep = T.replicate 1000000 "[" <> T.replicate 1000000 "]"
+            _ <- evaluate (T.length deep)
+            r <- timeout 1000000 (evaluate (parseJson deep))
+            r @?= Just Nothing
+        ]
+    , testCase "the server answers a body of 257 levels with -32700, and the next message (SEC-06)" $ do
+        let st = stepState (handleMessage initialState (initialize False))
+            s1 = handleFrame st (Right (arrays 257))
+            s2 = handleMessage (stepState s1) (request 2 "textDocument/hover" (docAt 0 0))
+        [path ["error", "code"] m | m <- stepOutput s1] @?= [Just (int (-32700))]
+        [member "id" m | m <- stepOutput s2] @?= [Just (int 2)]
+    , testCase "a grammar of 257 levels gets a diagnostic, and formatting no edits (SEC-06)" $ do
+        let src = "%module M\nS <- " <> T.replicate 257 "(" <> "'a'" <> T.replicate 257 ")" <> "\n"
+            out = session [initialize False, open src, request 2 "textDocument/formatting" (object [("textDocument", object [("uri", String uri)]), ("options", object [])])]
+            diags = [d | m <- out, member "method" m == Just (String "textDocument/publishDiagnostics"), Just (Array ds) <- [path ["params", "diagnostics"] m], d <- ds]
+        [(path ["range", "start"] d, member "message" d) | d <- diags]
+          @?= [(Just (object [("line", int 1), ("character", int 261)]), Just (String "the expression nests deeper than 256"))]
+        lastResult out @?= Just (Array [])
+    ]
+  where
+    arrays n = T.replicate n "[" <> T.replicate n "]"
+    objects n = T.replicate n "{\"a\":" <> "1" <> T.replicate n "}"
+    mixed n = T.replicate n "[{\"k\":" <> "null" <> T.replicate n "}]"
+    nested :: Int -> Value
+    nested n = iterate (\v -> Array [v]) (Array []) !! (n - 1)
 
 -- A header of a body of a length, padded to a number of bytes with its
 -- empty line.

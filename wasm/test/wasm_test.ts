@@ -349,3 +349,44 @@ Deno.test("a request that is not UTF-8 gets only an error, and the wasm still wo
   }
   assertEquals(analyze({ grammar: calcGenerated }).diagnostics, []);
 });
+
+// The fixes of the security audit of 2026-11-07 (ADR 0080).
+
+// Call a function with a request and a length that may not be its length.
+const callWithLength = (name: "analyze" | "format", request: Uint8Array, length: number): string => {
+  const ex = reactor.exports;
+  const p = ex.malloc(request.length);
+  new Uint8Array(ex.memory.buffer, p, request.length).set(request);
+  const r = ex[name](p, length | 0);
+  ex.free(p);
+  const n = new DataView(ex.memory.buffer).getUint32(r, true);
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(ex.memory.buffer, r + 4, n));
+  ex.free(r);
+  return text;
+};
+
+Deno.test("a length outside the memory gets only an error, and the wasm still works (SEC-07)", () => {
+  const request = encode({ grammar: calcGenerated });
+  for (const name of ["analyze", "format"] as const) {
+    // The address is that of the next block of malloc, as in callWithLength.
+    const probe = reactor.exports.malloc(request.length);
+    reactor.exports.free(probe);
+    const beyond = reactor.exports.memory.buffer.byteLength - probe + 1;
+    for (const length of [-1, 0x7fffffff, beyond]) {
+      assertEquals(JSON.parse(callWithLength(name, request, length)), { error: "the request is outside the memory" }, `${name} ${length}`);
+    }
+  }
+  assertEquals(analyze({ grammar: calcGenerated }).diagnostics, []);
+  assert(format(calcGenerated).text !== null);
+});
+
+Deno.test("a grammar of 257 levels gets a diagnostic, and a request of 257 levels an error (SEC-06)", () => {
+  const grammar = `%module A\nS <- ${"(".repeat(257)}'a'${")".repeat(257)}\n`;
+  const expected = [{ severity: "error", line: 2, column: 262, message: "the expression nests deeper than 256" }];
+  assertEquals(analyze({ grammar }).diagnostics, expected);
+  assertEquals(format(grammar).diagnostics, expected);
+  const deep = new TextEncoder().encode(`{"grammar": ${"[".repeat(257)}${"]".repeat(257)}}`);
+  for (const name of ["analyze", "format"] as const) {
+    assertEquals(Object.keys(JSON.parse(reactor.call(name, deep))), ["error"]);
+  }
+});

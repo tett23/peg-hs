@@ -296,6 +296,18 @@ source-repository-package
 peg-hs gen grammar/Doc.hpeg --export parseSyntaxRecover --export nameOfSyntaxKind -o src/Doc/Parser.hs
 ```
 
+文法はコードである。
+ブロック、アクション、意味述語に書いた Haskell は、生成したモジュールをコンパイルして使うときに利用者の権限で動く。
+文法は、その Haskell を信頼できるときにだけ生成する。
+埋め込みのブロックの外の値も、生成したモジュールに入る。
+`%module` の値、`%export` の項目、文法のファイルと出力のファイルの名前である。
+peg-hs はこれらを検査し、Haskell の宣言として読める値を拒む（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
+`%module` にはモジュール名（`A.B.C`）を書く。
+`%export` にはエクスポートの一覧の項目を書く。
+受け付けるのは、修飾してもよい名前（`evalExpr`、`Expr`、`M.f`）、型の名前に `(..)` か括弧で囲んだ名前と演算子を続けたもの（`Expr(..)`、`Expr(Add, Mul)`）、括弧で囲んだ演算子（`(+++)`）、これらの前に `type` か `pattern` を付けたもの（`type (:+)`、`pattern P`）、`module` とモジュール名（`module Data.Text`）である。
+`--`、`{-`、`where` を含む項目のように、どの形にも当たらない項目は、その項目の位置の誤りになる。
+改行のような制御文字（U+0000 から U+001F と U+007F）を含むファイル名は 1 行 1 桁の誤りになり、何も書かない。
+
 ### fmt
 
 `fmt` は、文法を一つに固定した流儀で整形して上書きする（[ADR 0032](docs/adr/0032-grammar-formatter.md)）。
@@ -350,6 +362,7 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 エディタが起動するもので、手で動かすことはない。設定は次の節にある。
 打鍵が検査より速く、変更が続けて届いたときは、最後の版だけを検査して診断を送る（[ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)）。
 エディタは文書の変わった部分だけを送り、言語サーバーは変わった最上位の要素だけを解析し直す（[ADR 0071](docs/adr/0071-incremental-parsing-in-the-language-server.md)）。
+配列とオブジェクトの入れ子が 256 段より深い JSON のメッセージには、解析の誤り -32700 で応え、次のメッセージの処理を続ける（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
 
 ## エディタ
 
@@ -380,6 +393,10 @@ semantic tokens は、指示の引数の規則、ラベル、モジュールも�
 Marketplace にはまだ公開していないので、リポジトリから入れる。
 依存を入れ、拡張機能のディレクトリにリンクを張り、VS Code を再起動する。
 `peg-hs` が `PATH` にない場合は、設定 `peg-hs.path` で実行ファイルを指す。
+`peg-hs.path` は利用者の設定に書く。
+scope が `machine` なので、ワークスペースの設定（`.vscode/settings.json`）では変えられず、リポジトリが VS Code に任意の実行ファイルを動かさせることはできない（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
+言語サーバーは文法を読むだけで、文法の Haskell を動かさない。
+そのため拡張機能は、信頼していないワークスペース（制限モード）でも、利用者の設定の `peg-hs.path` で動く。
 拡張機能は言語 `hpeg` の `editor.formatOnSave` を有効にするので、保存のたびに文法が整形される。
 無効にするには、設定に `"[hpeg]": { "editor.formatOnSave": false }` を書く。
 
@@ -553,6 +570,7 @@ nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff07655326
 その領域は、先頭の 4 バイトが応答の長さ（バイト、リトルエンディアンの符号なし整数）で、その後に応答の JSON が UTF-8 で続く。
 要求の領域は関数が戻る前に写し終えるので、戻った後に解放してよい。応答の領域は、読んだ後に `free` で解放する。
 Haskell の例外が起きても wasm は止まらず、`{"error": "internal error: ..."}` を返す。
+長さが負のとき、または先頭から長さだけ進むと線形メモリの終わりを超えるときは、要求を読まずに `{"error": "the request is outside the memory"}` を返す（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
 
 ```js
 const { instance } = await WebAssembly.instantiateStreaming(fetch("peg-hs.wasm"), { wasi_snapshot_preview1: wasi });
@@ -606,6 +624,7 @@ call("analyze", { grammar: "%module Calc\n..." });
 `format` の要求は `{"grammar": "..."}` で、応答は `{"text": "...", "diagnostics": [...]}` である。
 `text` は `peg-hs fmt` が書くものと同じで、整形できなければ `null` になり、`diagnostics` に誤りが入る。
 要求が JSON でない、UTF-8 でない、`grammar` がない、欄の型が違う、のどれかのときは、`{"error": "..."}` だけを返す。
+配列とオブジェクトの入れ子が 256 段より深い要求は、JSON でないものとして扱う（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
 
 ### 構文木
 
@@ -678,8 +697,9 @@ GHC のランタイムと C ライブラリは、ほかにファイルとポー�
 - **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **型名の重なる規則**：`%syntax` の文法では規則ごとに型を作るので、`expr` と `Expr` のように同じ型名になる二つの規則は誤りになる。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも、そうした規則があれば扱えない（[ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)）
-- **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 21 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
+- **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 23 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
 - **規則の雛形**：雛形の引数は呼び出し元の引数を使えるが、呼び出し元の束縛は使えない。束縛の値は値の引数で渡す。雛形は `%entry`、`%start`、`%recover` の規則にできない（[ADR 0031](docs/adr/0031-rule-templates.md)、[ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)）
+- **式の入れ子**：式の入れ子は 256 段までである。群、前置と後置の演算子、ラベル、雛形の呼び出しが一段ずつ数える。上限を超えた式は、超えた段の位置で誤りになる。上限は変えられない（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）
 - **tree-sitter の文法**：アクションも要素もない選択肢（`S <- 'a' /`）を誤りにする。この選択肢は値を持たないので、`peg-hs gen` も必ず誤りにする。そのため、正しい文法を誤りと表示することはない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **TextMate の文法**：正規表現の規則なので、文脈に依存する区別（`A(x)` の呼び出しと `A (x)` の並び）は近似である。言語サーバーの semantic tokens は正確に区別する（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 - **エディタの設定**：上の三つのエディタの設定は、まだ手で確かめていない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）。VS Code の拡張機能は Marketplace にない

@@ -81,6 +81,7 @@ test-suite peg-grammar-test
     Recovery
     GeneratedTypes
     Shard
+    Security
     SelfHostedNoLabels
     TemplateParams
     Variables
