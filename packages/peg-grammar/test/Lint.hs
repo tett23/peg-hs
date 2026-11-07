@@ -227,6 +227,9 @@ warned =
   , ("a binding that is only a part of another identifier", "unused-binding", grammar ["S :: Int", "S <- x:B { xs }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding without an action", "unused-binding", grammar ["S :: Int", "S <- '(' x:B ')'", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding in a group", "unused-binding", grammar ["S :: ()", "S <- (x:B / 'c') { () }", "B :: ()", "B <- 'b' { () }"])
+  , ("a binding only in a string (ADR 0082)", "unused-binding", grammar ["S :: String", "S <- x:B { \"x\" }", "B :: Int", "B <- 'b' { 1 }"])
+  , ("a binding only in a character (ADR 0082)", "unused-binding", grammar ["S :: Char", "S <- x:B { 'x' }", "B :: Int", "B <- 'b' { 1 }"])
+  , ("a binding only in a comment (ADR 0082)", "unused-binding", grammar ["S :: Int", "S <- x:B { 1 {- x -} -- x", "  }", "B :: Int", "B <- 'b' { 1 }"])
   ]
 
 notWarned :: [(Text, Text)]
@@ -247,7 +250,8 @@ notWarned =
   , ("a binding in the action", grammar ["S :: Int", "S <- x:B { x }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding in a predicate", grammar ["S :: ()", "S <- x:B &{ x > 0 } { () }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding in an argument", grammar ["S :: ()", "S <- x:B C(x) { () }", "B :: Int", "B <- 'b' { 1 }", "C(n :: Int) :: ()", "C <- 'c' { () }"])
-  , ("a binding in a string", grammar ["S :: String", "S <- x:B { \"x\" }", "B :: Int", "B <- 'b' { 1 }"])
+  , ("a binding in a string and in the code (ADR 0082)", grammar ["S :: String", "S <- x:B { \"x\" ++ show x }", "B :: Int", "B <- 'b' { 1 }"])
+  , ("a binding in a quoted name (ADR 0082)", grammar ["S :: Int", "S <- x:B { 1 `const` x }", "B :: Int", "B <- 'b' { 1 }"])
   , ("a binding of a grammar with a syntax tree", "%module M\n%syntax\nS :: ()\nS <- x:B { () }\nB :: Int\nB <- 'b' { 1 }\n")
   , ("a binding that chooses the value", grammar ["S :: Maybe ()", "S <- Sp x:U? Sp", "U :: ()", "U <- 'u'", "Sp :: ()", "Sp <- ' '?"])
   ]

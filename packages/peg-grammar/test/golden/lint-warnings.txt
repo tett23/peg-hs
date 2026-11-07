@@ -26,6 +26,12 @@ a binding without an action
   G.hpeg:3:10: warning: the binding x is not used [unused-binding]; remove x:
 a binding in a group
   G.hpeg:3:7: warning: the binding x is not used [unused-binding]; remove x:
+a binding only in a string (ADR 0082)
+  G.hpeg:3:6: warning: the binding x is not used [unused-binding]; remove x:
+a binding only in a character (ADR 0082)
+  G.hpeg:3:6: warning: the binding x is not used [unused-binding]; remove x:
+a binding only in a comment (ADR 0082)
+  G.hpeg:3:6: warning: the binding x is not used [unused-binding]; remove x:
 literals only
   G.hpeg:3:11: info: the action can be omitted: the rule has type () and the alternative has no value [omittable-unit-action]; remove { () }
 a literal and a lookahead

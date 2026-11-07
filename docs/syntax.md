@@ -6,7 +6,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -474,6 +474,20 @@ Pair <- '(' a:Num ',' b:Num ')' { (a, b) }
 
 深い位置の値が欲しい場合は、規則を分けて束縛する。
 
+コードから見える束縛は、位置で決まる（[ADR 0082](adr/0082-static-check-of-binding-references.md)）。
+アクションからは、その選択肢の逐次の直下の束縛がすべて見える。
+意味述語と規則の引数からは、選択肢の逐次の直下の束縛のうち、その位置より左にあるものが見える。
+括弧の内側に書いた意味述語と引数からは、括弧より左にあるものが見える。
+括弧の内側の束縛は、生成コードが束縛しないので、どのコードからも見えない。
+規則の引数と予約束縛は、どこからでも見える。
+規則の中で束縛している名前を、見えない位置から参照すると、生成の前に誤りになる。
+誤りの位置は、コードの中の名前の位置である。
+規則の中で束縛していない名前（Prelude、import、verbatim ブロックの関数）は検査せず、生成モジュールのコンパイルで GHC が報告する。
+
+コードの中の名前は字句の水準で読む。
+文字列と文字のリテラル、行コメントとブロックコメント、修飾名（`M.x`）の中の名前と、レコードのフィールドの選択（`r.x`）のフィールドは、束縛の参照と見なさない。
+バッククォートで囲んだ名前（`` `div` ``）は参照と見なす。
+
 よくある誤り：
 
 | 書き方 | 報告 |
@@ -481,11 +495,16 @@ Pair <- '(' a:Num ',' b:Num ')' { (a, b) }
 | 値を持たない式に束縛した（`c:[a-z]`） | `error: cannot bind c: the expression has no value (capture the text with $)` |
 | 同じ名前を二度使った（`x:A x:A`） | `error: the binding x is used twice in this alternative` |
 | アンダースコアで始まる名前（`_x:A`） | `error: the binding _x is reserved: names starting with an underscore belong to the generator` |
+| 意味述語が右にある束縛を参照した（`&{ y > 0 } y:N`） | `error: the predicate refers to y, which is bound to its right` |
+| 規則の引数が右にある束縛か自分の束縛を参照した（`x:A(y) y:B`、`x:A(x)`） | `error: the argument refers to y, which is bound to its right` |
+| 括弧の内側の束縛を参照した（`(y:N) { y }`、`(y:N &{ y > 0 })*`） | `error: y is bound inside a group, which the code cannot see` |
+| ほかの選択肢の束縛を参照した（`x:N { x } / M { x }`） | `error: x is not bound in this alternative` |
 | 束縛した名前をどこでも使っていない | lint：`warning: the binding x is not used [unused-binding]; remove x:` |
 
 `c:[a-z]` は `c:$[a-z]` と書けば、一致した文字を `Text` として束縛できる。
 使っていない束縛の警告は、`%syntax` の文法では出ない。
 `%syntax` の文法では、束縛の名前が構文木の取り出し関数の名前にもなるためである。
+文字列やコメントの中にだけ名前を書いた束縛は、使っていない束縛である。
 
 ### 予約束縛
 

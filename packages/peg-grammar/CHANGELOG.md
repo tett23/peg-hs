@@ -119,6 +119,18 @@ Since v0.1.0-rc3:
   and `HClassName` of `Peg.Grammar.Highlight`
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
+Since v0.1.0-rc5:
+
+- The checks report a reference to a binding of the rule that the code
+  cannot see, at the name in the code: a predicate or an argument that
+  refers to a binding on its right (`the predicate refers to y, which is
+  bound to its right`), code that refers to a binding inside a group
+  (`y is bound inside a group, which the code cannot see`), and code
+  that refers to a binding of another alternative (`x is not bound in
+  this alternative`). `codeVariables` of `Peg.Grammar` reads the
+  variables of Haskell code lexically, with their locations
+  ([ADR 0082](https://github.com/tett23/peg-hs/blob/main/docs/adr/0082-static-check-of-binding-references.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:
@@ -145,6 +157,13 @@ Since v0.1.0-rc3:
   on it. `classUnknown` of `Classification` has the rules whose types
   depend on undefined rules
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
+
+Since v0.1.0-rc5:
+
+- The linter reads the code of actions, predicates and arguments with
+  `codeVariables`: a binding whose name is only in a string, a character
+  literal or a comment is `unused-binding`, which it was not before
+  ([ADR 0082](https://github.com/tett23/peg-hs/blob/main/docs/adr/0082-static-check-of-binding-references.md)).
 
 ### Fixed
 

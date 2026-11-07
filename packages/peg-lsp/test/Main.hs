@@ -83,6 +83,9 @@ main = do
               contents r = member "contents" r >>= member "value"
           map contents (drop 1 results) @?= [Just (String "```peg\nA :: ()\n```"), Just (String "```peg\nA :: ()\n```")]
       , generatedTypeTests
+      , testCase "a predicate that refers to a binding on its right is an error at the name (ADR 0082)" $
+          [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nS :: Int\nS <- &{ y > 0 } y:N { y }\nN :: Int\nN <- [0-9] { 1 }\n"]
+            @?= [(3, 9, "the predicate refers to y, which is bound to its right")]
       , testCase "a template call in a grammar without templates is an error (ADR 0052)" $
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose "%module M\nA :: ()\nA <- B<'x'> B { () }\nB :: ()\nB <- 'b' { () }\n"]
             @?= [(3, 6, "rule B is not a template")]

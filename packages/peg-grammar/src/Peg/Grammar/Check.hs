@@ -6,9 +6,10 @@
 -- 'check' is the check that decides whether code can be generated from a
 -- grammar: undefined rules, wrong numbers of arguments, unreachable rules,
 -- repetitions of expressions that can match the empty string, bindings and
--- alternatives without a value, rules that take parameters in left
--- recursion, names reserved for generated code, and the consistency of the
--- directives. On success it returns the t'Analysis' that the code generator
+-- alternatives without a value, references of code to bindings it cannot
+-- see (ADR 0082), rules that take parameters in left recursion, names
+-- reserved for generated code, and the consistency of the directives. On
+-- success it returns the t'Analysis' that the code generator
 -- needs. It takes a grammar whose templates have been expanded by
 -- 'Peg.Grammar.Templates.expandTemplates'.
 --
@@ -123,6 +124,7 @@ checkRules g firstRule =
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
         ++ concatMap (altErrors units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
+        ++ concatMap bindingReferenceErrors rules
         ++ constructorErrors g classes
         ++ paramLrErrors
         ++ syntaxNameErrors g
@@ -427,6 +429,74 @@ altErrors units discarding valued unknown r = concatMap alt (ruleAlts r)
       ECapture x -> exprGroupErrors x
       ELabel _ x _ -> exprGroupErrors x
       EDiscard x -> exprGroupErrors x
+      _ -> []
+
+-- References to bindings ----------------------------------------------------------
+
+-- The references of the code of a rule to bindings of the rule that the
+-- code cannot see (ADR 0082): the names that the generated code binds
+-- where the code is. The code sees the parameters of the rule; an action
+-- sees the bindings of the sequence of its alternative, and a predicate
+-- or an argument sees the bindings of that sequence on its left, from
+-- inside a group those on the left of the group. The generated code does
+-- not bind the names bound inside a group (ADR 0026), so no code sees
+-- them. A name that no binding of the rule has is not checked: it may be
+-- a function of the Prelude, of an import or of a verbatim block.
+bindingReferenceErrors :: Rule -> [Diagnostic]
+bindingReferenceErrors r = concatMap alt (ruleAlts r)
+  where
+    params = S.fromList (map paramName (ruleParams r))
+    allBound = S.fromList (concatMap (boundIn . altItems) (ruleAlts r))
+    alt a =
+      let top = altItems a
+          topBound = S.fromList [n | Item _ (Just n) _ <- top]
+          inAlt = S.fromList (boundIn top)
+          action = [("action", topBound, c) | Just c <- [altAction a]]
+       in [ Diagnostic l (message kind n topBound inAlt)
+          | (kind, left, Located l0 code) <- action ++ codes top
+          , Located l n <- codeVariables l0 code
+          , S.notMember n params
+          , S.member n allBound
+          , S.notMember n left
+          ]
+    message kind n topBound inAlt
+      | S.member n topBound = "the " <> kind <> " refers to " <> n <> ", which is bound to its right"
+      | S.member n inAlt = n <> " is bound inside a group, which the code cannot see"
+      | otherwise = n <> " is not bound in this alternative"
+    -- The predicates and arguments of the sequence of an alternative, each
+    -- with its kind and the bindings on its left.
+    codes items =
+      concat
+        [ exprCodes (S.fromList [n | Item _ (Just n) _ <- take k items]) (itemExpr i)
+        | (k, i) <- zip [0 ..] items
+        ]
+    exprCodes left = \case
+      EPred _ c -> [("predicate", left, c)]
+      ERef _ _ args -> [("argument", left, c) | c <- args]
+      ETemplate _ _ args vs -> [("argument", left, c) | c <- vs] ++ concatMap (exprCodes left) args
+      EGroup alts -> concatMap (concatMap (exprCodes left . itemExpr)) alts
+      EStar x -> exprCodes left x
+      EPlus x -> exprCodes left x
+      EOpt x -> exprCodes left x
+      EAnd x -> exprCodes left x
+      ENot x -> exprCodes left x
+      ECapture x -> exprCodes left x
+      ELabel _ x _ -> exprCodes left x
+      EDiscard x -> exprCodes left x
+      _ -> []
+    -- The bindings of a sequence, inside its groups too.
+    boundIn items = concat [maybe [] pure (itemBind i) ++ exprBound (itemExpr i) | i <- items]
+    exprBound = \case
+      EGroup alts -> concatMap boundIn alts
+      ETemplate _ _ args _ -> concatMap exprBound args
+      EStar x -> exprBound x
+      EPlus x -> exprBound x
+      EOpt x -> exprBound x
+      EAnd x -> exprBound x
+      ENot x -> exprBound x
+      ECapture x -> exprBound x
+      ELabel _ x _ -> exprBound x
+      EDiscard x -> exprBound x
       _ -> []
 
 -- The rules whose types are inferred or generated (ADR 0075).

@@ -939,7 +939,54 @@ compileTests =
               , "             }"
               ]
         assertEqual err ExitSuccess ex
+    , testGroup
+        "the check of the references to bindings agrees with GHC (ADR 0082)"
+        ( [ skippedWithout "../peg-runtime/src" (T.unpack name <> " is out of scope at " <> at) $ do
+              (ex, err) <- typecheckUnchecked file name src
+              ex @?= ExitFailure 1
+              assertBool ("expected 'Variable not in scope: " <> T.unpack name <> "' at " <> at <> "\n" <> err) (("Variable not in scope: " <> T.unpack name) `isInfixOf` err && at `isInfixOf` err)
+          | (file, name, col, src) <- outOfScope
+          , let at = file <> ".hpeg:3:" <> show (col :: Int)
+          ]
+            ++ [ skippedWithout "../peg-runtime/src" (T.unpack (T.strip (T.lines src !! 2)) <> " compiles") $ do
+                   (ex, err) <- typecheck file src
+                   assertEqual err ExitSuccess ex
+               | (file, src) <- inScope
+               ]
+        )
     ]
+  where
+    -- The grammars of the errors of ADR 0082 fail the check, so they are
+    -- generated with the name written as pegUnchecked, which no rule binds,
+    -- and the name is put back in the module. The generator copies the code
+    -- as written, so the module is the one of the grammar with the name.
+    typecheckUnchecked file name src = do
+      tmp <- getTemporaryDirectory
+      let dir = tmp </> "peg-codegen-test"
+          opts = Options {optSourceName = file <> ".hpeg", optOutputName = file <> ".hs", optDebugEntry = False, optExports = Nothing}
+      createDirectoryIfMissing True dir
+      case generateFromSource opts src of
+        Left ds -> assertFailure (show ds) >> pure (ExitFailure 1, "")
+        Right code -> do
+          TIO.writeFile (dir </> file <> ".hs") (T.replace "pegUnchecked" name code)
+          (ex, _, err) <- readProcessWithExitCode ghc ["-fno-code", "-i../peg-runtime/src", "-outputdir", dir </> "out", dir </> file <> ".hs"] ""
+          pure (ex, err)
+    outOfScope =
+      [ ("Unchecked1", "y", 9, g "Unchecked1" "S :: Int\nS <- &{ pegUnchecked > 0 } y:N { y }")
+      , ("Unchecked2", "y", 10, g "Unchecked2" "S :: Int\nS <- x:A(pegUnchecked) y:N { x }\nA(k :: Int) :: Int\nA <- 'a' { k }")
+      , ("Unchecked3", "x", 10, g "Unchecked3" "S :: Int\nS <- x:A(pegUnchecked) N { x }\nA(k :: Int) :: Int\nA <- 'a' { k }")
+      , ("Unchecked4", "y", 14, g "Unchecked4" "S :: Int\nS <- (y:N) { pegUnchecked }")
+      , ("Unchecked5", "x", 26, g "Unchecked5" "S :: Int\nS <- x:N { x } / 'm' N { pegUnchecked }")
+      , ("Unchecked6", "x", 14, g "Unchecked6" "S :: Int\nS <- (y:N &{ pegUnchecked > 0 })* x:N { x }")
+      , ("Unchecked7", "y", 18, g "Unchecked7" "S :: Int\nS <- x:N (y:N &{ pegUnchecked > 0 })* { x }")
+      , ("Unchecked8", "y", 21, g "Unchecked8" "S :: Int\nS <- x:N ys:(y:N &{ pegUnchecked > 0 })* { x + length ys }")
+      ]
+    inScope =
+      [ ("Scoped1", g "Scoped1" "S :: Int\nS <- x:N (y:N &{ x > 0 })* { x }")
+      , ("Scoped2", g "Scoped2" "%env Int\nS :: Int\nS <- A(1)\nA(k :: Int) :: Int\nA <- &{ _env > k && _col >= 0 } x:N y:N &{ x > k } { x + y + k }")
+      , ("Scoped3", g "Scoped3" "S :: Int\nS <- x:N { x + length \"y\" + fromEnum 'y' -- y\n  + y' + length ys {- y {- y -} -} } / y:N { y }\n%{\ny' :: Int\ny' = 1\nys :: [Int]\nys = []\n}%")
+      ]
+    g name body = "%module " <> T.pack name <> "\n" <> body <> "\nN :: Int\nN <- [0-9] { 1 }\n"
 
 -- ADR 0016 ---------------------------------------------------------------------
 

@@ -25,6 +25,7 @@ import Test.Tasty.Options (OptionDescription (Option))
 import Ranges (rangeTests)
 import Recovery (recoveryTests)
 import TemplateParams (templateParamTests)
+import Variables (variableTests)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -53,6 +54,8 @@ main = do
       , templateTests
       , templateParamTests
       , analysisTests
+      , bindingReferenceTests files
+      , variableTests
       , repositoryGrammarTests files
       , errorReportTests
       , labelTests files
@@ -582,6 +585,53 @@ analysisTests =
         g <- parseOk "%module M\nA :: ()\nA <- !A 'a' { () }\n"
         fmap analysisLeftRecursive (either (Left . show) Right (check g)) @?= Right (S.fromList ["A"])
     ]
+
+-- ADR 0082: a reference to a binding of the rule that the code cannot see
+-- is an error at the name in the code.
+bindingReferenceTests :: [FilePath] -> TestTree
+bindingReferenceTests files =
+  testGroup
+    "references to bindings (ADR 0082)"
+    [ testCase "a predicate refers to a binding on its right" $
+        errorsAt (g "S :: Int\nS <- &{ y > 0 } y:N { y }") @?= [(3, 9, "the predicate refers to y, which is bound to its right")]
+    , testCase "an argument refers to a binding on its right" $
+        errorsAt (g "S :: Int\nS <- x:A(y) y:N { x }\nA(k :: Int) :: Int\nA <- 'a' { k }") @?= [(3, 10, "the argument refers to y, which is bound to its right")]
+    , testCase "an argument refers to its own binding" $
+        errorsAt (g "S :: Int\nS <- x:A(x) N { x }\nA(k :: Int) :: Int\nA <- 'a' { k }") @?= [(3, 10, "the argument refers to x, which is bound to its right")]
+    , testCase "an action refers to a binding inside a group" $
+        errorsAt (g "S :: Int\nS <- (y:N) { y }") @?= [(3, 14, "y is bound inside a group, which the code cannot see")]
+    , testCase "a predicate refers to a binding inside a group on its left" $
+        errorsAt (g "S :: Int\nS <- (y:N) &{ y > 0 } x:N { x }") @?= [(3, 15, "y is bound inside a group, which the code cannot see")]
+    , testCase "an action refers to a binding of another alternative" $
+        errorsAt (g "S :: Int\nS <- x:N { x } / 'm' N { x }") @?= [(3, 26, "x is not bound in this alternative")]
+    , testCase "a predicate in a group refers to a binding on the right of the group" $
+        errorsAt (g "S :: Int\nS <- (y:N &{ x > 0 })* x:N { x }") @?= [(3, 14, "the predicate refers to x, which is bound to its right")]
+    , testCase "a value argument of a template refers to a binding on its right" $
+        expandedErrorsAt (g "S :: Int\nS <- T<'a'>(y) y:N { y }\nT<p>(n :: Int) :: Int\nT<p> <- p { n }") @?= [(3, 13, "the argument refers to y, which is bound to its right")]
+    , testCase "each reference is an error" $
+        errorsAt (g "S :: Int\nS <- &{ y > 0 && y < 9 } y:N { y }") @?= [(3, 9, "the predicate refers to y, which is bound to its right"), (3, 18, "the predicate refers to y, which is bound to its right")]
+    , testCase "a predicate in a group refers to a binding of the group on its left, which the generated code does not bind" $
+        errorsAt (g "S :: Int\nS <- x:N (y:N &{ x > 0 && y > 0 })* { x }") @?= [(3, 27, "y is bound inside a group, which the code cannot see")]
+    , testCase "a predicate in a group refers to a binding on the left of the group" $
+        errorsAt (g "S :: Int\nS <- x:N (y:N &{ x > 0 })* { x }") @?= []
+    , testCase "an action refers to the bindings of its alternative, and a predicate to the parameters and the reserved bindings" $
+        errorsAt (g "%env Int\nS :: Int\nS <- A(1)\nA(k :: Int) :: Int\nA <- &{ _env > k && _col >= 0 } x:N y:N &{ x > k } { x + y + k }") @?= []
+    , testCase "the name of a binding of another alternative in a string, a character, comments, a qualified name, a field and other identifiers" $
+        errorsAt (g "S :: Int\nS <- x:N { x + length \"y\" + fromEnum 'y' -- y\n  + M.y + r.y + y' + length ys {- y {- y -} -} } / y:N { y }") @?= []
+    , testCase "names that are not bound in the rule are not checked" $
+        errorsAt (g "%{\nf :: Int -> Int\nf = id\n}%\nS :: Int\nS <- &{ f show > 0 } x:N { f x + show y }") @?= []
+    , testCase "the grammars of the repository pass the check" $ do
+        bad <- filterM (\f -> (/= []) . expandedErrorsAt <$> TIO.readFile f) files
+        bad @?= []
+    ]
+  where
+    g body = "%module M\n" <> body <> "\nN :: Int\nN <- [0-9] { 1 }\n"
+    errorsAt src = case parseGrammar src >>= check of
+      Left ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- ds]
+      Right _ -> []
+    expandedErrorsAt src = case parseGrammar src of
+      Left ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- ds]
+      Right g0 -> either (\ds -> [(locLine l, locColumn l, m) | Diagnostic l m <- templateNotes g0 ds]) (const []) (expandTemplates g0 >>= check)
 
 -- Every complete grammar in the documents (a code block that starts with
 -- %module) parses and passes the checks (ADR 0046). Fragments are not

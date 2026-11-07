@@ -83,6 +83,7 @@ test-suite peg-grammar-test
     Shard
     SelfHostedNoLabels
     TemplateParams
+    Variables
   build-depends:
     , base
     , bytestring
