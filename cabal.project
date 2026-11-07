@@ -7,6 +7,9 @@ packages:
   packages/peg-codegen
   packages/peg-cli
   packages/peg-lsp
+  -- The setup hooks of ADR 0085. examples/hooks, which uses them, has a
+  -- cabal.project of its own: CI builds it in the job hooks.
+  packages/peg-hooks
   conformance
   -- The library and tests of the wasm reactor (ADR 0078). The reactor
   -- itself is built with cabal.project.wasm.

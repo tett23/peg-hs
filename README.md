@@ -251,6 +251,92 @@ A generated module also exports:
 The Haddock of `Peg.Codegen` (peg-codegen) and `Peg.Runtime` (peg-runtime) has the full list.
 `gen --export` narrows the entry points and the names of `%syntax` to those a program uses ([ADR 0061](docs/adr/0061-select-generated-exports.md)).
 
+## Generating the module in the build
+
+Instead of generating the module with `peg-hs gen` and committing it, a cabal package can generate it in its own build, with the package peg-hooks ([ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
+The build then needs no `peg-hs` executable.
+The two ways differ in what the repository has:
+
+- **Committing the module**: the repository has the generated module, and its diff can be reviewed. Any build tool can build the package, and `peg-hs` is needed only to generate the module again.
+- **Generating in the build**: the repository has the grammar only, and the build generates the module again when the grammar changes. It needs `build-type: Hooks` of Cabal 3.14 or later.
+
+The `.cabal` file of the package sets `build-type: Hooks`, and names peg-hooks in `custom-setup`.
+The generated module goes in `autogen-modules`, as well as in `other-modules` or `exposed-modules`.
+
+```cabal
+cabal-version:      3.14
+name:               calc
+version:            0.1.0.0
+build-type:         Hooks
+extra-source-files: grammar/Calc.hpeg
+
+custom-setup
+  setup-depends:
+    , base
+    , Cabal-hooks  >=3.14 && <3.17
+    , peg-hooks    >=0.1  && <0.2
+
+executable calc
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  other-modules:    Calc.Parser
+  autogen-modules:  Calc.Parser
+  build-depends:
+    , base
+    , peg-runtime  >=0.1 && <0.2
+    , text
+  default-language: GHC2021
+```
+
+`SetupHooks.hs`, next to the `.cabal` file, gives each grammar with the name of its module.
+The name must be the one of `%module` in the grammar; otherwise the build stops with an error at `%module`.
+To use other hooks too, join them with `<>`.
+
+```haskell
+module SetupHooks (setupHooks) where
+
+import Distribution.Simple.SetupHooks (SetupHooks)
+import Peg.Hooks (Grammar (..), pegSetupHooks)
+
+setupHooks :: SetupHooks
+setupHooks = pegSetupHooks [Grammar "grammar/Calc.hpeg" "Calc.Parser"]
+```
+
+cabal builds a setup script of its own for `build-type: Hooks`, but `cabal check` wants a `Setup.hs`.
+Put the same one as cabal's.
+
+```haskell
+module Main (main) where
+
+import Distribution.Simple (defaultMainWithSetupHooks)
+import SetupHooks (setupHooks)
+
+main :: IO ()
+main = defaultMainWithSetupHooks setupHooks
+```
+
+`cabal.project` points at peg-hooks and the packages it depends on, peg-codegen and peg-grammar, as well as peg-runtime.
+peg-hooks is in the releases after v0.1.0-rc6.
+
+```cabal
+packages: .
+
+source-repository-package
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  tag:      v0.1.0-rc7
+  subdir:   packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-hooks
+```
+
+Before each component is built, a rule of peg-hooks reads the grammar, checks it as `peg-hs gen` does, and writes the module to the autogen directory of the component.
+An error in the grammar stops the build, as `grammar/Calc.hpeg:20:28: error: ...`, and GHC reports a type error of an action at the line of the grammar.
+The warnings about labels are shown and do not stop the build; there are no options such as `--Werror` or `--export`.
+
+The grammar must be in `extra-source-files`.
+cabal does not see a change of a file that is not listed there, and keeps building the old module.
+The first build takes some minutes more: GHC 9.10 comes with Cabal 3.12, so cabal builds Cabal for the setup script.
+[examples/hooks](examples/hooks) is a package that generates its parser in this way, and CI builds it.
+
 ## Commands
 
 `peg-hs` has a subcommand for each purpose ([ADR 0037](docs/adr/0037-cli-subcommands.md)).

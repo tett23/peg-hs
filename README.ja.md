@@ -257,6 +257,97 @@ source-repository-package
 詳しい一覧は、Hackage の文書（peg-codegen の `Peg.Codegen` と peg-runtime の `Peg.Runtime`）にある。
 入口と `%syntax` の名前は、`gen --export` でプログラムが使うものだけに狭められる（[ADR 0061](docs/adr/0061-select-generated-exports.md)）。
 
+## ビルドの中でモジュールを生成する
+
+`peg-hs gen` で生成してコミットする代わりに、cabal のパッケージのビルドの中でモジュールを生成することもできる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）。
+パッケージ peg-hooks を使う。
+ビルドに `peg-hs` コマンドは要らない。
+二つの使い方は、リポジトリに何を置くかが違う。
+
+- **生成したモジュールをコミットする**：リポジトリに生成したモジュールを置くので、その差分をレビューできる。どのビルドの道具でもビルドでき、`peg-hs` は生成し直すときにだけ要る。
+- **ビルドの中で生成する**：リポジトリには文法だけを置き、文法を変えるとビルドがモジュールを生成し直す。Cabal 3.14 からの `build-type: Hooks` が要る。
+
+パッケージの `.cabal` では、`build-type: Hooks` にして、`custom-setup` に peg-hooks を書く。
+生成するモジュールは、`other-modules` か `exposed-modules` に加えて、`autogen-modules` にも書く。
+
+```cabal
+cabal-version:      3.14
+name:               calc
+version:            0.1.0.0
+build-type:         Hooks
+extra-source-files: grammar/Calc.hpeg
+
+custom-setup
+  setup-depends:
+    , base
+    , Cabal-hooks  >=3.14 && <3.17
+    , peg-hooks    >=0.1  && <0.2
+
+executable calc
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  other-modules:    Calc.Parser
+  autogen-modules:  Calc.Parser
+  build-depends:
+    , base
+    , peg-runtime  >=0.1 && <0.2
+    , text
+  default-language: GHC2021
+```
+
+`.cabal` と同じディレクトリの `SetupHooks.hs` に、文法とモジュールの名前の組を書く。
+モジュールの名前は、文法の `%module` と同じでなければならない。
+違うと、`%module` の位置の誤りでビルドが止まる。
+ほかのフックも使うときは、`<>` でつなぐ。
+
+```haskell
+module SetupHooks (setupHooks) where
+
+import Distribution.Simple.SetupHooks (SetupHooks)
+import Peg.Hooks (Grammar (..), pegSetupHooks)
+
+setupHooks :: SetupHooks
+setupHooks = pegSetupHooks [Grammar "grammar/Calc.hpeg" "Calc.Parser"]
+```
+
+`build-type: Hooks` では cabal が自分の setup スクリプトを作るが、`cabal check` は `Setup.hs` を求める。
+cabal が作るのと同じものを置く。
+
+```haskell
+module Main (main) where
+
+import Distribution.Simple (defaultMainWithSetupHooks)
+import SetupHooks (setupHooks)
+
+main :: IO ()
+main = defaultMainWithSetupHooks setupHooks
+```
+
+`cabal.project` では、peg-runtime に加えて、peg-hooks と、peg-hooks が依存する peg-codegen と peg-grammar も指す。
+peg-hooks は v0.1.0-rc6 より後のリリースに入っている。
+
+```cabal
+packages: .
+
+source-repository-package
+  type:     git
+  location: https://github.com/tett23/peg-hs
+  tag:      v0.1.0-rc7
+  subdir:   packages/peg-runtime packages/peg-grammar packages/peg-codegen packages/peg-hooks
+```
+
+各コンポーネントをビルドする前に、peg-hooks の規則が文法を読み、`peg-hs gen` と同じ検査をして、コンポーネントの autogen のディレクトリにモジュールを書く。
+文法に誤りがあると、`grammar/Calc.hpeg:20:28: error: ...` の形で誤りを出してビルドが止まる。
+アクションの型の誤りは、GHC が文法の行で報告する。
+ラベルの警告は表示するが、ビルドは止めない。
+`--Werror` や `--export` に当たるものはない。
+
+文法は `extra-source-files` に書かなければならない。
+書かないと、cabal は文法の変更を見ず、古いモジュールのままビルドする。
+最初のビルドは数分長くかかる。
+GHC 9.10 に付属する Cabal は 3.12 なので、cabal が setup スクリプトのために Cabal をビルドするからである。
+[examples/hooks](examples/hooks) は、この形でパーサーを生成するパッケージで、CI がビルドしている。
+
 ## コマンド
 
 `peg-hs` は、目的ごとのサブコマンドを持つ（[ADR 0037](docs/adr/0037-cli-subcommands.md)）。

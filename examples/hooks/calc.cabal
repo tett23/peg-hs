@@ -1,0 +1,36 @@
+cabal-version: 3.14
+name:          calc
+version:       0.1.0.0
+synopsis:      An example of peg-hooks
+description:
+  Generates the parser of the grammar grammar/Calc.hpeg in the build, with
+  peg-hooks (ADR 0085). The CI job hooks builds it and runs test.sh.
+license:       MIT
+author:        tett23
+maintainer:    tett23@gmail.com
+category:      Parsing
+build-type:    Hooks
+-- Without the grammar here, cabal does not see a change of it, and keeps
+-- the old parser.
+extra-source-files: grammar/Calc.hpeg
+
+custom-setup
+  setup-depends:
+    , base         >=4.20 && <5
+    , Cabal        >=3.14 && <3.17
+    , Cabal-hooks  >=3.14 && <3.17
+    , directory    >=1.3  && <1.4
+    , filepath     >=1.4  && <1.6
+    , peg-hooks    >=0.1  && <0.2
+
+executable calc
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  other-modules:    Calc.Greeting Calc.Parser
+  autogen-modules:  Calc.Greeting Calc.Parser
+  build-depends:
+    , base         >=4.20 && <5
+    , peg-runtime  >=0.1  && <0.2
+    , text         >=2.0  && <2.2
+  ghc-options:      -Wall
+  default-language: GHC2021

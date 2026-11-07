@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The versions of the published packages (ADR 0044).
 
-    scripts/versions.py check       the five packages have the same version,
+    scripts/versions.py check       the six packages have the same version,
                                     and the ranges between them contain it
     scripts/versions.py tag TAG     the cabal version that TAG releases
                                     (v0.1.0 and v0.1.0-rc1 give 0.1.0), and
@@ -13,7 +13,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-PACKAGES = ["peg-runtime", "peg-grammar", "peg-codegen", "peg-lsp", "peg-cli"]
+PACKAGES = ["peg-runtime", "peg-grammar", "peg-codegen", "peg-lsp", "peg-cli", "peg-hooks"]
 
 
 def parse_version(s):
@@ -48,7 +48,7 @@ def dependency_ranges(text):
     return [
         (name, parse_version(lo), parse_version(hi))
         for name, lo, hi in re.findall(
-            r"\b(peg-(?:runtime|grammar|codegen|lsp))\s+>=\s*([\d.]+)\s*&&\s*<\s*([\d.]+)", text
+            r"\b(peg-(?:runtime|grammar|codegen|lsp|hooks))\s+>=\s*([\d.]+)\s*&&\s*<\s*([\d.]+)", text
         )
     ]
 

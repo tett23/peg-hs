@@ -1,0 +1,23 @@
+%module Calc.Parser
+%{
+import qualified Data.Text as T
+
+data Expr = Num Int | Add Expr Expr | Mul Expr Expr
+  deriving (Show)
+}%
+
+# Addition binds looser than multiplication, and both associate to the left,
+# as written with left recursion.
+Expr :: Expr
+Expr <- l:Expr '+' Sp r:Term { Add l r }
+     / Term
+
+Term :: Expr
+Term <- l:Term '*' Sp r:Atom { Mul l r }
+     / Atom
+
+Atom :: Expr
+Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
+     / '(' Sp Expr ')' Sp
+
+Sp <- ' '*
