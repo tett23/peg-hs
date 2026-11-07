@@ -1,0 +1,38 @@
+peg-hs = ~/.local/bin/peg-hs 0.1.0.0 (rc5), macOS arm64
+wasm = /private/tmp/claude-501/rc5-check/peg-hs.wasm via Deno 2.9.7 harness (only the WASI functions of ADR 0078/0079 provided)
+
+Grammar family: %module M\nS <- ( ( ... 'a' ... ) )   with N nested groups (p<N>.hpeg). Input size ~2*N bytes.
+
+gen (parse+expand+check+labels+generate), time:
+  N=1000  0.24s
+  N=2000  0.53s
+  N=4000  1.49s
+  N=8000  6.03s   peak RSS 517 MB
+  N=100000 (200 KB): did not finish in 40s (killed)
+
+fmt --check (parse+formatGrammar), time:
+  N=1000  1.05s
+  N=2000  4.78s
+  N=4000  10.21s
+  N=8000  did not finish in 30s (killed)
+
+lint (parse+assemble+lint), N=8000: 0.36s  => the parser is near-linear; the cost is in check/labels/generate and in formatGrammar.
+
+wasm (single worker), N=4000 (8 KB grammar):
+  analyze  14.6 s, mem 86 MiB
+  format   15.6 s, mem 77 MiB
+
+LSP (peg-hs lsp) initialize+didOpen+formatting, N=4000: 3.98 s blocked.
+
+FFI length out of range (reactor serve):
+  analyze(ptr, len=-1)         -> proc_exit 1 (reactor dead), not a JSON error
+  analyze(ptr, len=0x7fffffff) -> proc_exit 1 (reactor dead)
+  analyze(ptr, len=correct)    -> normal JSON response, reactor stays alive
+
+Code-generation injection (peg-hs gen / wasm analyze):
+  %module "M (parse) where evil = 1 {-"  -> emitted verbatim as the module header line
+  %export item "evil2) where evil2 = 2 {-" -> emitted verbatim in the export list
+  sourceName "x.hpeg\nimport System.IO.Unsafe\ninjected = ...\n--" -> breaks out of the header comment (unescaped <>)
+  @Constructor name: lexed as '@' Ident, identifier chars only -> no injection
+  %language / %deriving: validated (isExtensionName / isClassName) -> no injection
+  literals / classes / labels: via show -> escaped
