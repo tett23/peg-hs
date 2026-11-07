@@ -1,0 +1,4 @@
+%module M (parse) where evil = 1 {-
+%export evil2) where evil2 = 2 {-
+S :: ()
+S <- 'a' { () }

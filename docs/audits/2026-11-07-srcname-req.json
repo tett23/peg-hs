@@ -1,0 +1,1 @@
+{"grammar": "%module M\nS <- 'a'\n", "sourceName": "x.hpeg\nimport System.IO.Unsafe\ninjected = unsafePerformIO (putStrLn \"pwned\")\n--"}
