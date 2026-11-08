@@ -191,6 +191,16 @@ Since v0.1.0-rc6:
   what has matched, and unfolding a label takes one of its levels, so the
   labels inserted made it give up sooner than on the grammar without them
   ([ADR 0086](https://github.com/tett23/peg-hs/blob/main/docs/adr/0086-inserted-labels-pass-the-label-check.md)).
+- `labelWarnings` and `labelSafeAt` judge each label on the grammar with
+  the other labels removed, as [ADR 0029](../../docs/adr/0029-label-safety-implementation-deviations.md) defines: the analysis is made from
+  the grammar without labels, and the frames of a label lose the other
+  labels. Other labels changed the verdict in two ways: unfolding a label
+  took one of the levels of unfolding a later alternative, and a rule of
+  literals with a label on a literal was not taken as literals. The
+  verdicts on some labels change; a label may also be warned about now
+  where other labels had made the check give up early
+  ([ADR 0087](https://github.com/tett23/peg-hs/blob/main/docs/adr/0087-other-labels-do-not-change-the-label-check.md),
+  [ADR 0088](https://github.com/tett23/peg-hs/blob/main/docs/adr/0088-correct-the-second-example-of-adr-0087.md)).
 
 ### Security
 

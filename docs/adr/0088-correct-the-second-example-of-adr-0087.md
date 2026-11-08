@@ -1,6 +1,6 @@
 # ADR 0088: [ADR 0087](0087-other-labels-do-not-change-the-label-check.md) の二つめの例とテスト設計を直す
 
-ステータス: 採択（未実装）
+ステータス: 採択
 
 ## 文脈
 

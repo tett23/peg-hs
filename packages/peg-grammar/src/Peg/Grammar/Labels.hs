@@ -354,16 +354,19 @@ modify' f = State $ \s -> let s' = f s in s' `seq` ((), s')
 -- 'Peg.Grammar.Check.check'. Each warning is located at the label and its
 -- message begins with @the label NAME may reject valid input@ or
 -- @the label NAME cannot be checked@.
+--
+-- Each label is judged on the grammar with the other labels removed, so
+-- other labels do not change the verdict on a label.
 labelWarnings :: Grammar -> [Diagnostic]
 labelWarnings g =
   [ Diagnostic l msg
   | Site rule fs l (ELabel _ x name) <- concatMap sites (grammarRules g)
   , name `notElem` safe
-  , Just msg <- [verdictMessage name (verdictOf ctx rule fs x)]
+  , Just msg <- [verdictMessage name (verdictOf ctx rule (unlabelFrames fs) (unlabelExpr x))]
   ]
   where
     safe = map unLoc (grammarSafe g)
-    ctx = context g
+    ctx = context (unlabelGrammar g)
 
 -- | Whether a label put on an item of a rule would be safe: the check of
 -- 'labelWarnings', for a label that is not in the grammar (ADR 0054). The
@@ -388,10 +391,44 @@ labelWarnings g =
 labelSafeAt :: Grammar -> Text -> [(Int, Int)] -> Bool
 labelSafeAt g = safeAt
   where
-    ctx = context g
+    ctx = context (unlabelGrammar g)
     safeAt rule path = case M.lookup rule (ctxRules ctx) >>= \r -> framesAt r path of
       Just (fs, x) -> verdictOf ctx rule fs x == Safe
       Nothing -> False
+
+-- Each label is judged on the grammar with the other labels removed (ADR
+-- 0029). The labels are removed once, where the check starts, so that no
+-- part of the check sees them (ADR 0087): the analysis is made from the
+-- grammar without labels, and the frames of a label lose the labels around
+-- it and in the items they hold. The declarations of %recover stay.
+unlabelGrammar :: Grammar -> Grammar
+unlabelGrammar g = g {grammarRules = [r {ruleAlts = [a {altItems = unlabelItems (altItems a)} | a <- ruleAlts r]} | r <- grammarRules g]}
+
+unlabelItems :: [Item] -> [Item]
+unlabelItems = map (\i -> i {itemExpr = unlabelExpr (itemExpr i)})
+
+unlabelExpr :: Expr -> Expr
+unlabelExpr = \case
+  ELabel _ x _ -> unlabelExpr x
+  EGroup alts -> EGroup (map unlabelItems alts)
+  EStar x -> EStar (unlabelExpr x)
+  EPlus x -> EPlus (unlabelExpr x)
+  EOpt x -> EOpt (unlabelExpr x)
+  EAnd x -> EAnd (unlabelExpr x)
+  ENot x -> ENot (unlabelExpr x)
+  ECapture x -> ECapture (unlabelExpr x)
+  EDiscard x -> EDiscard (unlabelExpr x)
+  ETemplate l n as cs -> ETemplate l n (map unlabelExpr as) cs
+  e -> e
+
+unlabelFrames :: [Frame] -> [Frame]
+unlabelFrames = concatMap $ \case
+  FLabel -> []
+  FSeq items j -> [FSeq (unlabelItems items) j]
+  FAlts alts i body -> [FAlts [(l, unlabelItems is) | (l, is) <- alts] i body]
+  FStar x l -> [FStar (unlabelExpr x) l]
+  FPlus x l -> [FPlus (unlabelExpr x) l]
+  f -> [f]
 
 -- The frames of the item at a path, as 'sites' makes them, and its
 -- expression without the captures around it.

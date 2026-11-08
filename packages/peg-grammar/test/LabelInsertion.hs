@@ -71,6 +71,8 @@ labelInsertionTests files =
               ]
           | (n, src) <- recursiveCounterexamples
           ]
+      , testCase "a label safe without the other labels is inserted (ADR 0087)" $
+          fmap (elem "S_any") (namesOf (snd (head recursiveCounterexamples))) @?= Right True
       , testGroup
           "covered positions"
           [ testCase "not inside a label with %recover and the rules it calls" $
