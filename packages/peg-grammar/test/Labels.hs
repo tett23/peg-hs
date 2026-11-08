@@ -81,6 +81,18 @@ labelTests files =
         fmap (\g -> map (run True g) ["a", " a", "  a"]) (parseGrammar shadowGrammar) @?= Right [Just False, Just True, Just False]
     , testGroup "precise in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- preciseSnippets]
     , testGroup "still unsafe in ADR 0038" [testCase (T.unpack n) (warnedLabels src @?= Right ["l"]) | (n, src) <- stillUnsafeSnippets]
+    , testGroup
+        "other labels do not change the verdict (ADR 0087)"
+        ( [testCase (T.unpack n) (warnedLabels src @?= Right []) | (n, src) <- otherLabelSnippets]
+            ++ [ testCase "a label inside a rule of literals" $
+                  warnedLabels (grammar ["S :: ()", "S <- R ('c' ^l) { () } / 'a' 'x' { () }", "R :: ()", "R <- 'a' 'b' ^m { () }"]) @?= Right ["m"]
+               , -- The parentheses stay when m is removed, and a group is not a
+                 -- literal to the check, so l is warned about without m too.
+                 testCase "a label in parentheses inside a rule of literals" $
+                  warnedLabels (grammar ["S :: ()", "S <- R ('c' ^l) { () } / 'a' 'x' { () }", "R :: ()", "R <- ('a' ^m) 'b' { () }"])
+                    @?= warnedLabels (grammar ["S :: ()", "S <- R ('c' ^l) { () } / 'a' 'x' { () }", "R :: ()", "R <- ('a') 'b' { () }"])
+               ]
+        )
     , testCase "the recovery rules become entries once each (ADR 0038)" $
         fmap (map unLoc . grammarEntries . stripLabelsAs "N") (parseGrammar sharedRecovery) @?= Right ["Skip"]
     , testCase "a rule named twice in %entry is an error (ADR 0038)" $
@@ -118,6 +130,15 @@ labelTests files =
                   let sameOn s = run True g s == run False g s || isNothing (run True g s) || isNothing (run False g s)
                       bad = filter (not . sameOn) inputs
                    in label "checked" (counterexample (T.unpack src <> "\ndiffers on " <> show (take 3 bad)) (null bad))
+        )
+      ++ chunkedProperty "other labels do not change the verdict on a label (ADR 0087)" 3000 (\part ->
+          forAll (variant part (oneof [numberLabels <$> genGrammar, labelGroups . numberLabels <$> genGrammar])) $ \src -> case parseGrammar src >>= expandTemplates >>= \g -> g <$ check g of
+            Left _ -> discard
+            Right g ->
+              let names = nub (labelNames g)
+                  differ = [n | n <- names, (n `elem` warnedIn g) /= (n `elem` warnedIn (keepLabel n g))]
+               in label (if null names then "no labels" else "checked") $
+                    counterexample (T.unpack src <> "\nthe verdicts differ on " <> show differ) (null differ)
         )
       ++ [ testCase "the parts of a split property check different grammars (ADR 0042)" $ do
             let firsts g = [unGen (variant part g) (mkQCGen 42) 30 | part <- [1 .. chunks]]
@@ -241,6 +262,70 @@ preciseSnippets =
   ]
 
 -- Shapes that the improvements of ADR 0038 must not take for safe.
+-- Grammars without warnings, whose labels were warned about when another
+-- label used up the depth of expanding a later alternative (ADR 0087).
+otherLabelSnippets :: [(Text, Text)]
+otherLabelSnippets =
+  [ ("a label on a group the later alternative goes through", grammar ["S :: ()", "S <- ((&(!.) &('a')) 'a' ('a' &(S 'b') . ^S_any)) (((S 'b') ('b' 'b') / (S) S)) ^S_group { () }"])
+  ]
+
+-- The labels l of a grammar renamed l1, l2, ... in order.
+numberLabels :: Text -> Text
+numberLabels src = case T.splitOn " ^l)" src of
+  [] -> src
+  p : ps -> p <> T.concat [" ^l" <> T.pack (show i) <> ")" <> q | (i, q) <- zip [1 :: Int ..] ps]
+
+-- A label k1, k2, ... put on each group and literal of a grammar that has
+-- none, so that labels are many and nested.
+labelGroups :: Text -> Text
+labelGroups src = T.replace "{ UNIT }" "{ () }" (go (1 :: Int) (T.splitOn ")" (T.replace "{ () }" "{ UNIT }" (literals src))))
+  where
+    go i = \case
+      [] -> ""
+      [p] -> p
+      p : ps
+        | "^l" `T.isPrefixOf` T.takeWhileEnd (/= ' ') p -> p <> ")" <> go i ps
+        | otherwise -> p <> " ^k" <> T.pack (show i) <> ")" <> go (i + 1) ps
+    literals t = foldr (\c -> T.replace ("'" <> T.singleton c <> "'") ("('" <> T.singleton c <> "')")) t ("abc" :: String)
+
+-- The names of the labels with warnings in a checked grammar.
+warnedIn :: Grammar -> [Text]
+warnedIn = map (T.takeWhile (/= ' ') . T.drop (T.length "the label ") . diagMessage) . labelWarnings
+
+labelNames :: Grammar -> [Text]
+labelNames g = concatMap (concatMap (concatMap (go . itemExpr) . altItems) . ruleAlts) (grammarRules g)
+  where
+    go = \case
+      ELabel _ x n -> n : go x
+      EGroup alts -> concatMap (concatMap (go . itemExpr)) alts
+      EStar x -> go x
+      EPlus x -> go x
+      EOpt x -> go x
+      EAnd x -> go x
+      ENot x -> go x
+      ECapture x -> go x
+      EDiscard x -> go x
+      _ -> []
+
+-- The grammar with the labels other than n removed.
+keepLabel :: Text -> Grammar -> Grammar
+keepLabel n g = g {grammarRules = [r {ruleAlts = [a {altItems = map item (altItems a)} | a <- ruleAlts r]} | r <- grammarRules g]}
+  where
+    item i = i {itemExpr = expr (itemExpr i)}
+    expr = \case
+      ELabel l x m
+        | m == n -> ELabel l (expr x) m
+        | otherwise -> expr x
+      EGroup alts -> EGroup (map (map item) alts)
+      EStar x -> EStar (expr x)
+      EPlus x -> EPlus (expr x)
+      EOpt x -> EOpt (expr x)
+      EAnd x -> EAnd (expr x)
+      ENot x -> ENot (expr x)
+      ECapture x -> ECapture (expr x)
+      EDiscard x -> EDiscard (expr x)
+      e -> e
+
 stillUnsafeSnippets :: [(Text, Text)]
 stillUnsafeSnippets =
   [ ( "calls with different arguments"
