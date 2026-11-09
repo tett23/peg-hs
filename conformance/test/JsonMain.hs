@@ -10,7 +10,7 @@ import qualified Conformance.Bench.JsonNomemo as JsonNomemo
 import qualified Conformance.Bench.JsonRecover as JsonRecover
 import qualified Conformance.Bench.JsonSyntax as JsonSyntax
 import qualified Conformance.Bench.JsonUntyped as JsonUntyped
-import Peg.Runtime.Syntax (debugTree, syntaxKind, syntaxText)
+import Peg.Runtime.Syntax (SyntaxElement (..), SyntaxKind, SyntaxNode, debugTree, syntaxChildrenWithTokens, syntaxKind, syntaxLabel, syntaxRange, syntaxText, tokenKind, tokenLabel, tokenRange)
 import SyntaxInvariants (concatViolations, violations)
 import qualified Conformance.Json.Encode as Encode
 import Conformance.Json.Parser (Value (..))
@@ -25,6 +25,11 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
+import Peg.Grammar (Diagnostic (..))
+import Peg.Grammar.Check (check)
+import Peg.Grammar.Interpret (Interpreter, interpret, interpretRecover, interpreter, interpreterKindName)
+import Peg.Grammar.Parser (parseGrammar)
+import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Peg.Grammar.LabelInsertion (Insertion (..), insertLabels)
 import Peg.Runtime (ParseError (..), Pos (..), SyntaxError (..), renderParseError)
 import System.Directory (listDirectory)
@@ -33,6 +38,70 @@ import Test.Tasty
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+
+-- The interpreter agrees with the generated parsers on every file (ADR 0090).
+interpreterTests :: [FilePath] -> TestTree
+interpreterTests files =
+  testGroup
+    "the interpreter (ADR 0090)"
+    [ testCase "the errors of json/Json.hpeg" $ do
+        ip <- interpreterOf "json/Json.hpeg"
+        texts <- decoded
+        [f | (f, t) <- texts, fmap (const ()) (interpret ip Nothing t) /= fmap (const ()) (Json.parse t)] @?= []
+    , testCase "the trees of bench/JsonSyntax.hpeg" $ do
+        ip <- interpreterOf "bench/JsonSyntax.hpeg"
+        texts <- decoded
+        [f | (f, t) <- texts, fmap (debugTree (interpreterKindName ip)) (interpret ip Nothing t) /= fmap (debugTree JsonSyntax.nameOfSyntaxKind) (JsonSyntax.parseSyntax t)] @?= []
+    , -- One test per file, so that they run in parallel (ADR 0039).
+      testGroup
+        "the errors, the trees and the recovered trees of bench/JsonRecover.hpeg"
+        [ testCase f $ do
+            ip <- interpreterOf "bench/JsonRecover.hpeg"
+            r <- TE.decodeUtf8' <$> B.readFile (dataDir </> f)
+            case r of
+              Left _ -> pure ()
+              Right t -> do
+                fmap (const ()) (interpret ip Nothing t) @?= fmap (const ()) (JsonRecover.parse t)
+                fmap (shape (interpreterKindName ip)) (interpret ip Nothing t) @?= fmap (shape JsonRecover.nameOfSyntaxKind) (JsonRecover.parseSyntax t)
+                recovered (interpretRecover ip Nothing t) (interpreterKindName ip) @?= recovered (JsonRecover.parseSyntaxRecover t) JsonRecover.nameOfSyntaxKind
+        | f <- files
+        ]
+    , testCase "the grammars of Lua, TOML and CommonMark have predicates the interpreter cannot evaluate" $
+        mapM_
+          ( \file -> do
+              src <- TIO.readFile file
+              let prepared = parseGrammar src >>= \g0 -> either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> check g >>= interpreter g)
+              assertBool file (either (any (T.isPrefixOf (T.pack "the interpreter cannot") . diagMessage)) (const False) prepared)
+          )
+          ["lua/Lua.hpeg", "toml/Toml.hpeg", "commonmark/Block.hpeg", "commonmark/Inline.hpeg"]
+    ]
+  where
+    -- Not debugTree, whose indentation is quadratic in the depth of the
+    -- trees of the deepest files, nor the positions of the errors, whose
+    -- columns take time linear in the length of the line: the ranges give
+    -- them.
+    recovered (tree, errs) name = (shape name tree, [(syntaxErrorLabel e, syntaxErrorRange e, syntaxErrorExpected e, syntaxErrorMessage e) | e <- errs])
+    decoded = do
+      bs <- mapM (\f -> (,) f <$> B.readFile (dataDir </> f)) files
+      pure [(f, t) | (f, b) <- bs, Right t <- [TE.decodeUtf8' b]]
+
+-- The elements of a tree in order, with their depths, labels, kinds and
+-- ranges.
+shape :: (SyntaxKind -> Text) -> SyntaxNode -> [(Int, Maybe Text, Text, (Int, Int))]
+shape name root = go 0 root []
+  where
+    -- An accumulator keeps this linear in the size of deep trees.
+    go d n acc = (d, syntaxLabel n, name (syntaxKind n), syntaxRange n) : foldr (element (d + 1)) acc (syntaxChildrenWithTokens n)
+    element d e acc = case e of
+      NodeElement c -> go d c acc
+      TokenElement t -> (d, tokenLabel t, name (tokenKind t), tokenRange t) : acc
+
+interpreterOf :: FilePath -> IO Interpreter
+interpreterOf file = do
+  src <- TIO.readFile file
+  case parseGrammar src >>= \g -> check g >>= interpreter g of
+    Left ds -> assertFailure (show ds) >> error "unreachable"
+    Right ip -> pure ip
 
 dataDir :: FilePath
 dataDir = "data/JSONTestSuite/test_parsing"
@@ -53,6 +122,7 @@ main = do
     testGroup
       "JSON (ADR 0010)"
       [ testCase "the committed parser is up to date" regenerated
+      , interpreterTests files
       , testGroup "y_: accept" [testCase f (parseFile f >>= \r -> assertBool (show r) (isRight r)) | f <- named "y_"]
       , testGroup "n_: reject" [testCase f (parseFile f >>= \r -> assertBool (show r) (not (isRight r))) | f <- named "n_"]
       , goldenVsString "i_: recorded results" "json/implementation-defined.golden" (implementationDefined (named "i_"))

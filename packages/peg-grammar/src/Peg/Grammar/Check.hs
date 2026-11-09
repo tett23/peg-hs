@@ -42,6 +42,10 @@ module Peg.Grammar.Check
   , omitsUnitAction
   , discardingRules
   , discardsValues
+    -- * Decisions shared with the interpreter (ADR 0090)
+  , Memoisation (..)
+  , ruleMemoisation
+  , childLabel
   ) where
 
 import Data.Char (isUpper)
@@ -96,6 +100,41 @@ discardingRules g = case grammarSyntax g of
 -- their values, and the bound ones stay bound.
 discardsValues :: Set Text -> Text -> [Item] -> Bool
 discardsValues discarding rule items = S.member rule discarding && not (null items)
+
+-- | How a rule is memoised: which function of "Peg.Runtime.Internal"
+-- wraps its body.
+data Memoisation
+  = -- | @%nomemo@: 'Peg.Runtime.Internal.nomemo'.
+    NotMemoised
+  | -- | A rule without parameters that takes part in left recursion:
+    -- 'Peg.Runtime.Internal.memoLR'.
+    MemoisedLeftRecursive
+  | -- | A rule without parameters: 'Peg.Runtime.Internal.memo'.
+    Memoised
+  | -- | A rule with parameters, whose arguments are part of the key:
+    -- 'Peg.Runtime.Internal.memoArg'.
+    MemoisedWithArguments
+  deriving (Eq, Show)
+
+-- | How a rule of a checked grammar is memoised. The code generator and
+-- the interpreter ("Peg.Grammar.Interpret") both follow it, so that they
+-- evaluate the rules in the same way (ADR 0090).
+ruleMemoisation :: Grammar -> Analysis -> Rule -> Memoisation
+ruleMemoisation g an r
+  | ruleName r `elem` map unLoc (grammarNoMemo g) = NotMemoised
+  | not (null (ruleParams r)) = MemoisedWithArguments
+  | S.member (ruleName r) (analysisLeftRecursive an) = MemoisedLeftRecursive
+  | otherwise = Memoised
+
+-- | The name that labels the children of an element of an alternative of a
+-- rule in the syntax tree (ADR 0019), given the rules of type @()@: the
+-- binding of an element with a value. Only the elements at the top of an
+-- alternative are labelled, not those inside parentheses. The code
+-- generator and the interpreter both follow it (ADR 0090).
+childLabel :: Set Text -> Item -> Maybe Text
+childLabel units i = case itemBind i of
+  Just n | hasValue units (itemExpr i) -> Just n
+  _ -> Nothing
 
 -- | Check a grammar whose templates have been expanded. The errors are
 -- sorted by location.

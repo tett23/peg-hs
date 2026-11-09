@@ -4,12 +4,14 @@
 -- 'analyzeJson' reads a grammar and generates its module in the steps of
 -- @peg-hs gen@, and returns the diagnostics, the syntax tree of the
 -- grammar as written, the generated types and the module. 'formatJson'
--- formats a grammar as @peg-hs fmt@ does. A request that is not JSON, has
--- no @grammar@ or has a member of another type gets only
--- @{\"error\": MESSAGE}@.
+-- formats a grammar as @peg-hs fmt@ does. 'parseInputJson' parses an input
+-- with the interpreter of peg-grammar, without GHC (ADR 0090). A request
+-- that is not JSON, has no @grammar@ or has a member of another type gets
+-- only @{\"error\": MESSAGE}@.
 module Peg.Wasm
   ( analyzeJson
   , formatJson
+  , parseInputJson
   , errorJson
   ) where
 
@@ -23,11 +25,15 @@ import Peg.Grammar
 import Peg.Grammar.Assemble (Top (..), advanceLoc)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Format (formatGrammar)
+import Peg.Grammar.Interpret (interpret, interpreter, interpreterKindName)
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Parser (parseGrammar, parseTops)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Peg.Grammar.Types (Classification (..), classify, dataTypeText)
 import Peg.Lsp.Json
+import Peg.Runtime (Expected (..), ParseError (..), Pos (..), renderParseError)
+import Peg.Runtime.Syntax (SyntaxElement (..), SyntaxKind, SyntaxNode, syntaxChildrenWithTokens, syntaxKind, syntaxLabel, syntaxRange, tokenKind, tokenLabel, tokenRange, tokenText)
+import qualified Data.Set as S
 import System.FilePath (replaceExtension)
 
 -- | Analyse a grammar. The request is
@@ -55,6 +61,83 @@ formatJson = respond $ \req -> do
   pure $ case formatGrammar grammar of
     Left ds -> object [("text", Null), ("diagnostics", Array (map (diagnostic "error") ds))]
     Right t -> object [("text", String t), ("diagnostics", Array [])]
+
+-- | Parse an input with the interpreter (ADR 0090). The request is
+-- @{\"grammar\": TEXT, \"input\": TEXT, \"entry\": NAME}@, where @entry@,
+-- a rule of @%entry@, may be left out or @null@ for the start rule. The
+-- response is
+-- @{\"diagnostics\": [...], \"accepted\": BOOL, \"parseError\": ERROR, \"tree\": NODE}@:
+-- the diagnostics are the errors of the grammar, of the interpreter and
+-- of an @entry@ that is not in @%entry@, in the form of 'analyzeJson';
+-- @accepted@ is @null@ with them. The error of a rejected input is
+-- @{\"line\", \"column\", \"offset\", \"expected\", \"label\", \"message\"}@,
+-- with the line and the column from 1 (in code points), the offset in
+-- bytes of UTF-8, what was expected as 'renderParseError' writes each one,
+-- the label thrown or @null@, and the message of 'renderParseError'. A
+-- node of the tree is
+-- @{\"kind\", \"start\", \"end\", \"label\", \"text\", \"children\"}@, with
+-- byte offsets; a token has its text and no children, and a node has
+-- @null@ for its text.
+parseInputJson :: Text -> Text
+parseInputJson = respond $ \req -> do
+  grammar <- grammarOf req
+  input <- case member "input" req of
+    Nothing -> Left "the request has no input"
+    Just v -> maybe (Left "input is not a string") Right (asText v)
+  entry <- optional "entry" (\v -> case v of Null -> Just Nothing; _ -> Just <$> asText v) "a string or null" Nothing req
+  pure (interpreted grammar input entry)
+
+interpreted :: Text -> Text -> Maybe Text -> Value
+interpreted src input entry = case parseGrammar src of
+  Left ds -> failed ds
+  Right g0 -> case expandTemplates g0 >>= \g -> (,) g <$> check g of
+    Left ds -> failed (templateNotes g0 ds)
+    Right (g, an)
+      | Just e <- entry, e `notElem` map unLoc (grammarEntries g) -> failed [Diagnostic (Loc 1 1) (e <> " is not a rule of %entry")]
+      | otherwise -> case interpreter g an of
+          Left ds -> failed (templateNotes g0 ds)
+          Right ip -> case interpret ip entry input of
+            Left err -> result (Bool False) (parseErrorValue err) Null
+            Right tree -> result (Bool True) Null (treeValue (interpreterKindName ip) tree)
+  where
+    failed ds = object [("diagnostics", Array (map (diagnostic "error") ds)), ("accepted", Null), ("parseError", Null), ("tree", Null)]
+    result accepted err tree = object [("diagnostics", Array []), ("accepted", accepted), ("parseError", err), ("tree", tree)]
+
+parseErrorValue :: ParseError -> Value
+parseErrorValue e =
+  object
+    [ ("line", int (posLine p))
+    , ("column", int (posColumn p))
+    , ("offset", int (posOffset p))
+    , ("expected", Array (map (String . expectedText) (S.toAscList (parseErrorExpected e))))
+    , ("label", maybe Null String (parseErrorLabel e))
+    , ("message", String (renderParseError e))
+    ]
+  where
+    p = parseErrorPos e
+    expectedText = \case
+      ExpectedName t -> t
+      ExpectedLiteral t -> t
+      ExpectedClass t -> t
+      ExpectedAny -> "any character"
+      ExpectedEnd -> "end of input"
+
+treeValue :: (SyntaxKind -> Text) -> SyntaxNode -> Value
+treeValue name n =
+  element (name (syntaxKind n)) (syntaxRange n) (syntaxLabel n) Null (map child (syntaxChildrenWithTokens n))
+  where
+    child = \case
+      NodeElement c -> treeValue name c
+      TokenElement t -> element (name (tokenKind t)) (tokenRange t) (tokenLabel t) (String (tokenText t)) []
+    element kind (start, end) label text children =
+      object
+        [ ("kind", String kind)
+        , ("start", int start)
+        , ("end", int end)
+        , ("label", maybe Null String label)
+        , ("text", text)
+        , ("children", Array children)
+        ]
 
 -- | The response @{\"error\": MESSAGE}@.
 errorJson :: Text -> Text

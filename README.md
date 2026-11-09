@@ -459,6 +459,18 @@ It compiles the generated parser with the `ghc` on `PATH` and caches the executa
 - When the Haskell of the grammar imports modules of the project, pass the search path, as in `--ghc-arg -isrc`. To use the packages of a cabal project, run `cabal exec -- peg-hs parse ...`.
 - Characters outside ASCII in strings are shown as themselves, not as escapes.
 
+With `--interpret`, `parse` does not compile: it interprets the grammar and shows the CST, the same output, errors and exit status as `--format cst` ([ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)).
+It needs no `ghc` and uses no cache, so it answers at once after each change of the grammar.
+
+```sh
+peg-hs parse --interpret grammar/Calc.hpeg input.txt
+```
+
+- The interpreter does not run the actions, so it shows no AST: `--format ast`, `--format all` and `--ghc-arg` are usage errors with `--interpret`.
+- Semantic predicates and the arguments of rules are Haskell; the interpreter evaluates only `True`, `False` and comparisons (`==`, `/=`, `<`, `<=`, `>`, `>=`) of terms, a term being `a`, `a + b` or `a - b` where each of `a` and `b` is a decimal integer, a parameter of the rule of type `Int`, or `_col`. A parameter that predicates do not read may take any argument, since only actions use it.
+- A grammar with other predicates, or that passes other arguments to a parameter that predicates read, is an error at each such predicate and argument; leave out `--interpret` to compile it. The interpreter never takes such a predicate as true or false.
+- A grammar with `%env` works with `--interpret` when its predicates do not read `_env`.
+
 ### lsp
 
 `lsp` is a language server that speaks the Language Server Protocol on standard input and output ([ADR 0035](docs/adr/0035-language-server.md)).
@@ -643,7 +655,7 @@ args = ["lsp"]
 
 Every release has `peg-hs.wasm`, a WASI preview1 reactor that analyses, generates and formats grammars in a browser or in Deno ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)).
 The name has no version; the tag of the release tells the version, and `SHA256SUMS` of the same release has its checksum.
-It does what `peg-hs gen` and `peg-hs fmt` do with a grammar given as text: it does not parse inputs with the grammar, which needs GHC to compile the generated module.
+It does what `peg-hs gen` and `peg-hs fmt` do with a grammar given as text, and parses inputs with the interpreter of grammars, which needs no GHC ([ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)).
 `scripts/build-wasm.sh` builds it with the toolchain of [ghc-wasm-meta](https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta) at a fixed commit, which `nix shell` provides:
 
 ```sh
@@ -659,11 +671,12 @@ nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff07655326
 | `_initialize` | `() -> ()` | Initialises the reactor; call it once, first |
 | `hs_init` | `(i32, i32) -> ()` | Initialises the Haskell runtime; call `hs_init(0, 0)` once, after `_initialize` |
 | `malloc` | `(i32) -> i32` | Allocates linear memory |
-| `free` | `(i32) -> ()` | Frees a block of `malloc`, or one that `analyze` or `format` returned |
+| `free` | `(i32) -> ()` | Frees a block of `malloc`, or one that `analyze`, `format` or `parse` returned |
 | `analyze` | `(i32, i32) -> i32` | Analyses a grammar and generates its module |
 | `format` | `(i32, i32) -> i32` | Formats a grammar |
+| `parse` | `(i32, i32) -> i32` | Parses an input with a grammar, without GHC |
 
-`analyze` and `format` take the address and the length in bytes of a request: JSON in UTF-8.
+`analyze`, `format` and `parse` take the address and the length in bytes of a request: JSON in UTF-8.
 They return the address of a new block, whose first 4 bytes are the length in bytes of the response (an unsigned little-endian integer), followed by the response, JSON in UTF-8.
 The request is copied before the function returns, so it can be freed then; free the response after reading it.
 An exception in Haskell does not stop the wasm: the response is `{"error": "internal error: ..."}`.
@@ -720,7 +733,24 @@ The response:
 
 The request of `format` is `{"grammar": "..."}`, and its response is `{"text": "...", "diagnostics": [...]}`.
 `text` is what `peg-hs fmt` writes, or `null` with errors in `diagnostics`.
-A request that is not JSON or not UTF-8, has no `grammar`, or has a member of another type gets `{"error": "..."}` only.
+The request of `parse` is `{"grammar": "...", "input": "...", "entry": null}`, where `entry`, a rule of `%entry`, may be left out or `null` for the start rule.
+It parses the input as `peg-hs parse --interpret` does, and its response is:
+
+```json
+{
+  "diagnostics": [],
+  "accepted": true,
+  "parseError": null,
+  "tree": {"kind": "E", "start": 0, "end": 3, "label": null, "text": null, "children": []}
+}
+```
+
+- `diagnostics`: the errors of the grammar, of the interpreter (the predicates and arguments it cannot evaluate), and of an `entry` that is not in `%entry`, in the form of those of `analyze`.
+- `accepted`: whether the grammar accepts the input, or `null` when there are errors in `diagnostics`.
+- `parseError`: for an input the grammar rejects, `{"line", "column", "offset", "expected", "label", "message"}`. `line` and `column` start at 1 and the column counts code points; `offset` is in bytes of UTF-8. `expected` lists what was expected as `peg-hs parse` writes each one, `label` is the label that stopped the parse or `null`, and `message` is the whole message of `peg-hs parse`. Otherwise `null`.
+- `tree`: for an input the grammar accepts, its CST, otherwise `null`. Nodes and tokens are objects of the same shape: `kind` is the rule name, or `TEXT` and `ERROR`; `start` and `end` are in bytes of UTF-8; `label` is the name of the binding or `null`; `text` is the text of a token and `null` for a node; `children` is empty for a token.
+
+A request that is not JSON or not UTF-8, has no `grammar` (or no `input` for `parse`), or has a member of another type gets `{"error": "..."}` only.
 JSON whose arrays and objects nest deeper than 256 levels is not taken as JSON ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 
 ### The syntax tree
@@ -788,8 +818,8 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 - **Distribution**: executables are for Linux (x86-64) and macOS (arm64) only. On Windows, build from source. The packages are not on Hackage yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
 - **Versions of GHC**: the packages and generated modules support GHC 9.10, 9.12 and 9.14. CI checks only 9.10, the version ghcup recommends; 9.12 and 9.14 were checked up to v0.1.0-rc2 ([ADR 0057](docs/adr/0057-recommended-ghc-only.md)). GHC 9.8 and earlier are not supported ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **Encoding**: grammars and inputs must be UTF-8. Convert files in other encodings first ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)). A program that uses a generated module can turn UTF-8 bytes into the input `Text` with `decodeInput` of `Peg.Runtime` ([ADR 0093](docs/adr/0093-utf8-bytestring-input.md)).
-- **`peg-hs parse` and `%env`**: `parse` cannot handle grammars with `%env` (the read-only parse environment), since it has no way to give the value of the environment. Check such grammars by calling the generated module from a program ([ADR 0036](docs/adr/0036-parse-command.md)).
-- **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
+- **`peg-hs parse` and `%env`**: `parse` cannot handle grammars with `%env` (the read-only parse environment), since it has no way to give the value of the environment. With `--interpret`, it handles those whose predicates do not read `_env`. Check the others by calling the generated module from a program ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)).
+- **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)). `--interpret` needs no GHC, but shows no AST and takes only grammars whose predicates it can evaluate ([ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)). The grammars of Lua, TOML and CommonMark in this repository and the grammar of the notation call Haskell functions in their predicates, so the interpreter does not take them.
 - **Rules whose type names collide**: with `%syntax`, each rule has a type named after it, so two rules such as `expr` and `Expr` are an error. `peg-hs parse` always generates the syntax tree too, so it rejects such grammars even without `%syntax` ([ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)).
 - **The check of labels is conservative**: it does not miss labels that may reject valid input, and in exchange it may warn of labels that are in fact safe. `%safe` silences the warning of a label that the author checked. The grammar of the notation itself has 23 `%safe` ([ADR 0028](docs/adr/0028-label-safety-check.md), [ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)).
 - **Rule templates**: the arguments of a template may use the parameters of the caller, but not its bindings; pass the value of a binding as a value argument. A template cannot be a rule of `%entry`, `%start` or `%recover` ([ADR 0031](docs/adr/0031-rule-templates.md), [ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).

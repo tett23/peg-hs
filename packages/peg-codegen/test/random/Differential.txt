@@ -1,0 +1,284 @@
+# The random grammars of ADR 0090, made by the tests from the seed 90.
+# Do not edit: the tests compare this file with the generator (test/Differential.hs).
+%module Fixture.Differential
+%syntax
+%entry D2_S
+%entry D3_S
+%entry D4_S
+%entry D5_S
+%entry D6_S
+%entry D7_S
+%entry D8_S
+%entry D9_S
+%entry D10_S
+%entry D11_S
+%entry D12_S
+%entry D13_S
+%entry D14_S
+%entry D15_S
+%entry D16_S
+%entry D17_S
+%entry D18_S
+%entry D19_S
+%entry D20_S
+%entry D21_S
+%entry D22_S
+%entry D23_S
+%entry D24_S
+%entry D25_S
+%entry D26_S
+%entry D27_S
+%entry D28_S
+%entry D29_S
+%entry D30_S
+%entry D31_S
+%entry D32_S
+%entry D33_S
+%entry D34_S
+%entry D35_S
+%entry D36_S
+%entry D37_S
+%entry D38_S
+%entry D39_S
+%entry D40_S
+%entry D41_S
+%entry D42_S
+%entry D43_S
+%entry D44_S
+%entry D45_S
+%entry D46_S
+%entry D47_S
+%entry D48_S
+%entry D49_S
+%entry D50_S
+%safe D1_l
+%nomemo D1_B
+%inline D1_B
+%safe D2_l
+%recover D2_l D2_R
+%message D2_l "missing D2_"
+%safe D3_l
+%recover D3_l D3_R
+%safe D4_l
+%message D4_l "missing D4_"
+%token D4_A
+%safe D5_l
+%recover D5_l D5_R
+%message D5_l "missing D5_"
+%safe D6_l
+%token D6_A
+%inline D6_B
+%safe D7_l
+%recover D7_l D7_R
+%expect D7_B "D7_B"
+%token D7_A
+%safe D8_l
+%recover D8_l D8_R
+%message D8_l "missing D8_"
+%safe D9_l
+%recover D9_l D9_R
+%expect D9_S "D9_S"
+%safe D10_l
+%message D10_l "missing D10_"
+%safe D11_l
+%safe D12_l
+%recover D12_l D12_R
+%message D12_l "missing D12_"
+%safe D13_l
+%safe D14_l
+%recover D14_l D14_R
+%message D14_l "missing D14_"
+%expect D14_S "D14_S"
+%safe D15_l
+%recover D15_l D15_R
+%expect D15_A "D15_A"
+%token D15_A
+%safe D16_l
+%message D16_l "missing D16_"
+%safe D17_l
+%recover D17_l D17_R
+%message D17_l "missing D17_"
+%safe D18_l
+%message D18_l "missing D18_"
+%expect D18_S "D18_S"
+%safe D19_l
+%recover D19_l D19_R
+%safe D20_l
+%safe D21_l
+%safe D22_l
+%recover D22_l D22_R
+%token D22_A
+%safe D23_l
+%message D23_l "missing D23_"
+%expect D23_A "D23_A"
+%token D23_A
+%safe D24_l
+%recover D24_l D24_R
+%message D24_l "missing D24_"
+%safe D25_l
+%recover D25_l D25_R
+%safe D26_l
+%recover D26_l D26_R
+%token D26_A
+%safe D28_l
+%recover D28_l D28_R
+%safe D30_l
+%recover D30_l D30_R
+%token D30_A
+%safe D31_l
+%recover D31_l D31_R
+%nomemo D31_A
+%inline D31_B
+%safe D32_l
+%recover D32_l D32_R
+%message D32_l "missing D32_"
+%expect D32_S "D32_S"
+%safe D33_l
+%recover D33_l D33_R
+%expect D33_A "D33_A"
+%safe D34_l
+%message D34_l "missing D34_"
+%safe D35_l
+%recover D35_l D35_R
+%safe D36_l
+%message D36_l "missing D36_"
+%nomemo D36_S
+%token D36_A
+%safe D37_l
+%message D37_l "missing D37_"
+%safe D38_l
+%safe D39_l
+%safe D40_l
+%message D40_l "missing D40_"
+%safe D41_l
+%recover D41_l D41_R
+%message D41_l "missing D41_"
+%safe D42_l
+%safe D43_l
+%recover D43_l D43_R
+%expect D43_S "D43_S"
+%safe D44_l
+%recover D44_l D44_R
+%token D44_A
+%safe D45_l
+%token D45_A
+%safe D46_l
+%recover D46_l D46_R
+%safe D47_l
+%safe D48_l
+%message D48_l "missing D48_"
+%safe D49_l
+%message D49_l "missing D49_"
+D1_S <- x1:D1_A / 'c' D1_A D1_B
+D1_A <- x1:D1_B (D1_B)+ / ((('c' / D1_S 'ab' 'b') 'a' / [ab]) / 'a' ((D1_B D1_S ^D1_l) 'ab' ^D1_l) 'a') x2:D1_A
+D1_B <- 'a' x2:D1_S / 'a'
+D2_S <- (('b' ^D2_l) 'ab' ^D2_l) / x1:$((. D2_S (D2_S D2_S ^D2_l))*) ((((D2_S)+ &('c' D2_S 'a') &(D2_S) / ('c')* ('ab' / 'a' 'ab')) ^D2_l) ((D2_S)+ / ('c' 'ab' 'b' / 'b' 'ab')) (('b')+ 'c' / D2_S [b-c] 'c'))? [ab]
+D2_R <- (!'c' .)+
+D3_S <- D3_S (D3_S 'b' 'a' / ((!('c' 'b' D3_A) 'b' ('c' 'c' [b-c])? / (D3_B 'b' / D3_S D3_S)) ^D3_l) ('b' ^D3_l)) / &((('a' (D3_S / D3_B D3_A D3_B) ^D3_l) (D3_A D3_A 'ab')? / ('a' D3_A !. / 'b' D3_B 'a') (D3_A [b-c] / 'ab' 'b')) ((D3_A)+ D3_S ((('a' D3_A D3_A / 'c') ^D3_l) / (D3_S 'a' / 'a' [ab] 'c')) ^D3_l) (!('c' D3_B 'c') (D3_S)* !. ^D3_l)) . x3:$(&(D3_B ('b' 'c' D3_B / 'c' D3_B) &(D3_B D3_S)) D3_S (('b')+ / 'ab' [ab])) / 'b' 'a' / 'c' D3_A D3_B
+D3_A <- D3_A / ([b-c] 'c' ^D3_l) / x1:D3_B [b-c]
+D3_B <- &((!([ab]))?) 'c' x3:$((D3_B)* 'a' ((D3_A D3_B 'a' / D3_B D3_B) 'c' 'c' ^D3_l)) / D3_A x2:D3_A / D3_A (D3_S ((D3_A [b-c] 'b' ^D3_l) (D3_S D3_B)+ (('b')? / (D3_S)?) ^D3_l) 'b' ^D3_l)
+D3_R <- (!'c' .)+
+D4_S <- (D4_A !('a' D4_A) / 'ab' !(&(D4_A))) / . (('c' ('b' 'ab' / D4_A) D4_S)+ 'ab')? x3:$(('ab')* 'a') / x1:$((!(D4_A) (D4_S 'c' / 'a' 'c'))+) / 'c' D4_A
+D4_A <- !. ('a' ^D4_l) / (([ab])* .)? (!('a') 'c' [b-c])* x3:D4_A / (D4_S (('b' / D4_A) / ([b-c] 'a' / [b-c] D4_A 'c') (D4_A ^D4_l) &(D4_A)))? (((D4_S D4_S 'c')+)? / D4_S 'a' ('ab' [b-c])+) 'ab'
+D5_S <- ('b' [b-c] 'a')+ 'c' / ('b' ^D5_l) x2:$(D5_A ((D5_A 'b' 'b' / D5_S . 'a') / ('c' D5_S D5_S)? 'c') D5_A) !. / (!(D5_S) ((D5_A 'c')? ('ab' 'c' (!. / 'a' D5_A) ^D5_l) / !('a') (!. D5_S 'c' ^D5_l) ((D5_A D5_S / 'ab' D5_S) ^D5_l)) (('ab' 'a' D5_A ^D5_l) D5_A / &('c' [ab]) ('b' 'c' ^D5_l) (D5_A / 'a')))? / 'c' D5_A
+D5_A <- D5_A (&(D5_A (D5_S 'b')*) [b-c] / D5_A) D5_S / x1:D5_A / (('ab' D5_A)? ('b' / ([b-c] 'b')+ D5_S) !('a' D5_A))* ((([ab] 'a')* ('a' D5_A D5_S / [b-c] 'c'))*)? x3:D5_A
+D5_R <- (!'c' .)+
+D6_S <- x1:D6_B (D6_A &((D6_A / 'a') ('ab' 'b' D6_B ^D6_l) !('c')) ('c' / (D6_S ^D6_l) 'b') / ((D6_B 'b')* / ('ab' 'c')* 'a') ((D6_S D6_S 'c')? [ab])*) / 'c' D6_A D6_B
+D6_A <- (!('b' ('b' [b-c] 'c')+ !(D6_S 'ab' 'a')) (('ab' 'ab' / [ab]) (D6_B)+ 'ab')+ (('b' ('c' / D6_B) ^D6_l) ('c' [b-c] 'c')* ('c' 'b' D6_B / D6_B .))*)? / x1:D6_A
+D6_B <- D6_S ((('ab' 'c' ^D6_l) D6_A)?)? x3:$('a' ((D6_B 'a' [b-c] / 'ab') (('b' 'a' .)? ('a' D6_S 'a')? !([ab] D6_B) / 'ab') ^D6_l) (!('ab') ('ab' 'b' ([b-c] / D6_B 'ab' D6_B) ^D6_l) (D6_A ('c' 'c' 'a' / D6_A) ^D6_l))*) / 'b' x2:D6_S
+D7_S <- !(('ab' / D7_B (D7_A)? ('c' ^D7_l)) ((D7_A)+ ([ab] D7_B)* (D7_S ^D7_l))? .) D7_S x3:D7_B / 'c' D7_A D7_B
+D7_A <- x1:D7_B
+D7_B <- !(((D7_B 'c' ^D7_l) ('ab' D7_S ^D7_l))+) x2:D7_B 'c'
+D7_R <- (!'c' .)+
+D8_S <- (((D8_S 'a' / D8_S) / [ab] D8_S 'a') ((D8_S ^D8_l) (D8_S ^D8_l) (&([b-c]) / ('c')+ . ('ab' 'ab')*) ^D8_l) D8_S ^D8_l) / &((('b' D8_S / D8_S))+ ((D8_S [ab] / 'a') ('c' 'a' / 'ab') !(D8_S D8_S D8_S))* (!(D8_S 'b' 'a') D8_S / ([b-c])? ('c')? (D8_S / D8_S D8_S 'a'))) D8_S / D8_S 'a'
+D8_R <- (!'c' .)+
+D9_S <- ((!(D9_S 'b') ('c' D9_S)+ 'c' / (D9_S)+ 'b' D9_S) (('a')+ ('b' ^D9_l))* / (D9_S (D9_S D9_S 'a')* 'b' ^D9_l) D9_S (D9_S ^D9_l)) / ('ab' [ab] (('ab' / 'a' 'b' 'c') / (D9_S D9_S D9_S ^D9_l) 'b'))+ !. (&(D9_S D9_S (D9_S)*) 'c')?
+D9_R <- (!'c' .)+
+D10_S <- ('ab')+ / x1:$('c' !(D10_S ('b')? ('ab' 'b' 'a' ^D10_l))) ([b-c] (!('a' 'ab' D10_S) ('a' 'c' 'a' ^D10_l) &(D10_S 'b' 'a'))*)? / 'c' D10_A
+D10_A <- ((&('ab') (D10_S 'a' / 'b') ('a' D10_A . / 'b' D10_S))? (!((D10_A [b-c])+) 'ab' (([ab])+)+ / (D10_A ^D10_l) (('a' 'b')+ [b-c] ^D10_l)) ^D10_l) !(!(!([ab] D10_S) &('ab') !.)) D10_S / 'ab' (((D10_A D10_A D10_S)+ D10_A)? (D10_A / 'ab' ('ab' ^D10_l) &('ab')) (('a')* ('c' D10_S)+ ('c' 'a' / D10_S) / (D10_S 'a' ^D10_l) (D10_S 'c' ^D10_l)) / (('ab' ^D10_l) [ab])* ((D10_S D10_S D10_S ^D10_l) D10_A (D10_A 'c' D10_A / 'a'))*) &(D10_A (('b' 'a' / D10_S) / (D10_S 'a' ^D10_l) ('ab' D10_S)*) D10_S) / !(('a' !(D10_S 'a' 'a') 'a' ^D10_l) (('a' [ab] 'a' ^D10_l) / 'a' ('a' 'c' ^D10_l))) x2:$((D10_S ('b' D10_A)? / D10_A 'c' (. ^D10_l)) (&('ab' D10_S 'ab') D10_A D10_A)+ (('c' / [b-c]) D10_A (!. 'a' [b-c] ^D10_l) / [ab] (D10_S [b-c] ^D10_l)))
+D11_S <- 'b' / (D11_S ^D11_l)
+D12_S <- ((D12_S . ^D12_l) D12_S ^D12_l) x2:$(((D12_S ('b' 'b')? / 'c') ^D12_l) !((D12_S 'b' 'a' ^D12_l)) D12_S) ('c' D12_S / D12_S)
+D12_R <- (!'c' .)+
+D13_S <- (D13_S (. ('a')* &('a') / (D13_S / 'ab')) (([ab] / D13_S D13_S [b-c]) 'b')? / 'a' D13_S (&(. 'b') D13_S)?) &((('ab' . 'ab')+ D13_S 'ab' ^D13_l) (('ab' 'c' D13_S)+ (D13_S D13_S)?)+) x3:D13_S
+D14_S <- [ab] D14_S (('b' ('a' D14_S)+ ('a')? / !(D14_S 'a')) [b-c] ^D14_l)
+D14_R <- (!'c' .)+
+D15_S <- x1:D15_S ('c' ^D15_l) 'b' / 'ab' (D15_S D15_B 'a' ^D15_l) / ('a' D15_A ^D15_l) x2:D15_S / 'c' D15_A D15_B
+D15_A <- !(('b' / 'a' ('c' D15_S 'b' / 'a')) ([ab] ('b' / 'c' .) !('a' 'c' D15_A) / 'c' D15_S 'a') (&('c' D15_B 'b') / [ab] 'ab')) x2:$('b')
+D15_B <- (((D15_B [ab] D15_S ^D15_l) 'b' ('c' 'a' / [ab] 'a' !.))? ((D15_A ^D15_l))+ / (('a' 'c' !. / D15_B 'a' D15_B) ([ab] [b-c] 'ab' / D15_S D15_A) / (D15_S 'ab' D15_S / D15_A D15_S) ('a' (D15_B !. / 'a' !.) ^D15_l)) (. D15_S !.)? !('ab' ('ab' / 'ab' D15_A))) x2:$([b-c])
+D15_R <- (!'c' .)+
+D16_S <- x1:$(('c')* (('ab' D16_B ^D16_l) / 'b')) / (((D16_A [ab] D16_A / D16_S 'a') 'a' D16_B)* !(('b' 'b' 'b' ^D16_l) ('c' D16_A / 'c' 'c') (D16_S D16_B 'c')*) ((!. D16_B ^D16_l) (D16_S)+ . / (&('c' [b-c]) 'ab')+ ((D16_B / 'c') D16_B 'a' ^D16_l) D16_B) ^D16_l) ([b-c] ^D16_l) / &(&((D16_S D16_B [ab])? (D16_B / [b-c] 'a' 'a') ('c' D16_B)+)) ('a' (D16_B (D16_A / 'ab' D16_B))?)+ !(. D16_S) / 'c' D16_A D16_B
+D16_A <- [ab] D16_S / ((D16_S / (!. 'b' D16_A / 'b' 'b' 'ab') D16_A) / ('a' 'c' (D16_B [ab] D16_S)* / D16_S)) ((('b' ^D16_l))*)?
+D16_B <- (((D16_S)? ('b' D16_A / 'a' 'ab' D16_B) / (D16_S !. / 'b') D16_B ('a' D16_A)?) / ((D16_B 'a' 'ab' / [ab]) !('b' [b-c]) 'ab' ^D16_l) (D16_A (!(D16_B) ('a' / 'b' D16_A 'c') / .) ^D16_l) (D16_S D16_A ('ab' D16_S D16_A)*)?) D16_S / &(((D16_B [ab] / . 'ab') / 'a' 'ab'))
+D17_S <- &(D17_A) &(D17_S (D17_S ^D17_l) D17_S) x3:D17_A / 'c' D17_A
+D17_A <- 'a' ('c' ^D17_l) / x1:D17_S ('b')?
+D17_R <- (!'c' .)+
+D18_S <- !(!(D18_S D18_S) [b-c] ((. 'b')+)?) (. D18_S ^D18_l) / !(!(('b' ^D18_l) . D18_S) [ab] [b-c])
+D19_S <- 'c' / 'ab' / (((D19_S ^D19_l))+ (('b' 'ab' 'a' ^D19_l))? D19_A ^D19_l) x2:D19_S / 'c' D19_A
+D19_A <- ('c' ^D19_l) / x1:D19_S x2:$('c') &((('b' ^D19_l) ('ab' / . 'a') D19_S ^D19_l) 'b' ((D19_A D19_A)+ / (D19_S)* (!. 'b' 'b' ^D19_l) ('b' D19_A 'a')?))
+D19_R <- (!'c' .)+
+D20_S <- D20_S 'ab' (&((D20_B / 'b' D20_A .) &('b' D20_S [b-c]) &('c' [ab])) / (&('b') / (D20_B)? 'ab' [b-c])) / x1:D20_B / 'c' D20_A D20_B
+D20_A <- (((D20_S [ab] / 'ab' D20_B) !('a') (!('c') D20_A / 'c' (D20_B D20_A)?) ^D20_l) !(('c' D20_B)* 'a' &(D20_A 'b' [ab])) (('b' ^D20_l) &(!. 'a' 'ab') D20_S ^D20_l))+ ((((D20_S D20_A / 'ab') (D20_S)? [b-c] / ('ab')* 'ab' !([b-c])) ^D20_l))* (!(!('ab' 'a') (D20_B ^D20_l) (D20_B 'ab' ^D20_l)) (D20_B ('c' 'c' / 'a' 'a') / &(!. D20_S) ('b' D20_S)* ('a' 'ab')+) (('ab' D20_A 'c')* (D20_B (D20_A 'a' D20_S)? D20_B / 'c' 'ab') ^D20_l) / (('ab')+)+ D20_S) / x1:$(!(!(D20_A) ('c' !.)* 'a')) &((D20_S ^D20_l) &((D20_A 'a')?) [b-c]) / D20_A
+D20_B <- (!. (. ^D20_l))* / ('ab' / 'a')
+D21_S <- !. x2:$((D21_S ^D21_l)) D21_S / ((('a' D21_S / D21_S) (D21_S 'ab')* 'b' ^D21_l) (D21_S ^D21_l) ([ab] ^D21_l) / (&('a' 'b' 'c') / .) &(('ab' 'c' 'c' / 'a' D21_S 'b') 'c' 'b')) (((D21_S 'a')* (D21_S [ab] D21_S)+ D21_S)? 'b')? / &('b' 'b')
+D22_S <- 'c' 'a' ((('b' 'ab' / D22_A))? 'b' ^D22_l) / ((('c')? D22_A ^D22_l) / D22_S !(('ab' 'a' 'a')+ ([ab] [b-c] 'a' ^D22_l) ('ab' D22_A !.)+) 'c') / 'c' D22_A
+D22_A <- (D22_S (('c' 'ab' / D22_A) 'b' 'a' ^D22_l) D22_A ^D22_l) / ('a' ('c' ^D22_l) (('ab' D22_A D22_A / D22_S D22_A 'a') ('a' ^D22_l) 'b' ^D22_l) / ((D22_S D22_S ^D22_l) 'c' ^D22_l) 'ab' ((D22_A D22_A 'ab' / 'a' 'c'))*) x2:D22_S
+D22_R <- (!'c' .)+
+D23_S <- ((D23_S ^D23_l) (D23_A (D23_A ^D23_l) / (D23_A D23_S)+ ('b' 'c' / D23_A !. D23_A)))+ ((('b' 'c' ^D23_l))* [b-c] / &(('ab')?) !((D23_A)+ 'b' ('c' 'b')+) D23_A) / x1:D23_S / 'c' D23_A
+D23_A <- (D23_A 'b' ((D23_S / D23_A) (D23_A D23_S / 'b' 'ab' !.) ('ab' D23_A D23_A ^D23_l))+ / 'b' 'b') ((!(D23_A D23_A) (. ([b-c] / 'a' D23_A D23_S) ^D23_l))+)? (D23_A)+ / (D23_A ^D23_l) x2:D23_A
+D24_S <- (&(D24_S) 'a' ^D24_l) ((!. ('ab' / 'b' D24_S))*)? / 'a' / (D24_S (('a' 'b' / D24_S 'ab') ('b' 'a' 'c' / 'a') (. 'b' 'c' / D24_S 'a' D24_S))+ / D24_S 'ab' 'ab') &((('c' 'ab' ('b' [ab] / 'a' 'b' D24_S) ^D24_l) (D24_S ^D24_l) ('c' ^D24_l))? (('ab' 'a')? ((D24_S D24_S / D24_S 'c' .) ('c' 'b' 'a')* / D24_S ('ab' D24_S 'a' / D24_S D24_S D24_S)) ^D24_l))
+D24_R <- (!'c' .)+
+D25_S <- . x2:D25_A / !(((('c' D25_S 'ab' / 'ab' D25_S 'c') ^D25_l))*) x2:$('c' (!('a' 'ab' D25_S) &('ab' 'a' !.) / 'ab' (('ab' / D25_S 'b') ^D25_l)) (D25_S)?) ((('c' [ab])*)? (&('a'))? D25_S ^D25_l) / 'c' D25_A
+D25_A <- ([ab] 'c')* &(((D25_S 'b' / D25_S 'c') (D25_A 'b' D25_A)+)? (('ab' 'c' ^D25_l))?)
+D25_R <- (!'c' .)+
+D26_S <- ((('c' D26_B !. ^D26_l))? ((D26_S)+ (D26_S)* D26_A / (D26_B)* 'ab') (('ab' 'a')*)? / ((D26_S D26_B D26_A / D26_S D26_A D26_A) [b-c] ^D26_l) [b-c] ('ab' ((D26_S D26_A / 'a' 'ab' 'a') ^D26_l))+) / x1:$(((D26_B 'c' ^D26_l) 'ab' ^D26_l)) / 'c' D26_S / 'c' D26_A D26_B
+D26_A <- D26_S
+D26_B <- ((!(D26_B))? / ('c')? &([b-c] (D26_B)? D26_S)) x2:$('a' ((D26_S D26_B D26_A)+)+ ((!. [ab])* !([ab]) 'ab')*) ((('ab' D26_B)* / (D26_B !. D26_B)* D26_B 'b') (('c' 'c' 'c')+ (D26_A 'ab' 'b' ^D26_l) &('b' D26_A))* / (('ab')? . ('a')*)* &(([ab] ^D26_l)))
+D26_R <- (!'c' .)+
+D27_S <- x1:D27_S x2:D27_S / x1:$(&(D27_S 'c' (D27_S 'b' D27_S)*))
+D28_S <- x1:D28_S ('b' ('a' 'c' ^D28_l) (([ab])+ ('c' . / 'ab') D28_S)+)+ (('ab')? (D28_S / (D28_S ^D28_l)))+
+D28_R <- (!'c' .)+
+D29_S <- x1:D29_S x2:$(D29_S) 'ab' / D29_S D29_S
+D30_S <- (!(.))? x2:$((('b' D30_S D30_A / D30_A D30_S) ('ab')+ / !(D30_S D30_A !.)) 'a' ((D30_S (D30_S D30_A / D30_A 'c' [b-c]) ^D30_l))+) ((('a' 'a')? ('c' ('ab')* (. ^D30_l) / ('a' ^D30_l) 'c') ^D30_l) !(('a' 'b' 'c' / D30_A)) !('b' (. D30_S 'c' / D30_S 'a' 'c') ('a' D30_S / 'b' [b-c] 'c')))* / 'c' D30_A
+D30_A <- 'c' x2:$(!('a' ('c' D30_A)*)) x3:D30_A
+D30_R <- (!'c' .)+
+D31_S <- ((D31_S ^D31_l) (!('c') (D31_B ^D31_l) ('c' 'a')*)+ (('ab' 'ab' !. / [ab]) / D31_A ('b')*))* 'a' (('c' [b-c])? 'a' ^D31_l) / 'c' D31_A D31_B
+D31_A <- x1:D31_S
+D31_B <- ((D31_B ^D31_l) / (!('c' D31_B 'a') 'ab' ^D31_l) D31_A 'b') / &(D31_S . (('a' 'b')+ / [ab] (D31_B ^D31_l))) D31_B (((!. / !.) ('c' [ab])* ('c' 'ab' ^D31_l))? (D31_A ('ab' D31_B)* !('a' 'c') / ('c' / [b-c] 'a')))*
+D31_R <- (!'c' .)+
+D32_S <- ('c' (!('b') ('a' D32_S)+ &('ab' !.) / D32_S) / 'a' !(('b' D32_S ^D32_l))) / x1:$(D32_S (('c' 'ab')+ ('b' .)*)+ (('a' 'a' / 'c' !. 'b') 'c')+) 'c' (('c' ('c')* (D32_S &(D32_S) / (D32_S 'a' ^D32_l) !(D32_S 'a') ('a' 'c' 'c' ^D32_l)) ^D32_l) 'a' 'b' / ('ab')+ !(('c' 'c')* ('c' D32_S ^D32_l) D32_S) ((D32_S (D32_S / D32_S D32_S D32_S) ^D32_l))*)
+D32_R <- (!'c' .)+
+D33_S <- 'ab' &(((D33_S / 'ab') (. / D33_A) / (D33_S / D33_S 'b') ('ab' 'a')? D33_A) &(('b' / 'c' [ab] D33_S) !('a') D33_S)) (D33_S &('c') / (&(D33_A D33_A) &('a' .) ('a' 'a' / D33_A 'b') / (!. ('c' 'c' / [ab] .) ^D33_l)) 'b') / ('ab' ^D33_l) 'a' / 'c' D33_A
+D33_A <- x1:$((('b' D33_A D33_A)?)? (D33_A)? (&('b') D33_S ^D33_l)) D33_A
+D33_R <- (!'c' .)+
+D34_S <- ((('ab' D34_A D34_A ^D34_l) &('a' 'c'))? / ((('b' D34_A 'ab')+ / ('b' 'ab' D34_A ^D34_l)) ^D34_l)) (('a' ('ab' D34_A D34_A ^D34_l))* 'ab')* . / (!('b' (D34_A D34_S ('c' [b-c] 'a' / D34_A) ^D34_l) (D34_A)?) / D34_A) / 'c' D34_A
+D34_A <- 'c' ('c' / (('a' 'ab' [b-c] / 'ab' !.) 'ab')? D34_A ((D34_A 'c' ('c' 'ab' / [b-c] D34_A D34_A) ^D34_l) / ('c' 'a' .)? D34_A (D34_S 'a' ^D34_l))) &(([b-c] (D34_A ^D34_l))+ &((D34_A 'ab' 'ab')? 'ab') 'a')
+D35_S <- x1:D35_S ('b' ^D35_l) x3:D35_S / (D35_S D35_S ('c' (D35_S)? ('a')+)? / (&(D35_S D35_S) !(D35_S) D35_S)+ ('b')? ((D35_S D35_S ^D35_l) 'a' 'b' ^D35_l)) (D35_S ('c' [ab])*)+ x3:D35_S
+D35_R <- (!'c' .)+
+D36_S <- ((('ab' ^D36_l) D36_A ('ab' 'ab' / D36_A))* ('a' ('ab' / D36_A) [ab] ^D36_l))+ !. [ab] / 'c' D36_A
+D36_A <- (!(!(D36_S D36_S) ('a' 'c' D36_A)*) ('c' ('ab' 'b' ^D36_l) &('c' 'b'))*)? / ((!. ^D36_l) .)* (&('c' D36_S ('a' / 'b' D36_A 'b')) 'c' / 'a') ((('ab' D36_S 'c' ^D36_l) (D36_S D36_A .)* D36_S ^D36_l) / (D36_A / ('a' [ab] D36_A)+) ((D36_A 'c' / 'b' D36_S 'ab'))* (D36_A 'b' ('b' 'ab' 'b' / 'a' D36_S))?) / D36_A ('c' (D36_S ^D36_l) ((D36_A ^D36_l) ('a' D36_A / 'c' [ab] 'c') / 'ab'))+ D36_S
+D37_S <- x1:D37_S / 'c' D37_A
+D37_A <- ('a' (('a' D37_A)+ ('a' / [b-c]) D37_S ^D37_l))? x2:$(((. D37_S ^D37_l))* (D37_A ^D37_l) (&('c') (D37_A / [b-c] D37_A D37_A))*) ((&('c') (D37_A D37_S)+ / ('a' (D37_A / D37_A D37_S) ^D37_l)))? / ('ab' / !(('ab' D37_A)+ (D37_A 'a')+ 'a') !(('c' 'c')? ('b' 'ab' 'ab' / 'c' D37_S 'a')) [ab]) ('a' D37_S)* / 'c'
+D38_S <- 'b' ((('ab')? (D38_S / D38_S) 'b' / ('a' 'ab' D38_S / 'c' D38_A 'a') !('b' D38_A)) [b-c])? / 'c' D38_A
+D38_A <- (((&('b' D38_S 'ab') / &(D38_A 'b' D38_A) 'ab' ('c')*) ^D38_l) 'b' ^D38_l) / x1:D38_A &(!('ab') D38_S)
+D39_S <- x1:$(('b' (!. 'b')? / ([b-c] 'b' D39_S ^D39_l) (D39_S D39_S D39_S ^D39_l) 'c'))
+D40_S <- !(D40_S (&('ab' 'ab' 'a') !(D40_S [ab]) D40_S / !('ab' D40_S))) !((('b' 'a' D40_S)? 'a' / 'b' 'a') 'c') / (&('ab' (('b' D40_S / D40_S 'b' [ab]) ^D40_l)) &(!(D40_S 'b' 'c') D40_S))? / x1:D40_S 'c' x3:D40_S
+D41_S <- x1:D41_S 'c' D41_S / [b-c] / x1:$((('c' D41_S 'a')+ ([b-c] 'c' / 'a' 'a' 'c'))* ('c' 'a' ^D41_l)) x2:D41_S x3:$((('c' / 'c') (('a' ^D41_l) ([ab] 'b' 'c' ^D41_l) (D41_S)* / 'b' ('b')*) ^D41_l))
+D41_R <- (!'c' .)+
+D42_S <- 'b' ('b' (('c' D42_A ^D42_l) (!. ^D42_l) !('b' 'a'))* D42_A ^D42_l) / 'c' D42_A
+D42_A <- (('b' D42_S ^D42_l) &(('ab' 'a' D42_S)+))* ('c' ('c' / ('b' D42_S 'c')? ('ab' D42_A ^D42_l)) 'c' ^D42_l) / x1:$(D42_A ('c' !('b' 'b') ('c' [ab] D42_S ^D42_l))* D42_A) D42_A 'c'
+D43_S <- ('b' 'b')* x2:$((('b' ^D43_l) (D43_S 'c' D43_S)? ('c' / D43_S D43_S 'ab'))+ (&([ab]) &([ab] 'ab' 'ab') / D43_S (D43_S 'a' 'c')*) 'a') ((D43_S / D43_S) ^D43_l)
+D43_R <- (!'c' .)+
+D44_S <- D44_A x2:$(D44_S 'a' (D44_S (D44_S 'a' 'ab' / D44_S [ab]) (D44_A D44_S D44_S / !.))+) (!. ^D44_l) / 'b' / 'ab' / 'c' D44_A
+D44_A <- x1:D44_S !([ab]) x3:$(('ab')+) / &(((D44_A D44_S / D44_S 'a') (!. D44_A)? ('b')* / ('c' D44_A)+) ((D44_S 'ab' D44_A ^D44_l))+) x2:D44_A
+D44_R <- (!'c' .)+
+D45_S <- !('c' (D45_S ^D45_l)) !((('c' 'b' D45_S ^D45_l) (D45_S 'c' D45_A ^D45_l) ('b' 'c')*)+ D45_A 'b') D45_S / x1:D45_A 'ab' (('a' 'b' D45_A ^D45_l) (&('c' D45_S) / (D45_A ('ab' 'c' 'c' / . 'ab' 'b') ^D45_l)))? / 'c' D45_A
+D45_A <- x1:D45_S
+D46_S <- &(((D46_S)? / ('ab' 'ab' D46_S)?) D46_S) ([ab] ^D46_l) / (((D46_S / ('a' D46_S D46_S)+ (D46_S 'c')?) ^D46_l) (('a' D46_S 'c')+)* D46_S / ('c')+ (&('a' 'ab' D46_S) ('b' 'b' ^D46_l) D46_S)? 'c') 'ab' ((D46_S / !([b-c])) (&('ab' D46_S 'c') / ('b' 'c')+) D46_S ^D46_l)
+D46_R <- (!'c' .)+
+D47_S <- 'b' x2:D47_A / 'c' D47_A
+D47_A <- x1:D47_A D47_A / (D47_S ^D47_l) &(&(!(D47_A .) !('c' D47_A D47_S) D47_A) !(('a' 'c' 'ab' / D47_S 'b') D47_S ('ab' ^D47_l)) D47_A)
+D48_S <- x1:D48_S / ((!(D48_S D48_S) / 'c') &((D48_S [ab])+ ('c')?) 'ab' ^D48_l) / x1:$('a' ('a' ^D48_l) 'ab') (('a' D48_S 'a')+ / (('c' D48_S ^D48_l) 'b' (D48_S (D48_S 'ab' / D48_S 'c' D48_S) ^D48_l))?)
+D49_S <- 'a' &(('a' / &(!. !. 'b') ('ab' 'c' D49_S)*) D49_S) (('ab' / (D49_A 'a')? !(D49_S)) ((D49_S ^D49_l) ((D49_A 'b')? (D49_A ('a' / [b-c] D49_S D49_S) ^D49_l) (D49_S ('a' D49_A D49_S / 'c' 'a') ^D49_l) / ('c')+ (D49_A 'b')*) ^D49_l))+ / 'c' D49_A
+D49_A <- ((D49_S)? D49_A ^D49_l) (D49_S ^D49_l) 'b' / (('a' ('b')*)+ ((('c' 'a' [ab] / 'a' 'c' D49_S) (D49_A 'c' ^D49_l) . / (D49_S .)* ('c' ^D49_l) (D49_S / D49_A 'ab')) / ('ab' (D49_S D49_S 'c')? D49_A ^D49_l)) ^D49_l) / 'c' (D49_S !(('b' 'a')* (D49_A / 'ab' 'ab' 'c') (D49_A [ab])*) / !((D49_A)* 'b') (!('b' !.) ('ab' / 'a' D49_A D49_S) / !([ab]) ('ab' 'c' D49_A / [b-c] 'c' !.) (D49_A [ab] ^D49_l))) ((!(D49_S) ('ab' D49_S D49_S)+ (D49_S (D49_S)+ / ('c' (. D49_A / 'b' 'a' D49_A) ^D49_l) D49_A (D49_S 'b' D49_S ^D49_l)) ^D49_l) (&(D49_A D49_S) ('ab' . ^D49_l) / D49_A ('a' D49_S / D49_S [ab])) D49_S / D49_S ((D49_A 'ab')*)?)
+D50_S <- x1:D50_A 'b' / 'c' D50_A
+D50_A <- 'b' 'a'

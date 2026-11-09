@@ -14,7 +14,7 @@ import Peg.Grammar
 import Peg.Grammar.Format (formatGrammar)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Lsp.Json
-import Peg.Wasm (analyzeJson, formatJson)
+import Peg.Wasm (analyzeJson, formatJson, parseInputJson)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, listDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath (takeBaseName, takeDirectory, takeExtension, (</>))
@@ -37,6 +37,7 @@ main = do
       , astTests conformance
       , formatTests conformance
       , requestTests
+      , parseTests
       , auditFixTests
       ]
 
@@ -403,6 +404,84 @@ requestTests =
              , ("a debugEntry that is not a boolean", "{\"grammar\": \"%module A\\nS <- 'a'\\n\", \"debugEntry\": \"yes\"}")
              ]
          ]
+
+-- The parse of an input with the interpreter (ADR 0090). The cases are
+-- written to a golden file, which the Deno tests send to the wasm.
+parseTests :: TestTree
+parseTests =
+  testGroup
+    "parse (ADR 0090)"
+    ( [ testCase name (response (parseInputJson (renderJson request)) @?= expected)
+      | (name, request, expected) <- parseCases
+      ]
+        ++ [ goldenVsString "the cases for the wasm" "test/golden/parse.jsonl" $
+              pure . BL.fromStrict . TE.encodeUtf8 . (<> "\n") . T.intercalate "\n" $
+                [renderJson (object [("name", String (T.pack name)), ("request", request), ("response", response (parseInputJson (renderJson request)))]) | (name, request, _) <- parseCases]
+           , testCase "requests that are wrong get only an error" $
+              mapM_
+                ( \req -> case response (parseInputJson req) of
+                    Object [("error", String e)] -> assertBool "a message" (not (T.null e))
+                    v -> assertFailure (T.unpack (renderJson v))
+                )
+                [ "{\"grammar\": "
+                , "{\"input\": \"a\"}"
+                , "{\"grammar\": \"%module A\\nS <- 'a'\\n\"}"
+                , "{\"grammar\": \"%module A\\nS <- 'a'\\n\", \"input\": 1}"
+                , "{\"grammar\": \"%module A\\nS <- 'a'\\n\", \"input\": \"a\", \"entry\": 1}"
+                ]
+           ]
+    )
+
+-- The cases of parse: a name, the request, and the response expected from
+-- what the interpreter gives.
+parseCases :: [(String, Value, Value)]
+parseCases =
+  [ ( "an input the grammar accepts"
+    , request grammar "ab" Null
+    , answer [] (Bool True) Null (node' "S" 0 2 Null Null [node' "A" 0 1 (String "x") Null [token "TEXT" 0 1 Null "a"], token "TEXT" 1 2 Null "b"])
+    )
+  , ( "an input the grammar rejects"
+    , request grammar "ac" Null
+    , answer [] (Bool False) (parseError 1 2 1 ["'b'"] Null "1:2: expected 'b'") Null
+    )
+  , ( "a label that stops the parse"
+    , request "%module M\nS <- 'a' ('b' ^close)\n" "a" Null
+    , answer [] (Bool False) (parseError 1 2 1 ["'b'"] (String "close") "1:2: expected 'b'") Null
+    )
+  , ( "a rule of %entry"
+    , request grammar "a" (String "A")
+    , answer [] (Bool True) Null (node' "A" 0 1 Null Null [token "TEXT" 0 1 Null "a"])
+    )
+  , ( "an entry that is not in %entry"
+    , request grammar "ab" (String "S")
+    , answer [diag 1 1 "S is not a rule of %entry"] Null Null Null
+    )
+  , ( "a grammar with an error"
+    , request "%module M\nS <- T\n" "a" Null
+    , answer [diag 2 6 "undefined rule T"] Null Null Null
+    )
+  , ( "a grammar that the interpreter cannot interpret"
+    , request "%module M\nS <- n:$[a-z]+ !{ isKeyword n }\n" "a" Null
+    , answer [diag 2 18 "the interpreter cannot evaluate the predicate !{ isKeyword n }"] Null Null Null
+    )
+  , ( "offsets in bytes and columns in code points"
+    , request "%module M\nS <- 'あ' 'い'\n" "あう" Null
+    , answer [] (Bool False) (parseError 1 2 3 ["'い'"] Null "1:2: expected 'い'") Null
+    )
+  , ( "the tree of a text outside ASCII"
+    , request "%module M\nS <- 'あ' 'い'\n" "あい" Null
+    , answer [] (Bool True) Null (node' "S" 0 6 Null Null [token "TEXT" 0 6 Null "あい"])
+    )
+  ]
+  where
+    grammar = "%module M\n%entry A\nS <- x:A 'b'\nA <- 'a'\n"
+    request g i e = object [("grammar", String g), ("input", String i), ("entry", e)]
+    answer ds accepted err tree = object [("diagnostics", Array ds), ("accepted", accepted), ("parseError", err), ("tree", tree)]
+    diag l c m = object [("severity", String "error"), ("line", int l), ("column", int c), ("message", String m)]
+    parseError l c o expected lbl m =
+      object [("line", int l), ("column", int c), ("offset", int o), ("expected", Array (map String expected)), ("label", lbl), ("message", String m)]
+    node' k s e lbl text cs = object [("kind", String k), ("start", int s), ("end", int e), ("label", lbl), ("text", text), ("children", Array cs)]
+    token k s e lbl t = node' k s e lbl (String t) []
 
 -- The fixes of the security audit of 2026-11-07 (ADR 0080).
 auditFixTests :: TestTree

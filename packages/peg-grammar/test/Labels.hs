@@ -13,6 +13,8 @@ module Labels
   , run
   , inputs
   , warnedLabels
+  , countGrammar
+  , shadowGrammar
   ) where
 
 import qualified Data.ByteString.Lazy as BL

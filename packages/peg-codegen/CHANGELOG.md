@@ -80,6 +80,16 @@ Since v0.1.0-rc6:
   code of grammars without them does not change
   ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
 
+### Changed
+
+Since v0.1.0-rc6:
+
+- The memoising function of a rule and the labels of the children in the
+  syntax tree are chosen by `ruleMemoisation` and `childLabel` of
+  peg-grammar, which the interpreter of grammars uses too. The generated
+  code does not change
+  ([ADR 0090](https://github.com/tett23/peg-hs/blob/main/docs/adr/0090-grammar-interpreter-without-ghc.md)).
+
 ### Fixed
 
 Since v0.1.0-rc1:

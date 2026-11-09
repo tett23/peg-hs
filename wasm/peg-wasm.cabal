@@ -33,6 +33,7 @@ library
     , peg-codegen
     , peg-grammar
     , peg-lsp
+    , peg-runtime
     , text
   hs-source-dirs:   src
   default-language: GHC2021
@@ -56,7 +57,7 @@ executable peg-hs-wasm
     -- the exports (ADR 0078).
     ghc-options:
       -no-hs-main -optl-mexec-model=reactor
-      "-optl-Wl,--export=hs_init,--export=malloc,--export=free,--export=analyze,--export=format"
+      "-optl-Wl,--export=hs_init,--export=malloc,--export=free,--export=analyze,--export=format,--export=parse"
   else
     buildable: False
 

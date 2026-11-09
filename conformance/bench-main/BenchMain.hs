@@ -38,6 +38,7 @@ import Peg.Grammar.LabelInsertion (insertLabels, recoverProposals)
 import Peg.Grammar.Labels (labelWarnings)
 import Peg.Grammar.Lint (lintGrammar)
 import Peg.Grammar.Incremental (Parsed (..), noFragments, parseFragments)
+import Peg.Grammar.Interpret (Interpreter, interpret, interpreter)
 import Peg.Grammar.Outline (outline)
 import Peg.Grammar.Parser (parseGrammar, parseTops)
 import Peg.Grammar.Templates (expandTemplates)
@@ -110,6 +111,10 @@ main = do
     ["--lsp-messages", file, dir, place, sync] -> lspMessagesAt place sync file dir
     _ -> benchmarks
 
+-- The interpreter of a grammar (ADR 0090).
+interpreterOf :: Text -> IO Interpreter
+interpreterOf src = either (fail . show) pure (parseGrammar src >>= \g -> check g >>= interpreter g)
+
 benchmarks :: IO ()
 benchmarks = do
   jsonGrammar <- TIO.readFile "json/Json.hpeg"
@@ -118,6 +123,8 @@ benchmarks = do
   lua <- luaSources >>= evaluate . force
   lspGrammar <- lspGrammarPath >>= TIO.readFile >>= evaluate . force
   lsp <- lspStages lspGrammar
+  jsonInterpreter <- interpreterOf jsonGrammar
+  syntaxInterpreter <- TIO.readFile "bench/JsonSyntax.hpeg" >>= interpreterOf
   defaultMain
     [ bgroup
         "json"
@@ -127,6 +134,10 @@ benchmarks = do
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonSyntax.parseSyntax) json)
         , bench ("parse " <> show (T.length json) <> " characters with %syntax, untyped, tree entry") (whnf (either (const 0) (snd . syntaxRange) . JsonUntyped.parseSyntax) json)
         , bench ("parse " <> show (T.length json) <> " characters with inferred and generated types") (whnf (either (const 0) generatedSize . JsonGenerated.parse) json)
+        , -- The interpreter of ADR 0090, with the grammars of the first and
+          -- the fourth.
+          bench ("interpret " <> show (T.length json) <> " characters") (whnf (either (const 0) (snd . syntaxRange) . interpret jsonInterpreter Nothing) json)
+        , bench ("interpret " <> show (T.length json) <> " characters with %syntax") (whnf (either (const 0) (snd . syntaxRange) . interpret syntaxInterpreter Nothing) json)
         ]
     , bgroup
         "commonmark"
