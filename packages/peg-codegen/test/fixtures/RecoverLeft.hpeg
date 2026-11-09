@@ -12,10 +12,16 @@
 %safe item
 
 S <- '(' L
+
 L <- ('a' ^a) (')' / L)
+
 Empty <- ''
 
 D <- '(' DL ')'
-DL <- (Item ^item) DL / ''
+
+DL <- (Item ^item) DL
+   / ''
+
 Item <- 'a'
+
 BeforeClose <- &')'
