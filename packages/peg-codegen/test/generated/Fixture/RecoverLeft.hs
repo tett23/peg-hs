@@ -255,7 +255,7 @@ peg'rule'L :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'L =
   PegRt.memoLR peg'memo'L "L"
     (PegRt.node syntaxKindL (PegRt.choice
-      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "a" (PegPrelude.Just (PegRt.voidS peg'rule'Empty)) (PegRt.plain (PegRt.lit "a" "'a'"))
+      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "a" (PegPrelude.Just (PegRt.voidS peg'rule'Empty)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), peg'k0)
           }]
           ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit ")" "')'")
@@ -291,7 +291,7 @@ peg'rule'DL :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'DL =
   PegRt.memoLR peg'memo'DL "DL"
     (PegRt.node syntaxKindDL (PegRt.choice
-      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "item" (PegPrelude.Just (PegRt.voidS peg'rule'BeforeClose)) (peg'rule'Item)
+      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "item" (PegPrelude.Just (PegRt.voidS peg'rule'BeforeClose)) (PegRt.voidS (peg'rule'Item))
           ; PegPrelude.pure ((), peg'k0)
           }]
           ; (_, peg'k2) <- peg'rule'DL
