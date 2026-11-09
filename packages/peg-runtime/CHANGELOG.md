@@ -43,6 +43,17 @@ Since v0.1.0-rc2:
   green nodes
   ([ADR 0071](https://github.com/tett23/peg-hs/blob/main/docs/adr/0071-incremental-parsing-in-the-language-server.md)).
 
+Since v0.1.0-rc6:
+
+- `decodeInput :: ByteString -> Either Utf8Error Text` of `Peg.Runtime`
+  turns UTF-8 bytes, such as those of a file, into the input of the entry
+  points of a generated module. It removes a byte order mark at the start
+  and returns the position of the first ill-formed sequence as a
+  `Utf8Error`, counted as the positions of `ParseError` are.
+  `renderUtf8Error` renders it as `line:column: invalid UTF-8`.
+  peg-runtime now depends on bytestring and on text 2.0.2 or later
+  ([ADR 0093](https://github.com/tett23/peg-hs/blob/main/docs/adr/0093-utf8-bytestring-input.md)).
+
 ### Changed
 
 Since v0.1.0-rc2:

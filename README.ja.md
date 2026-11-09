@@ -257,6 +257,30 @@ source-repository-package
 詳しい一覧は、Hackage の文書（peg-codegen の `Peg.Codegen` と peg-runtime の `Peg.Runtime`）にある。
 入口と `%syntax` の名前は、`gen --export` でプログラムが使うものだけに狭められる（[ADR 0061](docs/adr/0061-select-generated-exports.md)）。
 
+入口は `Text` を受け取る。
+ファイルを解析するときは、バイト列で読み、`Peg.Runtime` の `decodeInput` で `Text` に直す（[ADR 0093](docs/adr/0093-utf8-bytestring-input.md)）。
+`decodeInput` は先頭のバイト順マークを除き、UTF-8 として正しくないバイトがあれば、その最初の位置を `Utf8Error` で返す。
+`renderUtf8Error` は、それを `2:2: invalid UTF-8` のような一行にする。
+`Data.Text.IO` と違い、ロケールの文字コードによらない。
+
+```haskell
+import Calc.Parser (parse)
+import qualified Data.ByteString as BS
+import qualified Data.Text.IO as TIO
+import Peg.Runtime (decodeInput, renderParseError, renderUtf8Error)
+
+parseFile :: FilePath -> IO ()
+parseFile path = do
+  bytes <- BS.readFile path
+  case decodeInput bytes of
+    Left err -> TIO.putStrLn (renderUtf8Error err)
+    Right input -> case parse input of
+      Right expr -> print expr
+      Left err -> TIO.putStrLn (renderParseError err)
+```
+
+このときは、bytestring も `build-depends` に加える。
+
 ## ビルドの中でモジュールを生成する
 
 `peg-hs gen` で生成してコミットする代わりに、cabal のパッケージのビルドの中でモジュールを生成することもできる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）。
@@ -785,7 +809,7 @@ GHC のランタイムと C ライブラリは、ほかにファイルとポー�
 
 - **配布**：実行ファイルは Linux（x86-64）と macOS（arm64）だけである。Windows では、ソースからビルドする。Hackage にはまだない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
 - **GHC の版**：パッケージと生成したモジュールは GHC 9.10、9.12、9.14 に対応する。CI で確かめるのは ghcup の recommended の版（9.10）だけで、9.12 と 9.14 は v0.1.0-rc2 まで確かめた（[ADR 0057](docs/adr/0057-recommended-ghc-only.md)）。9.8 以前には対応しない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
-- **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。生成したモジュールを使うプログラムは、`Peg.Runtime` の `decodeInput` で UTF-8 のバイト列を入力の `Text` にできる（[ADR 0093](docs/adr/0093-utf8-bytestring-input.md)）
 - **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **型名の重なる規則**：`%syntax` の文法では規則ごとに型を作るので、`expr` と `Expr` のように同じ型名になる二つの規則は誤りになる。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも、そうした規則があれば扱えない（[ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)）
