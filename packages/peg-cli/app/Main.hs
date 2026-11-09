@@ -7,6 +7,7 @@ import Command.Label (labelCommand)
 import Command.Lint (lintCommand)
 import Command.Lsp (lspCommand)
 import Command.Parse (parseCommand)
+import Command.Test (testCommand)
 import Data.List (find, intercalate, isSuffixOf)
 import Data.Version (showVersion)
 import EditDistance (suggestions)
@@ -18,7 +19,7 @@ import System.Exit (ExitCode (..), exitWith)
 import System.IO (hPutStr, hPutStrLn, stderr)
 
 commands :: [Command]
-commands = [genCommand, fmtCommand, lintCommand, labelCommand, lspCommand, parseCommand]
+commands = [genCommand, fmtCommand, lintCommand, labelCommand, lspCommand, parseCommand, testCommand]
 
 overview :: String
 overview =

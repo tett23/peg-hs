@@ -378,10 +378,11 @@ Files are read and written as UTF-8, whatever the locale ([ADR 0045](docs/adr/00
 | `peg-hs lint [FILE\|DIR...]` | warn of what is a mistake in grammars, and note what can be simpler |
 | `peg-hs label GRAMMAR.hpeg [--write]` | insert labels where they are shown to be safe |
 | `peg-hs parse GRAMMAR.hpeg INPUT` | parse an input and show its AST or syntax tree |
+| `peg-hs test [GRAMMAR.hpeg\|DIR...] [--accept]` | parse the examples of grammars and compare the results with the expected ones |
 | `peg-hs lsp` | run the language server on standard input and output |
 
 The exit status is 0 on success and 2 for a mistake in the use of a command.
-It is 1 for an error in a grammar, a file that cannot be read or written, a warning of `lint`, an unformatted file found by `fmt --check`, and a warning with `gen --Werror`.
+It is 1 for an error in a grammar, a file that cannot be read or written, a warning of `lint`, an unformatted file found by `fmt --check`, a warning with `gen --Werror`, and an example that `test` finds failing.
 
 ### gen
 
@@ -449,6 +450,8 @@ The labels do not change the language, and they do not recover: the author write
 - `peg-hs gen` does not warn about the labels inserted: the grammar with them is checked as `gen` checks it, and the labels warned about are left out ([ADR 0086](docs/adr/0086-inserted-labels-pass-the-label-check.md))
 - Near rules that test characters with semantic predicates, and in left recursion, the check cannot show labels to be safe, and none is inserted. The Lua grammar, for one, gets no label
 
+To see that the language has not changed on your own inputs, put them as examples of the grammar and run `peg-hs test` before and after inserting the labels, or after editing labels by hand (see [test](#test)).
+
 ### parse
 
 `parse` parses an input and shows the value of the start rule (the AST, by default) or the lossless syntax tree (the CST, with `--format cst`) ([ADR 0036](docs/adr/0036-parse-command.md)).
@@ -470,6 +473,56 @@ peg-hs parse --interpret grammar/Calc.hpeg input.txt
 - Semantic predicates and the arguments of rules are Haskell; the interpreter evaluates only `True`, `False` and comparisons (`==`, `/=`, `<`, `<=`, `>`, `>=`) of terms, a term being `a`, `a + b` or `a - b` where each of `a` and `b` is a decimal integer, a parameter of the rule of type `Int`, or `_col`. A parameter that predicates do not read may take any argument, since only actions use it.
 - A grammar with other predicates, or that passes other arguments to a parameter that predicates read, is an error at each such predicate and argument; leave out `--interpret` to compile it. The interpreter never takes such a predicate as true or false.
 - A grammar with `%env` works with `--interpret` when its predicates do not read `_env`.
+
+### test
+
+`test` parses the examples of a grammar and compares the results with the expected ones ([ADR 0091](docs/adr/0091-grammar-test-command.md)).
+The examples of `NAME.hpeg` are in the directory `NAME.cases` beside it, one input to a file.
+
+```text
+Expr.hpeg
+Expr.cases/
+  sum.in        an input
+  sum.cst       sum.in is accepted, with this syntax tree
+  dangling.in
+  dangling.err  dangling.in is rejected, with this error
+  Term/         examples parsed with the rule Term of %entry
+    digit.in
+    digit.cst
+```
+
+- An input `X.in` is parsed as it is, without escapes or separators. A newline at its end is part of the input. It is read as UTF-8, and a byte order mark at its start is skipped.
+- `X.cst` expects the input to be accepted, with the syntax tree that `peg-hs parse --format cst` shows. `X.err` expects it to be rejected, with the error as one line, such as `1:3: expected [0-9]`. An empty `X.err` only checks that the input is rejected, so the example does not fail when an ADR improves the wording of errors.
+- A newline at the end of `X.cst` and `X.err` does not count; every other difference does, spaces included.
+- The examples directly in `NAME.cases` are parsed with the start rule, and those in `NAME.cases/RULE` with the rule `RULE` of `%entry`.
+- An input with both `X.cst` and `X.err`, an expectation without its input, a directory whose name is not in `%entry`, and a directory inside the directory of a rule are errors. Files of other extensions are ignored, so notes can sit beside the examples.
+- The grammars are chosen as `fmt` and `lint` choose them. Of the grammars found in directories, those without `NAME.cases` are skipped; a grammar given by name without it is an error.
+
+Passed examples are not shown. Each failed example is written to standard output, then the number of examples:
+
+```text
+Expr.cases/new.in: no expectation; run peg-hs test --accept to record the result
+Expr.cases/one.err: expected a rejection, but the input was accepted
+Expr.cases/sum.cst:4: the syntax tree differs
+  expected:     TEXT@1..2 "-"
+  actual:       TEXT@1..2 "+"
+Expr.cases/three.cst: expected acceptance, but 1:5: expected [0-9]
+2 passed, 4 failed
+```
+
+For a syntax tree, only the first line that differs is shown as it is, indentation included, with its line number in the expectation; `(end of file)` stands for the side that ends first.
+For an error, the expected and the actual lines are shown.
+`test` fails with 1 when an example fails or has no expectation, so it can run as it is in CI.
+
+`--accept` writes the results as the expectations instead of comparing them: `X.cst` for an accepted input and `X.err` for a rejected one, removing the expectation of the other kind.
+An empty `X.err` of a rejected input stays empty, and a file that the result matches is not rewritten.
+The files written and removed are listed.
+To add an example, put `X.in`, run `peg-hs test --accept`, read what was written, and check it with `git diff` before committing; whether the expectation is right is for the author to judge.
+
+The examples are parsed by the interpreter of `parse --interpret`, without GHC.
+A grammar that the interpreter cannot parse with, such as one with a predicate it cannot evaluate, is compiled and cached as `parse` does, and needs `ghc` on `PATH`; `--ghc-arg` passes arguments to it.
+The way depends only on the grammar: the same grammar and examples take the same way in any environment, and no example is skipped.
+A grammar with `%env` is tested only when the interpreter can parse with it (when its predicates do not read `_env`), and is an error otherwise.
 
 ### lsp
 

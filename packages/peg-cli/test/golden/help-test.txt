@@ -1,0 +1,32 @@
+usage: peg-hs test [options] [GRAMMAR.hpeg|DIR...]
+
+Parse the examples of a grammar and compare the results with the expected ones. The
+examples of NAME.hpeg are in the directory NAME.cases beside it: an input X.in, parsed as
+it is, newline at the end included, and its expectation, X.cst or X.err. X.cst is the
+syntax tree of an accepted input, as peg-hs parse --format cst shows it. X.err is the
+error of a rejected input; an empty X.err compares only that the input is rejected.
+The examples in NAME.cases/RULE are parsed with the rule RULE of %entry. Other files are
+ignored. A newline at the end of an expectation does not count.
+
+A directory stands for the .hpeg files under it, and without arguments the .hpeg files
+under the current directory are taken; the grammars found without NAME.cases are skipped.
+The failed examples are written to standard output, then the number of examples that
+passed and failed.
+
+The examples are parsed by interpreting the grammar, without ghc. A grammar that the
+interpreter cannot parse with, such as one with a predicate it cannot evaluate, is
+compiled with ghc as by peg-hs parse; a grammar with %env that the interpreter cannot
+parse with is an error. Files are read and written as UTF-8.
+
+options:
+  --accept                  write the results as the expectations, and list the files
+  --ghc-arg ARG             pass ARG to ghc when the grammar is compiled (repeatable)
+  -h, --help                show this help
+
+examples:
+  peg-hs test
+      test the examples of every grammar under the current directory
+  peg-hs test Expr.hpeg
+      test the examples in Expr.cases
+  peg-hs test --accept Expr.hpeg
+      write the expectations of the examples in Expr.cases

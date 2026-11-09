@@ -5,7 +5,14 @@
 -- together with the embedded sources of peg-runtime, and the executable is
 -- cached. With @--interpret@, the interpreter of peg-grammar parses the
 -- input without GHC and shows the CST (ADR 0090).
-module Command.Parse (parseCommand, fnv1a) where
+module Command.Parse
+  ( parseCommand
+  , fnv1a
+  , Ghc (..)
+  , findGhc
+  , cacheBase
+  , compiledParser
+  ) where
 
 import Control.Monad (forM_, unless, when)
 import Data.Bits (xor)
@@ -124,29 +131,17 @@ parseText grammarFile input format entry ghcArgs src =
       | isJust (grammarEnv g) -> failWith (grammarFile <> ": peg-hs parse does not support grammars with %env")
       | Just e <- entry, T.pack e `notElem` map unLoc (grammarEntries g) -> failWith (grammarFile <> ": " <> e <> " is not a rule of %entry")
       | otherwise ->
-          findExecutable "ghc" >>= \case
-            Nothing -> failWith "peg-hs parse needs ghc on PATH"
-            Just _ -> do
-              (_, out, _) <- readProcessBytes "ghc" ["--numeric-version"]
-              let ghcVersion = takeWhile (not . isSpace) (T.unpack (TE.decodeUtf8Lenient out))
-              if not (supportedGhc ghcVersion)
-                then failWith ("peg-hs parse needs " <> supportedGhcText <> ", the versions peg-runtime supports; ghc is " <> ghcVersion)
-                else do
-                  dir <- cacheDir (T.unpack src) entry ghcArgs ghcVersion
-                  let withAst = format /= Cst
-                  let exe = parserPath dir withAst
-                  built <- doesFileExist exe
-                  ok <-
-                    if built
-                      then pure True
-                      else build grammarFile g dir withAst entry ghcArgs
-                  if not ok
-                    then pure (ExitFailure 1)
-                    else do
-                      (code, out', err) <- readProcessBytes exe [modeArg format, input]
-                      BS.hPut stdout out'
-                      BS.hPut stderr err
-                      pure code
+          findGhc "parse" >>= \case
+            Left msg -> failWith msg
+            Right ghc -> do
+              base <- cacheBase
+              compiledParser ghc base grammarFile g src (format /= Cst) entry ghcArgs >>= \case
+                Nothing -> pure (ExitFailure 1)
+                Just exe -> do
+                  (code, out', err) <- readProcessBytes exe [modeArg format, input]
+                  BS.hPut stdout out'
+                  BS.hPut stderr err
+                  pure code
   where
     failWith msg = hPutStrLn stderr ("peg-hs: " <> msg) >> pure (ExitFailure 1)
     modeArg = \case
@@ -178,14 +173,57 @@ interpretFile grammarFile input entry =
     directoryHint = "peg-hs parse takes a grammar file and an input file, not a directory"
     failWith msg = hPutStrLn stderr ("peg-hs: " <> msg) >> pure (ExitFailure 1)
 
--- The cache directory for a grammar, the options and the versions.
-cacheDir :: String -> Maybe String -> [String] -> String -> IO FilePath
-cacheDir src entry ghcArgs ghcVersion = do
+-- | A ghc that peg-runtime supports: the program to run and its version.
+data Ghc = Ghc
+  { ghcProgram :: FilePath
+  , ghcVersion :: String
+  }
+
+-- | The ghc on PATH, or why it cannot compile a parser, for the command of
+-- the name given: there is none, or its version is not supported.
+findGhc :: String -> IO (Either String Ghc)
+findGhc command =
+  findExecutable "ghc" >>= \case
+    Nothing -> pure (Left ("peg-hs " <> command <> " needs ghc on PATH"))
+    Just _ -> do
+      (_, out, _) <- readProcessBytes "ghc" ["--numeric-version"]
+      let v = takeWhile (not . isSpace) (T.unpack (TE.decodeUtf8Lenient out))
+      pure $
+        if supportedGhc v
+          then Right (Ghc "ghc" v)
+          else Left ("peg-hs " <> command <> " needs " <> supportedGhcText <> ", the versions peg-runtime supports; ghc is " <> v)
+
+-- | The directory of the cache of compiled parsers:
+-- @$XDG_CACHE_HOME/peg-hs/parse@, or @~/.cache/peg-hs/parse@.
+cacheBase :: IO FilePath
+cacheBase = do
   base <- lookupEnv "XDG_CACHE_HOME" >>= \case
     Just d | not (null d) -> pure d
     _ -> (</> ".cache") <$> getHomeDirectory
-  let key = intercalate "\0" [src, fromMaybe "" entry, intercalate "\1" ghcArgs, showVersion version, ghcVersion, mainVersion]
-  pure (base </> "peg-hs" </> "parse" </> fnv1a key)
+  pure (base </> "peg-hs" </> "parse")
+
+-- | The executable of the parser of a checked grammar, from the cache under
+-- the directory given, or compiled now with @ghc@ and kept in the cache.
+-- It takes the mode (@ast@, @cst@ or @all@) and the input file, writes
+-- what it shows to standard output and the parse error to standard error,
+-- and exits with 1 on a parse error. Nothing after reporting the errors of
+-- the build. An executable without the AST needs no Show instance.
+compiledParser :: Ghc -> FilePath -> FilePath -> Grammar -> T.Text -> Bool -> Maybe String -> [String] -> IO (Maybe FilePath)
+compiledParser ghc base grammarFile g src withAst entry ghcArgs = do
+  let dir = cacheDir base (T.unpack src) entry ghcArgs (ghcVersion ghc)
+      exe = parserPath dir withAst
+  built <- doesFileExist exe
+  ok <-
+    if built
+      then pure True
+      else build ghc grammarFile g dir withAst entry ghcArgs
+  pure (if ok then Just exe else Nothing)
+
+-- The cache directory for a grammar, the options and the versions.
+cacheDir :: FilePath -> String -> Maybe String -> [String] -> String -> FilePath
+cacheDir base src entry ghcArgs v =
+  let key = intercalate "\0" [src, fromMaybe "" entry, intercalate "\1" ghcArgs, showVersion version, v, mainVersion]
+   in base </> fnv1a key
 
 -- An executable that shows the AST, the CST or both; one without the AST
 -- needs no Show instance.
@@ -202,8 +240,8 @@ fnv1a s =
 -- Write the sources to a working directory of its own (ADR 0077) and
 -- compile them into the cache; report GHC's errors. The working directory
 -- is removed in any case.
-build :: FilePath -> Grammar -> FilePath -> Bool -> Maybe String -> [String] -> IO Bool
-build grammarFile g dir withAst entry ghcArgs = withWorkDir $ \work -> do
+build :: Ghc -> FilePath -> Grammar -> FilePath -> Bool -> Maybe String -> [String] -> IO Bool
+build ghc grammarFile g dir withAst entry ghcArgs = withWorkDir $ \work -> do
   let srcDir = work </> "src"
       moduleName = T.unpack (unLoc (grammarModule g))
       modulePath = srcDir </> map (\c -> if c == '.' then '/' else c) moduleName <> ".hs"
@@ -222,7 +260,7 @@ build grammarFile g dir withAst entry ghcArgs = withWorkDir $ \work -> do
       createDirectoryIfMissing True dir
       let exe = parserPath dir withAst
       (status, out, err) <-
-        readProcessBytes "ghc" (["--make", "-O0", "-v0", "-i" <> srcDir, "-outputdir", work </> "build", "-o", work </> "parser", srcDir </> "Main.hs"] ++ ghcArgs)
+        readProcessBytes (ghcProgram ghc) (["--make", "-O0", "-v0", "-i" <> srcDir, "-outputdir", work </> "build", "-o", work </> "parser", srcDir </> "Main.hs"] ++ ghcArgs)
       -- Another peg-hs may be building the same parser: the executable
       -- appears in the cache at once, by a rename.
       when (status == ExitSuccess) $ renameFile (work </> "parser") exe
