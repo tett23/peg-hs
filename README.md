@@ -482,6 +482,7 @@ The labels do not change the language, and they do not recover: the author write
 - A label is named `RULE_TARGET`: the rule referred to, the text of a literal of identifier characters, or the name of a literal of one symbol (such as `rparen`). `peg-hs help label` shows the table
 - `--rule RULE` inserts only in that rule. It can be given more than once
 - Nothing is inserted inside a label with a recovery rule, or in the rules it calls
+- Nothing is inserted in alternatives that are the same as another alternative of their rule, so that the warning `duplicate-alternative` of `lint` stays ([ADR 0094](docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md))
 - `peg-hs gen` does not warn about the labels inserted: the grammar with them is checked as `gen` checks it, and the labels warned about are left out ([ADR 0086](docs/adr/0086-inserted-labels-pass-the-label-check.md))
 - Near rules that test characters with semantic predicates, and in left recursion, the check cannot show labels to be safe, and none is inserted. The Lua grammar, for one, gets no label
 

@@ -28,6 +28,8 @@ import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverInsert as RecoverInsert
 import qualified Fixture.RecoverShared as RecoverShared
+import qualified Fixture.RecoverVoid as RecoverVoid
+import qualified Fixture.RecoverVoidSyntax as RecoverVoidSyntax
 import qualified Fixture.Runs as Runs
 import qualified Fixture.RunsSyntax as RunsSyntax
 import qualified Fixture.Sum as Sum
@@ -112,6 +114,12 @@ targets =
     , []
     )
   , ("RecoverShared", [withRecoverErrors RecoverShared.parseRecover (plainEntry Nothing RecoverShared.parse)], [])
+    -- The labels with a recovery rule where the values are not used (ADR 0094).
+  , ("RecoverVoid", [withRecoverErrors RecoverVoid.parseRecover (plainEntry Nothing RecoverVoid.parse)], ["rx;", "ry;", "r;", "&xx;", "&yx;", "&zx;", "ry;&xx;rx;", "&z;rx;"])
+  , ( "RecoverVoidSyntax"
+    , [withRecover RecoverVoidSyntax.parseSyntaxRecover (syntaxEntry Nothing RecoverVoidSyntax.parse RecoverVoidSyntax.parseSyntax RecoverVoidSyntax.nameOfSyntaxKind)]
+    , ["?x;", "?;", "?y;", "*xx;", "*;", "*y;", "+x;", "+xx;", "+y;", "+;", "!x;", "!y;", "!;", "+y;!y;?x;", "!yy;*x;"]
+    )
   , ("Runs", [plainEntry Nothing Runs.parse, plainEntry (Just "PlainDoc") Runs.parsePlainDoc, plainEntry (Just "DeepDoc") Runs.parseDeepDoc], [runsInput])
   , ( "RunsSyntax"
     , [ syntaxEntry Nothing RunsSyntax.parse RunsSyntax.parseSyntax RunsSyntax.nameOfSyntaxKind

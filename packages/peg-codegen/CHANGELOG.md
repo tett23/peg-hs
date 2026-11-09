@@ -103,6 +103,15 @@ Since v0.1.0-rc1:
   case (kanji, kana, `_`) gets `Rule'` before its type name, so the module
   compiles ([ADR 0053](https://github.com/tett23/peg-hs/blob/main/docs/adr/0053-type-names-of-rules-without-case.md)).
 
+Since v0.1.0-rc6:
+
+- A label with a recovery rule where its value is not used discards the
+  value of its expression as well as that of the recovery rule
+  (`PegRt.voidS` or `PegRt.voidP`). The generated module did not compile
+  when the expression had a value other than `()`: a reference to a rule
+  with a value, or `?`, `*` and `+` with `%syntax`
+  ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+
 ### Security
 
 Since v0.1.0-rc5:

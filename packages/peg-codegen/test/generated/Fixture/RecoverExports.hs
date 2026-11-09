@@ -254,7 +254,7 @@ peg'rule'Command =
           ; PegRt.touch n
           ; (body, peg'k4) <- PegRt.label "body" ((PegRt.manyS) (peg'rule'Inline))
           ; PegRt.touch body
-          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledS "close" (PegPrelude.Just (PegRt.voidS peg'rule'CloseAtParagraphEnd)) (PegRt.plain (PegRt.lit "]" "']'"))
+          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledS "close" (PegPrelude.Just (PegRt.voidS peg'rule'CloseAtParagraphEnd)) (PegRt.voidS (PegRt.plain (PegRt.lit "]" "']'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; _span <- PegRt.spanFrom peg'start

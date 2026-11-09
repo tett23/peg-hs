@@ -70,6 +70,7 @@ import Peg.Grammar
 import Peg.Grammar.Assemble (isIdentChar)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Labels (labelSafeAt, labelWarnings, matchesEmpty)
+import Peg.Grammar.Lint (sameAlternative)
 import Peg.Grammar.Import (resolveImports)
 import Peg.Grammar.Parser (parseGrammar)
 import qualified Peg.Grammar.SelfHostedSyntax as S
@@ -105,6 +106,11 @@ data Candidate = Candidate
 -- @peg-hs lint@ (options and repetitions that cannot throw a label) and has
 -- alternatives after it, nor those of the rules it calls: a label there
 -- would take away the warning unreachable-alternative of the linter.
+-- Neither are the items of an alternative that is the same as another
+-- alternative of its rule, as the warning duplicate-alternative of
+-- @peg-hs lint@ compares them ('Peg.Grammar.Lint.sameAlternative'): a
+-- label in either of the two would make them differ and take the warning
+-- away (ADR 0094).
 labelCandidates :: Grammar -> Grammar -> [Candidate]
 labelCandidates g0 g =
   concat
@@ -112,6 +118,7 @@ labelCandidates g0 g =
         [ sequenceCandidates (ruleName r0) [] i (zip (altItems a0) (altItems a))
         | (i, (a0, a)) <- zip [0 ..] (zip (ruleAlts r0) (ruleAlts r))
         , not (i + 1 < length (ruleAlts r0) && alwaysSucceeds throwing (altItems a0))
+        , not (or [sameAlternative a0 b | (k, b) <- zip [0 ..] (ruleAlts r0), k /= i])
         ]
     | r0 <- grammarRules g0
     , null (ruleTemplateParams r0)

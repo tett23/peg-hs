@@ -125,7 +125,7 @@ peg'rule'Expr =
     (PegRt.expecting "expression" (PegRt.choice
       [ do { PegRt.lit "(" "'('"
           ; peg'v0 <- peg'rule'Sum
-          ; PegRt.choice [do { PegRt.labeledMessage "close" "missing ')'" (PegPrelude.Just (PegRt.voidP peg'rule'Close)) (PegRt.lit ")" "')'")
+          ; PegRt.choice [do { PegRt.labeledMessage "close" "missing ')'" (PegPrelude.Just (PegRt.voidP peg'rule'Close)) (PegRt.voidP (PegRt.lit ")" "')'"))
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure peg'v0

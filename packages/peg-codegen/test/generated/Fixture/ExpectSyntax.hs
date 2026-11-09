@@ -271,7 +271,7 @@ peg'rule'Expr =
     (PegRt.expecting "expression" (PegRt.node syntaxKindExpr (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "(" "'('")
           ; (peg'v2, peg'k1) <- peg'rule'Sum
-          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledMessageS "close" "missing ')'" (PegPrelude.Just (PegRt.voidS peg'rule'Close)) (PegRt.plain (PegRt.lit ")" "')'"))
+          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledMessageS "close" "missing ')'" (PegPrelude.Just (PegRt.voidS peg'rule'Close)) (PegRt.voidS (PegRt.plain (PegRt.lit ")" "')'")))
           ; PegPrelude.pure ((), peg'k3)
           }]
           ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1, peg'k4])

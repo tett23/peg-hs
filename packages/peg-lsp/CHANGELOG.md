@@ -92,6 +92,18 @@ Since v0.1.0-rc4:
   `maxContentLength` (64 MiB); `renderFrameError` gives its reason
   ([ADR 0077](https://github.com/tett23/peg-hs/blob/main/docs/adr/0077-fixes-of-the-security-audit.md)).
 
+### Fixed
+
+Since v0.1.0-rc6:
+
+- The code action that inserts labels does not insert them in an
+  alternative that is the same as another alternative of its rule, which
+  took away the warning `duplicate-alternative` of `peg-hs lint`. A
+  document with a character literal with an escape that spans lines, or
+  with a quote inside an identifier, is parsed by fragments with the same
+  result as the whole parse
+  ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+
 ### Security
 
 Since v0.1.0-rc4:

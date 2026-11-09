@@ -1,6 +1,6 @@
 # ADR 0056: ラベルの挿入と雛形の実装で ADR から外れた点
 
-ステータス: 採択
+ステータス: 採択→挿入の候補の除外（重複した選択肢）は [ADR 0094](0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)
 
 ## 文脈
 

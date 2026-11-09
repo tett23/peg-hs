@@ -114,6 +114,18 @@ Since v0.1.0-rc6:
   uses too. What it writes and its exit status do not change
   ([ADR 0085](https://github.com/tett23/peg-hs/blob/main/docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
 
+### Fixed
+
+Since v0.1.0-rc6:
+
+- `peg-hs label` does not insert labels in an alternative that is the
+  same as another alternative of its rule, so that the warning
+  `duplicate-alternative` of `peg-hs lint` stays. The parsers that
+  `peg-hs gen` writes and `peg-hs parse` builds compile for a label with
+  a recovery rule on an expression with a value, where the value is not
+  used
+  ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+
 ### Security
 
 Since v0.1.0-rc4:

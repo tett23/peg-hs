@@ -88,6 +88,8 @@ test-suite peg-codegen-test
     Fixture.RecoverNoLabels
     Fixture.RecoverShared
     Fixture.RecoverSharedNoLabels
+    Fixture.RecoverVoid
+    Fixture.RecoverVoidSyntax
     Fixture.Runs
     Fixture.RunsSyntax
     Fixture.Sum

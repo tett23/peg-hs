@@ -758,7 +758,7 @@ peg'rule'Object =
           ; (_, peg'k1) <- peg'rule'Ws
           ; (ms, peg'k2) <- PegRt.label "ms" (peg'rule'Members)
           ; PegRt.touch ms
-          ; (_, peg'k3) <- PegRt.labeledS "rbrace" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToBrace)) (PegRt.plain (PegRt.lit "}" "'}'"))
+          ; (_, peg'k3) <- PegRt.labeledS "rbrace" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToBrace)) (PegRt.voidS (PegRt.plain (PegRt.lit "}" "'}'")))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 58 "bench/JsonRecover.hpeg" #-}
@@ -828,7 +828,7 @@ peg'rule'Member =
           ; (k, peg'k0) <- PegRt.label "k" (peg'rule'String)
           ; PegRt.touch k
           ; (_, peg'k1) <- peg'rule'Ws
-          ; (_, peg'k2) <- PegRt.labeledS "colon" (PegPrelude.Just (PegRt.voidS peg'rule'InsertColon)) (PegRt.plain (PegRt.lit ":" "':'"))
+          ; (_, peg'k2) <- PegRt.labeledS "colon" (PegPrelude.Just (PegRt.voidS peg'rule'InsertColon)) (PegRt.voidS (PegRt.plain (PegRt.lit ":" "':'")))
           ; (_, peg'k3) <- peg'rule'Ws
           ; (v, peg'k4) <- PegRt.label "v" (PegRt.labeledS "value" (PegPrelude.Just peg'rule'SkipValue) (peg'rule'Value))
           ; PegRt.touch v
@@ -855,7 +855,7 @@ peg'rule'Array =
           ; (_, peg'k1) <- peg'rule'Ws
           ; (vs, peg'k2) <- PegRt.label "vs" (peg'rule'Elements)
           ; PegRt.touch vs
-          ; (_, peg'k3) <- PegRt.labeledS "rbracket" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToBracket)) (PegRt.plain (PegRt.lit "]" "']'"))
+          ; (_, peg'k3) <- PegRt.labeledS "rbracket" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToBracket)) (PegRt.voidS (PegRt.plain (PegRt.lit "]" "']'")))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 71 "bench/JsonRecover.hpeg" #-}
@@ -991,7 +991,7 @@ peg'rule'String =
           ; (_, peg'k0) <- PegRt.plain (PegRt.lit "\"" "'\"'")
           ; (us, peg'k1) <- PegRt.label "us" ((PegRt.manyS) (peg'rule'Unit))
           ; PegRt.touch us
-          ; (_, peg'k2) <- PegRt.labeledS "quote" (PegPrelude.Just (PegRt.voidS peg'rule'CloseQuote)) (PegRt.plain (PegRt.lit "\"" "'\"'"))
+          ; (_, peg'k2) <- PegRt.labeledS "quote" (PegPrelude.Just (PegRt.voidS peg'rule'CloseQuote)) (PegRt.voidS (PegRt.plain (PegRt.lit "\"" "'\"'")))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 94 "bench/JsonRecover.hpeg" #-}
