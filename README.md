@@ -249,6 +249,30 @@ A generated module also exports:
 - with `%env`, every entry point takes the value of the parse environment as its first argument ([ADR 0012](docs/adr/0012-context-sensitive-extensions.md)).
 
 The Haddock of `Peg.Codegen` (peg-codegen) and `Peg.Runtime` (peg-runtime) has the full list.
+
+The entry points take `Text`.
+To parse a file, read its bytes and turn them into `Text` with `decodeInput` of `Peg.Runtime` ([ADR 0093](docs/adr/0093-utf8-bytestring-input.md)).
+`decodeInput` removes a byte order mark at the start, and returns the position of the first bytes that are not UTF-8 as a `Utf8Error`.
+`renderUtf8Error` turns it into a line such as `2:2: invalid UTF-8`.
+Unlike `Data.Text.IO`, it does not depend on the encoding of the locale.
+
+```haskell
+import Calc.Parser (parse)
+import qualified Data.ByteString as BS
+import qualified Data.Text.IO as TIO
+import Peg.Runtime (decodeInput, renderParseError, renderUtf8Error)
+
+parseFile :: FilePath -> IO ()
+parseFile path = do
+  bytes <- BS.readFile path
+  case decodeInput bytes of
+    Left err -> TIO.putStrLn (renderUtf8Error err)
+    Right input -> case parse input of
+      Right expr -> print expr
+      Left err -> TIO.putStrLn (renderParseError err)
+```
+
+This needs bytestring in `build-depends` too.
 `gen --export` narrows the entry points and the names of `%syntax` to those a program uses ([ADR 0061](docs/adr/0061-select-generated-exports.md)).
 
 ## Generating the module in the build
@@ -760,7 +784,7 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 
 - **Distribution**: executables are for Linux (x86-64) and macOS (arm64) only. On Windows, build from source. The packages are not on Hackage yet ([ADR 0044](docs/adr/0044-release-v0-1-0.md)).
 - **Versions of GHC**: the packages and generated modules support GHC 9.10, 9.12 and 9.14. CI checks only 9.10, the version ghcup recommends; 9.12 and 9.14 were checked up to v0.1.0-rc2 ([ADR 0057](docs/adr/0057-recommended-ghc-only.md)). GHC 9.8 and earlier are not supported ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
-- **Encoding**: grammars and inputs must be UTF-8. Convert files in other encodings first ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
+- **Encoding**: grammars and inputs must be UTF-8. Convert files in other encodings first ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)). A program that uses a generated module can turn UTF-8 bytes into the input `Text` with `decodeInput` of `Peg.Runtime` ([ADR 0093](docs/adr/0093-utf8-bytestring-input.md)).
 - **`peg-hs parse` and `%env`**: `parse` cannot handle grammars with `%env` (the read-only parse environment), since it has no way to give the value of the environment. Check such grammars by calling the generated module from a program ([ADR 0036](docs/adr/0036-parse-command.md)).
 - **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).
 - **Rules whose type names collide**: with `%syntax`, each rule has a type named after it, so two rules such as `expr` and `Expr` are an error. `peg-hs parse` always generates the syntax tree too, so it rejects such grammars even without `%syntax` ([ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)).
