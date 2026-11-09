@@ -52,6 +52,14 @@ Since v0.1.0-rc6:
   `syntaxErrorMessage`. `renderSyntaxError` renders a recovered error as
   `renderParseError` renders a parse error
   ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
+- `decodeInput :: ByteString -> Either Utf8Error Text` of `Peg.Runtime`
+  turns UTF-8 bytes, such as those of a file, into the input of the entry
+  points of a generated module. It removes a byte order mark at the start
+  and returns the position of the first ill-formed sequence as a
+  `Utf8Error`, counted as the positions of `ParseError` are.
+  `renderUtf8Error` renders it as `line:column: invalid UTF-8`.
+  peg-runtime now depends on bytestring and on text 2.0.2 or later
+  ([ADR 0093](https://github.com/tett23/peg-hs/blob/main/docs/adr/0093-utf8-bytestring-input.md)).
 
 ### Changed
 

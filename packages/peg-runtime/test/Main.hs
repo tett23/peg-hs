@@ -1,9 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
+import qualified Data.ByteString as BS
+import Data.Either (isRight)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Word (Word8)
+import Peg.Runtime (Utf8Error (..), decodeInput, renderUtf8Error)
 import Peg.Runtime.Internal
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -23,6 +29,7 @@ main =
       , recoveryTests
       , expectingTests
       , messageTests
+      , inputTests
       ]
 
 -- A store with no tables, for parsers that do not use rules.
@@ -505,4 +512,85 @@ messageTests =
         renderSyntaxError (SyntaxError (Just "l") (0, 0) (Pos 0 2 3) (S.fromList [ExpectedName "x", ExpectedLiteral "'a'"]) Nothing)
           @?= "2:3: expected x or 'a'"
         renderSyntaxError (SyntaxError Nothing (0, 0) (Pos 0 1 1) S.empty Nothing) @?= "1:1: parse error"
+    ]
+
+-- UTF-8 input (ADR 0093) -------------------------------------------------------
+
+bom :: BS.ByteString
+bom = BS.pack [0xEF, 0xBB, 0xBF]
+
+stripBom :: BS.ByteString -> BS.ByteString
+stripBom b = fromMaybe b (BS.stripPrefix bom b)
+
+-- The position of the error, or the text that was decoded.
+errorPos :: [Word8] -> Either Text Pos
+errorPos ws = either (Right . utf8ErrorPos) Left (decodeInput (BS.pack ws))
+
+-- Byte strings that are not uniformly random: most uniformly random byte
+-- strings are ill-formed within their first few bytes, so well-formed text
+-- with one byte inserted, and a byte order mark, are mixed in.
+newtype Bytes = Bytes BS.ByteString
+  deriving (Show)
+
+instance Arbitrary Bytes where
+  arbitrary = do
+    body <-
+      oneof
+        [ BS.pack <$> arbitrary
+        , TE.encodeUtf8 . T.pack <$> listOf (frequency [(3, arbitrary), (2, elements "a\n\tあ\x1F600")])
+        , do
+            t <- TE.encodeUtf8 . T.pack <$> listOf (frequency [(3, arbitrary), (2, elements "a\n\tあ\x1F600")])
+            i <- choose (0, BS.length t)
+            w <- arbitrary
+            pure (BS.take i t <> BS.singleton w <> BS.drop i t)
+        ]
+    withBom <- arbitrary
+    pure (Bytes (if withBom then bom <> body else body))
+  shrink (Bytes b) = map (Bytes . BS.pack) (shrink (BS.unpack b))
+
+inputTests :: TestTree
+inputTests =
+  testGroup
+    "UTF-8 input (ADR 0093)"
+    [ testCase "empty input" $ decodeInput BS.empty @?= Right ""
+    , testCase "ASCII" $ decodeInput (TE.encodeUtf8 "abc\n") @?= Right "abc\n"
+    , testCase "Japanese" $ decodeInput (TE.encodeUtf8 "日本語の\n入力") @?= Right "日本語の\n入力"
+    , testCase "a byte order mark at the start is removed" $ decodeInput (BS.pack [0xEF, 0xBB, 0xBF, 0x61]) @?= Right "a"
+    , testCase "a byte order mark alone" $ decodeInput bom @?= Right ""
+    , testCase "a byte order mark after the start is kept" $ decodeInput (BS.pack [0x61, 0xEF, 0xBB, 0xBF]) @?= Right "a\xFEFF"
+    , testCase "an invalid byte" $ errorPos [0x61, 0xFF, 0x62] @?= Right (Pos 1 1 2)
+    , testCase "a lead byte without its continuation" $ errorPos [0x61, 0xE0, 0x41] @?= Right (Pos 1 1 2)
+    , testCase "a sequence cut at the end" $ errorPos [0x61, 0xE3, 0x81] @?= Right (Pos 1 1 2)
+    , testCase "a surrogate" $ errorPos [0x61, 0xED, 0xA0, 0x80] @?= Right (Pos 1 1 2)
+    , testCase "an overlong encoding" $ errorPos [0x61, 0xC0, 0xAF] @?= Right (Pos 1 1 2)
+    , testCase "a code point over U+10FFFF" $ errorPos [0x61, 0xF4, 0x90, 0x80, 0x80] @?= Right (Pos 1 1 2)
+    , testCase "a continuation byte after a character" $ errorPos [0x61, 0xE3, 0x81, 0x82, 0x80] @?= Right (Pos 4 1 3)
+    , testCase "an error on the second line" $
+        errorPos (BS.unpack (TE.encodeUtf8 "a\nあ") ++ [0xFF]) @?= Right (Pos 5 2 2)
+    , testCase "the offset after a byte order mark" $ errorPos [0xEF, 0xBB, 0xBF, 0x61, 0xFF] @?= Right (Pos 1 1 2)
+    , testCase "a tab is one column" $ errorPos [0x09, 0x78, 0xFF] @?= Right (Pos 2 1 3)
+    , testCase "renderUtf8Error" $ renderUtf8Error (Utf8Error (Pos 5 2 2)) @?= "2:2: invalid UTF-8"
+    , testProperty "decodes exactly the well-formed input" $ \(Bytes b) ->
+        isRight (decodeInput b) === isRight (TE.decodeUtf8' (stripBom b))
+    , testProperty "the decoded text encodes back to the input" $ \(Bytes b) ->
+        case decodeInput b of
+          Right t -> TE.encodeUtf8 t === stripBom b
+          Left _ -> property True
+    , testProperty "the offset is the length of the longest well-formed prefix" $ \(Bytes b) ->
+        case decodeInput b of
+          Right _ -> property True
+          Left e ->
+            let s = stripBom b
+                n = posOffset (utf8ErrorPos e)
+             in counterexample (show n) $
+                  isRight (TE.decodeUtf8' (BS.take n s))
+                    .&&. conjoin [not (isRight (TE.decodeUtf8' (BS.take (n + k) s))) | k <- [1 .. 4]]
+    , testProperty "the line and the column count the well-formed prefix" $ \(Bytes b) ->
+        case decodeInput b of
+          Right _ -> property True
+          Left e ->
+            let p = utf8ErrorPos e
+                prefix = TE.decodeUtf8Lenient (BS.take (posOffset p) (stripBom b))
+             in (posLine p, posColumn p)
+                  === (T.count "\n" prefix + 1, T.length (T.takeWhileEnd (/= '\n') prefix) + 1)
     ]
