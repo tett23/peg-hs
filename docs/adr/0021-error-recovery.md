@@ -1,6 +1,6 @@
 # ADR 0021: ラベル付きの失敗による構文エラーからの回復
 
-ステータス: 採択→ラベルの文言（実装すること、実装しないこと）は [ADR 0089](0089-rule-names-and-label-messages-in-errors.md)
+ステータス: 採択→ラベルの文言（実装すること、実装しないこと）は [ADR 0089](0089-rule-names-and-label-messages-in-errors.md)、回復するモードが終わるための左再帰の判定は [ADR 0095](0095-left-recursion-through-recovery-rules.md)
 
 ## 文脈
 

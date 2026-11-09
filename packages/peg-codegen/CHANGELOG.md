@@ -103,6 +103,14 @@ Since v0.1.0-rc1:
   case (kanji, kana, `_`) gets `Rule'` before its type name, so the module
   compiles ([ADR 0053](https://github.com/tett23/peg-hs/blob/main/docs/adr/0053-type-names-of-rules-without-case.md)).
 
+Since v0.1.0-rc6:
+
+- A rule that comes back to itself at the same position through a
+  recovery rule is generated with `PegRt.memoLR`, so the recovering parse
+  comes back to it at the same position and ends, as the interpreter
+  does. The code of the other grammars of the repository does not change
+  ([ADR 0095](https://github.com/tett23/peg-hs/blob/main/docs/adr/0095-left-recursion-through-recovery-rules.md)).
+
 ### Security
 
 Since v0.1.0-rc5:

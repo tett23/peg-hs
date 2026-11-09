@@ -26,6 +26,7 @@ import Shard (Shard, shardTests, sharded)
 import Data.Proxy (Proxy (..))
 import Test.Tasty.Options (OptionDescription (Option))
 import Ranges (rangeTests)
+import RecoverLeftRecursion (recoverLeftRecursionTests)
 import Recovery (recoveryTests)
 import TemplateParams (templateParamTests)
 import Security (securityTests)
@@ -67,6 +68,7 @@ main = do
       , expectMessageTests
       , labelTests files
       , interpretTests
+      , recoverLeftRecursionTests
       , labelInsertionTests files
       , testGroup
           "type names of the syntax tree (ADR 0053)"
