@@ -63,6 +63,7 @@ executable peg-hs
     , peg-codegen  >=0.1  && <0.2
     , peg-grammar  >=0.1  && <0.2
     , peg-lsp      >=0.1  && <0.2
+    , peg-runtime  >=0.1  && <0.2
     , process      >=1.6.12 && <1.7
     , text         >=2.0  && <2.2
   -- The working directory of parse is made with the permission 0700 by

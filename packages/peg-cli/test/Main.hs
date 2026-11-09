@@ -634,6 +634,47 @@ main = do
               take 1 bad @?= []
           ]
       , testGroup
+          "parse --interpret (ADR 0090)"
+          [ goldenVsString "the CST of an input" "test/golden/parse-interpret.txt" (parseOut "interpret" ["--interpret"])
+          , goldenVsString "the error of an input the grammar rejects" "test/golden/parse-interpret-reject.txt" $
+              (\(_, out, err) -> BL.pack (out <> err)) <$> parseRun "interpret-reject" exprGrammar "1 +" ["--interpret"]
+          , testCase "the same output and exit status as --format cst" $
+              forM_ (zip [1 :: Int ..] [("1 + 22 + 333", []), ("1 +", []), ("", []), ("22", ["--entry", "Term"]), ("2 2", ["--entry", "Term"])]) $ \(k, (input, flags)) -> do
+                compiled <- parseRun ("interpret-same-" <> show k) exprGrammar input (["--format", "cst"] ++ flags)
+                interpreted <- parseRun ("interpret-same-" <> show k) exprGrammar input ("--interpret" : flags)
+                (input, interpreted) @?= (input, compiled)
+          , testCase "without ghc on PATH, and without the cache" $ do
+              dir <- treeWith "parse-interpret-noghc" [("G.hpeg", exprGrammar), ("in.txt", "1 + 2")]
+              Just exe <- findExecutable "peg-hs"
+              e <- getEnvironment
+              let cache = dir </> "cache"
+              (code, out, err) <- readCreateProcessWithExitCode (proc exe ["parse", "--interpret", "G.hpeg", "in.txt"]) {cwd = Just dir, env = Just (("PATH", dir) : ("XDG_CACHE_HOME", cache) : [(k, v) | (k, v) <- e, k `notElem` ["PATH", "XDG_CACHE_HOME"]])} ""
+              (code, take 5 out, err) @?= (ExitSuccess, "Expr@", "")
+              created <- doesPathExist cache
+              created @?= False
+          , testCase "with --format ast or all, or --ghc-arg, a usage error" $ do
+              codes <- mapM (\flags -> (\(c, _, _) -> c) <$> parseRun "interpret-usage" exprGrammar "1" ("--interpret" : flags)) [["--format", "ast"], ["--format", "all"], ["--ghc-arg", "-O0"], ["--format", "xml"]]
+              codes @?= replicate 4 (ExitFailure 2)
+              (code, out, _) <- parseRun "interpret-usage" exprGrammar "1" ["--interpret", "--format", "cst"]
+              (code, take 5 out) @?= (ExitSuccess, "Expr@")
+          , testCase "a grammar that the interpreter cannot evaluate is an error with the location" $ do
+              (code, out, err) <- parseRun "interpret-keyword" "%module M\nS <- n:$[a-z]+ !{ isKeyword n }\n" "abc" ["--interpret"]
+              (code, out, lines err)
+                @?= ( ExitFailure 1
+                    , ""
+                    , [ "G.hpeg:2:18: error: the interpreter cannot evaluate the predicate !{ isKeyword n }"
+                      , "peg-hs: the interpreter cannot parse with this grammar; leave out --interpret to compile the parser with ghc"
+                      ]
+                    )
+          , testCase "a grammar with %env that reads it only in actions" $ do
+              let grammar = "%module M\n%env Int\nS :: Int\nS <- 'a' { _env }\n"
+              (code, out, err) <- parseRun "interpret-env" grammar "a" ["--interpret"]
+              (code, out, err) @?= (ExitSuccess, "S@0..1\n  TEXT@0..1 \"a\"\n", "")
+              (code', _, err') <- parseRun "interpret-env" grammar "a" ["--format", "cst"]
+              code' @?= ExitFailure 1
+              assertBool err' ("does not support grammars with %env" `isInfixOf` err')
+          ]
+      , testGroup
           "parse (ADR 0036)"
           [ goldenVsString "the AST by default" "test/golden/parse-ast.txt" (parseOut "ast" [])
           , goldenVsString "--format cst, of a grammar without %syntax" "test/golden/parse-cst.txt" (parseOut "cst" ["--format", "cst"])

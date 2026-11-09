@@ -476,6 +476,20 @@ GHC を待つのは、文法ごとに最初の一回だけである。
 - 文法の Haskell の断片が利用者のモジュールを import する場合は、`--ghc-arg -isrc` のように探索のパスを渡す。cabal のプロジェクトのパッケージを使う場合は、`cabal exec -- peg-hs parse ...` で実行する
 - 文字列の中の ASCII 以外の文字は、エスケープせずにそのまま表示する
 
+`--interpret` を付けると、`parse` はコンパイルしない（[ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)）。
+文法を解釈して入力を解析し、CST を表示する。
+標準出力、誤りの文言、終了状態は `--format cst` と同じである。
+`ghc` を使わず、キャッシュも作らないので、文法を書きかえるたびにすぐ結果が出る。
+
+```sh
+peg-hs parse --interpret grammar/Calc.hpeg input.txt
+```
+
+- インタプリタはアクションを実行しないので、AST は表示しない。`--interpret` と `--format ast`、`--format all`、`--ghc-arg` を合わせると、使い方の誤りになる
+- 意味述語と規則の引数は Haskell の式である。インタプリタが評価するのは、`True`、`False` と、項の比較（`==`、`/=`、`<`、`<=`、`>`、`>=`）だけである。項は `a`、`a + b`、`a - b` の形で、`a` と `b` はそれぞれ 10 進の整数、型が `Int` の規則の引数、`_col` のどれかである。述語の読まない引数は、アクションでしか使われないので、どんな実引数でもよい
+- ほかの形の述語を含む文法と、述語の読む引数にほかの形の実引数を渡す文法は、その述語と実引数ごとに位置つきの誤りになる。`--interpret` を外せば、コンパイルして解析できる。インタプリタは、そうした述語を成功とも失敗ともみなさない
+- `%env` の文法は、述語が `_env` を読まなければ `--interpret` で扱える
+
 ### lsp
 
 `lsp` は、標準入出力で Language Server Protocol を話す言語サーバーである（[ADR 0035](docs/adr/0035-language-server.md)）。
@@ -664,8 +678,8 @@ args = ["lsp"]
 リリースには、`peg-hs.wasm` を添付している（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)）。
 WASI preview1 の reactor で、ブラウザや Deno の中で文法を解析し、生成し、整形する。
 名前に版は入れない。版はリリースのタグで区別し、チェックサムは同じ Release の `SHA256SUMS` にある。
-できるのは、テキストで渡した文法に `peg-hs gen` と `peg-hs fmt` がすることだけである。
-文法で入力を解析することはできない。生成したモジュールを GHC でコンパイルする必要があるからである。
+テキストで渡した文法に、`peg-hs gen` と `peg-hs fmt` がすることをする。
+入力の解析は、GHC を使わない文法のインタプリタで行う（[ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)）。
 `scripts/build-wasm.sh` が、コミットを固定した [ghc-wasm-meta](https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta) のツールチェーンでビルドする。ツールチェーンは `nix shell` で用意する。
 
 ```sh
@@ -681,11 +695,12 @@ nix shell "gitlab:haskell-wasm/ghc-wasm-meta/8079eb96bbc63823d99ad8acaff07655326
 | `_initialize` | `() -> ()` | reactor の初期化。最初に一度だけ呼ぶ |
 | `hs_init` | `(i32, i32) -> ()` | Haskell のランタイムの初期化。`_initialize` の次に `hs_init(0, 0)` を一度だけ呼ぶ |
 | `malloc` | `(i32) -> i32` | 線形メモリを確保する |
-| `free` | `(i32) -> ()` | `malloc` で確保した領域と、`analyze` と `format` の返した領域を解放する |
+| `free` | `(i32) -> ()` | `malloc` で確保した領域と、`analyze`、`format`、`parse` の返した領域を解放する |
 | `analyze` | `(i32, i32) -> i32` | 文法を解析して生成する |
 | `format` | `(i32, i32) -> i32` | 文法を整形する |
+| `parse` | `(i32, i32) -> i32` | GHC を使わずに、文法で入力を解析する |
 
-`analyze` と `format` は、要求の JSON を UTF-8 で書いた領域の先頭と長さ（バイト）を受け取る。
+`analyze`、`format`、`parse` は、要求の JSON を UTF-8 で書いた領域の先頭と長さ（バイト）を受け取る。
 返すのは、新しく確保した領域の先頭である。
 その領域は、先頭の 4 バイトが応答の長さ（バイト、リトルエンディアンの符号なし整数）で、その後に応答の JSON が UTF-8 で続く。
 要求の領域は関数が戻る前に写し終えるので、戻った後に解放してよい。応答の領域は、読んだ後に `free` で解放する。
@@ -743,7 +758,25 @@ call("analyze", { grammar: "%module Calc\n..." });
 
 `format` の要求は `{"grammar": "..."}` で、応答は `{"text": "...", "diagnostics": [...]}` である。
 `text` は `peg-hs fmt` が書くものと同じで、整形できなければ `null` になり、`diagnostics` に誤りが入る。
-要求が JSON でない、UTF-8 でない、`grammar` がない、欄の型が違う、のどれかのときは、`{"error": "..."}` だけを返す。
+`parse` の要求は `{"grammar": "...", "input": "...", "entry": null}` である。
+`entry` は `%entry` の規則の名前で、省くか `null` にすると開始規則で解析する。
+`peg-hs parse --interpret` と同じに入力を解析し、次の応答を返す。
+
+```json
+{
+  "diagnostics": [],
+  "accepted": true,
+  "parseError": null,
+  "tree": {"kind": "E", "start": 0, "end": 3, "label": null, "text": null, "children": []}
+}
+```
+
+- `diagnostics`：文法の誤り、インタプリタの誤り（評価できない述語と実引数）、`%entry` にない `entry` の誤り。形は `analyze` の誤りと同じである。
+- `accepted`：入力を受理したか。`diagnostics` に誤りがあれば `null`。
+- `parseError`：入力を拒否したときの `{"line", "column", "offset", "expected", "label", "message"}`。`line` と `column` は 1 から数え、`column` はコードポイントで数える。`offset` は UTF-8 のバイトの位置である。`expected` は期待したものを `peg-hs parse` の表示と同じ文字列で並べ、`label` は解析を止めたラベルか `null`、`message` は `peg-hs parse` の表示する文言全体である。拒否していなければ `null`。
+- `tree`：入力を受理したときの CST。受理していなければ `null`。ノードとトークンは同じ形のオブジェクトである。`kind` は規則の名前か `TEXT` と `ERROR`、`start` と `end` は UTF-8 のバイトの位置、`label` は束縛の名前か `null`、`text` はトークンの文字列でノードでは `null`、`children` はトークンでは空である。
+
+要求が JSON でない、UTF-8 でない、`grammar`（`parse` では `input` も）がない、欄の型が違う、のどれかのときは、`{"error": "..."}` だけを返す。
 配列とオブジェクトの入れ子が 256 段より深い要求は、JSON でないものとして扱う（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
 
 ### 構文木
@@ -814,8 +847,8 @@ GHC のランタイムと C ライブラリは、ほかにファイルとポー�
 - **配布**：実行ファイルは Linux（x86-64）と macOS（arm64）だけである。Windows では、ソースからビルドする。Hackage にはまだない（[ADR 0044](docs/adr/0044-release-v0-1-0.md)）
 - **GHC の版**：パッケージと生成したモジュールは GHC 9.10、9.12、9.14 に対応する。CI で確かめるのは ghcup の recommended の版（9.10）だけで、9.12 と 9.14 は v0.1.0-rc2 まで確かめた（[ADR 0057](docs/adr/0057-recommended-ghc-only.md)）。9.8 以前には対応しない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
 - **文字コード**：文法と入力のファイルは UTF-8 でなければならない。ほかの文字コードは、変換してから渡す（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。生成したモジュールを使うプログラムは、`Peg.Runtime` の `decodeInput` で UTF-8 のバイト列を入力の `Text` にできる（[ADR 0093](docs/adr/0093-utf8-bytestring-input.md)）
-- **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。そうした文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)）
-- **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）
+- **`peg-hs parse` と `%env`**：`parse` は `%env`（読み取り専用の解析環境）を使う文法を扱えない。環境の値を与える手段がないためである。`--interpret` を付ければ、述語が `_env` を読まない文法は扱える。そのほかの文法は、生成したモジュールを自分のプログラムから呼んで確かめる（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)）
+- **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。`--interpret` は GHC を使わないが、AST は表示せず、述語を評価できる文法だけを扱う。このリポジトリの Lua、TOML、CommonMark の文法と記法の文法は、述語で Haskell の関数を呼ぶので扱えない（[ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)）
 - **型名の重なる規則**：`%syntax` の文法では規則ごとに型を作るので、`expr` と `Expr` のように同じ型名になる二つの規則は誤りになる。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも、そうした規則があれば扱えない（[ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)）
 - **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 23 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
 - **規則の雛形**：雛形の引数は呼び出し元の引数を使えるが、呼び出し元の束縛は使えない。束縛の値は値の引数で渡す。雛形は `%entry`、`%start`、`%recover` の規則にできない（[ADR 0031](docs/adr/0031-rule-templates.md)、[ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)）

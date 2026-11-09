@@ -1,6 +1,6 @@
 # ADR 0036: 文法で入力を解析して AST と CST を表示するコマンド（peg-hs parse）
 
-ステータス: 採択
+ステータス: 採択→文法の解釈による解析は [ADR 0090](0090-grammar-interpreter-without-ghc.md)
 
 ## 文脈
 

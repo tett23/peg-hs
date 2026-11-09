@@ -3,7 +3,8 @@
 -- | @peg-hs parse@: parse an input with a grammar and show its AST and CST
 -- (ADR 0036). The parser generated from the grammar is compiled with GHC,
 -- together with the embedded sources of peg-runtime, and the executable is
--- cached.
+-- cached. With @--interpret@, the interpreter of peg-grammar parses the
+-- input without GHC and shows the CST (ADR 0090).
 module Command.Parse (parseCommand, fnv1a) where
 
 import Control.Monad (forM_, unless, when)
@@ -14,6 +15,7 @@ import Data.List (intercalate, isInfixOf)
 import Data.Maybe (fromMaybe, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as TIO
 import Data.Version (showVersion)
 import Data.Word (Word64)
 import Diagnostics (reportErrors)
@@ -26,6 +28,7 @@ import Paths_peg_cli (version)
 import Peg.Codegen (Options (..), generate)
 import Peg.Grammar
 import Peg.Grammar.Check (check)
+import Peg.Grammar.Interpret (interpret, interpreter, interpreterKindName)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import System.Directory
@@ -33,6 +36,9 @@ import System.Environment (lookupEnv)
 import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory, (</>))
 import System.IO (hPutStrLn, stderr, stdout)
+import Peg.Runtime (renderParseError)
+import Peg.Runtime.Syntax (debugTree)
+import qualified Pretty
 import ProcessBytes (readProcessBytes)
 import WorkDir (withWorkDir)
 
@@ -47,18 +53,29 @@ parseCommand =
         , "or the lossless syntax tree (the CST). The parser is compiled with the ghc on PATH"
         , "(GHC 9.10, 9.12 or 9.14), and cached under $XDG_CACHE_HOME/peg-hs/parse. The AST needs"
         , "a Show instance of the type of the start rule. Run through cabal exec to use the"
-        , "packages of a project. Grammars with %env are not supported, nor grammars with two rules"
-        , "whose syntax tree types have the same name, such as expr and Expr. Files are read as UTF-8."
+        , "packages of a project. Grammars with %env are not supported without --interpret, nor"
+        , "grammars with two rules whose syntax tree types have the same name, such as expr and"
+        , "Expr. Files are read as UTF-8."
+        , ""
+        , "With --interpret, the input is parsed without compiling, by interpreting the grammar, and"
+        , "the CST is shown as with --format cst; ghc is not needed. The interpreter does not run"
+        , "the actions, so it shows no AST. It evaluates predicates and the arguments of rules that"
+        , "predicates read only of these forms: True, False, or a comparison (==, /=, <, <=, >, >=)"
+        , "of two terms, a term being an atom, atom + atom or atom - atom, and an atom a decimal"
+        , "integer, a parameter of type Int or _col. It accepts grammars with %env whose predicates"
+        , "do not read _env."
         ]
     , cmdOptions =
-        [ Opt "format" Nothing (Just "ast|cst|all") "what to show (default: ast)"
+        [ Opt "format" Nothing (Just "ast|cst|all") "what to show (default: ast, or cst with --interpret)"
         , Opt "entry" Nothing (Just "RULE") "parse with a rule of %entry instead of the start rule"
         , Opt "ghc-arg" Nothing (Just "ARG") "pass ARG to ghc, such as -isrc (repeatable)"
+        , Opt "interpret" Nothing Nothing "parse by interpreting the grammar, without ghc, and show the CST"
         ]
     , cmdExamples =
         [ ("peg-hs parse Expr.hpeg input.txt", "show the value of the start rule for input.txt")
         , ("peg-hs parse --format cst Expr.hpeg input.txt", "show the lossless syntax tree")
         , ("cabal exec -- peg-hs parse --ghc-arg -isrc G.hpeg in.txt", "compile with the packages of the project and the modules under src")
+        , ("peg-hs parse --interpret Expr.hpeg input.txt", "show the lossless syntax tree without compiling")
         ]
     , cmdRun = run
     }
@@ -69,6 +86,11 @@ data Format = Ast | Cst | All
 run :: Parsed -> IO ExitCode
 run p = case (parsedArguments p, value "format" p) of
   ([grammarFile, input], fmt)
+    | flag "interpret" p -> case fmt of
+        _ | not (null [() | ("ghc-arg", _) <- parsedOptions p]) -> commandUsageError "parse" "--interpret does not compile, so it takes no --ghc-arg"
+        Just f | f `elem` ["ast", "all"] -> commandUsageError "parse" "--interpret shows only the CST: the AST is the value of the actions, which the interpreter does not run; leave out --interpret to show it"
+        Just f | f /= "cst" -> commandUsageError "parse" "--format takes ast, cst or all"
+        _ -> interpretFile grammarFile input (value "entry" p)
     | Just format <- maybe (Just Ast) formatOf fmt -> parseWith grammarFile input format (value "entry" p) [v | ("ghc-arg", v) <- parsedOptions p]
     | otherwise -> commandUsageError "parse" "--format takes ast, cst or all"
   ([_], _) -> commandUsageError "parse" "parse needs a grammar file and an input file"
@@ -131,6 +153,30 @@ parseText grammarFile input format entry ghcArgs src =
       Ast -> "ast"
       Cst -> "cst"
       All -> "all"
+
+-- Parse with the interpreter (ADR 0090). The output is that of the
+-- compiled parser with --format cst.
+interpretFile :: FilePath -> FilePath -> Maybe String -> IO ExitCode
+interpretFile grammarFile input entry =
+  readUtf8 directoryHint grammarFile >>= \case
+    Left e -> reportFileError e >> pure (ExitFailure 1)
+    Right src ->
+      readUtf8 directoryHint input >>= \case
+        Left e -> reportFileError e >> pure (ExitFailure 1)
+        Right text -> case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (\(g, an) -> Right (g0, g, an)) (expandTemplates g0 >>= \g -> (,) g <$> check g) of
+          Left diags -> reportErrors grammarFile diags >> pure (ExitFailure 1)
+          Right (g0, g, an)
+            | Just e <- entry, T.pack e `notElem` map unLoc (grammarEntries g) -> failWith (grammarFile <> ": " <> e <> " is not a rule of %entry")
+            | otherwise -> case interpreter g an of
+                Left diags -> do
+                  reportErrors grammarFile (templateNotes g0 diags)
+                  failWith "the interpreter cannot parse with this grammar; leave out --interpret to compile the parser with ghc"
+                Right ip -> case interpret ip (T.pack <$> entry) text of
+                  Left err -> TIO.hPutStrLn stderr (renderParseError err) >> pure (ExitFailure 1)
+                  Right tree -> putStr (Pretty.readable (T.unpack (debugTree (interpreterKindName ip) tree))) >> pure ExitSuccess
+  where
+    directoryHint = "peg-hs parse takes a grammar file and an input file, not a directory"
+    failWith msg = hPutStrLn stderr ("peg-hs: " <> msg) >> pure (ExitFailure 1)
 
 -- The cache directory for a grammar, the options and the versions.
 cacheDir :: String -> Maybe String -> [String] -> String -> IO FilePath

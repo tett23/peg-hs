@@ -141,6 +141,19 @@ Since v0.1.0-rc6:
   the parser, the formatter and the highlighting use it. `stripLabels`
   removes `%message` and keeps `%expect`
   ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
+- `Peg.Grammar.Interpret`, an interpreter of grammars that needs no GHC:
+  `interpreter` prepares a checked grammar, and `interpret`,
+  `interpretRecover` and `interpretWith` parse an input with the
+  functions of `Peg.Runtime.Internal` that generated code calls, so that
+  the errors and the syntax trees are those of the generated parser of
+  the grammar with `%syntax`. It evaluates predicates and arguments of
+  the forms `True`, `False` and comparisons of integers, parameters and
+  `_col`, and reports the others
+  ([ADR 0090](https://github.com/tett23/peg-hs/blob/main/docs/adr/0090-grammar-interpreter-without-ghc.md)).
+- `Memoisation`, `ruleMemoisation` and `childLabel` of `Peg.Grammar.Check`:
+  how a rule is memoised and which elements label their children in the
+  syntax tree, decisions that the generator and the interpreter share
+  ([ADR 0090](https://github.com/tett23/peg-hs/blob/main/docs/adr/0090-grammar-interpreter-without-ghc.md)).
 
 ### Changed
 

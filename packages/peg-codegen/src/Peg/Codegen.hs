@@ -454,7 +454,7 @@ render opts g an =
         , "peg'config = PegRt.defaultConfig" <> maybe "" (\t -> " {PegRt.cfgTabstop = " <> showT (unLoc t) <> "}") (grammarTabstop g)
         , ""
         ]
-    memoised = [r | r <- grammarRules g, not (isNoMemo g r), keep (ruleVar (ruleName r))]
+    memoised = [r | r <- grammarRules g, ruleMemoisation g an r /= NotMemoised, keep (ruleVar (ruleName r))]
     storeFields =
       ["peg'env :: (" <> envType <> ")" | hasEnv]
         ++ [memoVar r <> " :: " <> tableType r | r <- memoised]
@@ -677,9 +677,6 @@ importsPrelude g =
       "import" : rest -> "Prelude" `elem` take 2 rest
       _ -> False
 
-isNoMemo :: Grammar -> Rule -> Bool
-isNoMemo g r = ruleName r `elem` map unLoc (grammarNoMemo g)
-
 ruleVar :: Text -> Text
 ruleVar n = "peg'rule'" <> n
 
@@ -722,14 +719,14 @@ ruleDecl env r =
   where
     opts = envOpts env
     name = ruleName r
-    lr = S.member name (analysisLeftRecursive (envAnalysis env))
-    memoCall = case ruleParams r of
-      _ | isNoMemo (envGrammar env) r -> "PegRt.nomemo " <> hsString name
-      []
-        | lr -> "PegRt.memoLR " <> memoVar r <> " " <> hsString name
-        | otherwise -> "PegRt.memo " <> memoVar r <> " " <> hsString name
-      [p] -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " " <> paramName p
-      ps -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " (" <> T.intercalate ", " (map paramName ps) <> ")"
+    -- The choice is shared with the interpreter (ADR 0090).
+    memoCall = case ruleMemoisation (envGrammar env) (envAnalysis env) r of
+      NotMemoised -> "PegRt.nomemo " <> hsString name
+      MemoisedLeftRecursive -> "PegRt.memoLR " <> memoVar r <> " " <> hsString name
+      Memoised -> "PegRt.memo " <> memoVar r <> " " <> hsString name
+      MemoisedWithArguments -> case ruleParams r of
+        [p] -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " " <> paramName p
+        ps -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " (" <> T.intercalate ", " (map paramName ps) <> ")"
     alts
       | envSyntax env = fst (runGen (mapM (altCodeS env name) (ruleAlts r)) 0)
       | otherwise = fst (runGen (mapM (altCode env name) (ruleAlts r)) 0)
@@ -1110,7 +1107,9 @@ passThroughS env honorBind items = go items
       | Just i == chosen = do
           e <- exprCodeS env (itemExpr i)
           k <- freshK
-          (v, stmt) <- case itemBind i of
+          -- The labels of the children are shared with the interpreter
+          -- (ADR 0090).
+          (v, stmt) <- case childLabel (units env) i of
             Just n | honorBind -> pure (n, "(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n)
             _ -> fresh >>= \v -> pure (v, "(" <> v <> ", " <> k <> ") <- " <> e)
           rest <- mapM (itemStmtS env honorBind) is
@@ -1124,8 +1123,8 @@ itemStmtS :: Env -> Bool -> Item -> Gen (Text, Text)
 itemStmtS env honorBind i = do
   e <- exprCodeSU env (valueUsed env honorBind i) (itemExpr i)
   k <- freshK
-  pure $ case itemBind i of
-    Just n | honorBind && hasValue (units env) (itemExpr i) -> ("(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n, k)
+  pure $ case childLabel (units env) i of
+    Just n | honorBind -> ("(" <> n <> ", " <> k <> ") <- PegRt.label " <> hsString n <> " (" <> e <> ")\n          ; PegRt.touch " <> n, k)
     _ -> ("(_, " <> k <> ") <- " <> e, k)
 
 exprCodeS :: Env -> Expr -> Gen Text

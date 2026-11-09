@@ -37,6 +37,9 @@ peg=$("$cabal" list-bin exe:peg-hs)
     name=$(basename "$src" .txt)
     "$peg" gen "$src" -o "test/generated/Fixture/$name.hs" --debug-entry >/dev/null
   done
+  # The random grammars on which the interpreter is compared with the
+  # generated parser (ADR 0090), made by the tests (test/Differential.hs).
+  "$peg" gen test/random/Differential.txt -o test/generated/Fixture/Differential.hs --debug-entry >/dev/null
   # Golden output of the default options.
   "$peg" gen test/fixtures/Sum.hpeg -o test/golden/Sum.hs.golden >/dev/null
   # The recovery fixture without its labels, for the label safety tests (ADR 0028).

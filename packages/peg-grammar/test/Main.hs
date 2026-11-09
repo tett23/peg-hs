@@ -17,6 +17,7 @@ import ExpectMessage (expectMessageTests)
 import Format (formatTests)
 import GeneratedTypes (generatedTypeTests)
 import Incremental (incrementalTests)
+import Interpret (interpretTests)
 import Labels (labelTests)
 import LabelInsertion (labelInsertionTests)
 import Lint (lintTests)
@@ -63,6 +64,7 @@ main = do
       , errorReportTests
       , expectMessageTests
       , labelTests files
+      , interpretTests
       , labelInsertionTests files
       , testGroup
           "type names of the syntax tree (ADR 0053)"

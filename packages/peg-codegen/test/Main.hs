@@ -3,6 +3,7 @@
 
 module Main (main) where
 
+import Agreement (agreementTests)
 import qualified Data.ByteString.Lazy as BL
 import Data.List (isInfixOf, sortOn)
 import qualified Data.Map.Strict as M
@@ -82,6 +83,7 @@ main =
     testGroup
       "peg-codegen"
       [ regenerationTests
+      , agreementTests
       , variantTests
       , goldenVsString "default options (Sum)" "test/golden/Sum.hs.golden" $
           generateFixture Options {optSourceName = "test/fixtures/Sum.hpeg", optOutputName = "test/golden/Sum.hs.golden", optDebugEntry = False, optExports = Nothing} "Sum"
@@ -175,7 +177,7 @@ fileNameTests =
     src = "%module M\nS :: ()\nS <- 'a' { () }\n"
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
+fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain", "Differential"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -183,6 +185,9 @@ fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax
 fixtureSource :: String -> FilePath
 fixtureSource n
   | "Explicit" `isInfixOf` n = "test/explicit/" <> n <> ".txt"
+  -- The random grammars of ADR 0090, which the linter would warn about,
+  -- outside the walk of peg-hs lint and fmt.
+  | n == "Differential" = "test/random/" <> n <> ".txt"
   | otherwise = "test/fixtures/" <> n <> ".hpeg"
 
 fixtureOptions :: String -> Options

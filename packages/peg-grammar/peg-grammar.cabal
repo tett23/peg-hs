@@ -45,6 +45,7 @@ library
     Peg.Grammar.Format
     Peg.Grammar.Highlight
     Peg.Grammar.Incremental
+    Peg.Grammar.Interpret
     Peg.Grammar.LabelInsertion
     Peg.Grammar.Labels
     Peg.Grammar.Lint
@@ -75,6 +76,7 @@ test-suite peg-grammar-test
     ExpectMessage
     Format
     Incremental
+    Interpret
     LabelInsertion
     Labels
     Lint

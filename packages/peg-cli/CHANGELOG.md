@@ -68,6 +68,13 @@ Since v0.1.0-rc6:
   inside of their strings, and `peg-hs parse` shows the display names and
   the messages in its errors
   ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
+- `peg-hs parse --interpret` parses an input by interpreting the grammar,
+  without `ghc` and without the cache, and shows the CST as
+  `--format cst` does. `--format ast`, `--format all` and `--ghc-arg` are
+  usage errors with it, and a grammar whose predicates it cannot evaluate
+  is an error at each of them. It takes grammars with `%env` whose
+  predicates do not read `_env`
+  ([ADR 0090](https://github.com/tett23/peg-hs/blob/main/docs/adr/0090-grammar-interpreter-without-ghc.md)).
 
 ### Changed
 

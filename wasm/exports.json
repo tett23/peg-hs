@@ -1,10 +1,11 @@
 [
-  {"name": "root", "root": true, "reaches": ["memory", "_initialize", "malloc", "free", "hs_init", "analyze", "format"]},
+  {"name": "root", "root": true, "reaches": ["memory", "_initialize", "malloc", "free", "hs_init", "analyze", "format", "parse"]},
   {"name": "memory", "export": "memory"},
   {"name": "_initialize", "export": "_initialize"},
   {"name": "malloc", "export": "malloc"},
   {"name": "free", "export": "free"},
   {"name": "hs_init", "export": "hs_init"},
   {"name": "analyze", "export": "analyze"},
-  {"name": "format", "export": "format"}
+  {"name": "format", "export": "format"},
+  {"name": "parse", "export": "parse"}
 ]

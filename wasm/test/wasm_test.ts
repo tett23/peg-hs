@@ -42,7 +42,8 @@ const allowed = [
 ];
 
 // The export table of ADR 0078.
-const exportNames = ["memory", "_initialize", "hs_init", "malloc", "free", "analyze", "format"];
+// parse is the one of ADR 0090.
+const exportNames = ["memory", "_initialize", "hs_init", "malloc", "free", "analyze", "format", "parse"];
 
 const ESUCCESS = 0;
 const EBADF = 8;
@@ -55,11 +56,14 @@ type Exports = {
   free: (p: number) => void;
   analyze: (p: number, n: number) => number;
   format: (p: number, n: number) => number;
+  parse: (p: number, n: number) => number;
 };
+
+type Name = "analyze" | "format" | "parse";
 
 type Reactor = {
   exports: Exports;
-  call: (name: "analyze" | "format", request: Uint8Array) => string;
+  call: (name: Name, request: Uint8Array) => string;
   // The milliseconds from reading the bytes to the end of hs_init.
   startup: number;
 };
@@ -122,7 +126,7 @@ const load = (): Reactor => {
   exports._initialize();
   exports.hs_init(0, 0);
   const startup = performance.now() - t0;
-  const call = (name: "analyze" | "format", request: Uint8Array) => {
+  const call = (name: Name, request: Uint8Array) => {
     const p = exports.malloc(request.length);
     new Uint8Array(exports.memory.buffer, p, request.length).set(request);
     const r = exports[name](p, request.length);
@@ -332,6 +336,19 @@ for (const file of grammars) {
   });
 }
 
+// The cases of the native tests (wasm/test/golden/parse.jsonl), one JSON
+// object per line: the wasm gives the same responses (ADR 0090).
+for (const line of read("wasm/test/golden/parse.jsonl").split("\n").filter((l) => l !== "")) {
+  const c = JSON.parse(line) as { name: string; request: unknown; response: unknown };
+  Deno.test(`parse: ${c.name}`, () => {
+    assertEquals(JSON.parse(reactor.call("parse", encode(c.request))), c.response);
+  });
+}
+
+Deno.test("parse of a request without input gets only an error", () => {
+  assertEquals(Object.keys(JSON.parse(reactor.call("parse", encode({ grammar: "%module A\nS <- 'a'\n" })))), ["error"]);
+});
+
 Deno.test("100 alternating calls of analyze and format give the same responses", () => {
   const grammar = encode({ grammar: read("conformance/json/Json.hpeg") });
   const first = [reactor.call("analyze", grammar), reactor.call("format", grammar)];
@@ -353,7 +370,7 @@ Deno.test("a request that is not UTF-8 gets only an error, and the wasm still wo
 // The fixes of the security audit of 2026-11-07 (ADR 0080).
 
 // Call a function with a request and a length that may not be its length.
-const callWithLength = (name: "analyze" | "format", request: Uint8Array, length: number): string => {
+const callWithLength = (name: Name, request: Uint8Array, length: number): string => {
   const ex = reactor.exports;
   const p = ex.malloc(request.length);
   new Uint8Array(ex.memory.buffer, p, request.length).set(request);

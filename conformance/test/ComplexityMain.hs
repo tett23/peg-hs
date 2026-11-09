@@ -14,6 +14,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
+import Peg.Grammar.Check (check)
+import Peg.Grammar.Interpret (Interpreter, interpretWith, interpreter)
+import Peg.Grammar.Parser (parseGrammar)
 import Peg.Runtime.Internal (Config (..), Stats (..), defaultConfig)
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -76,6 +79,18 @@ main =
           fmap parseErrorLabel (either Just (const Nothing) (fst (run 100000))) @?= Just (Just (T.pack "nest"))
           assertBool ("50,000: " <> show e1 <> ", 100,000: " <> show e2) (fromIntegral e2 <= (2.5 :: Double) * fromIntegral e1)
           assertBool ("100,000: " <> show e2) (e2 <= 10 * T.length (deepGrammar 100000))
+      , testGroup
+          "the interpreter evaluates the rules as the generated parsers (ADR 0090)"
+          ( [ testCase "Pathological" $ do
+                ip <- interpreterOf "bench/Pathological.hpeg"
+                sameCounts ip Pathological.peg'parseWith [input k n | (k, n) <- [(5, 7), (1, 0), (0, 3), (10, 20), (60, 60), (100, 100), (200, 200)]]
+            ]
+              ++ [ testCase ("NestedLR" <> show n) $ do
+                    ip <- interpreterOf ("bench/NestedLR" <> show n <> ".hpeg")
+                    sameCounts ip run (map nested [0 .. 3] ++ [T.pack "x+x*x^(x)", T.pack "(x"])
+                 | (n, run) <- [(2 :: Int, NestedLR2.peg'parseWith), (4, NestedLR4.peg'parseWith), (8, NestedLR8.peg'parseWith)]
+                 ]
+          )
       , testCase "the pathological grammar is really quadratic" $ do
           let countFor m = sum (M.elems (statsEvaluations (snd (Pathological.peg'parseWith defaultConfig {cfgCount = True} (input m m)))))
           assertBool "doubling the input should roughly quadruple the evaluations" (countFor 200 > 3 * countFor 100)
@@ -85,6 +100,25 @@ main =
     nested d = T.replicate d (T.pack "(") <> T.pack "x" <> T.replicate d (T.pack ")")
     -- A grammar whose expression nests groups n levels deep (ADR 0080).
     deepGrammar n = T.pack "%module M\nS <- " <> T.replicate n (T.pack "(") <> T.pack "'a'" <> T.replicate n (T.pack ")") <> T.pack "\n"
+
+-- The interpreter of a grammar file (ADR 0090).
+interpreterOf :: FilePath -> IO Interpreter
+interpreterOf file = do
+  src <- TIO.readFile file
+  case parseGrammar src >>= \g -> check g >>= interpreter g of
+    Left ds -> assertFailure (show ds) >> error "unreachable"
+    Right ip -> pure ip
+
+-- The same evaluations of each rule at each offset, and the same result.
+sameCounts :: Interpreter -> (Config -> T.Text -> (Either ParseError a, Stats)) -> [T.Text] -> Assertion
+sameCounts ip run inputs =
+  mapM_
+    ( \t -> do
+        let (r, st) = run defaultConfig {cfgCount = True} t
+            (r', st') = interpretWith defaultConfig {cfgCount = True} ip Nothing t
+        (t, either Left (const (Right ())) r', statsEvaluations st') @?= (t, either Left (const (Right ())) r, statsEvaluations st)
+    )
+    inputs
 
 evalCount :: (Config -> T.Text -> (Either ParseError (), Stats)) -> T.Text -> Int
 evalCount run t = sum (M.elems (statsEvaluations (snd (run defaultConfig {cfgCount = True} t))))

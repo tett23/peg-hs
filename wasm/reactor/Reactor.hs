@@ -1,5 +1,5 @@
 -- | The WASI reactor of ADR 0078. The caller runs @_initialize@ and
--- @hs_init(0, 0)@ once, then calls 'analyze' and 'format' with the address
+-- @hs_init(0, 0)@ once, then calls 'analyze', 'format' and 'parse' (ADR 0090) with the address
 -- and the length in bytes of a request in UTF-8. Each returns the address
 -- of a new block: the length in bytes of the response (4 bytes, little
 -- endian, unsigned), then the response in UTF-8. The caller frees the
@@ -17,7 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Foreign (Ptr, Word8, castPtr, copyBytes, mallocBytes, plusPtr, pokeByteOff, ptrToWordPtr)
 import Foreign.C.Types (CInt (..), CULLong (..))
-import Peg.Wasm (analyzeJson, errorJson, formatJson)
+import Peg.Wasm (analyzeJson, errorJson, formatJson, parseInputJson)
 
 -- | A reactor has no main; GHC needs one for an executable.
 main :: IO ()
@@ -27,11 +27,16 @@ foreign export ccall analyze :: Ptr Word8 -> CInt -> IO (Ptr Word8)
 
 foreign export ccall format :: Ptr Word8 -> CInt -> IO (Ptr Word8)
 
+foreign export ccall parse :: Ptr Word8 -> CInt -> IO (Ptr Word8)
+
 analyze :: Ptr Word8 -> CInt -> IO (Ptr Word8)
 analyze = serve analyzeJson
 
 format :: Ptr Word8 -> CInt -> IO (Ptr Word8)
 format = serve formatJson
+
+parse :: Ptr Word8 -> CInt -> IO (Ptr Word8)
+parse = serve parseInputJson
 
 -- The size of the linear memory in bytes (reactor/memory.c).
 foreign import ccall unsafe "peg_memory_size" memorySize :: IO CULLong

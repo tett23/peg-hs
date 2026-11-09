@@ -26,6 +26,7 @@ extra-source-files:
   test/golden/exports/*.golden
   test/golden/generated/*.golden
   test/derived/*.hpeg
+  test/random/*.txt
 
 source-repository head
   type:     git
@@ -59,8 +60,11 @@ test-suite peg-codegen-test
   ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
   hs-source-dirs:   test test/generated
   other-modules:
+    Agreement
+    Differential
     Fixture.Arith
     Fixture.Calc
+    Fixture.Differential
     Fixture.Discard
     Fixture.DiscardSyntax
     Fixture.Expect
