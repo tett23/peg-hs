@@ -21,6 +21,8 @@ main =
       , leftRecursionTests
       , columnTests
       , recoveryTests
+      , expectingTests
+      , messageTests
       ]
 
 -- A store with no tables, for parsers that do not use rules.
@@ -93,10 +95,10 @@ errorTests =
         fmap (S.toList . parseErrorExpected) (flipE (parse0 (choice [anyChar >> anyChar, cls [('a', 'a')] "[a]", lit "z" "'z'"]) ""))
           @?= Right [ExpectedLiteral "'z'", ExpectedClass "[a]", ExpectedAny]
     , testCase "render with three expectations" $
-        renderParseError (ParseError (Pos 0 3 7) (S.fromList [ExpectedLiteral "'a'", ExpectedLiteral "'b'", ExpectedEnd]) Nothing)
+        renderParseError (ParseError (Pos 0 3 7) (S.fromList [ExpectedLiteral "'a'", ExpectedLiteral "'b'", ExpectedEnd]) Nothing Nothing)
           @?= "3:7: expected 'a', 'b' or end of input"
     , testCase "render with no expectations" $
-        renderParseError (ParseError (Pos 0 1 1) S.empty Nothing) @?= "1:1: parse error"
+        renderParseError (ParseError (Pos 0 1 1) S.empty Nothing Nothing) @?= "1:1: parse error"
     ]
 
 flipE :: Either a b -> Either b a
@@ -401,4 +403,106 @@ recoveryTests =
         let (v, errs, _) = runParserRecover defaultConfig newSN ruleE' "1+x+2"
         v @?= Just (Add (Add (Leaf 1) (Leaf (-1))) (Leaf 2))
         ranges errs @?= [(Just "num", (2, 3))]
+    ]
+
+-- Display names of rules (ADR 0089) -------------------------------------------
+
+rendered :: Either ParseError a -> Either Text Text
+rendered = either (Right . renderParseError) (const (Left "the parse succeeded"))
+
+-- A grammar with a display name on each kind of rule, which the property
+-- tests run with and without the display names:
+--   E <- E '+' T / T          (memoLR, "expression")
+--   T <- '(' E ')' / D(1)     (nomemo, "term")
+--   D(k) <- [0-9]+            (memoArg, "digits")
+data SD s = SD {tDE :: Table s Int, tDD :: ArgTable s Int Int}
+
+newSD :: ST s (SD s)
+newSD = SD <$> newTable <*> newArgTable
+
+named :: Bool -> String -> P r s a -> P r s a
+named on n p = if on then expecting n p else p
+
+ruleDE :: Bool -> P (SD s) s Int
+ruleDE on =
+  memoLR tDE "E" . named on "expression" $
+    choice [do l <- ruleDE on; lit "+" "'+'"; (l +) <$> ruleDT on, ruleDT on]
+
+ruleDT :: Bool -> P (SD s) s Int
+ruleDT on =
+  nomemo "T" . named on "term" $
+    choice [lit "(" "'('" *> ruleDE on <* lit ")" "')'", ruleDD on 1]
+
+ruleDD :: Bool -> Int -> P (SD s) s Int
+ruleDD on k = memoArg tDD "D" k (named on "digits" ((* k) . length <$> many1 (cls [('0', '9')] "[0-9]")))
+
+runSD :: Config -> Bool -> Text -> Either ParseError Int
+runSD cfg on = fst . runParser cfg newSD (ruleDE on)
+
+expectingTests :: TestTree
+expectingTests =
+  testGroup
+    "display names of rules (ADR 0089)"
+    [ testCase "a failure at the start of the rule becomes its name" $
+        rendered (parse0 (expecting "number" (cls [('0', '9')] "[0-9]")) "x") @?= Right "1:1: expected number"
+    , testCase "a failure inside the rule is kept" $
+        rendered (parse0 (expecting "sum" (lit "1" "'1'" >> lit "+" "'+'")) "1*") @?= Right "1:2: expected '+'"
+    , testCase "a rule that succeeds names its failure at its start" $
+        rendered (parse0 (expecting "sign" (skipOptional (lit "-" "'-'")) >> lit "1" "'1'") "x") @?= Right "1:1: expected sign or '1'"
+    , testCase "the outer name of nested rules at one position remains" $
+        rendered (parse0 (expecting "outer" (expecting "inner" (lit "a" "'a'"))) "x") @?= Right "1:1: expected outer"
+    , testCase "names come before the terminals of other alternatives" $
+        rendered (parse0 (choice [lit "return" "'return'", expecting "expression" (cls [('0', '9')] "[0-9]")]) "x")
+          @?= Right "1:1: expected expression or 'return'"
+    , testCase "the names of a grammar with memoLR, nomemo and memoArg" $ do
+        rendered (runSD defaultConfig True "1+") @?= Right "1:3: expected term"
+        rendered (runSD defaultConfig True "") @?= Right "1:1: expected expression"
+        rendered (runSD defaultConfig True "(1") @?= Right "1:3: expected ')', '+' or [0-9]"
+    , testProperty "memoisation does not change the errors with names" $
+        forAll (T.pack <$> listOf (elements "0123+()x")) $ \t ->
+          show (runSD defaultConfig True t) === show (runSD defaultConfig {cfgMemo = False} True t)
+    , testProperty "names do not change what is accepted or where a parse fails" $
+        forAll (T.pack <$> listOf (elements "0123+()x")) $ \t ->
+          let outcome = either (Left . parseErrorPos) Right
+           in outcome (runSD defaultConfig True t) === outcome (runSD defaultConfig False t)
+    , testCase "a recovered error has the name in its expected set" $ do
+        let p = labeled "num" (Just (pure ())) (expecting "number" (cls [('0', '9')] "[0-9]")) >> skipMany anyChar
+            (_, errs) = recover0 p "x"
+        map (S.toList . syntaxErrorExpected) errs @?= [[ExpectedName "number"]]
+    ]
+
+-- Messages of labels (ADR 0089) ------------------------------------------------
+
+-- R <- 'a' (')' ^close), memoised, with the message "missing ')'"
+newtype SM s = SM {tM :: Table s ()}
+
+ruleM :: P (SM s) s ()
+ruleM = memo tM "R" (lit "a" "'a'" >> labeledMessage "close" "missing ')'" Nothing (lit ")" "')'"))
+
+messageTests :: TestTree
+messageTests =
+  testGroup
+    "messages of labels (ADR 0089)"
+    [ testCase "a label with a message reports both" $ do
+        let r = parse0 (lit "(1" "'(1'" >> labeledMessage "close" "missing ')'" Nothing (lit ")" "')'")) "(1"
+        fmap parseErrorLabel (flipE r) @?= Right (Just "close")
+        fmap parseErrorMessage (flipE r) @?= Right (Just "missing ')'")
+        rendered r @?= Right "1:3: missing ')'"
+    , testCase "a label without a message renders the expected set" $ do
+        let r = parse0 (lit "(1" "'(1'" >> labeled "close" Nothing (lit ")" "')'")) "(1"
+        fmap parseErrorMessage (flipE r) @?= Right Nothing
+        rendered r @?= Right "1:3: expected ')'"
+    , testCase "a throw replayed from the memo table keeps the message" $ do
+        let (r, st) = runParser counting (SM <$> newTable) (optional (andP ruleM) >> ruleM) "a"
+        M.elems (statsEvaluations st) @?= [1]
+        fmap parseErrorMessage (flipE r) @?= Right (Just "missing ')'")
+    , testCase "a recovered error has the message" $ do
+        let p = lit "a" "'a'" >> labeledMessage "close" "missing ')'" (Just (pure ())) (lit ")" "')'")
+            (_, errs) = recover0 p "a"
+        map syntaxErrorMessage errs @?= [Just "missing ')'"]
+        map renderSyntaxError errs @?= ["1:2: missing ')'"]
+    , testCase "renderSyntaxError without a message" $ do
+        renderSyntaxError (SyntaxError (Just "l") (0, 0) (Pos 0 2 3) (S.fromList [ExpectedName "x", ExpectedLiteral "'a'"]) Nothing)
+          @?= "2:3: expected x or 'a'"
+        renderSyntaxError (SyntaxError Nothing (0, 0) (Pos 0 1 1) S.empty Nothing) @?= "1:1: parse error"
     ]

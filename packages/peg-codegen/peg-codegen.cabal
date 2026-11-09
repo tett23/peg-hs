@@ -63,6 +63,8 @@ test-suite peg-codegen-test
     Fixture.Calc
     Fixture.Discard
     Fixture.DiscardSyntax
+    Fixture.Expect
+    Fixture.ExpectSyntax
     Fixture.Extensions
     Fixture.Generated
     Fixture.GeneratedNames

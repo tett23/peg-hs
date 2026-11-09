@@ -62,6 +62,13 @@ Since v0.1.0-rc3:
   action goes
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
+Since v0.1.0-rc6:
+
+- `peg-hs gen` takes `%expect` and `%message`, `peg-hs fmt` keeps the
+  inside of their strings, and `peg-hs parse` shows the display names and
+  the messages in its errors
+  ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:

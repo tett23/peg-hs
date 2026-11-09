@@ -253,6 +253,8 @@ astGrammar =
     , "%language OverloadedStrings, LambdaCase"
     , "%recover l Skip"
     , "%safe l"
+    , "%expect Pair \"a \\\"pair\\\"\" # comment"
+    , "%message l \"an l # not a comment\""
     , "%deriving Eq, Show"
     , "%{"
     , "import Data.Text (Text)"
@@ -286,7 +288,7 @@ grammarNodes g = 1 + directives + values + length (grammarVerbatim g) + sum (map
           ++ map locOf (maybe [] pure (grammarStart g) ++ grammarEntries g ++ grammarExports g ++ maybe [] pure (grammarEnv g) ++ grammarNoMemo g ++ grammarLanguages g ++ grammarTokens g ++ grammarTrivia g ++ grammarInline g ++ grammarSafe g)
           ++ maybe [] (pure . locOf) (grammarTabstop g)
           ++ maybe [] pure (grammarSyntax g)
-          ++ map (locOf . fst) (grammarRecovers g)
+          ++ map (locOf . fst) (grammarRecovers g ++ grammarExpects g ++ grammarMessages g)
           ++ maybe [] (pure . locOf) (grammarDeriving g)
     directives = length (dedup (sort lines'))
     dedup (a : b : xs) | a == b = dedup (b : xs)
@@ -296,7 +298,7 @@ grammarNodes g = 1 + directives + values + length (grammarVerbatim g) + sum (map
       1
         + length (maybe [] pure (grammarStart g) ++ grammarEntries g ++ grammarExports g ++ maybe [] pure (grammarEnv g) ++ grammarNoMemo g ++ grammarLanguages g ++ grammarTokens g ++ grammarTrivia g ++ grammarInline g ++ grammarSafe g)
         + maybe 0 (const 1) (grammarTabstop g)
-        + 2 * length (grammarRecovers g)
+        + 2 * length (grammarRecovers g ++ grammarExpects g ++ grammarMessages g)
         + maybe 0 (length . unLoc) (grammarDeriving g)
     rule r = 1 + length (ruleParams r) + length (ruleTemplateParams r) + maybe 0 (const 1) (ruleAnnotation r) + sum (map alt (ruleAlts r))
     alt a = 1 + sum (map item (altItems a)) + maybe 0 (const 1) (altAction a) + maybe 0 (const 1) (altConstructor a)
@@ -329,6 +331,12 @@ astTests conformance =
     , testCase "the golden file is the tree as JSON" $ do
         golden <- TIO.readFile "test/golden/ast.json"
         parseJson golden @?= Just (field "ast" (analyzeGrammar astGrammar))
+    , testCase "%expect and %message have a name and the string as written (ADR 0089)" $ do
+        let r = analyzeGrammar "%module A\n%expect S \"an \\\"s\\\"\"  # c\n%message l \"x # y\"\nS <- 'a' ^l\n"
+            directives = [c | c <- children (field "ast" r), textOf "kind" c == "Directive"]
+            values c = [(textOf "text" v, member "line" v >>= asInt, member "column" v >>= asInt) | v <- children c]
+        diagnostics r @?= []
+        map values (drop 1 directives) @?= [[("S", Just 2, Just 9), ("\"an \\\"s\\\"\"", Just 2, Just 11)], [("l", Just 3, Just 10), ("\"x # y\"", Just 3, Just 12)]]
     , testCase "the children of the grammar are in the order of their locations" $ do
         let r = analyzeGrammar "%module A\nS <- 'a' T\n%start S\nT <- 'b'\n%{\nx = 1\n}%\n%nomemo T\n"
             cs = children (field "ast" r)

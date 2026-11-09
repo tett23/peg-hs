@@ -229,4 +229,6 @@ syntaxError src e =
       at = case drop (posLine p - 1) (T.lines src) of
         l : _ -> fmap fst (T.uncons (T.drop (posColumn p - 1) l))
         [] -> Nothing
-   in Diagnostic (Loc (posLine p) (posColumn p)) (maybe "unexpected input" (labelMessage at) (syntaxErrorLabel e))
+   in Diagnostic (Loc (posLine p) (posColumn p)) $ case syntaxErrorMessage e of
+        Just m -> m
+        Nothing -> maybe "unexpected input" (labelMessage at) (syntaxErrorLabel e)

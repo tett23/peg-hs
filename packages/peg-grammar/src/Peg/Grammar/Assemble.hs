@@ -18,9 +18,10 @@ module Peg.Grammar.Assemble
   , advanceLoc
   , verbatimBody
   , directiveArg
+  , directiveComment
   ) where
 
-import Data.Char (isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isSpace, isUpper)
+import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -85,10 +86,96 @@ verbatimBody l body =
         _ -> (l, T.stripStart body)
    in (start, T.stripEnd text)
 
--- | The argument of a directive from the rest of its line. A comment ends
--- the argument, except for @%env@, whose type may contain @#@.
+-- | The argument of a directive from the rest of its line, without its
+-- comment and the spaces around it ('directiveComment').
 directiveArg :: Text -> Text -> Text
-directiveArg name raw = T.strip (if name == "env" then raw else T.takeWhile (/= '#') raw)
+directiveArg name raw = T.strip (fst (directiveComment name raw))
+
+-- | The rest of the line of a directive, after the name of the directive
+-- given as the first argument, split into the argument and the comment,
+-- which starts with @#@ or is empty. A @#@ starts the comment, except in
+-- the argument of @%env@, whose type may contain @#@, and inside the
+-- string of @%expect@ and @%message@ (ADR 0089). The parser, the
+-- formatter and the highlighting split a directive with this function.
+directiveComment :: Text -> Text -> (Text, Text)
+directiveComment name raw
+  | name == "env" = (raw, "")
+  | name `elem` stringDirectives = T.splitAt (outside 0 (T.unpack raw)) raw
+  | otherwise = T.break (== '#') raw
+  where
+    -- The number of characters before the comment, outside and inside a
+    -- string.
+    outside n = \case
+      [] -> n
+      '#' : _ -> n
+      '"' : rest -> inside (n + 1) rest
+      _ : rest -> outside (n + 1) rest
+    inside n = \case
+      [] -> n
+      '\\' : _ : rest -> inside (n + 2) rest
+      '"' : rest -> outside (n + 1) rest
+      _ : rest -> inside (n + 1) rest
+
+-- The directives whose argument ends with a string (ADR 0089).
+stringDirectives :: [Text]
+stringDirectives = ["expect", "message"]
+
+-- The argument of @%expect@ or @%message@, given the locations of the
+-- directive and of the argument: a name and a string, the string decoded at
+-- the location of its opening quote.
+stringArg :: Text -> Loc -> Located Text -> Either Diagnostic (Located Text, Located Text)
+stringArg directive l (Located al a) =
+  case (isValidIdent name, T.uncons quoted) of
+    (True, Just ('"', body)) -> do
+      (decoded, after) <- decodeString strLoc (T.unpack body)
+      if not (T.null (T.strip (T.pack after)))
+        then Left formError
+        else check decoded
+    _ -> Left formError
+  where
+    (name, rest) = T.break isSpace a
+    gap = T.takeWhile isSpace rest
+    quoted = T.drop (T.length gap) rest
+    strLoc = advanceLoc al (name <> gap)
+    formError = Diagnostic l ("%" <> directive <> (if directive == "expect" then " expects a rule name and a string" else " expects a label and a string"))
+    what = if directive == "expect" then "the description" else "the message"
+    check v
+      | T.null v = Left (Diagnostic strLoc (what <> " is empty"))
+      | T.any (\c -> c < ' ' || c == '\DEL') v = Left (Diagnostic strLoc (what <> " contains a control character"))
+      | otherwise = Right (Located al name, Located strLoc v)
+
+-- Decode the inside of a string after its opening quote at a location,
+-- with the escapes of a literal of a rule, up to the closing quote. The
+-- rest after the closing quote is returned with the value. The errors have
+-- the messages of the errors of a literal (Peg.Grammar.Parser).
+decodeString :: Loc -> String -> Either Diagnostic (Text, String)
+decodeString start = go (next start '"') []
+  where
+    next l c = advanceLoc l (T.singleton c)
+    go l acc = \case
+      [] -> Left (Diagnostic l "unterminated literal")
+      '"' : rest -> Right (T.pack (reverse acc), rest)
+      '\\' : rest -> escape l (next l '\\') acc rest
+      c : rest -> go (next l c) (c : acc) rest
+    -- At the backslash and after it.
+    escape back l acc = \case
+      [] -> Left (Diagnostic l "unterminated literal")
+      'u' : rest -> unicode back (next l 'u') acc rest
+      c : rest -> case lookup c simple of
+        Just d -> go (next l c) (d : acc) rest
+        Nothing -> Left (Diagnostic l ("unknown escape \\" <> T.singleton c))
+    simple = [('n', '\n'), ('t', '\t'), ('r', '\r'), ('\\', '\\'), ('\'', '\''), ('"', '"'), ('[', '['), (']', ']'), ('-', '-')]
+    unicode back l acc = \case
+      '{' : rest ->
+        let (h, rest') = span isHexDigit rest
+            l' = advanceLoc (next l '{') (T.pack h)
+            n = foldl (\m d -> m * 16 + toInteger (digitToInt d)) 0 h
+         in case rest' of
+              '}' : more
+                | not (null h) && n <= 0x10FFFF -> go (next l' '}') (chr (fromInteger n) : acc) more
+                | otherwise -> Left (Diagnostic back "invalid \\u escape")
+              _ -> Left (Diagnostic l' "expected '}'")
+      _ -> Left (Diagnostic l "expected '{'")
 
 -- | Check the top-level items and build the grammar: the directives and
 -- their arguments, the pairing of each rule's type annotation with its
@@ -124,6 +211,8 @@ assemble items =
                 , [lab, rule] <- [T.words a]
                 ]
             , grammarSafe = [Located l a | TDirective l "safe" _ a <- items]
+            , grammarExpects = [x | Right x <- map snd expects]
+            , grammarMessages = [x | Right x <- map snd messages]
             , grammarDeriving = case [Located l (splitExports al a) | TDirective l "deriving" al a <- items] of
                 d : _ -> Just d
                 [] -> Nothing
@@ -135,7 +224,11 @@ assemble items =
   where
     directives = [(l, n, a) | TDirective l n _ a <- items]
     argLocs = [(n, al, a) | TDirective _ n al a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving"]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message"]
+    -- ADR 0089
+    stringArgs d = [(l, stringArg d l (Located al a)) | TDirective l d' al a <- items, d' == d, not (T.null a)]
+    expects = stringArgs "expect"
+    messages = stringArgs "message"
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
@@ -191,6 +284,12 @@ assemble items =
            | ("deriving", al, a) <- argLocs
            , Located l x <- splitExports al a
            , not (isClassName x)
+           ]
+        ++ [d | (_, Left d) <- expects ++ messages]
+        ++ [ Diagnostic l ("duplicate %" <> d <> " for " <> what <> " " <> n)
+           | (d, what, xs) <- [("expect", "rule", expects), ("message", "label", messages)]
+           , (k, (l, Right (Located _ n, _))) <- zip [0 :: Int ..] xs
+           , n `elem` [m | (_, Right (Located _ m, _)) <- take k xs]
            ]
         ++ [ Diagnostic l "%safe expects a label name"
            | (l, "safe", a) <- directives

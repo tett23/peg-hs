@@ -39,6 +39,7 @@ module Peg.Runtime.Internal
   , Expected (..)
   , ParseError (..)
   , renderParseError
+  , renderSyntaxError
     -- * Running a parser
   , Config (..)
   , defaultConfig
@@ -107,8 +108,12 @@ module Peg.Runtime.Internal
   , runSyntaxRecover
   , labeled
   , labeledS
+  , labeledMessage
+  , labeledMessageS
   , voidP
   , voidS
+    -- * Display names of rules (ADR 0089)
+  , expecting
   ) where
 
 import Control.Monad (ap, when)
@@ -142,9 +147,13 @@ data Span = Span
 
 -- | Something the parser expected to find at the position of a failure.
 --
--- The constructor order defines the order in which expectations are listed.
+-- The constructor order defines the order in which expectations are listed:
+-- the display names of rules come before the terminals.
 data Expected
-  = -- | A literal, as written in the grammar (including its quotes).
+  = -- | The display name of a rule, given by @%expect@ (ADR 0089). It
+    -- replaces the terminals that the rule expected at its start.
+    ExpectedName !Text
+  | -- | A literal, as written in the grammar (including its quotes).
     ExpectedLiteral !Text
   | -- | A character class, as written in the grammar.
     ExpectedClass !Text
@@ -159,7 +168,10 @@ data Expected
 -- When several alternatives fail, the error is the one that got farthest:
 -- 'parseErrorPos' is the farthest position any terminal was tried at, and
 -- 'parseErrorExpected' collects every terminal that failed there. Failures
--- inside negative lookahead and semantic predicates are not reported.
+-- inside negative lookahead and semantic predicates are not reported. A
+-- rule with a display name (@%expect@, ADR 0089) whose farthest failure is
+-- at the position where it started is reported by its name instead of its
+-- terminals.
 data ParseError = ParseError
   { parseErrorPos :: !Pos
   -- ^ The farthest position the parser reached.
@@ -168,20 +180,22 @@ data ParseError = ParseError
   , parseErrorLabel :: !(Maybe Text)
   -- ^ The label of the labelled failure that stopped the parse, if any
   -- (ADR 0021).
+  , parseErrorMessage :: !(Maybe Text)
+  -- ^ The message of that label, if the grammar gives one with @%message@
+  -- (ADR 0089).
   }
   deriving (Eq, Show)
 
 -- | A syntax error that a recovering parse recovered from (ADR 0021).
 --
 -- The recovering entry points of a generated module (@parseRecover@,
--- @parseSyntaxRecover@) return these sorted by position:
+-- @parseSyntaxRecover@) return these sorted by position, and
+-- 'renderSyntaxError' turns each into a message:
 --
 -- @
 -- case parseRecover src of
 --   (value, errs) -> do
---     forM_ errs $ \\e -> do
---       let p = syntaxErrorPos e
---       putStrLn (show (posLine p) ++ \":\" ++ show (posColumn p) ++ \": \" ++ maybe \"unexpected input\" T.unpack (syntaxErrorLabel e))
+--     mapM_ (TIO.putStrLn . renderSyntaxError) errs
 --     print value  -- Nothing only if the start rule could not be recovered
 -- @
 data SyntaxError = SyntaxError
@@ -197,16 +211,22 @@ data SyntaxError = SyntaxError
   , syntaxErrorExpected :: !(Set Expected)
   -- ^ What the parser expected at the farthest failure of the labelled
   -- expression.
+  , syntaxErrorMessage :: !(Maybe Text)
+  -- ^ The message of the label, if the grammar gives one with @%message@
+  -- (ADR 0089).
   }
   deriving (Eq, Show)
 
--- | Render an error as @line:column: expected A, B or C@.
+-- | Render an error as @line:column: expected A, B or C@, or as
+-- @line:column: message@ when the label that stopped the parse has a
+-- message ('parseErrorMessage', ADR 0089).
 --
--- The expectations are listed in the order of 'Expected': literals and
--- classes as written in the grammar, then @any character@, then
--- @end of input@. With no expectation the message is @parse error@. The
--- label of 'parseErrorLabel' is not included; map it to a message of your
--- own if the grammar uses labels.
+-- The expectations are listed in the order of 'Expected': the display names
+-- of rules without quotes, literals and classes as written in the grammar,
+-- then @any character@, then @end of input@. With no expectation the message
+-- is @parse error@. A label without a message is not included; map
+-- 'parseErrorLabel' to a message of your own if you need one, for example
+-- in another language.
 --
 -- @
 -- case parse \"1 +\" of
@@ -214,23 +234,38 @@ data SyntaxError = SyntaxError
 --   Right v -> print v
 -- @
 renderParseError :: ParseError -> Text
-renderParseError e =
+renderParseError e = renderAt (parseErrorPos e) (parseErrorMessage e) (parseErrorExpected e)
+
+-- | Render a recovered error like 'renderParseError', at 'syntaxErrorPos':
+-- the message of its label if it has one ('syntaxErrorMessage'), and
+-- otherwise what the parser expected (ADR 0089).
+--
+-- @
+-- mapM_ (TIO.putStrLn . renderSyntaxError) errs  -- 1:5: missing \')\'
+-- @
+renderSyntaxError :: SyntaxError -> Text
+renderSyntaxError e = renderAt (syntaxErrorPos e) (syntaxErrorMessage e) (syntaxErrorExpected e)
+
+renderAt :: Pos -> Maybe Text -> Set Expected -> Text
+renderAt p msg expected =
   T.concat
     [ T.pack (show (posLine p))
     , ":"
     , T.pack (show (posColumn p))
     , ": "
-    , case map renderExpected (S.toAscList (parseErrorExpected e)) of
-        [] -> "parse error"
-        xs -> "expected " <> joinOr xs
+    , case msg of
+        Just m -> m
+        Nothing -> case map renderExpected (S.toAscList expected) of
+          [] -> "parse error"
+          xs -> "expected " <> joinOr xs
     ]
   where
-    p = parseErrorPos e
     joinOr [x] = x
     joinOr xs = T.intercalate ", " (init xs) <> " or " <> last xs
 
 renderExpected :: Expected -> Text
 renderExpected = \case
+  ExpectedName t -> t
   ExpectedLiteral t -> t
   ExpectedClass t -> t
   ExpectedAny -> "any character"
@@ -303,8 +338,8 @@ data Res a
   = Ok !Int a
   | Fail
   | -- | A labelled failure: the position where the labelled expression was
-    -- tried and the label (ADR 0021).
-    Throw !Int !Text
+    -- tried, the label (ADR 0021) and its message (ADR 0089).
+    Throw !Int !Text !(Maybe Text)
 
 -- The syntax errors recorded so far: how many, and the errors, newest first.
 -- The count makes saving and comparing the log constant time.
@@ -320,7 +355,7 @@ noErrors = ErrSlice 0 []
 
 -- Re-type a result that is not a success.
 failed :: Res a -> Res b
-failed (Throw i l) = Throw i l
+failed (Throw i l m) = Throw i l m
 failed _ = Fail
 
 data Ctx r s = Ctx
@@ -375,7 +410,8 @@ instance Monad (P r s) where
 -- The parse succeeds only if the start rule consumes the entire input;
 -- otherwise 'ExpectedEnd' is expected where the match ended. A label
 -- thrown by 'labeled' stops the parse and is reported in
--- 'parseErrorLabel'; recovery is off, whatever 'cfgRecover' says.
+-- 'parseErrorLabel', with its message in 'parseErrorMessage'; recovery is
+-- off, whatever 'cfgRecover' says.
 --
 -- A generated entry point calls it like this (names simplified):
 --
@@ -396,9 +432,9 @@ runParser cfg mkStore start input = runST $ do
     Ok j x | j == ctxLen ctx -> pure (Right x)
     Ok j _ -> do
       mergeFail ctx (Failure j (S.singleton ExpectedEnd))
-      Left <$> currentError ctx Nothing
-    Throw _ l -> Left <$> currentError ctx (Just l)
-    Fail -> Left <$> currentError ctx Nothing
+      Left <$> currentError ctx Nothing Nothing
+    Throw _ l m -> Left <$> currentError ctx (Just l) m
+    Fail -> Left <$> currentError ctx Nothing Nothing
   s <- readSTRef (ctxStats ctx)
   pure (res, s)
 
@@ -426,11 +462,11 @@ newCtx cfg mkStore input = do
       , ctxLines = lineIndex input
       }
 
-currentError :: Ctx r s -> Maybe Text -> ST s ParseError
-currentError ctx failLabel =
+currentError :: Ctx r s -> Maybe Text -> Maybe Text -> ST s ParseError
+currentError ctx failLabel msg =
   readSTRef (ctxFail ctx) >>= \case
-    NoFailure -> pure (ParseError (posAt ctx 0) S.empty failLabel)
-    Failure i xs -> pure (ParseError (posAt ctx i) xs failLabel)
+    NoFailure -> pure (ParseError (posAt ctx 0) S.empty failLabel msg)
+    Failure i xs -> pure (ParseError (posAt ctx i) xs failLabel msg)
 
 -- | Run the start rule over the whole input, recovering from labelled
 -- failures (ADR 0021). The value is 'Nothing' only if the start rule could
@@ -487,19 +523,19 @@ recoverCore cfg mkStore start input = runST $ do
     Ok j x | j == len -> pure (Just (j, x), errs)
     Ok j x -> do
       mergeFail ctx (Failure j (S.singleton ExpectedEnd))
-      e <- wholeError ctx Nothing j
+      e <- wholeError ctx Nothing Nothing j
       pure (Just (j, x), errs ++ [e])
-    Throw _ l -> (\e -> (Nothing, [e])) <$> wholeError ctx (Just l) 0
-    Fail -> (\e -> (Nothing, [e])) <$> wholeError ctx Nothing 0
+    Throw _ l m -> (\e -> (Nothing, [e])) <$> wholeError ctx (Just l) m 0
+    Fail -> (\e -> (Nothing, [e])) <$> wholeError ctx Nothing Nothing 0
   st <- readSTRef (ctxStats ctx)
   pure (value, sortOn syntaxErrorRange all', st)
   where
-    wholeError ctx failLabel from = do
+    wholeError ctx failLabel msg from = do
       expected <-
         readSTRef (ctxFail ctx) >>= \case
           NoFailure -> pure S.empty
           Failure _ xs -> pure xs
-      pure (SyntaxError failLabel (from, ctxLen ctx) (posAt ctx from) expected)
+      pure (SyntaxError failLabel (from, ctxLen ctx) (posAt ctx from) expected msg)
 
 -- Positions ------------------------------------------------------------------
 
@@ -605,7 +641,7 @@ many p = P $ \c i ->
         saved <- saveErrors c
         unP p c j >>= \case
           Ok k x | k > j -> go k (x : acc)
-          Throw t l -> restoreErrors c saved >> pure (Throw t l)
+          Throw t l m -> restoreErrors c saved >> pure (Throw t l m)
           _ -> restoreErrors c saved >> pure (Ok j (reverse acc))
    in go i []
 
@@ -620,7 +656,7 @@ skipMany p = P $ \c i ->
         saved <- saveErrors c
         unP p c j >>= \case
           Ok k _ | k > j -> go k
-          Throw t l -> restoreErrors c saved >> pure (Throw t l)
+          Throw t l m -> restoreErrors c saved >> pure (Throw t l m)
           _ -> restoreErrors c saved >> pure (Ok j ())
    in go i
 
@@ -980,18 +1016,34 @@ touch _ = pure ()
 -- a syntax error is recorded. A label thrown inside the recovery parser
 -- makes the recovery fail.
 labeled :: String -> Maybe (P r s a) -> P r s a -> P r s a
-labeled = labeledWith (\_ _ v -> v)
+labeled rawLabel = labeledWith plainRecovery rawLabel Nothing
 
 -- | 'labeled' in syntax mode: the recovered range becomes an error node
 -- whose children are those of the recovery rule.
 labeledS :: String -> Maybe (P r s (a, [Child])) -> P r s (a, [Child]) -> P r s (a, [Child])
-labeledS = labeledWith (\i j (v, kids) -> (v, [CNode errorKind i j (unwrap kids) Nothing]))
+labeledS rawLabel = labeledWith syntaxRecovery rawLabel Nothing
+
+-- | 'labeled' for a label with a message (@%message@, ADR 0089). The second
+-- argument is the message, which goes to 'parseErrorMessage' when the label
+-- stops the parse and to 'syntaxErrorMessage' when it is recovered from.
+labeledMessage :: String -> String -> Maybe (P r s a) -> P r s a -> P r s a
+labeledMessage rawLabel msg = labeledWith plainRecovery rawLabel (Just (T.pack msg))
+
+-- | 'labeledMessage' in syntax mode, as 'labeledS'.
+labeledMessageS :: String -> String -> Maybe (P r s (a, [Child])) -> P r s (a, [Child]) -> P r s (a, [Child])
+labeledMessageS rawLabel msg = labeledWith syntaxRecovery rawLabel (Just (T.pack msg))
+
+plainRecovery :: Int -> Int -> a -> a
+plainRecovery _ _ v = v
+
+syntaxRecovery :: Int -> Int -> (a, [Child]) -> (a, [Child])
+syntaxRecovery i j (v, kids) = (v, [CNode errorKind i j (unwrap kids) Nothing])
   where
     unwrap [CNode _ _ _ ks Nothing] = ks
     unwrap ks = ks
 
-labeledWith :: (Int -> Int -> a -> a) -> String -> Maybe (P r s a) -> P r s a -> P r s a
-labeledWith wrap rawLabel recovery p = P $ \c i -> do
+labeledWith :: (Int -> Int -> a -> a) -> String -> Maybe Text -> Maybe (P r s a) -> P r s a -> P r s a
+labeledWith wrap rawLabel msg recovery p = P $ \c i -> do
   savedFail <- readSTRef (ctxFail c)
   writeSTRef (ctxFail c) NoFailure
   savedErrors <- saveErrors c
@@ -1008,10 +1060,10 @@ labeledWith wrap rawLabel recovery p = P $ \c i -> do
               let expected = case local of
                     Failure _ xs -> xs
                     NoFailure -> S.empty
-              modifySTRef' (ctxErrors c) (\(ErrLog n xs) -> ErrLog (n + 1) (SyntaxError (Just l) (i, j) (posAt c i) expected : xs))
+              modifySTRef' (ctxErrors c) (\(ErrLog n xs) -> ErrLog (n + 1) (SyntaxError (Just l) (i, j) (posAt c i) expected msg : xs))
               pure (Ok j (wrap i j v))
-            _ -> restoreErrors c savedErrors >> pure (Throw i l)
-        _ -> pure (Throw i l)
+            _ -> restoreErrors c savedErrors >> pure (Throw i l msg)
+        _ -> pure (Throw i l msg)
     _ -> pure r
   where
     l = T.pack rawLabel
@@ -1024,3 +1076,28 @@ voidP = fmap (const ())
 -- | 'voidP' in syntax mode.
 voidS :: P r s (a, [Child]) -> P r s ((), [Child])
 voidS = fmap (\(_, kids) -> ((), kids))
+
+-- Display names of rules (ADR 0089) ------------------------------------------
+
+-- | The body of a rule with a display name (@%expect@). If the farthest
+-- failure inside the body is at the position where the rule started, the
+-- expected set there becomes the name alone; a failure farther on is kept
+-- as it is. Whether the body succeeds, and the position of the farthest
+-- failure, do not change.
+--
+-- The generator puts it inside the memoising function and around the body,
+-- so that a memo entry holds the renamed failure and a hit reports the
+-- same error as an evaluation.
+expecting :: String -> P r s a -> P r s a
+expecting rawName p = P $ \c i -> do
+  saved <- readSTRef (ctxFail c)
+  writeSTRef (ctxFail c) NoFailure
+  r <- unP p c i
+  local <- readSTRef (ctxFail c)
+  let renamed = case local of
+        Failure j _ | j == i -> Failure i (S.singleton (ExpectedName name))
+        f -> f
+  writeSTRef (ctxFail c) (mergeFailure saved renamed)
+  pure r
+  where
+    name = T.pack rawName

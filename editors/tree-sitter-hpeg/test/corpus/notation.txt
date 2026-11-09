@@ -93,6 +93,43 @@ A <- 'a'
           (literal))))))
 
 ========================================================================
+the strings of %expect and %message (ADR 0089)
+========================================================================
+
+%expect Expr "an # expression" # a comment
+%message lbl "missing \")\""
+%expect Expr
+A <- 'a' ^lbl
+
+------------------------------------------------------------------------
+
+(source_file
+  (directive
+    (directive_name)
+    (rule_name_argument)
+    (literal))
+  (comment)
+  (directive
+    (directive_name)
+    (label_argument)
+    (literal
+      (escape)
+      (escape)))
+  (directive
+    (directive_name)
+    (rule_name_argument))
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (labeled
+            (literal)
+            (label
+              (identifier))))))))
+
+========================================================================
 annotations
 ========================================================================
 

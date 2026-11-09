@@ -1,6 +1,6 @@
 # ADR 0005: エラー報告は最遠位置と期待集合、ラベル構文は予約のみ
 
-ステータス: 採択→ラベルの意味論は [ADR 0021](0021-error-recovery.md)
+ステータス: 採択→ラベルの意味論は [ADR 0021](0021-error-recovery.md)、規則の表示名は [ADR 0089](0089-rule-names-and-label-messages-in-errors.md)
 
 ## 文脈
 

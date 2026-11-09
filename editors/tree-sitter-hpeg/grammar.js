@@ -74,6 +74,24 @@ module.exports = grammar({
         field('name', alias('%safe', $.directive_name)),
         optional(seq($._directive_space, field('label', $.label_argument))),
       ),
+      // A rule name or a label, and a string, in which '#' does not start a
+      // comment (ADR 0089).
+      seq(
+        field('name', alias('%expect', $.directive_name)),
+        optional(seq(
+          $._directive_space,
+          field('argument', $.rule_name_argument),
+          optional(seq($._directive_space, field('string', alias($._double_quoted, $.literal)))),
+        )),
+      ),
+      seq(
+        field('name', alias('%message', $.directive_name)),
+        optional(seq(
+          $._directive_space,
+          field('label', $.label_argument),
+          optional(seq($._directive_space, field('string', alias($._double_quoted, $.literal)))),
+        )),
+      ),
       seq(
         field('name', alias('%language', $.directive_name)),
         optional(seq(
@@ -240,8 +258,10 @@ module.exports = grammar({
     // The contents take precedence over a comment: '#' is a literal.
     literal: $ => choice(
       seq("'", repeat(choice($.escape, token.immediate(prec(1, /[^'\\\n]+/)))), token.immediate("'")),
-      seq('"', repeat(choice($.escape, token.immediate(prec(1, /[^"\\\n]+/)))), token.immediate('"')),
+      $._double_quoted,
     ),
+
+    _double_quoted: $ => seq('"', repeat(choice($.escape, token.immediate(prec(1, /[^"\\\n]+/)))), token.immediate('"')),
 
     class: $ => seq('[', repeat1(choice($.escape, token.immediate(prec(1, /[^\]\\\n]+/)))), token.immediate(']')),
 

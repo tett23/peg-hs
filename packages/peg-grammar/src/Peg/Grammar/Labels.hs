@@ -987,15 +987,17 @@ leftCalls known = go
 stripLabelsAs :: Text -> Grammar -> Grammar
 stripLabelsAs m g = (stripLabels g) {grammarModule = Located (locOf (grammarModule g)) m}
 
--- | The grammar without its labels, @%recover@ and @%safe@ directives. It
--- accepts the language the labelled grammar accepts when every label is
--- safe. Rules used only for recovery become entries, so that the code they
+-- | The grammar without its labels, @%recover@, @%safe@ and @%message@
+-- directives. It accepts the language the labelled grammar accepts when
+-- every label is safe. @%expect@ is kept, since it does not change the
+-- language (ADR 0089). Rules used only for recovery become entries, so that the code they
 -- use stays used.
 stripLabels :: Grammar -> Grammar
 stripLabels g =
   g
     { grammarRecovers = []
     , grammarSafe = []
+    , grammarMessages = []
     , grammarEntries = grammarEntries g ++ recoveryEntries
     , grammarRules = [r {ruleAlts = map alt (ruleAlts r)} | r <- grammarRules g]
     }

@@ -22,99 +22,105 @@
     {"kind":"Value","line":9,"column":12,"text":"Skip","children":[]}]},
   {"kind":"Directive","line":10,"column":1,"text":"%safe","children":[
     {"kind":"Value","line":10,"column":7,"text":"l","children":[]}]},
-  {"kind":"Directive","line":11,"column":1,"text":"%deriving","children":[
-    {"kind":"Value","line":11,"column":11,"text":"Eq","children":[]},
-    {"kind":"Value","line":11,"column":15,"text":"Show","children":[]}]},
-  {"kind":"Verbatim","line":13,"column":1,"text":"import Data.Text (Text)","children":[]},
-  {"kind":"Rule","line":17,"column":1,"text":"Doc","children":[
-    {"kind":"Type","line":16,"column":8,"text":"[Text]","children":[]},
-    {"kind":"Alternative","line":17,"column":8,"text":null,"children":[
-      {"kind":"Item","line":17,"column":8,"text":"xs","children":[
-        {"kind":"Template","line":17,"column":11,"text":"Lines","children":[
-          {"kind":"Reference","line":17,"column":17,"text":"Item","children":[
-            {"kind":"Argument","line":17,"column":22,"text":"0","children":[]}]}]}]},
-      {"kind":"Item","line":17,"column":26,"text":null,"children":[
-        {"kind":"Reference","line":17,"column":26,"text":"Pair","children":[]}]},
-      {"kind":"Item","line":17,"column":31,"text":null,"children":[
+  {"kind":"Directive","line":11,"column":1,"text":"%expect","children":[
+    {"kind":"Value","line":11,"column":9,"text":"Pair","children":[]},
+    {"kind":"Value","line":11,"column":14,"text":"\"a \\\"pair\\\"\"","children":[]}]},
+  {"kind":"Directive","line":12,"column":1,"text":"%message","children":[
+    {"kind":"Value","line":12,"column":10,"text":"l","children":[]},
+    {"kind":"Value","line":12,"column":12,"text":"\"an l # not a comment\"","children":[]}]},
+  {"kind":"Directive","line":13,"column":1,"text":"%deriving","children":[
+    {"kind":"Value","line":13,"column":11,"text":"Eq","children":[]},
+    {"kind":"Value","line":13,"column":15,"text":"Show","children":[]}]},
+  {"kind":"Verbatim","line":15,"column":1,"text":"import Data.Text (Text)","children":[]},
+  {"kind":"Rule","line":19,"column":1,"text":"Doc","children":[
+    {"kind":"Type","line":18,"column":8,"text":"[Text]","children":[]},
+    {"kind":"Alternative","line":19,"column":8,"text":null,"children":[
+      {"kind":"Item","line":19,"column":8,"text":"xs","children":[
+        {"kind":"Template","line":19,"column":11,"text":"Lines","children":[
+          {"kind":"Reference","line":19,"column":17,"text":"Item","children":[
+            {"kind":"Argument","line":19,"column":22,"text":"0","children":[]}]}]}]},
+      {"kind":"Item","line":19,"column":26,"text":null,"children":[
+        {"kind":"Reference","line":19,"column":26,"text":"Pair","children":[]}]},
+      {"kind":"Item","line":19,"column":31,"text":null,"children":[
         {"kind":"Not","line":null,"column":null,"text":null,"children":[
           {"kind":"Any","line":null,"column":null,"text":".","children":[]}]}]},
-      {"kind":"Action","line":17,"column":35,"text":" xs ","children":[]}]}]},
-  {"kind":"Rule","line":20,"column":1,"text":"Lines","children":[
+      {"kind":"Action","line":19,"column":35,"text":" xs ","children":[]}]}]},
+  {"kind":"Rule","line":22,"column":1,"text":"Lines","children":[
     {"kind":"TemplateParameter","line":null,"column":null,"text":"p :: a","children":[]},
-    {"kind":"Type","line":19,"column":18,"text":"[a]","children":[]},
-    {"kind":"Alternative","line":20,"column":13,"text":null,"children":[
-      {"kind":"Item","line":20,"column":13,"text":"x","children":[
-        {"kind":"Reference","line":20,"column":15,"text":"p","children":[]}]},
-      {"kind":"Item","line":20,"column":17,"text":"xs","children":[
+    {"kind":"Type","line":21,"column":18,"text":"[a]","children":[]},
+    {"kind":"Alternative","line":22,"column":13,"text":null,"children":[
+      {"kind":"Item","line":22,"column":13,"text":"x","children":[
+        {"kind":"Reference","line":22,"column":15,"text":"p","children":[]}]},
+      {"kind":"Item","line":22,"column":17,"text":"xs","children":[
         {"kind":"Star","line":null,"column":null,"text":null,"children":[
           {"kind":"Group","line":null,"column":null,"text":null,"children":[
             {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-              {"kind":"Item","line":20,"column":21,"text":null,"children":[
+              {"kind":"Item","line":22,"column":21,"text":null,"children":[
                 {"kind":"Literal","line":null,"column":null,"text":"'\\n'","children":[]}]},
-              {"kind":"Item","line":20,"column":26,"text":null,"children":[
-                {"kind":"Reference","line":20,"column":26,"text":"p","children":[]}]}]}]}]}]},
-      {"kind":"Action","line":20,"column":31,"text":" x : xs ","children":[]}]}]},
-  {"kind":"Rule","line":23,"column":1,"text":"Item","children":[
-    {"kind":"Parameter","line":22,"column":11,"text":"n :: Int","children":[]},
-    {"kind":"Type","line":22,"column":19,"text":"Text","children":[]},
-    {"kind":"Alternative","line":23,"column":9,"text":null,"children":[
-      {"kind":"Item","line":23,"column":9,"text":null,"children":[
-        {"kind":"AndPredicate","line":23,"column":11,"text":" n >= 0 ","children":[]}]},
-      {"kind":"Item","line":23,"column":21,"text":null,"children":[
-        {"kind":"NotPredicate","line":23,"column":23,"text":" n > 9 ","children":[]}]},
-      {"kind":"Item","line":23,"column":32,"text":"s","children":[
+              {"kind":"Item","line":22,"column":26,"text":null,"children":[
+                {"kind":"Reference","line":22,"column":26,"text":"p","children":[]}]}]}]}]}]},
+      {"kind":"Action","line":22,"column":31,"text":" x : xs ","children":[]}]}]},
+  {"kind":"Rule","line":25,"column":1,"text":"Item","children":[
+    {"kind":"Parameter","line":24,"column":11,"text":"n :: Int","children":[]},
+    {"kind":"Type","line":24,"column":19,"text":"Text","children":[]},
+    {"kind":"Alternative","line":25,"column":9,"text":null,"children":[
+      {"kind":"Item","line":25,"column":9,"text":null,"children":[
+        {"kind":"AndPredicate","line":25,"column":11,"text":" n >= 0 ","children":[]}]},
+      {"kind":"Item","line":25,"column":21,"text":null,"children":[
+        {"kind":"NotPredicate","line":25,"column":23,"text":" n > 9 ","children":[]}]},
+      {"kind":"Item","line":25,"column":32,"text":"s","children":[
         {"kind":"Capture","line":null,"column":null,"text":null,"children":[
           {"kind":"Plus","line":null,"column":null,"text":null,"children":[
             {"kind":"Group","line":null,"column":null,"text":null,"children":[
               {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-                {"kind":"Item","line":23,"column":36,"text":null,"children":[
+                {"kind":"Item","line":25,"column":36,"text":null,"children":[
                   {"kind":"Class","line":null,"column":null,"text":"[a-z]","children":[]}]}]},
               {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-                {"kind":"Item","line":23,"column":44,"text":null,"children":[
+                {"kind":"Item","line":25,"column":44,"text":null,"children":[
                   {"kind":"Literal","line":null,"column":null,"text":"\"_\"","children":[]}]}]}]}]}]}]},
-      {"kind":"Item","line":23,"column":50,"text":null,"children":[
+      {"kind":"Item","line":25,"column":50,"text":null,"children":[
         {"kind":"And","line":null,"column":null,"text":null,"children":[
           {"kind":"Group","line":null,"column":null,"text":null,"children":[
             {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-              {"kind":"Item","line":23,"column":52,"text":null,"children":[
+              {"kind":"Item","line":25,"column":52,"text":null,"children":[
                 {"kind":"Any","line":null,"column":null,"text":".","children":[]}]}]}]}]}]},
-      {"kind":"Item","line":23,"column":55,"text":null,"children":[
+      {"kind":"Item","line":25,"column":55,"text":null,"children":[
         {"kind":"Optional","line":null,"column":null,"text":null,"children":[
           {"kind":"Group","line":null,"column":null,"text":null,"children":[
             {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-              {"kind":"Item","line":23,"column":56,"text":null,"children":[
-                {"kind":"Label","line":23,"column":60,"text":"l","children":[
+              {"kind":"Item","line":25,"column":56,"text":null,"children":[
+                {"kind":"Label","line":25,"column":60,"text":"l","children":[
                   {"kind":"Literal","line":null,"column":null,"text":"'.'","children":[]}]}]}]}]}]}]},
-      {"kind":"Action","line":23,"column":66,"text":" s ","children":[]}]}]},
-  {"kind":"Rule","line":25,"column":1,"text":"Pair","children":[
-    {"kind":"Alternative","line":25,"column":9,"text":null,"children":[
-      {"kind":"Item","line":25,"column":9,"text":null,"children":[
-        {"kind":"Reference","line":25,"column":9,"text":"Item","children":[
-          {"kind":"Argument","line":25,"column":14,"text":"1","children":[]}]}]},
-      {"kind":"Item","line":25,"column":17,"text":null,"children":[
-        {"kind":"Reference","line":25,"column":17,"text":"Sp","children":[]}]},
-      {"kind":"Item","line":25,"column":20,"text":null,"children":[
-        {"kind":"Reference","line":25,"column":20,"text":"Item","children":[
-          {"kind":"Argument","line":25,"column":25,"text":"2","children":[]}]}]},
-      {"kind":"Constructor","line":25,"column":29,"text":"Two","children":[]}]},
-    {"kind":"Alternative","line":26,"column":8,"text":null,"children":[
-      {"kind":"Item","line":26,"column":8,"text":null,"children":[
-        {"kind":"Reference","line":26,"column":8,"text":"Item","children":[
-          {"kind":"Argument","line":26,"column":13,"text":"1","children":[]}]}]},
-      {"kind":"Constructor","line":26,"column":17,"text":"One","children":[]}]}]},
-  {"kind":"Rule","line":28,"column":1,"text":"Skip","children":[
-    {"kind":"Alternative","line":28,"column":9,"text":null,"children":[
-      {"kind":"Item","line":28,"column":9,"text":null,"children":[
+      {"kind":"Action","line":25,"column":66,"text":" s ","children":[]}]}]},
+  {"kind":"Rule","line":27,"column":1,"text":"Pair","children":[
+    {"kind":"Alternative","line":27,"column":9,"text":null,"children":[
+      {"kind":"Item","line":27,"column":9,"text":null,"children":[
+        {"kind":"Reference","line":27,"column":9,"text":"Item","children":[
+          {"kind":"Argument","line":27,"column":14,"text":"1","children":[]}]}]},
+      {"kind":"Item","line":27,"column":17,"text":null,"children":[
+        {"kind":"Reference","line":27,"column":17,"text":"Sp","children":[]}]},
+      {"kind":"Item","line":27,"column":20,"text":null,"children":[
+        {"kind":"Reference","line":27,"column":20,"text":"Item","children":[
+          {"kind":"Argument","line":27,"column":25,"text":"2","children":[]}]}]},
+      {"kind":"Constructor","line":27,"column":29,"text":"Two","children":[]}]},
+    {"kind":"Alternative","line":28,"column":8,"text":null,"children":[
+      {"kind":"Item","line":28,"column":8,"text":null,"children":[
+        {"kind":"Reference","line":28,"column":8,"text":"Item","children":[
+          {"kind":"Argument","line":28,"column":13,"text":"1","children":[]}]}]},
+      {"kind":"Constructor","line":28,"column":17,"text":"One","children":[]}]}]},
+  {"kind":"Rule","line":30,"column":1,"text":"Skip","children":[
+    {"kind":"Alternative","line":30,"column":9,"text":null,"children":[
+      {"kind":"Item","line":30,"column":9,"text":null,"children":[
         {"kind":"Star","line":null,"column":null,"text":null,"children":[
           {"kind":"Group","line":null,"column":null,"text":null,"children":[
             {"kind":"Sequence","line":null,"column":null,"text":null,"children":[
-              {"kind":"Item","line":28,"column":10,"text":null,"children":[
+              {"kind":"Item","line":30,"column":10,"text":null,"children":[
                 {"kind":"Not","line":null,"column":null,"text":null,"children":[
                   {"kind":"Literal","line":null,"column":null,"text":"'\\n'","children":[]}]}]},
-              {"kind":"Item","line":28,"column":16,"text":null,"children":[
+              {"kind":"Item","line":30,"column":16,"text":null,"children":[
                 {"kind":"Any","line":null,"column":null,"text":".","children":[]}]}]}]}]}]}]}]},
-  {"kind":"Rule","line":30,"column":1,"text":"Sp","children":[
-    {"kind":"Alternative","line":30,"column":7,"text":null,"children":[
-      {"kind":"Item","line":30,"column":7,"text":null,"children":[
+  {"kind":"Rule","line":32,"column":1,"text":"Sp","children":[
+    {"kind":"Alternative","line":32,"column":7,"text":null,"children":[
+      {"kind":"Item","line":32,"column":7,"text":null,"children":[
         {"kind":"Star","line":null,"column":null,"text":null,"children":[
           {"kind":"Literal","line":null,"column":null,"text":"' '","children":[]}]}]}]}]}]}

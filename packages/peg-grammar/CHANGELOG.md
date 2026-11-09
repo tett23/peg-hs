@@ -131,6 +131,17 @@ Since v0.1.0-rc5:
   variables of Haskell code lexically, with their locations
   ([ADR 0082](https://github.com/tett23/peg-hs/blob/main/docs/adr/0082-static-check-of-binding-references.md)).
 
+Since v0.1.0-rc6:
+
+- The directives `%expect Name "display name"` and `%message label
+  "message"`, in `grammarExpects` and `grammarMessages` of `Grammar`, with
+  their checks. `directiveComment` of `Peg.Grammar.Assemble` splits the
+  line of a directive into its argument and its comment, and does not
+  take a `#` inside the string of `%expect` and `%message` for a comment;
+  the parser, the formatter and the highlighting use it. `stripLabels`
+  removes `%message` and keeps `%expect`
+  ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
+
 ### Changed
 
 Since v0.1.0-rc1:
@@ -164,6 +175,14 @@ Since v0.1.0-rc5:
   `codeVariables`: a binding whose name is only in a string, a character
   literal or a comment is `unused-binding`, which it was not before
   ([ADR 0082](https://github.com/tett23/peg-hs/blob/main/docs/adr/0082-static-check-of-binding-references.md)).
+
+Since v0.1.0-rc6:
+
+- The messages of the syntax errors of the notation are written with
+  `%message` in `grammar/Peg.hpeg`. `labelMessage` of `Peg.Grammar.Parser`
+  keeps the messages of `escape`, `action` and `argcode` only, which
+  depend on the character at the error; the messages are unchanged
+  ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
 
 ### Fixed
 

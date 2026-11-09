@@ -152,7 +152,9 @@ directiveNode g l name al a = node "Directive" (Just l) (Just ("%" <> name)) (ma
       "export" -> onLine (grammarExports g)
       "language" -> onLine (grammarLanguages g)
       "deriving" -> maybe [] unLoc (grammarDeriving g)
-      "recover" ->
+      -- A label and a rule; a rule name or a label and a string as written,
+      -- with its quotes (ADR 0089).
+      _ | name `elem` ["recover", "expect", "message"] ->
         let (label, rest) = T.break isSpace a
             gap = T.takeWhile isSpace rest
          in [Located al label, Located (advanceLoc al (label <> gap)) (T.strip rest)]

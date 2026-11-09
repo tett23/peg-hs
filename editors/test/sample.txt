@@ -5,6 +5,8 @@
 %entry List
 %recover term Skip # the recovery
 %safe term
+%expect Term "a term # not a comment" # the name
+%message term "expected \"t\" \u{3042}"
 %export Expr(..)
 %deriving Eq, GHC.Generics.Generic # the classes
 %{

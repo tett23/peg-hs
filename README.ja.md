@@ -196,6 +196,10 @@ Sp <- ' '*
 `a` は開始規則（最初に定義した規則、または `%start` で指定した規則）の型である。
 解析に失敗すると、最も遠くまで読めた位置と、そこで期待した字句の集合を `ParseError` で返す。
 `Peg.Runtime` の `renderParseError` は、それを `1:4: expected ' ', '(' or [0-9]` のような一行にする。
+文法は、`%expect` で規則に表示名を、`%message` でラベルに文言を付けられる（[docs/syntax.md](docs/syntax.md#規則の表示名とラベルの文言)）。
+表示名を持つ規則の始まりで失敗すると、規則の終端の代わりに表示名が並ぶ（`1:3: expected expression`）。
+文言を持つラベルで失敗すると、文言が表示され（`1:5: missing ')'`）、文言は `parseErrorMessage` にも入る。
+ラベルを含む文法の回復する入口は `SyntaxError` の列を返し、`renderSyntaxError` はそれを同じ形の一行にする。
 
 次のプログラムは、標準入力の一行を解析して、AST か誤りを表示する。
 
@@ -732,7 +736,7 @@ call("analyze", { grammar: "%module Calc\n..." });
 | `kind` | `text` | 位置 | `children` |
 | --- | --- | --- | --- |
 | `Grammar` | `null` | 1 行 1 桁 | 指示、`Verbatim`、規則を、位置の順に並べたもの |
-| `Directive` | `%module` などの指示の名前 | 指示 | `Value`（`%export`、`%language`、`%deriving`、`%recover` は名前ごとに一つ。`%syntax` にはない） |
+| `Directive` | `%module` などの指示の名前 | 指示 | `Value`（`%export`、`%language`、`%deriving`、`%recover` は名前ごとに一つ。`%expect` と `%message` は名前と、書いたとおりの引用符付きの文字列の二つ。`%syntax` にはない） |
 | `Verbatim` | `%{ ... }%` の中の Haskell のコード | コード | なし |
 | `Value` | 指示の値 | 値 | なし |
 | `Rule` | 規則の名前 | 定義 | `Parameter`、`TemplateParameter`、`Type`、`Alternative` |

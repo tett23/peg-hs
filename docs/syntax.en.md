@@ -8,7 +8,7 @@ The norms are in the ADRs, and this document puts them together in a form that c
 Where the description disagrees with an ADR, the ADR takes precedence.
 
 This document reflects only the content of adopted ADRs.
-The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md) and [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md).
+The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md), [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md) and [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md).
 
 Among the code blocks of this document, those that start with `%module` are complete grammars, and `peg-hs gen` can generate code from them as they are.
 The others are fragments taken out of a grammar.
@@ -106,10 +106,12 @@ A directive is a line that starts with `%`, and specifies something about the wh
 | `%inline Name` | In the syntax tree, does not make a call of the rule a node, and places its children in the caller | [ADR 0019](adr/0019-lossless-syntax-tree.md) |
 | `%recover label Name` | Makes `Name` the recovery rule of the label `label` | [ADR 0021](adr/0021-error-recovery.md) |
 | `%safe label` | Stops the safety warnings for the label `label` | [ADR 0028](adr/0028-label-safety-check.md) |
+| `%expect Name "display name"` | Shows the display name instead of the terminals of the rule `Name` in the expected list of an error | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
+| `%message label "message"` | The message of an error that fails with the label `label` | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%deriving Class, ...` | The classes that the generated types derive. Without arguments, nothing is derived | [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) |
 
 `%module`, `%start`, `%env`, `%tabstop`, `%syntax` and `%deriving` can be written only once.
-`%entry`, `%export`, `%language`, `%nomemo`, `%token`, `%trivia`, `%inline`, `%recover` and `%safe` can be written any number of times.
+`%entry`, `%export`, `%language`, `%nomemo`, `%token`, `%trivia`, `%inline`, `%recover`, `%safe`, `%expect` and `%message` can be written any number of times.
 For directives that take one rule per line (`%entry`, `%nomemo` and so on), write one line for each rule.
 
 The value of `%module` and the items of `%export` are written into the generated module as they are.
@@ -1149,7 +1151,7 @@ Common mistakes:
 
 When a parse fails, the entry point returns a `ParseError`.
 A `ParseError` has the position that got farthest in the input, and the list of terminals expected at that position ([ADR 0005](adr/0005-error-reporting.md)).
-What enters the expected list are literals, character classes, any character, and the end of input.
+What enters the expected list are literals, character classes, any character, the end of input, and the display names of rules ([Display names of rules and messages of labels](#display-names-of-rules-and-messages-of-labels)).
 Failures caused by negative lookaheads and semantic predicates do not add items to the list.
 
 `renderParseError` of peg-runtime turns a failure into one line for humans.
@@ -1166,6 +1168,69 @@ With a trailing space, as in `1+2 `, the parse fails at column 4, expecting the 
 ```
 
 When the expected list is empty (when the parse failed only because of negative lookaheads or semantic predicates), only the position is shown, as in `line:column: parse error`.
+
+### Display names of rules and messages of labels
+
+The expected list lists terminals, so at a position where an expression should come, every terminal that can start an expression is listed.
+When `%expect` gives a rule a display name, a failure at the start of the rule lists the display name instead of the terminals of the rule ([ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md)).
+When `%message` gives a label a message, a failure with the label shows the message instead of the expected list.
+
+```hpeg
+%module Example.Messages
+%expect Expr "expression"
+%message close "missing ')'"
+%safe close # the second alternative of Sum fails at the same position in the same way, so the label is safe
+
+%{
+import qualified Data.Text as T
+}%
+
+Sum :: Int
+Sum <- a:Expr '+' b:Expr { a + b }
+     / Expr
+
+Expr :: Int
+Expr <- '(' e:Sum (')' ^close) { e }
+      / n:$[0-9]+ { read (T.unpack n) }
+      / '-' e:Expr { negate e }
+```
+
+The inputs of this grammar are shown as follows.
+
+| Input | Shown |
+|---|---|
+| `1+` | `1:3: expected expression` |
+| `x` | `1:1: expected expression` |
+| `(x` | `1:2: expected expression` |
+| `1+2x` | `1:4: expected [0-9] or end of input` |
+| `(1+2` | `1:5: missing ')'` |
+| `1+(2` | `1:5: missing ')'` |
+
+A display name is used only when the farthest failure inside the rule is at the position where the rule started.
+What the user needs to know then is that the rule should have come there.
+When the rule fails after reading some input, the terminals inside the rule are more useful, and are listed as they are.
+The `[0-9]` of `1+2x` is a failure at column 4 inside the `Expr` that started at column 3, so it does not become the display name.
+When rules with display names are nested at the same position, the outer display name remains.
+A display name in the list has no quotes, and comes before the terminals (`expected expression or 'return'`).
+Display names and messages change only what is shown, not the accepted input or the position of the error.
+
+The string is written as a `"..."` literal in a rule, with the same escapes.
+A comment starts at a `#` after the closing `"`, but a `#` inside the string does not start a comment.
+An empty string and a string with a control character, such as a newline, cannot be written.
+A rule can have at most one `%expect`, and a label at most one `%message`.
+The name of a label with `%message` still goes into `parseErrorLabel`.
+
+Common mistakes:
+
+| Writing | Report |
+|---|---|
+| Forgot the string (`%expect Expr`) | `error: %expect expects a rule name and a string` |
+| Wrote an empty string (`%message close ""`) | `error: the message is empty` |
+| Wrote a newline in the string (`%expect Expr "a\nb"`) | `error: the description contains a control character` |
+| Wrote two `%expect` for one rule | `error: duplicate %expect for rule Expr` |
+| Wrote a rule that is not defined in `%expect` | `error: undefined rule Name` |
+| Wrote a label that does not appear in the grammar in `%message` | `error: the label m does not appear in the grammar` |
+| Wrote the name of a template in `%expect` | `error: the template T cannot be named in %expect` |
 
 ### How positions are counted
 
@@ -1470,6 +1535,7 @@ A grammar with `%syntax` also gets the recovering entry point that returns a syn
 
 The entry point that does not recover stops at the first failure.
 The thrown label goes into `parseErrorLabel` of the `ParseError`.
+When the label has a message of `%message`, the message goes into `parseErrorMessage`, and `renderParseError` shows the message.
 
 At an entry point that recovers, when a label is thrown and there is a recovery rule of `%recover`, the recovery rule is evaluated from the position of the throw.
 If the recovery rule succeeds, the parse continues as if the labelled expression had succeeded with that value, and one syntax error is recorded.
@@ -1484,8 +1550,9 @@ If there is no recovery rule, or the recovery rule fails, the throw is passed fu
 A recovered range becomes a node of the kind `ERROR`, and the text of the syntax tree always equals the input.
 
 Syntax errors are returned as a list of `SyntaxError`.
-Each has the label, the range (byte offsets), the position of the start of the range, and the expected set at the time of the throw.
-The mapping from labels to messages for users is kept by the user.
+Each has the label, the range (byte offsets), the position of the start of the range, the expected set at the time of the throw, and the message of the label if it has `%message`.
+`renderSyntaxError` turns a syntax error into one line of the same form as `renderParseError`.
+The user makes the messages of labels without a message, and messages in several languages, from a table of their own looked up by the name of the label.
 
 ## lint
 

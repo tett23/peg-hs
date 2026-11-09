@@ -21,6 +21,7 @@ library
   import:           warnings
   exposed-modules:
     Conformance.Bench.JsonCounted
+    Conformance.Bench.JsonExpect
     Conformance.Bench.JsonGenerated
     Conformance.Bench.JsonLabeled
     Conformance.Bench.JsonNomemo

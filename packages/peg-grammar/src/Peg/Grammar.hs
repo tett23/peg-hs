@@ -114,6 +114,12 @@ data Grammar = Grammar
   -- ^ @%recover@: labels and their recovery rules.
   , grammarSafe :: [Located Text]
   -- ^ @%safe@: labels the author has checked to be safe (ADR 0028).
+  , grammarExpects :: [(Located Text, Located Text)]
+  -- ^ @%expect@: rules and their display names in errors (ADR 0089). The
+  -- name is decoded, at the location of its opening quote.
+  , grammarMessages :: [(Located Text, Located Text)]
+  -- ^ @%message@: labels and their messages in errors (ADR 0089). The
+  -- message is decoded, at the location of its opening quote.
   , grammarDeriving :: Maybe (Located [Located Text])
   -- ^ @%deriving@: the classes that the generated types derive (ADR 0075),
   -- at the location of the directive. 'Nothing' without the directive:
