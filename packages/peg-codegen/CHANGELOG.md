@@ -74,6 +74,11 @@ Since v0.1.0-rc6:
   peg-hooks both use them. `renderWarning` renders a warning as
   `file:line:column: warning: message`
   ([ADR 0085](https://github.com/tett23/peg-hs/blob/main/docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
+- A rule with `%expect` is generated with `PegRt.expecting` inside its
+  memoising function, and a label with `%message` with
+  `PegRt.labeledMessage` (`PegRt.labeledMessageS` with `%syntax`). The
+  code of grammars without them does not change
+  ([ADR 0089](https://github.com/tett23/peg-hs/blob/main/docs/adr/0089-rule-names-and-label-messages-in-errors.md)).
 
 ### Fixed
 

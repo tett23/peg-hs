@@ -15,6 +15,15 @@ import Data.Char (isDigit)
 #              ^ @function.call
 %safe skip
 #      ^ @label
+%expect Term "a term # not a comment" # the name
+#        ^ @function.call
+#             ^ @string
+#                       ^ @string
+#                                       ^ @comment
+%message term "expected \"t\""
+#         ^ @label
+#               ^ @string
+#                       ^ @string.escape
 %deriving Eq, Show
 #         ^ @type
 #             ^ @type

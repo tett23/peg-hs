@@ -3,6 +3,7 @@
 -- | JSON conformance (ADR 0010), run against nst/JSONTestSuite.
 module Main (main) where
 
+import qualified Conformance.Bench.JsonExpect as JsonExpect
 import qualified Conformance.Bench.JsonGenerated as JsonGenerated
 import qualified Conformance.Bench.JsonLabeled as JsonLabeled
 import qualified Conformance.Bench.JsonNomemo as JsonNomemo
@@ -25,7 +26,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Codegen (Options (..), generateFromSource)
 import Peg.Grammar.LabelInsertion (Insertion (..), insertLabels)
-import Peg.Runtime (ParseError (..), SyntaxError (..), renderParseError)
+import Peg.Runtime (ParseError (..), Pos (..), SyntaxError (..), renderParseError)
 import System.Directory (listDirectory)
 import System.FilePath ((</>))
 import Test.Tasty
@@ -157,6 +158,16 @@ main = do
               pure (show (length named') <> " of " <> show (length rejected) <> " rejected inputs, with " <> show (length inserted) <> " labels")
           ]
       , testGroup
+          "a display name (ADR 0089)"
+          [ testCase "the grammar is json/Json.hpeg with %expect, and its parser is up to date" expectDerived
+          , testCase "the same results and error positions on the whole test suite" $ do
+              rs <- mapM (\f -> (,) f <$> expectAgrees f) files
+              assertBool ("different results: " <> show [f | (f, False) <- rs]) (all snd rs)
+          , testCase "an error at the start of a value names it" $
+              fmap renderParseError (either Just (const Nothing) (JsonExpect.parse (T.pack "[1, ]")))
+                @?= Just (T.pack "1:5: expected a value or [ \\t\\n\\r]")
+          ]
+      , testGroup
           "%nomemo variant (ADR 0017)"
           [ testCase "the variant grammars are derived from json/Json.hpeg" variantsDerived
           , testCase "same results on the whole test suite" $ do
@@ -267,6 +278,30 @@ variantsDerived = do
     ]
 
 -- Accept or reject the same way, with the same error.
+-- The grammar with %expect is written by scripts/regen-fixtures.sh
+-- (ADR 0089).
+expectDerived :: Assertion
+expectDerived = do
+  base <- TIO.readFile "json/Json.hpeg"
+  committed <- TIO.readFile "bench/JsonExpect.hpeg"
+  committed @?= T.replace (T.pack "%module Conformance.Json.Parser") (T.pack "%module Conformance.Bench.JsonExpect\n%expect Value \"a value\"") base
+  code <- B.readFile "bench/Conformance/Bench/JsonExpect.hs"
+  case generateFromSource (Options "bench/JsonExpect.hpeg" "bench/Conformance/Bench/JsonExpect.hs" True Nothing) committed of
+    Left ds -> assertFailure (show ds)
+    Right out -> assertBool "regenerate bench/Conformance/Bench/JsonExpect.hs" (TE.encodeUtf8 out == code)
+
+-- The display name changes neither what is accepted nor where a parse
+-- fails (ADR 0089).
+expectAgrees :: FilePath -> IO Bool
+expectAgrees name = do
+  bytes <- B.readFile (dataDir </> name)
+  pure $ case TE.decodeUtf8' bytes of
+    Left _ -> True
+    Right t -> outcome (Json.parse t) == outcome (JsonExpect.parse t)
+  where
+    outcome :: (Show a) => Either ParseError a -> Either Int String
+    outcome = either (Left . posOffset . parseErrorPos) (Right . show)
+
 sameOnFile :: FilePath -> IO Bool
 sameOnFile name = do
   bytes <- B.readFile (dataDir </> name)

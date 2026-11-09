@@ -24,7 +24,7 @@ import Data.Char (isAlphaNum, isUpper)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar (Loc (..))
-import Peg.Grammar.Assemble (isIdentChar)
+import Peg.Grammar.Assemble (directiveComment, isIdentChar, isValidIdent)
 import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Runtime (Pos (..))
 import Peg.Runtime.Syntax
@@ -39,10 +39,12 @@ data HighlightKind
     -- its directive expects there.
     HDirectiveArgument
   | -- | The name of a rule in the argument of a directive: @%start@,
-    -- @%entry@, @%nomemo@, @%token@, @%trivia@, @%inline@ and the second
-    -- argument of @%recover@ (ADR 0069).
+    -- @%entry@, @%nomemo@, @%token@, @%trivia@, @%inline@, the second
+    -- argument of @%recover@ (ADR 0069) and the first of @%expect@
+    -- (ADR 0089).
     HDirectiveRule
-  | -- | The label in the argument of @%recover@ and @%safe@ (ADR 0069).
+  | -- | The label in the argument of @%recover@, @%safe@ (ADR 0069) and
+    -- @%message@ (ADR 0089).
     HDirectiveLabel
   | -- | The argument of @%module@ (ADR 0069).
     HModuleName
@@ -184,7 +186,7 @@ directive root n =
       lead = T.takeWhile (`elem` [' ', '\t']) rest
       raw = T.drop (T.length lead) rest
       argStart = nameEnd + bytes lead
-      (arg, comment) = if name /= "env" then T.breakOn "#" raw else (raw, "")
+      (arg, comment) = directiveComment name raw
       argText = T.stripEnd arg
       argEnd = argStart + bytes argText
       commentStart = argStart + bytes arg
@@ -193,11 +195,24 @@ directive root n =
             [ range root (if isClassName w then HClassName else HDirectiveArgument) (argStart + off, argStart + off + bytes w)
             | (off, w) <- commaItems argText
             ]
+        -- A name and a string (ADR 0089).
+        | name `elem` ["expect", "message"] =
+            let (w, afterName) = T.break blank argText
+                gap = T.takeWhile blank afterName
+                str = T.drop (T.length gap) afterName
+                strStart = argStart + bytes w + bytes gap
+                nameKind
+                  | not (isValidIdent w) = HDirectiveArgument
+                  | name == "expect" = HDirectiveRule
+                  | otherwise = HDirectiveLabel
+             in [range root nameKind (argStart, argStart + bytes w) | not (T.null w)]
+                  ++ [range root (if "\"" `T.isPrefixOf` str then HLiteral else HDirectiveArgument) (strStart, strStart + bytes str) | not (T.null str)]
         | name `elem` wordDirectives =
             [ range root (wordKind name k w) (argStart + off, argStart + off + bytes w)
             | (k, (off, w)) <- zip [0 :: Int ..] (byteWords argText)
             ]
         | otherwise = [range root HDirectiveArgument (argStart, argEnd) | not (T.null argText)]
+      blank c = c == ' ' || c == '\t'
    in [range root HDirective (start, nameEnd)]
         ++ argument
         ++ [range root HComment (commentStart, commentStart + bytes (T.stripEnd comment)) | not (T.null comment)]

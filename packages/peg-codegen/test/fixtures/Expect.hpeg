@@ -1,0 +1,30 @@
+# 規則の表示名とラベルの文言（ADR 0089）のテスト用の文法。
+# Sum と Expr は ADR 0089 の Calc の文法で、Odd は引用符やバックスラッシュを
+# 含む表示名と文言が、書いたとおりに生成モジュールに入ることを確かめる。
+%module Fixture.Expect
+%entry Odd
+%expect Expr "expression"
+%message close "missing ')'"
+%recover close Close
+# Sum の二つめの選択肢の Expr も、同じ位置で同じように失敗するので安全である
+%safe close
+%expect Odd "a \"quoted\" \\ name \u{3042}" # 文字列の後のコメント
+%message odd "x\" ++ undefined ++ \"y # z"
+
+%{
+import qualified Data.Text as T
+}%
+
+Sum :: Int
+Sum <- a:Expr '+' b:Expr { a + b }
+    / Expr
+
+Expr :: Int
+Expr <- '(' Sum (')' ^close)
+     / n:$[0-9]+ { read (T.unpack n) }
+     / '-' e:Expr { negate e }
+
+Odd <- 'o' ('k' ^odd)
+
+# 閉じ括弧がなければ、何も読まずに閉じたとみなす
+Close <- !')'

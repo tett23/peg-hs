@@ -34,7 +34,14 @@
 --
 -- A grammar with labels (@e ^label@, ADR 0021) also gets recovering entry
 -- points such as @parseRecover :: Text -> (Maybe Expr, [SyntaxError])@,
--- which report every error they recovered from as a t'SyntaxError'.
+-- which report every error they recovered from as a t'SyntaxError';
+-- 'renderSyntaxError' turns one into a line like 'renderParseError'.
+--
+-- A grammar can give a rule a display name with @%expect@ and a label a
+-- message with @%message@ (ADR 0089). An error at the start of a rule with
+-- a display name lists the name instead of the rule's terminals
+-- (@1:3: expected expression@), and an error of a label with a message is
+-- rendered as the message (@1:5: missing \')\'@).
 -- A grammar with @%syntax@ gets entry points that return a lossless syntax
 -- tree; see "Peg.Runtime.Syntax".
 --
@@ -49,6 +56,7 @@ module Peg.Runtime
   , Expected (..)
   , renderParseError
   , SyntaxError (..)
+  , renderSyntaxError
     -- * Input
   , decodeInput
   , Utf8Error (..)

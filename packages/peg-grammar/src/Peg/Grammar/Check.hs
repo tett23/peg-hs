@@ -146,6 +146,7 @@ checkRules g firstRule =
                  ++ grammarTokens g
                  ++ grammarTrivia g
                  ++ grammarInline g
+                 ++ map fst (grammarExpects g)
            , not (M.member n ruleMap)
            ]
 
@@ -221,6 +222,11 @@ checkRules g firstRule =
         -- ADR 0028
         ++ [ Diagnostic l ("the label " <> n <> " does not appear in the grammar")
            | Located l n <- grammarSafe g
+           , not (S.member n usedLabels)
+           ]
+        -- ADR 0089
+        ++ [ Diagnostic l ("the label " <> n <> " does not appear in the grammar")
+           | (Located l n, _) <- grammarMessages g
            , not (S.member n usedLabels)
            ]
 

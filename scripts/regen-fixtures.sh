@@ -73,6 +73,9 @@ if [ -d conformance/json ]; then
     sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonCounted/' json/Json.hpeg > bench/JsonCounted.hpeg
     sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonNomemo\n%nomemo Ws\n%nomemo Unit\n%nomemo Hex\n%nomemo IntPart\n%nomemo Frac\n%nomemo Exp/' json/Json.hpeg > bench/JsonNomemo.hpeg
     sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonSyntax\n%syntax\n%token Ws\n%trivia Ws/' json/Json.hpeg > bench/JsonSyntax.hpeg
+    # The JSON grammar with a display name on Value (ADR 0089).
+    sed 's/^%module Conformance.Json.Parser$/%module Conformance.Bench.JsonExpect\n%expect Value "a value"/' json/Json.hpeg > bench/JsonExpect.hpeg
+    "$peg" gen bench/JsonExpect.hpeg -o bench/Conformance/Bench/JsonExpect.hs --debug-entry >/dev/null
     "$peg" gen bench/JsonSyntax.hpeg -o bench/Conformance/Bench/JsonSyntax.hs --debug-entry >/dev/null
     # Written by hand: the JSON grammar without type annotations, actions
     # and bindings (ADR 0068).

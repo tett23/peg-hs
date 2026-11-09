@@ -112,6 +112,7 @@ expandOnce known0 g
           , ("token", grammarTokens g)
           , ("trivia", grammarTrivia g)
           , ("inline", grammarInline g)
+          , ("expect", map fst (grammarExpects g))
           ]
       , Located l n <- names
       , M.member n templates

@@ -16,6 +16,8 @@ import qualified Fixture.Arith as Arith
 import qualified Fixture.Calc as Calc
 import qualified Fixture.Discard as Discard
 import qualified Fixture.DiscardSyntax as DiscardSyntax
+import qualified Fixture.Expect as Expect
+import qualified Fixture.ExpectSyntax as ExpectSyntax
 import qualified Fixture.Extensions as Extensions
 import qualified Fixture.Generated as Generated
 import qualified Fixture.GeneratedNames as GeneratedNames
@@ -105,6 +107,7 @@ main =
       , nomemoTests
       , syntaxTests
       , recoveryTests
+      , expectTests
       , testCase "Unicode rule and binding names (ADR 0020)" $ Unicode.parse "1＋20＋300" @?= Right 321
       , testCase "rule names without case have syntax tree types (ADR 0053)" $ do
           UnicodeSyntax.parse "1＋20＋300" @?= Right 321
@@ -172,7 +175,7 @@ fileNameTests =
     src = "%module M\nS :: ()\nS <- 'a' { () }\n"
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
+fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -1241,6 +1244,44 @@ recoveryTests =
     , testCase "a valid input never reports errors in recovery mode" $
         mapM_ (\t -> snd (Recover.parseRecover t) @?= []) ["x", "x\n\ny", "[a]", "[a [b c] d]\n"]
     ]
+
+-- ADR 0089: the display names of rules and the messages of labels, in a
+-- grammar and its version with %syntax.
+expectTests :: TestTree
+expectTests =
+  testGroup
+    "display names and messages (ADR 0089)"
+    ( [ testGroup
+          variant
+          [ testCase "the errors of the tables of ADR 0089" $
+              [(t, either renderParseError (const "ok") (parse t)) | t <- map fst table] @?= table
+          , testCase "a label with a message has its label and its message" $
+              fmap (\e -> (parseErrorLabel e, parseErrorMessage e)) (flipE (parse "(1+2")) @?= Right (Just "close", Just "missing ')'")
+          , testCase "a recovered error has the message" $
+              map renderSyntaxError (recovered "(1+2") @?= ["1:5: missing ')'"]
+          , testCase "a display name and a message with quotes, backslashes and \\u{...}" $ do
+              either renderParseError (const "ok") (parseOdd "x") @?= "1:1: expected a \"quoted\" \\ name \x3042"
+              either renderParseError (const "ok") (parseOdd "o") @?= "1:2: x\" ++ undefined ++ \"y # z"
+          ]
+      | (variant, parse, parseOdd, recovered) <-
+          [ ("typed", Expect.parse, Expect.parseOdd, snd . Expect.parseRecover)
+          , ("%syntax", ExpectSyntax.parse, ExpectSyntax.parseOdd, snd . ExpectSyntax.parseSyntaxRecover)
+          ]
+      ]
+        ++ [ testCase "memoisation does not change the errors" $
+              mapM_ (\t -> fst (Expect.peg'parseWith defaultConfig {cfgMemo = False} t) @?= fst (Expect.peg'parseWith defaultConfig t)) (map fst table)
+           ]
+    )
+  where
+    table :: [(Text, Text)]
+    table =
+      [ ("1+", "1:3: expected expression")
+      , ("x", "1:1: expected expression")
+      , ("(x", "1:2: expected expression")
+      , ("1+2x", "1:4: expected [0-9] or end of input")
+      , ("(1+2", "1:5: missing ')'")
+      , ("1+(2", "1:5: missing ')'")
+      ]
 
 -- | A test of files outside this package, which a source archive does not
 -- have: without them it passes and reports that it was skipped, so that

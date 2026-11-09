@@ -30,7 +30,7 @@ module Peg.Grammar.Format
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
-import Peg.Grammar.Assemble (Top (..), isIdentChar)
+import Peg.Grammar.Assemble (Top (..), directiveComment, isIdentChar)
 import Peg.Grammar.Parser (parseTops)
 import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Runtime.Syntax
@@ -248,13 +248,14 @@ directive t =
       (arg, comment) = directiveParts t
    in T.concat ["%", name, if T.null arg then "" else " " <> arg, maybe "" (" " <>) comment]
 
--- The argument of a directive and its comment.
+-- The argument of a directive and its comment. The inside of the string of
+-- @%expect@ and @%message@ is kept as written (ADR 0089).
 directiveParts :: Text -> (Text, Maybe Text)
 directiveParts t =
   let (name, rest) = T.span isIdentChar (T.drop 1 t)
       raw = T.strip rest
-      (a, c) = T.breakOn "#" raw
-   in if name /= "env" && not (T.null c) then (T.strip a, Just (T.stripEnd c)) else (raw, Nothing)
+      (a, c) = directiveComment name raw
+   in if not (T.null c) then (T.strip a, Just (T.stripEnd c)) else (raw, Nothing)
 
 -- @%{@ and @}%@ on their own lines.
 verbatim :: Text -> Text

@@ -52,7 +52,7 @@
       ]
     },
     "directive": {
-      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069), and so do the classes of %deriving (ADR 0075).",
+      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069), and so do the classes of %deriving (ADR 0075) and the strings of %expect and %message (ADR 0089).",
       "patterns": [
         {
           "match": "^\\s*(%module)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_'.]*))?[ \\t]*(#.*)?$",
@@ -109,6 +109,50 @@
               "name": "entity.name.tag.label.directive.hpeg"
             },
             "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%expect)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+(\"(?:[^\"\\\\\\n]|\\\\.)*\"))?)?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "variable.other.rule.directive.hpeg"
+            },
+            "3": {
+              "name": "string.quoted.double.hpeg",
+              "patterns": [
+                {
+                  "include": "#escape"
+                }
+              ]
+            },
+            "4": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%message)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_']*)(?:[ \\t]+(\"(?:[^\"\\\\\\n]|\\\\.)*\"))?)?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "entity.name.tag.label.directive.hpeg"
+            },
+            "3": {
+              "name": "string.quoted.double.hpeg",
+              "patterns": [
+                {
+                  "include": "#escape"
+                }
+              ]
+            },
+            "4": {
               "name": "comment.line.number-sign.hpeg"
             }
           }

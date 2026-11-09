@@ -8,7 +8,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md)、[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -106,10 +106,12 @@ Hash <- '#' # リテラルの '#' はコメントではない
 | `%inline Name` | 構文木で、規則の呼び出しをノードにせず、子を呼び出し元に並べる | [ADR 0019](adr/0019-lossless-syntax-tree.md) |
 | `%recover label Name` | ラベル `label` の回復の規則を `Name` とする | [ADR 0021](adr/0021-error-recovery.md) |
 | `%safe label` | ラベル `label` の安全性の警告を止める | [ADR 0028](adr/0028-label-safety-check.md) |
+| `%expect Name "表示名"` | 誤りの期待の一覧で、規則 `Name` の終端の代わりに表示名を表示する | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
+| `%message label "文言"` | ラベル `label` で失敗したときの誤りの文言 | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%deriving クラス, ...` | 生成する型が導出するクラス。引数なしなら何も導出しない | [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) |
 
 `%module`、`%start`、`%env`、`%tabstop`、`%syntax`、`%deriving` は一度しか書けない。
-`%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe` は何度でも書ける。
+`%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe`、`%expect`、`%message` は何度でも書ける。
 一行に一つの規則を書くディレクティブ（`%entry`、`%nomemo` など）は、規則ごとに一行を書く。
 
 `%module` の値と `%export` の項目は、生成モジュールにそのまま書き出される。
@@ -1149,7 +1151,7 @@ parseTerm :: Text -> Either ParseError Int
 
 解析に失敗すると、入口は `ParseError` を返す。
 `ParseError` は、入力の中で最も遠くまで進んだ位置と、その位置で期待していた終端の一覧を持つ（[ADR 0005](adr/0005-error-reporting.md)）。
-期待の一覧に入るのは、リテラル、文字クラス、任意の一文字、入力の終わりである。
+期待の一覧に入るのは、リテラル、文字クラス、任意の一文字、入力の終わりと、規則の表示名（[規則の表示名とラベルの文言](#規則の表示名とラベルの文言)）である。
 否定先読みと意味述語による失敗は、一覧に項目を加えない。
 
 peg-runtime の `renderParseError` は、失敗を人間向けの一行にする。
@@ -1166,6 +1168,69 @@ peg-runtime の `renderParseError` は、失敗を人間向けの一行にする
 ```
 
 期待の一覧が空のとき（否定先読みや意味述語だけで失敗したとき）は、`行:桁: parse error` のように位置だけを表示する。
+
+### 規則の表示名とラベルの文言
+
+期待の一覧は終端を並べるので、式が来るべき位置では、式を始められる終端がすべて並ぶ。
+`%expect` で規則に表示名を付けると、その規則の始まりで失敗したとき、規則の終端の代わりに表示名が並ぶ（[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md)）。
+`%message` でラベルに文言を付けると、そのラベルで失敗したとき、期待の一覧の代わりに文言が表示される。
+
+```hpeg
+%module Example.Messages
+%expect Expr "expression"
+%message close "missing ')'"
+%safe close # Sum の二つめの選択肢も同じ位置で同じように失敗するので、安全である
+
+%{
+import qualified Data.Text as T
+}%
+
+Sum :: Int
+Sum <- a:Expr '+' b:Expr { a + b }
+     / Expr
+
+Expr :: Int
+Expr <- '(' e:Sum (')' ^close) { e }
+      / n:$[0-9]+ { read (T.unpack n) }
+      / '-' e:Expr { negate e }
+```
+
+この文法の入力と表示は次のとおりである。
+
+| 入力 | 表示 |
+|---|---|
+| `1+` | `1:3: expected expression` |
+| `x` | `1:1: expected expression` |
+| `(x` | `1:2: expected expression` |
+| `1+2x` | `1:4: expected [0-9] or end of input` |
+| `(1+2` | `1:5: missing ')'` |
+| `1+(2` | `1:5: missing ')'` |
+
+表示名は、規則の中で最も遠い失敗が規則の始まりの位置にあるときだけ使われる。
+そのとき利用者に伝えるべきことは、そこにその規則が来るべきだったことである。
+規則がいくらか読んだ後で失敗したときは、規則の内側の終端のほうが役に立つので、そのまま並ぶ。
+`1+2x` の `[0-9]` は、3 桁目から始めた `Expr` の中の 4 桁目の失敗なので、表示名にならない。
+表示名を持つ規則が同じ位置で入れ子になったときは、外側の表示名が残る。
+一覧の中の表示名は引用符を付けずに、終端より先に並ぶ（`expected expression or 'return'`）。
+表示名と文言は表示だけを変え、受理する入力と誤りの位置を変えない。
+
+文字列は規則の中の `"..."` のリテラルと同じ書き方で、同じエスケープを使える。
+閉じた `"` の後の `#` からはコメントだが、文字列の中の `#` はコメントの始まりにならない。
+空の文字列と、改行などの制御文字を含む文字列は書けない。
+一つの規則に書ける `%expect` と、一つのラベルに書ける `%message` は、それぞれ一つまでである。
+`%message` を書いたラベルの名前も、これまでどおり `parseErrorLabel` に入る。
+
+よくある誤り：
+
+| 書き方 | 報告 |
+|---|---|
+| 文字列を書き忘れた（`%expect Expr`） | `error: %expect expects a rule name and a string` |
+| 空の文字列を書いた（`%message close ""`） | `error: the message is empty` |
+| 文字列に改行を書いた（`%expect Expr "a\nb"`） | `error: the description contains a control character` |
+| 同じ規則に `%expect` を二つ書いた | `error: duplicate %expect for rule Expr` |
+| 定義していない規則を `%expect` に書いた | `error: undefined rule Name` |
+| 文法に現れないラベルを `%message` に書いた | `error: the label m does not appear in the grammar` |
+| 雛形の名前を `%expect` に書いた | `error: the template T cannot be named in %expect` |
 
 ### 位置の数え方
 
@@ -1470,6 +1535,7 @@ parseRecover :: Text -> (Maybe [Inline], [SyntaxError])     -- 回復する
 
 回復しない入口は、最初の失敗で止まる。
 送出されたラベルは `ParseError` の `parseErrorLabel` に入る。
+ラベルに `%message` の文言があれば、文言は `parseErrorMessage` に入り、`renderParseError` は文言を表示する。
 
 回復する入口では、ラベルが送出されて `%recover` の回復の規則があれば、送出の位置から回復の規則を評価する。
 回復の規則が成功すれば、ラベルを付けた式はその値で成功したものとして解析が続き、構文エラーが一つ記録される。
@@ -1484,8 +1550,9 @@ parseRecover :: Text -> (Maybe [Inline], [SyntaxError])     -- 回復する
 回復した範囲は種類が `ERROR` のノードになり、構文木のテキストは常に入力と一致する。
 
 構文エラーは `SyntaxError` の列で返る。
-ラベル、範囲（バイトオフセット）、範囲の始まりの位置、送出の時点の期待集合を持つ。
-ラベルから利用者向けのメッセージへの対応は、利用者が持つ。
+ラベル、範囲（バイトオフセット）、範囲の始まりの位置、送出の時点の期待集合と、ラベルに `%message` があればその文言を持つ。
+`renderSyntaxError` は、構文エラーを `renderParseError` と同じ形の一行にする。
+文言のないラベルの文言や、多言語の文言は、利用者がラベルの名前から自分の対応表を引いて作る。
 
 ## lint
 

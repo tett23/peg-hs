@@ -191,6 +191,9 @@ A generated module exports the entry point of the start rule, `parse :: Text -> 
 `a` is the type of the start rule: the first rule, or the one that `%start` names.
 When parsing fails, `ParseError` has the farthest position that was read and the set of tokens expected there.
 `renderParseError` of `Peg.Runtime` turns it into a line such as `1:4: expected ' ', '(' or [0-9]`.
+A grammar can give a rule a display name with `%expect`, and a label a message with `%message` ([docs/syntax.en.md](docs/syntax.en.md#display-names-of-rules-and-messages-of-labels)).
+A failure at the start of a rule with a display name lists the name instead of the terminals of the rule (`1:3: expected expression`), and a failure with a label with a message is shown as the message (`1:5: missing ')'`), which is also in `parseErrorMessage`.
+The recovering entry points of a grammar with labels return `SyntaxError`s, which `renderSyntaxError` turns into lines of the same form.
 
 This program parses a line of standard input and shows the AST or the error.
 
@@ -734,7 +737,7 @@ Every node of `ast` has the same shape, for a tree view:
 | `kind` | `text` | Location | `children` |
 | --- | --- | --- | --- |
 | `Grammar` | `null` | 1:1 | The directives, `Verbatim` and the rules, in the order of their locations |
-| `Directive` | The name of the directive, such as `%module` | The directive | `Value`s (one for each name of `%export`, `%language`, `%deriving` and `%recover`; none for `%syntax`) |
+| `Directive` | The name of the directive, such as `%module` | The directive | `Value`s (one for each name of `%export`, `%language`, `%deriving` and `%recover`; two for `%expect` and `%message`, the name and the string as written, with its quotes; none for `%syntax`) |
 | `Verbatim` | The Haskell code of `%{ ... }%` | The code | none |
 | `Value` | The value of a directive | The value | none |
 | `Rule` | The name of the rule | The definition | `Parameter`, `TemplateParameter`, `Type`, `Alternative` |

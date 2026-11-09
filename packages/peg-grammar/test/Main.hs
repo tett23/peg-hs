@@ -13,6 +13,7 @@ import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Parser
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
+import ExpectMessage (expectMessageTests)
 import Format (formatTests)
 import GeneratedTypes (generatedTypeTests)
 import Incremental (incrementalTests)
@@ -60,6 +61,7 @@ main = do
       , securityTests
       , repositoryGrammarTests files
       , errorReportTests
+      , expectMessageTests
       , labelTests files
       , labelInsertionTests files
       , testGroup

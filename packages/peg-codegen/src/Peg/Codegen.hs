@@ -716,7 +716,7 @@ ruleDecl env r =
         <> "PegRt.P (Peg'Store peg's) peg's "
         <> resultTypeText env r
     , ruleVar (ruleName r) <> T.concat [" " <> paramName p | p <- ruleParams r] <> " ="
-    , "  " <> memoCall <> "\n    (" <> treeWrap <> "PegRt.choice\n      [ " <> T.intercalate "\n      , " alts <> "\n      ])" <> treeClose
+    , "  " <> memoCall <> "\n    (" <> expectWrap <> treeWrap <> "PegRt.choice\n      [ " <> T.intercalate "\n      , " alts <> "\n      ])" <> treeClose <> expectClose
     , ""
     ]
   where
@@ -734,6 +734,10 @@ ruleDecl env r =
       | envSyntax env = fst (runGen (mapM (altCodeS env name) (ruleAlts r)) 0)
       | otherwise = fst (runGen (mapM (altCode env name) (ruleAlts r)) 0)
     g = envGrammar env
+    -- The display name of the rule, inside the memoising function (ADR 0089).
+    (expectWrap, expectClose) = case [unLoc d | (Located _ n, d) <- grammarExpects g, n == name] of
+      d : _ -> ("PegRt.expecting " <> hsString d <> " (", ")")
+      [] -> ("", "")
     (treeWrap, treeClose)
       | not (envSyntax env) = ("", "")
       | isInline g name = ("", "")
@@ -903,7 +907,7 @@ exprCodeU env used expr = case expr of
   ECapture x -> wrap "PegRt.capture" False x
   ELabel _ x name -> do
     e <- exprCodeU env used x
-    pure ("PegRt.labeled " <> hsString name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
+    pure (labeledCode env False name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
   EDiscard x -> wrap "PegRt.voidP" False x
@@ -1150,7 +1154,7 @@ exprCodeSU env used expr = case expr of
   ECapture x -> wrap "PegRt.captureS" False x
   ELabel _ x name -> do
     e <- exprCodeSU env used x
-    pure ("PegRt.labeledS " <> hsString name <> " " <> recoveryCode env True (used && hasValue (units env) x) name <> " (" <> e <> ")")
+    pure (labeledCode env True name <> " " <> recoveryCode env True (used && hasValue (units env) x) name <> " (" <> e <> ")")
   EDiscard x -> wrap "PegRt.voidS" False x
   ETemplate {} -> error "a template call must be expanded before generating code: call Peg.Grammar.Templates.expandTemplates first"
   where
@@ -1160,6 +1164,14 @@ exprCodeSU env used expr = case expr of
     wrap f inner x = do
       e <- exprCodeSU env inner x
       pure ("(" <> f <> ") (" <> e <> ")")
+
+-- The function of a label and its arguments before the recovery: with the
+-- message of the label, if the grammar gives one (ADR 0089).
+labeledCode :: Env -> Bool -> Text -> Text
+labeledCode env syntaxMode name =
+  case [unLoc m | (Located _ l, m) <- grammarMessages (envGrammar env), l == name] of
+    m : _ -> (if syntaxMode then "PegRt.labeledMessageS " else "PegRt.labeledMessage ") <> hsString name <> " " <> hsString m
+    [] -> (if syntaxMode then "PegRt.labeledS " else "PegRt.labeled ") <> hsString name
 
 -- The recovery parser for a label, if the grammar gives one (ADR 0021). A
 -- label on an expression without a value discards the recovery's value.

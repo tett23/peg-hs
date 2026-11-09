@@ -297,6 +297,16 @@
             "named": true
           }
         ]
+      },
+      "string": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "literal",
+            "named": true
+          }
+        ]
       }
     }
   },

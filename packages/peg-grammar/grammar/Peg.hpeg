@@ -1,6 +1,8 @@
 # peg-hs の記法（ADR 0004、0005、0012、0014）を peg-hs 自身で書いた文法。
 # 生成したパーサーは最上位の要素の列を返し、組み立て（Peg.Grammar.Assemble）を通る。
-# 誤りの文言は、ラベル（ADR 0021）から Peg.Grammar.Parser の対応表で作る（ADR 0027）。
+# 誤りの文言は、ラベル（ADR 0021）の %message で与える（ADR 0089）。
+# 誤りの位置の文字で変わる escape、action、argcode の文言だけは、
+# Peg.Grammar.Parser の labelMessage で作る（ADR 0027）。
 # ラベルは、そこで失敗したらどの選択肢でも成功しえない位置にだけ付ける。
 #
 # 識別子と空白の文字は Peg.Grammar.Assemble の関数で判定する（ADR 0020）。
@@ -37,6 +39,31 @@
 # 検査は、深さの意味述語が失敗した後に別の選択肢が成功しうるとみなすが、
 # 上限の内側の文法の受理は変えない。
 %safe nest
+
+# ラベルの文言（ADR 0089）
+%message top "expected a rule, a directive or %{ ... }%"
+%message ident "expected an identifier"
+%message verbatim "unterminated %{ block"
+%message type "expected a type"
+%message decl "expected :: or <-"
+%message params "parameters belong to the type annotation, not the definition"
+%message paramform "expected a parameter of the form name :: Type"
+%message paramtype "expected a parameter type"
+%message argument "expected an argument"
+%message expression "expected an expression"
+%message groupaction "actions are not allowed inside a group"
+%message paren "expected ')'"
+%message literal "unterminated literal"
+%message ubrace "expected '{'"
+%message uclose "expected '}'"
+%message uescape "invalid \\u escape"
+%message emptyclass "empty character class"
+%message class "unterminated character class"
+%message range "the range is empty"
+%message hsstring "unterminated string literal"
+%message hschar "unterminated character literal"
+%message constructor "expected a constructor name after @"
+%message nest "the expression nests deeper than 256"
 
 %{
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)

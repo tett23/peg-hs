@@ -11,7 +11,7 @@ import qualified Prelude as PegPrelude
 import qualified Peg.Runtime.Internal as PegRt
 import Prelude
 
-{-# LINE 42 "bench/PegCounted.txt" #-}
+{-# LINE 69 "bench/PegCounted.txt" #-}
 import Data.Char (chr, digitToInt, isHexDigit, isSpace)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -94,7 +94,7 @@ applyOp e c = case c of
 
 -- | Parse the whole input with the rule @File@.
 parse :: PegRt.Text -> PegPrelude.Either PegRt.ParseError (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 100 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -104,7 +104,7 @@ parse peg'input =
 -- | Parse the whole input with the rule @File@, recovering from labelled failures.
 -- The value is 'PegPrelude.Nothing' only if the rule could not be recovered.
 parseRecover :: PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 110 "bench/Conformance/Bench/PegCounted.hs" #-}
     ), [PegRt.SyntaxError])
@@ -114,7 +114,7 @@ parseRecover peg'input =
 
 -- | Like 'peg'parseWith', recovering. Only meant for testing the generator.
 peg'parseRecoverWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Maybe (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 120 "bench/Conformance/Bench/PegCounted.hs" #-}
     ), [PegRt.SyntaxError], PegRt.Stats)
@@ -125,7 +125,7 @@ peg'parseRecoverWith peg'cfg peg'input =
 -- | Run the start rule with a runtime configuration and return statistics.
 -- Only meant for testing the generator.
 peg'parseWith :: PegRt.Config -> PegRt.Text -> (PegPrelude.Either PegRt.ParseError (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 131 "bench/Conformance/Bench/PegCounted.hs" #-}
     ), PegRt.Stats)
@@ -137,22 +137,22 @@ peg'config = PegRt.defaultConfig
 
 data Peg'Store peg's = Peg'Store
   { peg'memo'File :: PegRt.Table peg's (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 143 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TopItem :: PegRt.Table peg's (
-{-# LINE 125 "bench/PegCounted.txt" #-}
+{-# LINE 152 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Top
 {-# LINE 148 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TopOne :: PegRt.Table peg's (
-{-# LINE 128 "bench/PegCounted.txt" #-}
+{-# LINE 155 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Top
 {-# LINE 153 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Here :: PegRt.Table peg's (
-{-# LINE 133 "bench/PegCounted.txt" #-}
+{-# LINE 160 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}Loc
 {-# LINE 158 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -161,193 +161,193 @@ data Peg'Store peg's = Peg'Store
   , peg'memo'Comment :: PegRt.Table peg's (())
   , peg'memo'InlineSp :: PegRt.Table peg's (())
   , peg'memo'Ident :: PegRt.Table peg's (
-{-# LINE 145 "bench/PegCounted.txt" #-}
+{-# LINE 172 "bench/PegCounted.txt" #-}
  {-# COLUMN 10 #-}Text
 {-# LINE 167 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'IdentStart :: PegRt.Table peg's (())
   , peg'memo'IdentChar :: PegRt.Table peg's (())
   , peg'memo'Verbatim :: PegRt.Table peg's (
-{-# LINE 153 "bench/PegCounted.txt" #-}
+{-# LINE 180 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Top
 {-# LINE 174 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Directive :: PegRt.Table peg's (
-{-# LINE 156 "bench/PegCounted.txt" #-}
+{-# LINE 183 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Top
 {-# LINE 179 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Declaration :: PegRt.Table peg's (
-{-# LINE 159 "bench/PegCounted.txt" #-}
+{-# LINE 186 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Top
 {-# LINE 184 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TemplateParams :: PegRt.Table peg's (
-{-# LINE 167 "bench/PegCounted.txt" #-}
+{-# LINE 194 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}[TemplateParam]
 {-# LINE 189 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TemplateParam :: PegRt.Table peg's (
-{-# LINE 170 "bench/PegCounted.txt" #-}
+{-# LINE 197 "bench/PegCounted.txt" #-}
  {-# COLUMN 18 #-}TemplateParam
 {-# LINE 194 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TypeText :: PegRt.Table peg's (
-{-# LINE 173 "bench/PegCounted.txt" #-}
+{-# LINE 200 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Text
 {-# LINE 199 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'ParamList :: PegRt.Table peg's (
-{-# LINE 176 "bench/PegCounted.txt" #-}
+{-# LINE 203 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}[Param]
 {-# LINE 204 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'ParamChunks :: PegRt.Table peg's (
-{-# LINE 179 "bench/PegCounted.txt" #-}
+{-# LINE 206 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}[Param]
 {-# LINE 209 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'ParamChunk :: PegRt.Table peg's (
-{-# LINE 183 "bench/PegCounted.txt" #-}
+{-# LINE 210 "bench/PegCounted.txt" #-}
  {-# COLUMN 15 #-}Param
 {-# LINE 214 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Alts :: PegRt.Table peg's (
-{-# LINE 187 "bench/PegCounted.txt" #-}
+{-# LINE 214 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Alt]
 {-# LINE 219 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'MoreAlt :: PegRt.Table peg's (
-{-# LINE 190 "bench/PegCounted.txt" #-}
+{-# LINE 217 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Alt
 {-# LINE 224 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Alt :: PegRt.Table peg's (
-{-# LINE 193 "bench/PegCounted.txt" #-}
+{-# LINE 220 "bench/PegCounted.txt" #-}
  {-# COLUMN 8 #-}Alt
 {-# LINE 229 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Constructor :: PegRt.Table peg's (
-{-# LINE 197 "bench/PegCounted.txt" #-}
+{-# LINE 224 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Located Text
 {-# LINE 234 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Item :: PegRt.ArgTable peg's (
-{-# LINE 205 "bench/PegCounted.txt" #-}
+{-# LINE 232 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Int
 {-# LINE 239 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 205 "bench/PegCounted.txt" #-}
+{-# LINE 232 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}(Item, Int)
 {-# LINE 243 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'DeclStart :: PegRt.Table peg's (())
   , peg'memo'Binding :: PegRt.Table peg's (
-{-# LINE 211 "bench/PegCounted.txt" #-}
+{-# LINE 238 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Text
 {-# LINE 249 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'PrefixE :: PegRt.ArgTable peg's (
-{-# LINE 216 "bench/PegCounted.txt" #-}
+{-# LINE 243 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 254 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 216 "bench/PegCounted.txt" #-}
+{-# LINE 243 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 258 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Labeled :: PegRt.ArgTable peg's (
-{-# LINE 224 "bench/PegCounted.txt" #-}
+{-# LINE 251 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 263 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 224 "bench/PegCounted.txt" #-}
+{-# LINE 251 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 267 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'LabelPart :: PegRt.ArgTable peg's (
-{-# LINE 227 "bench/PegCounted.txt" #-}
+{-# LINE 254 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 272 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 227 "bench/PegCounted.txt" #-}
+{-# LINE 254 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}(Loc, Text)
 {-# LINE 276 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'SuffixE :: PegRt.ArgTable peg's (
-{-# LINE 230 "bench/PegCounted.txt" #-}
+{-# LINE 257 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 281 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 230 "bench/PegCounted.txt" #-}
+{-# LINE 257 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 285 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'PostOps :: PegRt.ArgTable peg's (
-{-# LINE 234 "bench/PegCounted.txt" #-}
+{-# LINE 261 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 290 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 234 "bench/PegCounted.txt" #-}
+{-# LINE 261 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}[Char]
 {-# LINE 294 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'PostOp :: PegRt.ArgTable peg's (
-{-# LINE 238 "bench/PegCounted.txt" #-}
+{-# LINE 265 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Int
 {-# LINE 299 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 238 "bench/PegCounted.txt" #-}
+{-# LINE 265 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-}Char
 {-# LINE 303 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'Primary :: PegRt.ArgTable peg's (
-{-# LINE 241 "bench/PegCounted.txt" #-}
+{-# LINE 268 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 308 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 241 "bench/PegCounted.txt" #-}
+{-# LINE 268 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 312 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TemplateArgs :: PegRt.ArgTable peg's (
-{-# LINE 253 "bench/PegCounted.txt" #-}
+{-# LINE 280 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}Int
 {-# LINE 317 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 253 "bench/PegCounted.txt" #-}
+{-# LINE 280 "bench/PegCounted.txt" #-}
  {-# COLUMN 27 #-}([Expr], Int)
 {-# LINE 321 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'TemplateArg :: PegRt.ArgTable peg's (
-{-# LINE 256 "bench/PegCounted.txt" #-}
+{-# LINE 283 "bench/PegCounted.txt" #-}
  {-# COLUMN 18 #-}Int
 {-# LINE 326 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 256 "bench/PegCounted.txt" #-}
+{-# LINE 283 "bench/PegCounted.txt" #-}
  {-# COLUMN 26 #-}(Expr, Int)
 {-# LINE 330 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'CallArgs :: PegRt.Table peg's (
-{-# LINE 259 "bench/PegCounted.txt" #-}
+{-# LINE 286 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}[Located Text]
 {-# LINE 335 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'GroupAlts :: PegRt.ArgTable peg's (
-{-# LINE 262 "bench/PegCounted.txt" #-}
+{-# LINE 289 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 340 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 262 "bench/PegCounted.txt" #-}
+{-# LINE 289 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}([[Item]], Int)
 {-# LINE 344 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'MoreGroup :: PegRt.ArgTable peg's (
-{-# LINE 265 "bench/PegCounted.txt" #-}
+{-# LINE 292 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 349 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) (
-{-# LINE 265 "bench/PegCounted.txt" #-}
+{-# LINE 292 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}[(Item, Int)]
 {-# LINE 353 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -359,22 +359,22 @@ data Peg'Store peg's = Peg'Store
   , peg'memo'ClassItem :: PegRt.Table peg's (())
   , peg'memo'ClassChar :: PegRt.Table peg's (())
   , peg'memo'Action :: PegRt.Table peg's (
-{-# LINE 286 "bench/PegCounted.txt" #-}
+{-# LINE 313 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Located Text
 {-# LINE 365 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'PredCode :: PegRt.Table peg's (
-{-# LINE 289 "bench/PegCounted.txt" #-}
+{-# LINE 316 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Located Text
 {-# LINE 370 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'ArgChunks :: PegRt.Table peg's (
-{-# LINE 292 "bench/PegCounted.txt" #-}
+{-# LINE 319 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}[Located Text]
 {-# LINE 375 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
   , peg'memo'ArgChunk :: PegRt.Table peg's (
-{-# LINE 296 "bench/PegCounted.txt" #-}
+{-# LINE 323 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Located Text
 {-# LINE 380 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -394,7 +394,7 @@ peg'newStore =
   Peg'Store PegPrelude.<$> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newArgTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable PegPrelude.<*> PegRt.newTable
 
 peg'rule'File :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 122 "bench/PegCounted.txt" #-}
+{-# LINE 149 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Top]
 {-# LINE 400 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -403,7 +403,7 @@ peg'rule'File =
     (PegRt.choice
       [ do { _ <- peg'rule'Ws
           ; peg'v0 <- PegRt.many (peg'rule'TopItem)
-          ; PegRt.labeled "top" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.anyChar)
+          ; PegRt.labeledMessage "top" "expected a rule, a directive or %{ ... }%" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.anyChar)
           ; PegPrelude.pure ()
           }])
           ; PegPrelude.pure peg'v0
@@ -411,7 +411,7 @@ peg'rule'File =
       ])
 
 peg'rule'TopItem :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 125 "bench/PegCounted.txt" #-}
+{-# LINE 152 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Top
 {-# LINE 417 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -425,7 +425,7 @@ peg'rule'TopItem =
       ])
 
 peg'rule'TopOne :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 128 "bench/PegCounted.txt" #-}
+{-# LINE 155 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Top
 {-# LINE 431 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -444,7 +444,7 @@ peg'rule'TopOne =
       ])
 
 peg'rule'Here :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 133 "bench/PegCounted.txt" #-}
+{-# LINE 160 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}Loc
 {-# LINE 450 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -454,7 +454,7 @@ peg'rule'Here =
       [ do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 134 "bench/PegCounted.txt" #-}
+{-# LINE 161 "bench/PegCounted.txt" #-}
  {-# COLUMN 10 #-} here _span 
 {-# LINE 460 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -481,13 +481,13 @@ peg'rule'SpaceChar =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 139 "bench/PegCounted.txt" #-}
+{-# LINE 166 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-} isSpace (firstChar c) 
 {-# LINE 487 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 139 "bench/PegCounted.txt" #-}
+{-# LINE 166 "bench/PegCounted.txt" #-}
  {-# COLUMN 47 #-} () 
 {-# LINE 493 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -517,7 +517,7 @@ peg'rule'InlineSp =
       ])
 
 peg'rule'Ident :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 145 "bench/PegCounted.txt" #-}
+{-# LINE 172 "bench/PegCounted.txt" #-}
  {-# COLUMN 10 #-}Text
 {-# LINE 523 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -539,13 +539,13 @@ peg'rule'IdentStart =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 148 "bench/PegCounted.txt" #-}
+{-# LINE 175 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-} isIdentStart (firstChar c) 
 {-# LINE 545 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 148 "bench/PegCounted.txt" #-}
+{-# LINE 175 "bench/PegCounted.txt" #-}
  {-# COLUMN 53 #-} () 
 {-# LINE 551 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -559,13 +559,13 @@ peg'rule'IdentChar =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 150 "bench/PegCounted.txt" #-}
+{-# LINE 177 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-} isIdentChar (firstChar c) 
 {-# LINE 565 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 150 "bench/PegCounted.txt" #-}
+{-# LINE 177 "bench/PegCounted.txt" #-}
  {-# COLUMN 51 #-} () 
 {-# LINE 571 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -573,7 +573,7 @@ peg'rule'IdentChar =
       ])
 
 peg'rule'Verbatim :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 153 "bench/PegCounted.txt" #-}
+{-# LINE 180 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Top
 {-# LINE 579 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -587,12 +587,12 @@ peg'rule'Verbatim =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }]))
-          ; PegRt.choice [do { PegRt.labeled "verbatim" PegPrelude.Nothing (PegRt.lit "}%" "'}%'")
+          ; PegRt.choice [do { PegRt.labeledMessage "verbatim" "unterminated %{ block" PegPrelude.Nothing (PegRt.lit "}%" "'}%'")
           ; PegPrelude.pure ()
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 154 "bench/PegCounted.txt" #-}
+{-# LINE 181 "bench/PegCounted.txt" #-}
  {-# COLUMN 57 #-} uncurry TVerbatim (verbatimBody l b) 
 {-# LINE 598 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -600,7 +600,7 @@ peg'rule'Verbatim =
       ])
 
 peg'rule'Directive :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 156 "bench/PegCounted.txt" #-}
+{-# LINE 183 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Top
 {-# LINE 606 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -610,7 +610,7 @@ peg'rule'Directive =
       [ do { peg'start <- PegRt.getOffset
           ; l <- peg'rule'Here
           ; PegRt.lit "%" "'%'"
-          ; n <- PegRt.choice [do { peg'v0 <- PegRt.labeled "ident" PegPrelude.Nothing (peg'rule'Ident)
+          ; n <- PegRt.choice [do { peg'v0 <- PegRt.labeledMessage "ident" "expected an identifier" PegPrelude.Nothing (peg'rule'Ident)
           ; PegPrelude.pure peg'v0
           }]
           ; _ <- peg'rule'InlineSp
@@ -621,7 +621,7 @@ peg'rule'Directive =
           }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 157 "bench/PegCounted.txt" #-}
+{-# LINE 184 "bench/PegCounted.txt" #-}
  {-# COLUMN 76 #-} TDirective l n al (directiveArg n raw) 
 {-# LINE 627 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -629,7 +629,7 @@ peg'rule'Directive =
       ])
 
 peg'rule'Declaration :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 159 "bench/PegCounted.txt" #-}
+{-# LINE 186 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Top
 {-# LINE 635 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -645,12 +645,12 @@ peg'rule'Declaration =
           ; PegRt.lit "::" "'::'"
           ; _ <- peg'rule'InlineSp
           ; tl <- peg'rule'Here
-          ; ty <- PegRt.choice [do { peg'v0 <- PegRt.labeled "type" PegPrelude.Nothing (peg'rule'TypeText)
+          ; ty <- PegRt.choice [do { peg'v0 <- PegRt.labeledMessage "type" "expected a type" PegPrelude.Nothing (peg'rule'TypeText)
           ; PegPrelude.pure peg'v0
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 162 "bench/PegCounted.txt" #-}
+{-# LINE 189 "bench/PegCounted.txt" #-}
  {-# COLUMN 111 #-} TAnnot l n (maybe [] id ps) (maybe [] id tps) (Located tl ty) 
 {-# LINE 656 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -664,7 +664,7 @@ peg'rule'Declaration =
           ; as <- peg'rule'Alts
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 163 "bench/PegCounted.txt" #-}
+{-# LINE 190 "bench/PegCounted.txt" #-}
  {-# COLUMN 67 #-} TDef l n (maybe [] (map templateParamName) tps) as 
 {-# LINE 670 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -674,10 +674,10 @@ peg'rule'Declaration =
           ; _ <- PegRt.skipOptional (peg'rule'TemplateParams)
           ; _ <- PegRt.skipOptional (peg'rule'ParamList)
           ; _ <- peg'rule'Ws
-          ; PegRt.labeled "params" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "<-" "'<-'")
+          ; PegRt.labeledMessage "params" "parameters belong to the type annotation, not the definition" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "<-" "'<-'")
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "decl" PegPrelude.Nothing (PegRt.choice [do { PegRt.lit "::" "'::'"
+          ; PegRt.choice [do { PegRt.labeledMessage "decl" "expected :: or <-" PegPrelude.Nothing (PegRt.choice [do { PegRt.lit "::" "'::'"
           ; PegPrelude.pure ()
           }, do { PegRt.lit "<-" "'<-'"
           ; PegPrelude.pure ()
@@ -686,7 +686,7 @@ peg'rule'Declaration =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 164 "bench/PegCounted.txt" #-}
+{-# LINE 191 "bench/PegCounted.txt" #-}
  {-# COLUMN 90 #-} TVerbatim (Loc 0 0) T.empty 
 {-# LINE 692 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -694,7 +694,7 @@ peg'rule'Declaration =
       ])
 
 peg'rule'TemplateParams :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 167 "bench/PegCounted.txt" #-}
+{-# LINE 194 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}[TemplateParam]
 {-# LINE 700 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -715,7 +715,7 @@ peg'rule'TemplateParams =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 168 "bench/PegCounted.txt" #-}
+{-# LINE 195 "bench/PegCounted.txt" #-}
  {-# COLUMN 80 #-} p : ps 
 {-# LINE 721 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -723,7 +723,7 @@ peg'rule'TemplateParams =
       ])
 
 peg'rule'TemplateParam :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 170 "bench/PegCounted.txt" #-}
+{-# LINE 197 "bench/PegCounted.txt" #-}
  {-# COLUMN 18 #-}TemplateParam
 {-# LINE 729 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -740,7 +740,7 @@ peg'rule'TemplateParam =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 171 "bench/PegCounted.txt" #-}
+{-# LINE 198 "bench/PegCounted.txt" #-}
  {-# COLUMN 50 #-} TemplateParam n ty 
 {-# LINE 746 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -748,7 +748,7 @@ peg'rule'TemplateParam =
       ])
 
 peg'rule'TypeText :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 173 "bench/PegCounted.txt" #-}
+{-# LINE 200 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Text
 {-# LINE 754 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -761,13 +761,13 @@ peg'rule'TypeText =
           ; PegPrelude.pure ()
           }]))
           ; PegRt.predicate (\_col -> 
-{-# LINE 174 "bench/PegCounted.txt" #-}
+{-# LINE 201 "bench/PegCounted.txt" #-}
  {-# COLUMN 30 #-} not (T.null (T.stripEnd ty)) 
 {-# LINE 767 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 174 "bench/PegCounted.txt" #-}
+{-# LINE 201 "bench/PegCounted.txt" #-}
  {-# COLUMN 63 #-} T.stripEnd ty 
 {-# LINE 773 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -775,7 +775,7 @@ peg'rule'TypeText =
       ])
 
 peg'rule'ParamList :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 176 "bench/PegCounted.txt" #-}
+{-# LINE 203 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}[Param]
 {-# LINE 781 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -789,7 +789,7 @@ peg'rule'ParamList =
       ])
 
 peg'rule'ParamChunks :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 179 "bench/PegCounted.txt" #-}
+{-# LINE 206 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}[Param]
 {-# LINE 795 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -802,7 +802,7 @@ peg'rule'ParamChunks =
           ; rest <- peg'rule'ParamChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 180 "bench/PegCounted.txt" #-}
+{-# LINE 207 "bench/PegCounted.txt" #-}
  {-# COLUMN 51 #-} p : rest 
 {-# LINE 808 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -812,7 +812,7 @@ peg'rule'ParamChunks =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 181 "bench/PegCounted.txt" #-}
+{-# LINE 208 "bench/PegCounted.txt" #-}
  {-# COLUMN 33 #-} [p] 
 {-# LINE 818 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -820,7 +820,7 @@ peg'rule'ParamChunks =
       ])
 
 peg'rule'ParamChunk :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 183 "bench/PegCounted.txt" #-}
+{-# LINE 210 "bench/PegCounted.txt" #-}
  {-# COLUMN 15 #-}Param
 {-# LINE 826 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -831,22 +831,22 @@ peg'rule'ParamChunk =
           ; _ <- peg'rule'Ws
           ; l <- peg'rule'Here
           ; c <- PegRt.capture (peg'rule'ArgCode)
-          ; PegRt.labeled "argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 184 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "argument" "expected an argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 211 "bench/PegCounted.txt" #-}
  {-# COLUMN 39 #-} not (T.null (T.strip c)) 
 {-# LINE 838 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "paramform" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 184 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "paramform" "expected a parameter of the form name :: Type" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 211 "bench/PegCounted.txt" #-}
  {-# COLUMN 81 #-} paramError l c /= Just paramFormMessage 
 {-# LINE 845 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "paramtype" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 184 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "paramtype" "expected a parameter type" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 211 "bench/PegCounted.txt" #-}
  {-# COLUMN 139 #-} paramError l c == Nothing 
 {-# LINE 852 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -857,7 +857,7 @@ peg'rule'ParamChunk =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 184 "bench/PegCounted.txt" #-}
+{-# LINE 211 "bench/PegCounted.txt" #-}
  {-# COLUMN 198 #-} param l c 
 {-# LINE 863 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -865,7 +865,7 @@ peg'rule'ParamChunk =
       ])
 
 peg'rule'Alts :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 187 "bench/PegCounted.txt" #-}
+{-# LINE 214 "bench/PegCounted.txt" #-}
  {-# COLUMN 9 #-}[Alt]
 {-# LINE 871 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -877,7 +877,7 @@ peg'rule'Alts =
           ; as <- PegRt.many (peg'rule'MoreAlt)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 188 "bench/PegCounted.txt" #-}
+{-# LINE 215 "bench/PegCounted.txt" #-}
  {-# COLUMN 28 #-} a : as 
 {-# LINE 883 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -885,7 +885,7 @@ peg'rule'Alts =
       ])
 
 peg'rule'MoreAlt :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 190 "bench/PegCounted.txt" #-}
+{-# LINE 217 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Alt
 {-# LINE 891 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -900,7 +900,7 @@ peg'rule'MoreAlt =
       ])
 
 peg'rule'Alt :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 193 "bench/PegCounted.txt" #-}
+{-# LINE 220 "bench/PegCounted.txt" #-}
  {-# COLUMN 8 #-}Alt
 {-# LINE 906 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -911,7 +911,7 @@ peg'rule'Alt =
           ; _ <- peg'rule'Ws
           ; l <- peg'rule'Here
           ; is <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Item (
-{-# LINE 194 "bench/PegCounted.txt" #-}
+{-# LINE 221 "bench/PegCounted.txt" #-}
  {-# COLUMN 26 #-}0
 {-# LINE 917 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -920,7 +920,7 @@ peg'rule'Alt =
           ; c <- PegRt.optional (peg'rule'Constructor)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 194 "bench/PegCounted.txt" #-}
+{-# LINE 221 "bench/PegCounted.txt" #-}
  {-# COLUMN 61 #-} Alt l (map fst is) act c 
 {-# LINE 926 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -928,7 +928,7 @@ peg'rule'Alt =
       ])
 
 peg'rule'Constructor :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 197 "bench/PegCounted.txt" #-}
+{-# LINE 224 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Located Text
 {-# LINE 934 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -939,12 +939,12 @@ peg'rule'Constructor =
           ; _ <- peg'rule'Ws
           ; PegRt.lit "@" "'@'"
           ; l <- peg'rule'Here
-          ; n <- PegRt.choice [do { peg'v0 <- PegRt.labeled "constructor" PegPrelude.Nothing (peg'rule'Ident)
+          ; n <- PegRt.choice [do { peg'v0 <- PegRt.labeledMessage "constructor" "expected a constructor name after @" PegPrelude.Nothing (peg'rule'Ident)
           ; PegPrelude.pure peg'v0
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 198 "bench/PegCounted.txt" #-}
+{-# LINE 225 "bench/PegCounted.txt" #-}
  {-# COLUMN 54 #-} Located l n 
 {-# LINE 950 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -952,11 +952,11 @@ peg'rule'Constructor =
       ])
 
 peg'rule'Item :: (
-{-# LINE 205 "bench/PegCounted.txt" #-}
+{-# LINE 232 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Int
 {-# LINE 958 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 205 "bench/PegCounted.txt" #-}
+{-# LINE 232 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}(Item, Int)
 {-# LINE 962 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -968,8 +968,8 @@ peg'rule'Item d =
           ; PegRt.notP (peg'rule'DeclStart)
           ; l <- peg'rule'Here
           ; b <- peg'rule'Binding
-          ; e <- PegRt.choice [do { peg'v0 <- PegRt.labeled "expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
-{-# LINE 206 "bench/PegCounted.txt" #-}
+          ; e <- PegRt.choice [do { peg'v0 <- PegRt.labeledMessage "expression" "expected an expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
+{-# LINE 233 "bench/PegCounted.txt" #-}
  {-# COLUMN 51 #-}d
 {-# LINE 975 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -977,7 +977,7 @@ peg'rule'Item d =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 206 "bench/PegCounted.txt" #-}
+{-# LINE 233 "bench/PegCounted.txt" #-}
  {-# COLUMN 68 #-} (Item l (Just b) (fst e), snd e) 
 {-# LINE 983 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -987,13 +987,13 @@ peg'rule'Item d =
           ; PegRt.notP (peg'rule'DeclStart)
           ; l <- peg'rule'Here
           ; e <- PegRt.withCol (\_col -> peg'rule'PrefixE (
-{-# LINE 207 "bench/PegCounted.txt" #-}
+{-# LINE 234 "bench/PegCounted.txt" #-}
  {-# COLUMN 39 #-}d
 {-# LINE 993 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 207 "bench/PegCounted.txt" #-}
+{-# LINE 234 "bench/PegCounted.txt" #-}
  {-# COLUMN 43 #-} (Item l Nothing (fst e), snd e) 
 {-# LINE 999 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1016,7 +1016,7 @@ peg'rule'DeclStart =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 209 "bench/PegCounted.txt" #-}
+{-# LINE 236 "bench/PegCounted.txt" #-}
  {-# COLUMN 63 #-} () 
 {-# LINE 1022 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1024,7 +1024,7 @@ peg'rule'DeclStart =
       ])
 
 peg'rule'Binding :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 211 "bench/PegCounted.txt" #-}
+{-# LINE 238 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-}Text
 {-# LINE 1030 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1039,11 +1039,11 @@ peg'rule'Binding =
       ])
 
 peg'rule'PrefixE :: (
-{-# LINE 216 "bench/PegCounted.txt" #-}
+{-# LINE 243 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 1045 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 216 "bench/PegCounted.txt" #-}
+{-# LINE 243 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 1049 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1058,8 +1058,8 @@ peg'rule'PrefixE d =
           ; PegRt.lit "{" "'{'"
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 217 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 244 "bench/PegCounted.txt" #-}
  {-# COLUMN 37 #-} d < maxDepth 
 {-# LINE 1065 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1067,8 +1067,8 @@ peg'rule'PrefixE d =
           }])
           ; PegRt.lit "&" "'&'"
           ; _ <- peg'rule'Ws
-          ; e <- PegRt.choice [do { peg'v0 <- PegRt.labeled "expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
-{-# LINE 217 "bench/PegCounted.txt" #-}
+          ; e <- PegRt.choice [do { peg'v0 <- PegRt.labeledMessage "expression" "expected an expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
+{-# LINE 244 "bench/PegCounted.txt" #-}
  {-# COLUMN 78 #-}d + 1
 {-# LINE 1074 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -1076,7 +1076,7 @@ peg'rule'PrefixE d =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 217 "bench/PegCounted.txt" #-}
+{-# LINE 244 "bench/PegCounted.txt" #-}
  {-# COLUMN 99 #-} deeper EAnd e 
 {-# LINE 1082 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1089,7 +1089,7 @@ peg'rule'PrefixE d =
           ; c <- peg'rule'PredCode
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 218 "bench/PegCounted.txt" #-}
+{-# LINE 245 "bench/PegCounted.txt" #-}
  {-# COLUMN 37 #-} (EPred True c, 0) 
 {-# LINE 1095 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1102,8 +1102,8 @@ peg'rule'PrefixE d =
           ; PegRt.lit "{" "'{'"
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 219 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 246 "bench/PegCounted.txt" #-}
  {-# COLUMN 36 #-} d < maxDepth 
 {-# LINE 1109 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1111,8 +1111,8 @@ peg'rule'PrefixE d =
           }])
           ; PegRt.lit "!" "'!'"
           ; _ <- peg'rule'Ws
-          ; e <- PegRt.choice [do { peg'v1 <- PegRt.labeled "expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
-{-# LINE 219 "bench/PegCounted.txt" #-}
+          ; e <- PegRt.choice [do { peg'v1 <- PegRt.labeledMessage "expression" "expected an expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
+{-# LINE 246 "bench/PegCounted.txt" #-}
  {-# COLUMN 77 #-}d + 1
 {-# LINE 1118 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -1120,7 +1120,7 @@ peg'rule'PrefixE d =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 219 "bench/PegCounted.txt" #-}
+{-# LINE 246 "bench/PegCounted.txt" #-}
  {-# COLUMN 98 #-} deeper ENot e 
 {-# LINE 1126 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1133,7 +1133,7 @@ peg'rule'PrefixE d =
           ; c <- peg'rule'PredCode
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 220 "bench/PegCounted.txt" #-}
+{-# LINE 247 "bench/PegCounted.txt" #-}
  {-# COLUMN 37 #-} (EPred False c, 0) 
 {-# LINE 1139 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1141,16 +1141,16 @@ peg'rule'PrefixE d =
       , do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ws
           ; PegRt.andP (PegRt.lit "$" "'$'")
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 221 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 248 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-} d < maxDepth 
 {-# LINE 1148 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; PegPrelude.pure ()
           }])
           ; PegRt.lit "$" "'$'"
-          ; e <- PegRt.choice [do { peg'v2 <- PegRt.labeled "expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
-{-# LINE 221 "bench/PegCounted.txt" #-}
+          ; e <- PegRt.choice [do { peg'v2 <- PegRt.labeledMessage "expression" "expected an expression" PegPrelude.Nothing (PegRt.withCol (\_col -> peg'rule'PrefixE (
+{-# LINE 248 "bench/PegCounted.txt" #-}
  {-# COLUMN 60 #-}d + 1
 {-# LINE 1156 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -1158,13 +1158,13 @@ peg'rule'PrefixE d =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 221 "bench/PegCounted.txt" #-}
+{-# LINE 248 "bench/PegCounted.txt" #-}
  {-# COLUMN 81 #-} deeper ECapture e 
 {-# LINE 1164 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           }
       , do { peg'v3 <- PegRt.withCol (\_col -> peg'rule'Labeled (
-{-# LINE 222 "bench/PegCounted.txt" #-}
+{-# LINE 249 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}d
 {-# LINE 1170 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
@@ -1173,11 +1173,11 @@ peg'rule'PrefixE d =
       ])
 
 peg'rule'Labeled :: (
-{-# LINE 224 "bench/PegCounted.txt" #-}
+{-# LINE 251 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 1179 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 224 "bench/PegCounted.txt" #-}
+{-# LINE 251 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 1183 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1186,18 +1186,18 @@ peg'rule'Labeled d =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; e <- PegRt.withCol (\_col -> peg'rule'SuffixE (
-{-# LINE 225 "bench/PegCounted.txt" #-}
+{-# LINE 252 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}d
 {-# LINE 1192 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; lab <- PegRt.optional (PegRt.withCol (\_col -> peg'rule'LabelPart (
-{-# LINE 225 "bench/PegCounted.txt" #-}
+{-# LINE 252 "bench/PegCounted.txt" #-}
  {-# COLUMN 39 #-}d + snd e
 {-# LINE 1197 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 225 "bench/PegCounted.txt" #-}
+{-# LINE 252 "bench/PegCounted.txt" #-}
  {-# COLUMN 52 #-} maybe e (\(l, n) -> deeper (\x -> ELabel l x n) e) lab 
 {-# LINE 1203 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1205,11 +1205,11 @@ peg'rule'Labeled d =
       ])
 
 peg'rule'LabelPart :: (
-{-# LINE 227 "bench/PegCounted.txt" #-}
+{-# LINE 254 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 1211 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 227 "bench/PegCounted.txt" #-}
+{-# LINE 254 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}(Loc, Text)
 {-# LINE 1215 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1220,8 +1220,8 @@ peg'rule'LabelPart d =
           ; _ <- peg'rule'Ws
           ; l <- peg'rule'Here
           ; PegRt.andP (PegRt.lit "^" "'^'")
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 228 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 255 "bench/PegCounted.txt" #-}
  {-# COLUMN 32 #-} d < maxDepth 
 {-# LINE 1227 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1231,7 +1231,7 @@ peg'rule'LabelPart d =
           ; n <- peg'rule'Ident
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 228 "bench/PegCounted.txt" #-}
+{-# LINE 255 "bench/PegCounted.txt" #-}
  {-# COLUMN 68 #-} (l, n) 
 {-# LINE 1237 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1239,11 +1239,11 @@ peg'rule'LabelPart d =
       ])
 
 peg'rule'SuffixE :: (
-{-# LINE 230 "bench/PegCounted.txt" #-}
+{-# LINE 257 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 1245 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 230 "bench/PegCounted.txt" #-}
+{-# LINE 257 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 1249 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1252,18 +1252,18 @@ peg'rule'SuffixE d =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; p <- PegRt.withCol (\_col -> peg'rule'Primary (
-{-# LINE 231 "bench/PegCounted.txt" #-}
+{-# LINE 258 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}d
 {-# LINE 1258 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; ops <- PegRt.withCol (\_col -> peg'rule'PostOps (
-{-# LINE 231 "bench/PegCounted.txt" #-}
+{-# LINE 258 "bench/PegCounted.txt" #-}
  {-# COLUMN 37 #-}d + snd p
 {-# LINE 1263 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 231 "bench/PegCounted.txt" #-}
+{-# LINE 258 "bench/PegCounted.txt" #-}
  {-# COLUMN 49 #-} (foldl applyOp (fst p) ops, snd p + length ops) 
 {-# LINE 1269 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1271,11 +1271,11 @@ peg'rule'SuffixE d =
       ])
 
 peg'rule'PostOps :: (
-{-# LINE 234 "bench/PegCounted.txt" #-}
+{-# LINE 261 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 1277 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 234 "bench/PegCounted.txt" #-}
+{-# LINE 261 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}[Char]
 {-# LINE 1281 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1284,18 +1284,18 @@ peg'rule'PostOps d =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.withCol (\_col -> peg'rule'PostOp (
-{-# LINE 235 "bench/PegCounted.txt" #-}
+{-# LINE 262 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-}d
 {-# LINE 1290 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; cs <- PegRt.withCol (\_col -> peg'rule'PostOps (
-{-# LINE 235 "bench/PegCounted.txt" #-}
+{-# LINE 262 "bench/PegCounted.txt" #-}
  {-# COLUMN 35 #-}d + 1
 {-# LINE 1295 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 235 "bench/PegCounted.txt" #-}
+{-# LINE 262 "bench/PegCounted.txt" #-}
  {-# COLUMN 43 #-} c : cs 
 {-# LINE 1301 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1303,7 +1303,7 @@ peg'rule'PostOps d =
       , do { peg'start <- PegRt.getOffset
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 236 "bench/PegCounted.txt" #-}
+{-# LINE 263 "bench/PegCounted.txt" #-}
  {-# COLUMN 12 #-} [] 
 {-# LINE 1309 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1311,11 +1311,11 @@ peg'rule'PostOps d =
       ])
 
 peg'rule'PostOp :: (
-{-# LINE 238 "bench/PegCounted.txt" #-}
+{-# LINE 265 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Int
 {-# LINE 1317 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 238 "bench/PegCounted.txt" #-}
+{-# LINE 265 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-}Char
 {-# LINE 1321 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1325,8 +1325,8 @@ peg'rule'PostOp d =
       [ do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ws
           ; PegRt.andP (PegRt.cls [('*', '*'), ('+', '+'), ('?', '?')] "[*+?]")
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 239 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 266 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-} d < maxDepth 
 {-# LINE 1332 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1335,7 +1335,7 @@ peg'rule'PostOp d =
           ; c <- PegRt.capture (PegRt.cls [('*', '*'), ('+', '+'), ('?', '?')] "[*+?]")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 239 "bench/PegCounted.txt" #-}
+{-# LINE 266 "bench/PegCounted.txt" #-}
  {-# COLUMN 57 #-} firstChar c 
 {-# LINE 1341 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1343,11 +1343,11 @@ peg'rule'PostOp d =
       ])
 
 peg'rule'Primary :: (
-{-# LINE 241 "bench/PegCounted.txt" #-}
+{-# LINE 268 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}Int
 {-# LINE 1349 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 241 "bench/PegCounted.txt" #-}
+{-# LINE 268 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-}(Expr, Int)
 {-# LINE 1353 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1359,7 +1359,7 @@ peg'rule'Primary d =
           ; o <- PegRt.capture (peg'rule'Lit1)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 242 "bench/PegCounted.txt" #-}
+{-# LINE 269 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-} (ELit (decodeLiteral o) o, 0) 
 {-# LINE 1365 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1369,7 +1369,7 @@ peg'rule'Primary d =
           ; o <- PegRt.capture (peg'rule'Lit2)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 243 "bench/PegCounted.txt" #-}
+{-# LINE 270 "bench/PegCounted.txt" #-}
  {-# COLUMN 23 #-} (ELit (decodeLiteral o) o, 0) 
 {-# LINE 1375 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1379,7 +1379,7 @@ peg'rule'Primary d =
           ; o <- PegRt.capture (peg'rule'ClassLit)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 244 "bench/PegCounted.txt" #-}
+{-# LINE 271 "bench/PegCounted.txt" #-}
  {-# COLUMN 27 #-} (EClass (classRanges o) o, 0) 
 {-# LINE 1385 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1389,7 +1389,7 @@ peg'rule'Primary d =
           ; PegRt.lit "." "'.'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 245 "bench/PegCounted.txt" #-}
+{-# LINE 272 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-} (EAny, 0) 
 {-# LINE 1395 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1397,8 +1397,8 @@ peg'rule'Primary d =
       , do { peg'start <- PegRt.getOffset
           ; _ <- peg'rule'Ws
           ; PegRt.andP (PegRt.lit "(" "'('")
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 246 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 273 "bench/PegCounted.txt" #-}
  {-# COLUMN 22 #-} d < maxDepth 
 {-# LINE 1404 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1406,20 +1406,20 @@ peg'rule'Primary d =
           }])
           ; PegRt.lit "(" "'('"
           ; g <- PegRt.withCol (\_col -> peg'rule'GroupAlts (
-{-# LINE 246 "bench/PegCounted.txt" #-}
+{-# LINE 273 "bench/PegCounted.txt" #-}
  {-# COLUMN 61 #-}d + 1
 {-# LINE 1412 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; _ <- peg'rule'Ws
-          ; PegRt.labeled "groupaction" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "{" "'{'")
+          ; PegRt.labeledMessage "groupaction" "actions are not allowed inside a group" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "{" "'{'")
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "paren" PegPrelude.Nothing (PegRt.lit ")" "')'")
+          ; PegRt.choice [do { PegRt.labeledMessage "paren" "expected ')'" PegPrelude.Nothing (PegRt.lit ")" "')'")
           ; PegPrelude.pure ()
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 246 "bench/PegCounted.txt" #-}
+{-# LINE 273 "bench/PegCounted.txt" #-}
  {-# COLUMN 105 #-} deeper EGroup g 
 {-# LINE 1425 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1431,7 +1431,7 @@ peg'rule'Primary d =
           ; args <- peg'rule'CallArgs
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 247 "bench/PegCounted.txt" #-}
+{-# LINE 274 "bench/PegCounted.txt" #-}
  {-# COLUMN 44 #-} (ERef l n args, 0) 
 {-# LINE 1437 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1441,14 +1441,14 @@ peg'rule'Primary d =
           ; l <- peg'rule'Here
           ; n <- peg'rule'Ident
           ; as <- PegRt.withCol (\_col -> peg'rule'TemplateArgs (
-{-# LINE 248 "bench/PegCounted.txt" #-}
+{-# LINE 275 "bench/PegCounted.txt" #-}
  {-# COLUMN 45 #-}d
 {-# LINE 1447 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; vs <- PegRt.optional (peg'rule'CallArgs)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 248 "bench/PegCounted.txt" #-}
+{-# LINE 275 "bench/PegCounted.txt" #-}
  {-# COLUMN 62 #-} deeper (\x -> ETemplate l n x (maybe [] id vs)) as 
 {-# LINE 1454 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1460,7 +1460,7 @@ peg'rule'Primary d =
           ; PegRt.notP (PegRt.lit "(" "'('")
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 249 "bench/PegCounted.txt" #-}
+{-# LINE 276 "bench/PegCounted.txt" #-}
  {-# COLUMN 35 #-} (ERef l n [], 0) 
 {-# LINE 1466 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1468,11 +1468,11 @@ peg'rule'Primary d =
       ])
 
 peg'rule'TemplateArgs :: (
-{-# LINE 253 "bench/PegCounted.txt" #-}
+{-# LINE 280 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-}Int
 {-# LINE 1474 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 253 "bench/PegCounted.txt" #-}
+{-# LINE 280 "bench/PegCounted.txt" #-}
  {-# COLUMN 27 #-}([Expr], Int)
 {-# LINE 1478 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1484,8 +1484,8 @@ peg'rule'TemplateArgs d =
           ; PegRt.notP (PegRt.lit "-" "'-'")
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "nest" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 254 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "nest" "the expression nests deeper than 256" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 281 "bench/PegCounted.txt" #-}
  {-# COLUMN 32 #-} d < maxDepth 
 {-# LINE 1491 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1493,14 +1493,14 @@ peg'rule'TemplateArgs d =
           }])
           ; PegRt.lit "<" "'<'"
           ; a <- PegRt.withCol (\_col -> peg'rule'TemplateArg (
-{-# LINE 254 "bench/PegCounted.txt" #-}
+{-# LINE 281 "bench/PegCounted.txt" #-}
  {-# COLUMN 73 #-}d + 1
 {-# LINE 1499 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; as <- PegRt.many (PegRt.choice [do { _ <- peg'rule'Ws
           ; PegRt.lit "," "','"
           ; peg'v0 <- PegRt.withCol (\_col -> peg'rule'TemplateArg (
-{-# LINE 254 "bench/PegCounted.txt" #-}
+{-# LINE 281 "bench/PegCounted.txt" #-}
  {-# COLUMN 103 #-}d + 1
 {-# LINE 1506 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
@@ -1510,7 +1510,7 @@ peg'rule'TemplateArgs d =
           ; PegRt.lit ">" "'>'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 254 "bench/PegCounted.txt" #-}
+{-# LINE 281 "bench/PegCounted.txt" #-}
  {-# COLUMN 120 #-} (map fst (a : as), maximum (map snd (a : as))) 
 {-# LINE 1516 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1518,11 +1518,11 @@ peg'rule'TemplateArgs d =
       ])
 
 peg'rule'TemplateArg :: (
-{-# LINE 256 "bench/PegCounted.txt" #-}
+{-# LINE 283 "bench/PegCounted.txt" #-}
  {-# COLUMN 18 #-}Int
 {-# LINE 1524 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 256 "bench/PegCounted.txt" #-}
+{-# LINE 283 "bench/PegCounted.txt" #-}
  {-# COLUMN 26 #-}(Expr, Int)
 {-# LINE 1528 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1531,13 +1531,13 @@ peg'rule'TemplateArg d =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; g <- PegRt.withCol (\_col -> peg'rule'GroupAlts (
-{-# LINE 257 "bench/PegCounted.txt" #-}
+{-# LINE 284 "bench/PegCounted.txt" #-}
  {-# COLUMN 28 #-}d
 {-# LINE 1537 "bench/Conformance/Bench/PegCounted.hs" #-}
     ))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 257 "bench/PegCounted.txt" #-}
+{-# LINE 284 "bench/PegCounted.txt" #-}
  {-# COLUMN 32 #-} case fst g of { [[Item _ Nothing e]] -> (e, snd g); gs -> (EGroup gs, snd g) } 
 {-# LINE 1543 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1545,7 +1545,7 @@ peg'rule'TemplateArg d =
       ])
 
 peg'rule'CallArgs :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 259 "bench/PegCounted.txt" #-}
+{-# LINE 286 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}[Located Text]
 {-# LINE 1551 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1559,11 +1559,11 @@ peg'rule'CallArgs =
       ])
 
 peg'rule'GroupAlts :: (
-{-# LINE 262 "bench/PegCounted.txt" #-}
+{-# LINE 289 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 1565 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 262 "bench/PegCounted.txt" #-}
+{-# LINE 289 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}([[Item]], Int)
 {-# LINE 1569 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1572,18 +1572,18 @@ peg'rule'GroupAlts d =
     (PegRt.choice
       [ do { peg'start <- PegRt.getOffset
           ; s <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Item (
-{-# LINE 263 "bench/PegCounted.txt" #-}
+{-# LINE 290 "bench/PegCounted.txt" #-}
  {-# COLUMN 21 #-}d
 {-# LINE 1578 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
           ; ss <- PegRt.many (PegRt.withCol (\_col -> peg'rule'MoreGroup (
-{-# LINE 263 "bench/PegCounted.txt" #-}
+{-# LINE 290 "bench/PegCounted.txt" #-}
  {-# COLUMN 38 #-}d
 {-# LINE 1583 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 263 "bench/PegCounted.txt" #-}
+{-# LINE 290 "bench/PegCounted.txt" #-}
  {-# COLUMN 43 #-} withDepth (s : ss) 
 {-# LINE 1589 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1591,11 +1591,11 @@ peg'rule'GroupAlts d =
       ])
 
 peg'rule'MoreGroup :: (
-{-# LINE 265 "bench/PegCounted.txt" #-}
+{-# LINE 292 "bench/PegCounted.txt" #-}
  {-# COLUMN 16 #-}Int
 {-# LINE 1597 "bench/Conformance/Bench/PegCounted.hs" #-}
     ) -> PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 265 "bench/PegCounted.txt" #-}
+{-# LINE 292 "bench/PegCounted.txt" #-}
  {-# COLUMN 24 #-}[(Item, Int)]
 {-# LINE 1601 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1605,7 +1605,7 @@ peg'rule'MoreGroup d =
       [ do { _ <- peg'rule'Ws
           ; PegRt.lit "/" "'/'"
           ; peg'v0 <- PegRt.many (PegRt.withCol (\_col -> peg'rule'Item (
-{-# LINE 266 "bench/PegCounted.txt" #-}
+{-# LINE 293 "bench/PegCounted.txt" #-}
  {-# COLUMN 26 #-}d
 {-# LINE 1611 "bench/Conformance/Bench/PegCounted.hs" #-}
     )))
@@ -1624,7 +1624,7 @@ peg'rule'Lit1 =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "literal" PegPrelude.Nothing (PegRt.lit "'" "'\\''")
+          ; PegRt.choice [do { PegRt.labeledMessage "literal" "unterminated literal" PegPrelude.Nothing (PegRt.lit "'" "'\\''")
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure ()
@@ -1642,7 +1642,7 @@ peg'rule'Lit2 =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "literal" PegPrelude.Nothing (PegRt.lit "\"" "'\"'")
+          ; PegRt.choice [do { PegRt.labeledMessage "literal" "unterminated literal" PegPrelude.Nothing (PegRt.lit "\"" "'\"'")
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure ()
@@ -1670,15 +1670,15 @@ peg'rule'EscapeBody =
           }
       , do { peg'start <- PegRt.getOffset
           ; PegRt.lit "u" "'u'"
-          ; PegRt.choice [do { PegRt.labeled "ubrace" PegPrelude.Nothing (PegRt.lit "{" "'{'")
+          ; PegRt.choice [do { PegRt.labeledMessage "ubrace" "expected '{'" PegPrelude.Nothing (PegRt.lit "{" "'{'")
           ; PegPrelude.pure ()
           }]
           ; h <- PegRt.capture (PegRt.skipMany (PegRt.cls [('0', '9'), ('a', 'f'), ('A', 'F')] "[0-9a-fA-F]"))
-          ; PegRt.choice [do { PegRt.labeled "uclose" PegPrelude.Nothing (PegRt.lit "}" "'}'")
+          ; PegRt.choice [do { PegRt.labeledMessage "uclose" "expected '}'" PegPrelude.Nothing (PegRt.lit "}" "'}'")
           ; PegPrelude.pure ()
           }]
-          ; PegRt.labeled "uescape" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 276 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "uescape" "invalid \\u escape" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 303 "bench/PegCounted.txt" #-}
  {-# COLUMN 65 #-} validHex h 
 {-# LINE 1684 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1686,7 +1686,7 @@ peg'rule'EscapeBody =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 276 "bench/PegCounted.txt" #-}
+{-# LINE 303 "bench/PegCounted.txt" #-}
  {-# COLUMN 90 #-} () 
 {-# LINE 1692 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1698,11 +1698,11 @@ peg'rule'ClassLit =
   PegRt.memo peg'memo'ClassLit "ClassLit"
     (PegRt.choice
       [ do { PegRt.lit "[" "'['"
-          ; PegRt.labeled "emptyclass" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "]" "']'")
+          ; PegRt.labeledMessage "emptyclass" "empty character class" PegPrelude.Nothing (PegRt.choice [do { PegRt.notP (PegRt.lit "]" "']'")
           ; PegPrelude.pure ()
           }])
           ; _ <- PegRt.skipMany (peg'rule'ClassItem)
-          ; PegRt.choice [do { PegRt.labeled "class" PegPrelude.Nothing (PegRt.lit "]" "']'")
+          ; PegRt.choice [do { PegRt.labeledMessage "class" "unterminated character class" PegPrelude.Nothing (PegRt.lit "]" "']'")
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure ()
@@ -1722,8 +1722,8 @@ peg'rule'ClassItem =
           }])
           ; PegPrelude.pure ()
           }])
-          ; PegRt.labeled "range" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 280 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "range" "the range is empty" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 307 "bench/PegCounted.txt" #-}
  {-# COLUMN 54 #-} nonEmptyRanges s 
 {-# LINE 1729 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1731,7 +1731,7 @@ peg'rule'ClassItem =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 280 "bench/PegCounted.txt" #-}
+{-# LINE 307 "bench/PegCounted.txt" #-}
  {-# COLUMN 83 #-} () 
 {-# LINE 1737 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1752,7 +1752,7 @@ peg'rule'ClassChar =
       ])
 
 peg'rule'Action :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 286 "bench/PegCounted.txt" #-}
+{-# LINE 313 "bench/PegCounted.txt" #-}
  {-# COLUMN 11 #-}Located Text
 {-# LINE 1758 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1768,7 +1768,7 @@ peg'rule'Action =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 287 "bench/PegCounted.txt" #-}
+{-# LINE 314 "bench/PegCounted.txt" #-}
  {-# COLUMN 51 #-} Located l c 
 {-# LINE 1774 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1776,7 +1776,7 @@ peg'rule'Action =
       ])
 
 peg'rule'PredCode :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 289 "bench/PegCounted.txt" #-}
+{-# LINE 316 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Located Text
 {-# LINE 1782 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1791,7 +1791,7 @@ peg'rule'PredCode =
           }]
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 290 "bench/PegCounted.txt" #-}
+{-# LINE 317 "bench/PegCounted.txt" #-}
  {-# COLUMN 49 #-} Located l c 
 {-# LINE 1797 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1799,7 +1799,7 @@ peg'rule'PredCode =
       ])
 
 peg'rule'ArgChunks :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 292 "bench/PegCounted.txt" #-}
+{-# LINE 319 "bench/PegCounted.txt" #-}
  {-# COLUMN 14 #-}[Located Text]
 {-# LINE 1805 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1812,7 +1812,7 @@ peg'rule'ArgChunks =
           ; rest <- peg'rule'ArgChunks
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 293 "bench/PegCounted.txt" #-}
+{-# LINE 320 "bench/PegCounted.txt" #-}
  {-# COLUMN 45 #-} c : rest 
 {-# LINE 1818 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1822,7 +1822,7 @@ peg'rule'ArgChunks =
           ; PegRt.lit ")" "')'"
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 294 "bench/PegCounted.txt" #-}
+{-# LINE 321 "bench/PegCounted.txt" #-}
  {-# COLUMN 29 #-} [c] 
 {-# LINE 1828 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1830,7 +1830,7 @@ peg'rule'ArgChunks =
       ])
 
 peg'rule'ArgChunk :: PegRt.P (Peg'Store peg's) peg's (
-{-# LINE 296 "bench/PegCounted.txt" #-}
+{-# LINE 323 "bench/PegCounted.txt" #-}
  {-# COLUMN 13 #-}Located Text
 {-# LINE 1836 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1841,8 +1841,8 @@ peg'rule'ArgChunk =
           ; _ <- peg'rule'Ws
           ; l <- peg'rule'Here
           ; c <- PegRt.capture (peg'rule'ArgCode)
-          ; PegRt.labeled "argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
-{-# LINE 297 "bench/PegCounted.txt" #-}
+          ; PegRt.labeledMessage "argument" "expected an argument" PegPrelude.Nothing (PegRt.choice [do { PegRt.predicate (\_col -> 
+{-# LINE 324 "bench/PegCounted.txt" #-}
  {-# COLUMN 37 #-} not (T.null (T.strip c)) 
 {-# LINE 1848 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1853,7 +1853,7 @@ peg'rule'ArgChunk =
           }])
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 297 "bench/PegCounted.txt" #-}
+{-# LINE 324 "bench/PegCounted.txt" #-}
  {-# COLUMN 94 #-} Located l c 
 {-# LINE 1859 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
@@ -1967,7 +1967,7 @@ peg'rule'HsString =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "hsstring" PegPrelude.Nothing (PegRt.lit "\"" "'\"'")
+          ; PegRt.choice [do { PegRt.labeledMessage "hsstring" "unterminated string literal" PegPrelude.Nothing (PegRt.lit "\"" "'\"'")
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure ()
@@ -1985,7 +1985,7 @@ peg'rule'HsChar =
           ; PegRt.anyChar
           ; PegPrelude.pure ()
           }])
-          ; PegRt.choice [do { PegRt.labeled "hschar" PegPrelude.Nothing (PegRt.lit "'" "'\\''")
+          ; PegRt.choice [do { PegRt.labeledMessage "hschar" "unterminated character literal" PegPrelude.Nothing (PegRt.lit "'" "'\\''")
           ; PegPrelude.pure ()
           }]
           ; PegPrelude.pure ()
@@ -2008,14 +2008,14 @@ peg'rule'HsIdent =
       [ do { peg'start <- PegRt.getOffset
           ; c <- PegRt.capture (PegRt.anyChar)
           ; PegRt.predicate (\_col -> 
-{-# LINE 332 "bench/PegCounted.txt" #-}
+{-# LINE 359 "bench/PegCounted.txt" #-}
  {-# COLUMN 19 #-} isIdentChar (firstChar c) && firstChar c /= '\'' 
 {-# LINE 2014 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           ; _ <- PegRt.skipMany (peg'rule'IdentChar)
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
-{-# LINE 332 "bench/PegCounted.txt" #-}
+{-# LINE 359 "bench/PegCounted.txt" #-}
  {-# COLUMN 83 #-} () 
 {-# LINE 2021 "bench/Conformance/Bench/PegCounted.hs" #-}
     )

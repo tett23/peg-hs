@@ -28,9 +28,9 @@ import qualified Peg.Grammar.SelfHosted as SelfHosted
 import Peg.Runtime (ParseError (..), Pos (..), renderParseError)
 
 -- | Parse a grammar file. A syntax error is reported at the farthest
--- position; its message comes from the label the grammar threw (see
--- 'labelMessage'), or lists the expected terminals when no label was
--- thrown. Only the first syntax error is reported; "Peg.Grammar.Outline"
+-- position; its message is the message of the label the grammar threw,
+-- given by @%message@ in the grammar (ADR 0089) or by 'labelMessage', or
+-- lists the expected terminals when no label was thrown. Only the first syntax error is reported; "Peg.Grammar.Outline"
 -- finds the others with error recovery. The top-level items are then
 -- checked and put together by 'Peg.Grammar.Assemble.assemble'.
 parseGrammar :: Text -> Either [Diagnostic] Grammar
@@ -44,42 +44,23 @@ parseTops src = case SelfHosted.parse src of
   Right tops -> Right tops
   Left e ->
     let p = parseErrorPos e
-        expected = T.drop 2 (T.dropWhile (/= ':') (T.drop 1 (T.dropWhile (/= ':') (renderParseError e))))
-        msg = maybe expected (labelMessage (charAt p)) (parseErrorLabel e)
+        rendered = T.drop 2 (T.dropWhile (/= ':') (T.drop 1 (T.dropWhile (/= ':') (renderParseError e))))
+        msg = case (parseErrorLabel e, parseErrorMessage e) of
+          (Just l, Nothing) -> labelMessage (charAt p) l
+          _ -> rendered
      in Left [Diagnostic (Loc (posLine p) (posColumn p)) msg]
   where
     charAt p = case drop (posLine p - 1) (T.lines src) of
       line : _ -> fmap fst (T.uncons (T.drop (posColumn p - 1) line))
       [] -> Nothing
 
--- | The message of a label of @grammar/Peg.hpeg@, given the character at the
--- position of the error, if any. An unknown label is its own message.
+-- | The message of a label of @grammar/Peg.hpeg@ without @%message@, given
+-- the character at the position of the error, if any: the labels whose
+-- message depends on that character (ADR 0089). The other labels have
+-- their messages in the grammar, and an unknown label is its own message.
 labelMessage :: Maybe Char -> Text -> Text
 labelMessage c = \case
-  "top" -> "expected a rule, a directive or %{ ... }%"
-  "ident" -> "expected an identifier"
-  "verbatim" -> "unterminated %{ block"
-  "type" -> "expected a type"
-  "decl" -> "expected :: or <-"
-  "params" -> "parameters belong to the type annotation, not the definition"
-  "paramform" -> "expected a parameter of the form name :: Type"
-  "paramtype" -> "expected a parameter type"
-  "argument" -> "expected an argument"
-  "expression" -> "expected an expression"
-  "groupaction" -> "actions are not allowed inside a group"
-  "paren" -> "expected ')'"
-  "literal" -> "unterminated literal"
   "escape" -> maybe "unexpected end of file" (\x -> "unknown escape \\" <> T.singleton x) c
-  "ubrace" -> "expected '{'"
-  "uclose" -> "expected '}'"
-  "uescape" -> "invalid \\u escape"
-  "emptyclass" -> "empty character class"
-  "class" -> "unterminated character class"
-  "range" -> "the range is empty"
-  "hsstring" -> "unterminated string literal"
-  "hschar" -> "unterminated character literal"
-  "constructor" -> "expected a constructor name after @"
-  "nest" -> "the expression nests deeper than 256"
   l
     | l `elem` ["action", "argcode"] -> case c of
         Just x | x `elem` (")]}" :: String) -> "unbalanced bracket in Haskell code"
