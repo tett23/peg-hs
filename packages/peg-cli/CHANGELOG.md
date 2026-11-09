@@ -75,6 +75,15 @@ Since v0.1.0-rc6:
   is an error at each of them. It takes grammars with `%env` whose
   predicates do not read `_env`
   ([ADR 0090](https://github.com/tett23/peg-hs/blob/main/docs/adr/0090-grammar-interpreter-without-ghc.md)).
+- `peg-hs test` parses the examples of a grammar, the inputs `X.in` in
+  `NAME.cases/` beside `NAME.hpeg`, and compares the results with the
+  expected syntax trees `X.cst` and errors `X.err`; an empty `X.err` only
+  checks that the input is rejected, and `NAME.cases/RULE/` holds the
+  examples of a rule of `%entry`. It fails with 1 when an example fails.
+  `--accept` writes the results as the expectations. The examples are
+  parsed by the interpreter, and a grammar that the interpreter cannot
+  parse with is compiled as by `peg-hs parse`
+  ([ADR 0091](https://github.com/tett23/peg-hs/blob/main/docs/adr/0091-grammar-test-command.md)).
 
 ### Changed
 

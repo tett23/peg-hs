@@ -390,10 +390,11 @@ GHC 9.10 に付属する Cabal は 3.12 なので、cabal が setup スクリプ
 | `peg-hs lint [FILE\|DIR...]` | 誤りである書き方を警告し、簡潔にできる書き方を知らせる |
 | `peg-hs label GRAMMAR.hpeg [--write]` | 安全と示せる位置にラベルを挿入する |
 | `peg-hs parse GRAMMAR.hpeg INPUT` | 入力を解析して、AST か構文木を表示する |
+| `peg-hs test [GRAMMAR.hpeg\|DIR...] [--accept]` | 文法の入力の例を解析して、期待と比べる |
 | `peg-hs lsp` | 言語サーバーを標準入出力で動かす |
 
 終了状態は、成功で 0、コマンドの使い方の誤りで 2 である。
-文法の誤り、読み書きできないファイル、`lint` の警告、`fmt --check` で見つかった整形されていないファイル、`gen --Werror` での警告では 1 になる。
+文法の誤り、読み書きできないファイル、`lint` の警告、`fmt --check` で見つかった整形されていないファイル、`gen --Werror` での警告、`test` で通らない例では 1 になる。
 
 ### gen
 
@@ -465,6 +466,8 @@ peg-hs はこれらを検査し、Haskell の宣言として読める値を拒�
 - 挿入したラベルに `peg-hs gen` は警告しない。ラベルを置いた文法を `gen` と同じ検査にかけ、警告されたラベルは挿入しない（[ADR 0086](docs/adr/0086-inserted-labels-pass-the-label-check.md)）
 - 意味述語で文字を判定する規則の近くや左再帰の中は、安全でも検査が示せないので挿入しない。たとえば Lua の文法には一つも挿入されない
 
+手元の入力で受理する言語が変わっていないことを確かめるには、入力を文法の例として置き、ラベルを挿入する前後や、ラベルを手で直した後に `peg-hs test` を流す（[test](#test) を参照）。
+
 ### parse
 
 `parse` は、入力を解析して、開始規則の値（AST、既定）かロスレスな構文木（CST、`--format cst`）を表示する（[ADR 0036](docs/adr/0036-parse-command.md)）。
@@ -489,6 +492,62 @@ peg-hs parse --interpret grammar/Calc.hpeg input.txt
 - 意味述語と規則の引数は Haskell の式である。インタプリタが評価するのは、`True`、`False` と、項の比較（`==`、`/=`、`<`、`<=`、`>`、`>=`）だけである。項は `a`、`a + b`、`a - b` の形で、`a` と `b` はそれぞれ 10 進の整数、型が `Int` の規則の引数、`_col` のどれかである。述語の読まない引数は、アクションでしか使われないので、どんな実引数でもよい
 - ほかの形の述語を含む文法と、述語の読む引数にほかの形の実引数を渡す文法は、その述語と実引数ごとに位置つきの誤りになる。`--interpret` を外せば、コンパイルして解析できる。インタプリタは、そうした述語を成功とも失敗ともみなさない
 - `%env` の文法は、述語が `_env` を読まなければ `--interpret` で扱える
+
+### test
+
+`test` は、文法の入力の例を解析して、結果を期待と比べる（[ADR 0091](docs/adr/0091-grammar-test-command.md)）。
+`NAME.hpeg` の例は、隣のディレクトリ `NAME.cases` に、一つの例を一つの入力のファイルとして置く。
+
+```text
+Expr.hpeg
+Expr.cases/
+  sum.in        入力
+  sum.cst       sum.in を受理し、この構文木になることを期待する
+  dangling.in
+  dangling.err  dangling.in を拒否し、この誤りになることを期待する
+  Term/         %entry の規則 Term で解析する例
+    digit.in
+    digit.cst
+```
+
+- 入力 `X.in` は、エスケープも区切りもなく、中身をそのまま解析する。終わりの改行も入力の一部である。UTF-8 で読み、先頭のバイト順マークは読み飛ばす
+- `X.cst` は受理を期待し、`peg-hs parse --format cst` が表示する構文木を書く。`X.err` は拒否を期待し、`1:3: expected [0-9]` のような一行の誤りを書く。空の `X.err` は拒否したことだけを確かめるので、誤りの文言を改善する ADR が入っても落ちない
+- `X.cst` と `X.err` の終わりの改行の有無は比べない。ほかの差は、空白も含めてすべて差とする
+- `NAME.cases` の直下の例は開始規則で、`NAME.cases/RULE` の例は `%entry` の規則 `RULE` で解析する
+- `X.cst` と `X.err` の両方がある入力、入力のない期待、`%entry` にない名前のディレクトリ、規則のディレクトリの中のディレクトリは誤りとする。ほかの拡張子のファイルは無視するので、例の説明を書いた文書を置ける
+- 文法の選び方は `fmt` と `lint` と同じである。ディレクトリから見つけた文法のうち、`NAME.cases` のないものは飛ばす。名指しした文法に `NAME.cases` がなければ誤りとする
+
+通った例は表示しない。
+通らない例を一つずつ標準出力に書き、最後に例の数を書く。
+
+```text
+Expr.cases/new.in: no expectation; run peg-hs test --accept to record the result
+Expr.cases/one.err: expected a rejection, but the input was accepted
+Expr.cases/sum.cst:4: the syntax tree differs
+  expected:     TEXT@1..2 "-"
+  actual:       TEXT@1..2 "+"
+Expr.cases/three.cst: expected acceptance, but 1:5: expected [0-9]
+2 passed, 4 failed
+```
+
+構文木の差は、最初に違う行だけを、字下げも含めてそのまま、期待のファイルの行の番号とともに示す。
+片方が先に終わったときは、その側を `(end of file)` と書く。
+誤りの差は、期待と結果の行を並べる。
+通らない例や期待のない例があれば終了状態は 1 になるので、CI ではそのまま流せばよい。
+
+`--accept` は、比べる代わりに、結果で期待のファイルを書く。
+受理した例には `X.cst` を、拒否した例には `X.err` を書き、もう一方の期待があれば消す。
+拒否した例の空の `X.err` は空のまま残し、結果と一致するファイルは書き直さない。
+書いたファイルと消したファイルを一行ずつ表示する。
+例を足すときは、`X.in` を置いて `peg-hs test --accept` を流し、書かれた期待を読んで、`git diff` で確かめてからコミットする。
+期待が正しいかを判断するのは作者である。
+
+例は、`parse --interpret` と同じインタプリタで、GHC を使わずに解析する。
+意味述語のように、インタプリタが扱えない書き方を含む文法は、`parse` と同じくコンパイルしてキャッシュするので、`PATH` に `ghc` が要る。
+`--ghc-arg` はそのときに `ghc` へ渡す引数である。
+どちらで解析するかは文法だけで決まり、同じ文法と同じ例はどの環境でも同じ道を通る。
+例を飛ばすことはない。
+`%env` の文法は、インタプリタが扱える場合（述語が `_env` を読まない場合）だけ試し、それ以外は誤りとする。
 
 ### lsp
 

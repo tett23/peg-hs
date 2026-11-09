@@ -49,6 +49,14 @@ import System.IO (hFlush)
 import System.Process (terminateProcess)
 import System.Timeout (timeout)
 import WorkDir (createWorkDir, maxAttempts, withWorkDirIn)
+import Command.Parse (Ghc (..))
+import Command.Test (compiledWay, expectationText, interpretedWay, outcomeOf)
+import Control.Concurrent (threadDelay)
+import Peg.Grammar.Check (check)
+import Peg.Grammar.Interpret (interpreter)
+import Peg.Grammar.Parser (parseGrammar)
+import Peg.Grammar.Templates (expandTemplates)
+import System.Directory (getModificationTime)
 #if !defined(mingw32_HOST_OS)
 import qualified Data.Bits as Bits
 import System.Posix.Files (fileMode, getFileStatus, setFileCreationMask)
@@ -372,7 +380,7 @@ main = do
               out <- BL.unpack <$> stdoutOf ["help"]
               assertBool out ("--version" `isInfixOf` out && "--help" `isInfixOf` out)
           , testCase "the help of every command has its options and examples" $
-              forM_ ["gen", "fmt", "lint", "label", "lsp", "parse"] $ \c -> do
+              forM_ ["gen", "fmt", "lint", "label", "lsp", "parse", "test"] $ \c -> do
                 out <- BL.unpack <$> stdoutOf ["help", c]
                 assertBool out (all (`elem` lines out) ["options:", "examples:"])
                 assertBool out ("-h, --help" `isInfixOf` out)
@@ -1000,6 +1008,7 @@ main = do
           ]
       , securityTests
       , auditFixTests
+      , grammarTestTests
       ]
 
 -- The fixes of the security audit of 2026-11-07 (ADR 0080).
@@ -1226,3 +1235,203 @@ lspUntilExit bytes = do
       err <- BS.hGetContents er
       _ <- try (hClose i) :: IO (Either IOException ())
       pure (Just (code, BC.unpack err))
+
+-- A grammar for the examples of peg-hs test: S ends at the end of the
+-- input, so that a newline at the end of an input is rejected.
+abGrammar :: String
+abGrammar = "%module M\n%entry B\n\nS <- 'a' B* !.\n\nB <- 'b'\n"
+
+-- The CST of abb with abGrammar.
+abbCst :: String
+abbCst = "S@0..3\n  TEXT@0..1 \"a\"\n  B@1..2\n    TEXT@1..2 \"b\"\n  B@2..3\n    TEXT@2..3 \"b\"\n"
+
+-- Run peg-hs test in a fresh directory with abGrammar as G.hpeg and the
+-- files given.
+testCases :: String -> [(FilePath, String)] -> [String] -> IO (ExitCode, String, String)
+testCases name files args = do
+  dir <- treeWith ("test-" <> name) (("G.hpeg", abGrammar) : files)
+  pegHsIn dir ("test" : args)
+
+-- Run peg-hs test in a directory, with the PATH given and a cache of its
+-- own.
+testWithPath :: FilePath -> String -> [String] -> IO (ExitCode, String, String)
+testWithPath dir path args = do
+  Just exe <- findExecutable "peg-hs"
+  e <- getEnvironment
+  readCreateProcessWithExitCode (proc exe ("test" : args)) {cwd = Just dir, env = Just (("PATH", path) : ("XDG_CACHE_HOME", dir </> "cache") : [(k, v) | (k, v) <- e, k `notElem` ["PATH", "XDG_CACHE_HOME"]])} ""
+
+-- A grammar with a predicate that the interpreter cannot evaluate.
+compiledGrammar :: String
+compiledGrammar = "%module M\n%{\nimport qualified Data.Text as T\n}%\n\nS <- n:$[a-z]+ &{ T.length n > 1 } !.\n"
+
+-- The tests of peg-hs test (ADR 0091).
+grammarTestTests :: TestTree
+grammarTestTests =
+  testGroup
+    "test (ADR 0091)"
+    [ goldenVsString "peg-hs help test" "test/golden/help-test.txt" (stdoutOf ["help", "test"])
+    , testCase "the list of the commands has test" $ do
+        out <- BL.unpack <$> stdoutOf ["help"]
+        assertBool out (any ("  test " `isPrefixOf`) (lines out))
+    , testCase "an accepted example whose CST matches passes, and passed examples are not shown" $ do
+        r <- testCases "accept-ok" [("G.cases/ok.in", "abb"), ("G.cases/ok.cst", abbCst)] []
+        r @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+    , testCase "a different line of the CST fails with the file, the line, and both lines" $ do
+        r <- testCases "accept-diff" [("G.cases/ok.in", "abb"), ("G.cases/ok.cst", replace "  B@1..2" "  B@1..3" abbCst)] []
+        r @?= (ExitFailure 1, unlines ["G.cases/ok.cst:3: the syntax tree differs", "  expected:     B@1..3", "  actual:       B@1..2", "0 passed, 1 failed"], "")
+    , testCase "an expectation that ends first, and a result that ends first, show (end of file)" $ do
+        r1 <- testCases "accept-short" [("G.cases/ok.in", "abb"), ("G.cases/ok.cst", unlines (take 2 (lines abbCst)))] []
+        r1 @?= (ExitFailure 1, unlines ["G.cases/ok.cst:3: the syntax tree differs", "  expected:   (end of file)", "  actual:       B@1..2", "0 passed, 1 failed"], "")
+        r2 <- testCases "accept-long" [("G.cases/ok.in", "abb"), ("G.cases/ok.cst", abbCst <> "  TEXT@3..4 \"c\"\n")] []
+        r2 @?= (ExitFailure 1, unlines ["G.cases/ok.cst:7: the syntax tree differs", "  expected:     TEXT@3..4 \"c\"", "  actual:     (end of file)", "0 passed, 1 failed"], "")
+    , testCase "a rejected example whose error matches passes, and one whose position or expected differs fails" $ do
+        r1 <- testCases "reject-ok" [("G.cases/nl.in", "abb\n"), ("G.cases/nl.err", "1:4: expected 'b'\n")] []
+        r1 @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+        r2 <- testCases "reject-diff" [("G.cases/nl.in", "abb\n"), ("G.cases/nl.err", "1:3: expected 'b'\n")] []
+        r2 @?= (ExitFailure 1, unlines ["G.cases/nl.err: the error differs", "  expected:   1:3: expected 'b'", "  actual:     1:4: expected 'b'", "0 passed, 1 failed"], "")
+        r3 <- testCases "reject-expected" [("G.cases/nl.in", "abb\n"), ("G.cases/nl.err", "1:4: expected 'c'\n")] []
+        r3 @?= (ExitFailure 1, unlines ["G.cases/nl.err: the error differs", "  expected:   1:4: expected 'c'", "  actual:     1:4: expected 'b'", "0 passed, 1 failed"], "")
+    , testCase "an empty .err passes with a rejection at any position" $ do
+        r <- testCases "reject-empty" [("G.cases/nl.in", "abb\n"), ("G.cases/nl.err", ""), ("G.cases/x.in", "x"), ("G.cases/x.err", "")] []
+        r @?= (ExitSuccess, "2 passed, 0 failed\n", "")
+    , testCase ".err for an accepted input, and .cst for a rejected input, fail" $ do
+        r <- testCases "swapped" [("G.cases/nl.in", "abb\n"), ("G.cases/nl.cst", abbCst), ("G.cases/ok.in", "abb"), ("G.cases/ok.err", "")] []
+        r @?= (ExitFailure 1, unlines ["G.cases/nl.cst: expected acceptance, but 1:4: expected 'b'", "G.cases/ok.err: expected a rejection, but the input was accepted", "0 passed, 2 failed"], "")
+    , testCase "a newline at the end of an expectation does not count" $ do
+        r <- testCases "newline" [("G.cases/ok.in", "abb"), ("G.cases/ok.cst", init abbCst), ("G.cases/nl.in", "abb\n"), ("G.cases/nl.err", "1:4: expected 'b'")] []
+        r @?= (ExitSuccess, "2 passed, 0 failed\n", "")
+    , testCase "the newline at the end of an input is part of it, and a byte order mark is skipped" $ do
+        dir <- treeWith "test-bom" [("G.hpeg", abGrammar), ("G.cases/ok.cst", abbCst), ("G.cases/nl.cst", abbCst)]
+        BS.writeFile (dir </> "G.cases/ok.in") (BS.pack [0xEF, 0xBB, 0xBF] <> BC.pack "abb")
+        BS.writeFile (dir </> "G.cases/nl.in") (BC.pack "abb\n")
+        r <- pegHsIn dir ["test"]
+        r @?= (ExitFailure 1, unlines ["G.cases/nl.cst: expected acceptance, but 1:4: expected 'b'", "1 passed, 1 failed"], "")
+    , testCase "an input without an expectation fails, and points to --accept" $ do
+        r <- testCases "no-expectation" [("G.cases/new.in", "abb")] []
+        r @?= (ExitFailure 1, unlines ["G.cases/new.in: no expectation; run peg-hs test --accept to record the result", "0 passed, 1 failed"], "")
+    , testCase "errors of the layout: both expectations, an expectation without an input, a directory not in %entry, a directory in a directory" $ do
+        r <-
+          testCases
+            "layout"
+            [ ("G.cases/both.in", "abb")
+            , ("G.cases/both.cst", abbCst)
+            , ("G.cases/both.err", "")
+            , ("G.cases/lost.cst", abbCst)
+            , ("G.cases/lost.err", "")
+            , ("G.cases/C/c.in", "c")
+            , ("G.cases/B/deeper/b.in", "b")
+            , ("G.cases/ok.in", "abb")
+            , ("G.cases/ok.cst", abbCst)
+            ]
+            []
+        r
+          @?= ( ExitFailure 1
+              , "1 passed, 0 failed\n"
+              , unlines
+                  [ "peg-hs: G.cases/both.in: both both.cst and both.err are given; keep the one that is expected"
+                  , "peg-hs: G.cases/lost.cst: there is no input lost.in for this expectation"
+                  , "peg-hs: G.cases/lost.err: there is no input lost.in for this expectation"
+                  , "peg-hs: G.cases/B/deeper: a directory in the examples of the rule B; put its examples in G.cases/B"
+                  , "peg-hs: G.cases/C: C is not a rule of %entry; the examples of a rule of %entry go in the directory of its name"
+                  ]
+              )
+    , testCase "files of other extensions are ignored" $ do
+        r <- testCases "other-files" [("G.cases/README.md", "# examples\n"), ("G.cases/ok.in", "abb"), ("G.cases/ok.cst", abbCst), ("G.cases/notes.txt", "")] []
+        r @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+    , testCase "the examples in NAME.cases/RULE are parsed with the rule of %entry" $ do
+        r <- testCases "entry" [("G.cases/B/b.in", "b"), ("G.cases/B/b.cst", "B@0..1\n  TEXT@0..1 \"b\"\n"), ("G.cases/B/bb.in", "bb"), ("G.cases/B/bb.err", "")] []
+        r @?= (ExitSuccess, "2 passed, 0 failed\n", "")
+    , testCase "--accept writes the expectations, swaps them, keeps an empty .err and a matching file" $ do
+        dir <-
+          treeWith
+            "test-accept"
+            [ ("G.hpeg", abGrammar)
+            , ("G.cases/new.in", "abb")
+            , ("G.cases/newerr.in", "abb\n")
+            , ("G.cases/swap.in", "abb")
+            , ("G.cases/swap.err", "1:1: expected 'x'\n")
+            , ("G.cases/empty.in", "x")
+            , ("G.cases/empty.err", "")
+            , ("G.cases/same.in", "abb")
+            , ("G.cases/same.cst", init abbCst)
+            ]
+        before <- getModificationTime (dir </> "G.cases/same.cst")
+        threadDelay 20000
+        r <- pegHsIn dir ["test", "--accept"]
+        r @?= (ExitSuccess, unlines ["wrote G.cases/new.cst", "wrote G.cases/newerr.err", "wrote G.cases/swap.cst", "removed G.cases/swap.err"], "")
+        contents <- mapM (readFile . (dir </>)) ["G.cases/new.cst", "G.cases/newerr.err", "G.cases/swap.cst", "G.cases/empty.err", "G.cases/same.cst"]
+        contents @?= [abbCst, "1:4: expected 'b'\n", abbCst, "", init abbCst]
+        doesFileExist (dir </> "G.cases/swap.err") >>= (@?= False)
+        after <- getModificationTime (dir </> "G.cases/same.cst")
+        after @?= before
+        r' <- pegHsIn dir ["test"]
+        r' @?= (ExitSuccess, "5 passed, 0 failed\n", "")
+    , testCase "without arguments, the grammars without NAME.cases are skipped; a grammar named without it is an error" $ do
+        dir <- treeWith "test-discovery" [("G.hpeg", abGrammar), ("G.cases/ok.in", "abb"), ("G.cases/ok.cst", abbCst), ("sub/H.hpeg", abGrammar), ("sub/I.hpeg", abGrammar), ("sub/I.cases/x.in", "x"), ("sub/I.cases/x.err", "")]
+        r <- pegHsIn dir ["test"]
+        r @?= (ExitSuccess, "2 passed, 0 failed\n", "")
+        r' <- pegHsIn dir ["test", "sub"]
+        r' @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+        r'' <- pegHsIn dir ["test", "sub/H.hpeg"]
+        r'' @?= (ExitFailure 1, "0 passed, 0 failed\n", "peg-hs: sub/H.hpeg has no examples: the directory sub/H.cases does not exist\n")
+    , testCase "a grammar that the interpreter can parse with needs no ghc" $ do
+        dir <- treeWith "test-noghc" [("G.hpeg", abGrammar), ("G.cases/ok.in", "abb"), ("G.cases/ok.cst", abbCst)]
+        r <- testWithPath dir dir []
+        r @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+        doesPathExist (dir </> "cache") >>= (@?= False)
+    , testCase "a grammar that the interpreter cannot parse with is compiled" $ do
+        dir <- treeWith "test-compiled" [("G.hpeg", compiledGrammar), ("G.cases/ok.in", "ab"), ("G.cases/ok.cst", "S@0..2\n  n: TEXT@0..2 \"ab\"\n"), ("G.cases/short.in", "a"), ("G.cases/short.err", "")]
+        r <- parseIn dir ["test"]
+        r @?= (ExitSuccess, "2 passed, 0 failed\n", "")
+    , testCase "without ghc, a grammar that the interpreter cannot parse with is an error, in the words of parse" $ do
+        dir <- treeWith "test-compiled-noghc" [("G.hpeg", compiledGrammar), ("G.cases/ok.in", "ab"), ("G.cases/ok.cst", "S@0..2\n  n: TEXT@0..2 \"ab\"\n")]
+        r <- testWithPath dir dir []
+        r @?= (ExitFailure 1, "0 passed, 0 failed\n", "peg-hs: peg-hs test needs ghc on PATH\n")
+    , testCase "a grammar with %env is an error unless the interpreter can parse with it" $ do
+        dir <- treeWith "test-env" [("G.hpeg", "%module M\n%env Int\n%{\nimport qualified Data.Text as T\n}%\n\nS <- n:$[a-z]+ &{ T.length n > _env }\n"), ("G.cases/ok.in", "ab"), ("G.cases/ok.err", "")]
+        (code, out, err) <- parseIn dir ["test"]
+        (code, out) @?= (ExitFailure 1, "0 passed, 0 failed\n")
+        assertBool err ("peg-hs: G.hpeg: the interpreter cannot parse with this grammar, and peg-hs test does not compile grammars with %env" `elem` lines err)
+        dir' <- treeWith "test-env-actions" [("G.hpeg", "%module M\n%env Int\nS :: Int\nS <- 'a' { _env }\n"), ("G.cases/ok.in", "a"), ("G.cases/ok.cst", "S@0..1\n  TEXT@0..1 \"a\"\n")]
+        r <- pegHsIn dir' ["test"]
+        r @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+    , skippedWithout "../../conformance/data/JSONTestSuite/test_parsing" "the interpreter and the compiled parser write the same expectations for JSONTestSuite" $ do
+        src <- TIO.readFile "../../conformance/json/Json.hpeg"
+        (g, an) <- case parseGrammar src >>= expandTemplates >>= \g -> (,) g <$> check g of
+          Left ds -> assertFailure (show ds)
+          Right x -> pure x
+        ip <- either (assertFailure . show) pure (interpreter g an)
+        program <- findExecutable "ghc-9.10.3" >>= maybe (maybe "ghc" id <$> findExecutable "ghc") pure
+        (_, v, _) <- readProcessWithExitCode program ["--numeric-version"] ""
+        base <- testDir
+        Just compiled <- compiledWay (Ghc program (takeWhile (not . isSpace) v)) (base </> "parse-cache-json") "Json.hpeg" g src [] [Nothing]
+        let dir = "../../conformance/data/JSONTestSuite/test_parsing"
+        names <- sort <$> listDirectory dir
+        inputs <- forM names $ \n -> (,) n . decodeUtf8File <$> BS.readFile (dir </> n)
+        let texts = [(n, t) | (n, Right t) <- inputs]
+        assertBool "most inputs are UTF-8" (length texts > 250)
+        diffs <- forM texts $ \(n, t) -> do
+          a <- outcomeOf (interpretedWay ip) Nothing (dir </> n) t
+          b <- outcomeOf compiled Nothing (dir </> n) t
+          pure [(n, expectationText <$> a, expectationText <$> b) | a /= b]
+        take 1 (concat diffs) @?= []
+    , testCase "examples still pass after peg-hs label --write" $ do
+        dir <- treeWith "test-label" [("G.hpeg", labelGrammar), ("G.cases/list.in", "[1,22,3]"), ("G.cases/open.in", "[1,"), ("G.cases/open.err", ""), ("G.cases/tail.in", "[1]x"), ("G.cases/tail.err", "")]
+        (code, _, _) <- pegHsIn dir ["test", "--accept"]
+        code @?= ExitSuccess
+        (code', _, _) <- pegHsIn dir ["label", "--write", "G.hpeg"]
+        code' @?= ExitSuccess
+        labelled <- readFile (dir </> "G.hpeg")
+        assertBool labelled ("^List_" `isInfixOf` labelled)
+        r <- pegHsIn dir ["test"]
+        r @?= (ExitSuccess, "3 passed, 0 failed\n", "")
+    , testCase "an unknown option is a usage error that points to peg-hs help test" $ do
+        (code, _, err) <- testCases "usage" [] ["--frobnicate"]
+        code @?= ExitFailure 2
+        assertBool err ("Run peg-hs help test for its usage." `isInfixOf` err)
+    , testCase "an error in the grammar fails with 1, as FILE:LINE:COLUMN: error:" $ do
+        dir <- treeWith "test-broken" [("G.hpeg", "%module M\nS <- Missing\n"), ("G.cases/x.in", "x")]
+        (code, _, err) <- pegHsIn dir ["test"]
+        code @?= ExitFailure 1
+        assertBool err ("G.hpeg:2:6: error: undefined rule Missing" `elem` lines err)
+    ]
