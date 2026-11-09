@@ -265,6 +265,15 @@ Since v0.1.0-rc6:
   and outline differed from those of the whole parse. `open`, the check,
   is exported
   ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+- `analysisLeftRecursive` counts the recovery rule `R` of `%recover l R`
+  as an alternative of each `e ^l`: `R` is called at the position of `e`,
+  and `e ^l` matches the empty string if `R` does. A rule that comes back
+  to itself at the same position only through a recovery rule is left
+  recursive, so it is memoised with `memoLR`, and `interpretRecover` ends
+  on it instead of running out of memory. The errors about parameters
+  and `%nomemo` in left recursion apply to these rules too.
+  `analysisNullable` and the errors about repetitions do not change
+  ([ADR 0095](https://github.com/tett23/peg-hs/blob/main/docs/adr/0095-left-recursion-through-recovery-rules.md)).
 
 ### Security
 

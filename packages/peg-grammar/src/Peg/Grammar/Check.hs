@@ -66,7 +66,10 @@ data Analysis = Analysis
   { analysisStart :: Text
   -- ^ The start rule.
   , analysisLeftRecursive :: Set Text
-  -- ^ Rules that take part in left recursion.
+  -- ^ Rules that take part in left recursion. With @%recover l R@, the
+  -- recovery rule @R@ counts as an alternative of each @e ^l@, as in the
+  -- recovering parse: a rule that comes back to itself at the same
+  -- position through @R@ is among them (ADR 0095).
   , analysisNullable :: Set Text
   -- ^ Rules that can succeed without consuming input.
   , analysisUnit :: Set Text
@@ -182,7 +185,10 @@ checkRules root g firstRule =
     ruleMap = M.fromList [(ruleName r, r) | r <- rules]
     start = maybe (ruleName firstRule) unLoc (grammarStart g)
     nullable = nullableRules rules
-    lr = leftRecursiveRules nullable rules
+    -- The nullable rules above are those of the language, for the
+    -- analysis and the repetitions; left recursion counts the calls of the
+    -- recovery rules too (ADR 0095).
+    lr = leftRecursiveRules (M.fromList [(unLoc l, unLoc r) | (l, r) <- grammarRecovers g]) rules
     classes = classify g
     units = classUnits classes
     errors =
@@ -376,32 +382,46 @@ exprRefs = \e -> case e of
 -- Nullability -------------------------------------------------------------------
 
 nullableRules :: [Rule] -> Set Text
-nullableRules rules = go S.empty
+nullableRules = nullableRulesWith M.empty
+
+-- The rules that can match the empty string, given the recovery rule of
+-- each label (ADR 0095): with recovery, @e ^l@ acts as @e / R@ for the
+-- recovery rule @R@ of @l@. Without recovery rules, those of the language.
+nullableRulesWith :: Recovery -> [Rule] -> Set Text
+nullableRulesWith recovery rules = go S.empty
   where
     go known =
-      let next = S.fromList [ruleName r | r <- rules, any (seqNullable known . altItems) (ruleAlts r)]
+      let next = S.fromList [ruleName r | r <- rules, any (seqNullableWith recovery known . altItems) (ruleAlts r)]
        in if next == known then known else go next
 
-seqNullable :: Set Text -> [Item] -> Bool
-seqNullable known = all (exprNullable known . itemExpr)
+-- The recovery rule of each label (ADR 0021).
+type Recovery = M.Map Text Text
+
+seqNullableWith :: Recovery -> Set Text -> [Item] -> Bool
+seqNullableWith recovery known = all (exprNullableWith recovery known . itemExpr)
 
 exprNullable :: Set Text -> Expr -> Bool
-exprNullable known = \e -> case e of
-  ELit t _ -> T.null t
-  EClass _ _ -> False
-  EAny -> False
-  ERef _ n _ -> S.member n known
-  EGroup alts -> any (seqNullable known) alts
-  EStar _ -> True
-  EOpt _ -> True
-  EPlus x -> exprNullable known x
-  EAnd _ -> True
-  ENot _ -> True
-  EPred _ _ -> True
-  ECapture x -> exprNullable known x
-  ELabel _ x _ -> exprNullable known x
-  EDiscard x -> exprNullable known x
-  ETemplate {} -> True
+exprNullable = exprNullableWith M.empty
+
+exprNullableWith :: Recovery -> Set Text -> Expr -> Bool
+exprNullableWith recovery known = go
+  where
+    go e = case e of
+      ELit t _ -> T.null t
+      EClass _ _ -> False
+      EAny -> False
+      ERef _ n _ -> S.member n known
+      EGroup alts -> any (seqNullableWith recovery known) alts
+      EStar _ -> True
+      EOpt _ -> True
+      EPlus x -> go x
+      EAnd _ -> True
+      ENot _ -> True
+      EPred _ _ -> True
+      ECapture x -> go x
+      ELabel _ x l -> go x || maybe False (`S.member` known) (M.lookup l recovery)
+      EDiscard x -> go x
+      ETemplate {} -> True
 
 repetitionErrors :: Set Text -> Rule -> [Diagnostic]
 repetitionErrors known r = concatMap (seqErrs . altItems) (ruleAlts r)
@@ -424,14 +444,16 @@ repetitionErrors known r = concatMap (seqErrs . altItems) (ruleAlts r)
 
 -- Left recursion ---------------------------------------------------------------
 
--- Rules that can be called at the starting position of a rule.
-leftCalls :: Set Text -> [Item] -> [Text]
-leftCalls known = go
+-- Rules that can be called at the starting position of a rule, given the
+-- recovery rule of each label: the recovery rule of @e ^l@ is called at the
+-- position of @e@ (ADR 0095).
+leftCalls :: Recovery -> Set Text -> [Item] -> [Text]
+leftCalls recovery known = go
   where
     go [] = []
     go (i : is) =
       let e = itemExpr i
-       in exprLeftCalls e ++ (if exprNullable known e then go is else [])
+       in exprLeftCalls e ++ (if exprNullableWith recovery known e then go is else [])
     exprLeftCalls e = case e of
       ERef _ n _ -> [n]
       EGroup alts -> concatMap go alts
@@ -441,14 +463,19 @@ leftCalls known = go
       EAnd x -> exprLeftCalls x
       ENot x -> exprLeftCalls x
       ECapture x -> exprLeftCalls x
-      ELabel _ x _ -> exprLeftCalls x
+      ELabel _ x l -> exprLeftCalls x ++ maybe [] pure (M.lookup l recovery)
       EDiscard x -> exprLeftCalls x
       _ -> []
 
-leftRecursiveRules :: Set Text -> [Rule] -> Set Text
-leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
+-- The rules in left recursion, in the parse with the recovery rules of the
+-- grammar (ADR 0001, ADR 0095). A rule that calls itself at the same
+-- position only through a recovery rule is among them: the recovering
+-- parse comes back to it.
+leftRecursiveRules :: Recovery -> [Rule] -> Set Text
+leftRecursiveRules recovery rules = S.fromList (concatMap cyclic sccs)
   where
-    edges r = S.toList (S.fromList (concatMap (leftCalls known . altItems) (ruleAlts r)))
+    known = nullableRulesWith recovery rules
+    edges r = S.toList (S.fromList (concatMap (leftCalls recovery known . altItems) (ruleAlts r)))
     sccs = stronglyConnComp [(r, ruleName r, edges r) | r <- rules]
     cyclic (CyclicSCC rs) = map ruleName rs
     cyclic (AcyclicSCC r) = [ruleName r | ruleName r `elem` edges r]

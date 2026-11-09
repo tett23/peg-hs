@@ -1,0 +1,27 @@
+# 回復の規則を経由して同じ位置の規則に戻る文法（ADR 0095）。
+# 回復するモードの解析が終わり、解釈器と一致することを確かめる。
+# S は、項目の a が失敗すると空の範囲で回復し、続く L を同じ位置で呼ぶ。
+# D は、項目がないと閉じ括弧の前で回復し（挿入の回復）、繰り返しの DL を同じ位置で呼ぶ。
+%module Fixture.RecoverLeft
+%syntax
+%entry D
+%recover a Empty
+%recover item BeforeClose
+# 括弧の中の項目のラベルは、ラベルの安全性の検査（ADR 0028）が危険と判定する。
+# 空の括弧も、項目がないことを構文エラーとして回復するための意図した形である
+%safe item
+
+S <- '(' L
+
+L <- ('a' ^a) (')' / L)
+
+Empty <- ''
+
+D <- '(' DL ')'
+
+DL <- (Item ^item) DL
+   / ''
+
+Item <- 'a'
+
+BeforeClose <- &')'

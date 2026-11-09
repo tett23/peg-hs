@@ -8,7 +8,7 @@ The norms are in the ADRs, and this document puts them together in a form that c
 Where the description disagrees with an ADR, the ADR takes precedence.
 
 This document reflects only the content of adopted ADRs.
-The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md), [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md), [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md), [ADR 0092](adr/0092-import-rules-from-other-grammars.md) and [ADR 0094](adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md).
+The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md), [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md), [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md), [ADR 0092](adr/0092-import-rules-from-other-grammars.md), [ADR 0094](adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md) and [ADR 0095](adr/0095-left-recursion-through-recovery-rules.md).
 
 Among the code blocks of this document, those that start with `%module` are complete grammars, and `peg-hs gen` can generate code from them as they are.
 The others are fragments taken out of a grammar.
@@ -1065,9 +1065,29 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 
 `parse "2*(3+4)"` returns `Right 14`.
 
+A call that comes back to the same position through a recovery rule also counts as left recursion ([ADR 0095](adr/0095-left-recursion-through-recovery-rules.md)).
+In the recovering mode, `e ^l` with `%recover l R` tries `R` at the position where `e` failed, so it acts as `e / R` ([Recovery from syntax errors](#recovery-from-syntax-errors)).
+In the following grammar, when `'a'` fails, `E` recovers without reading anything, and `L` calls the next `L` at the same position.
+
+```hpeg
+%module Example.Items
+%syntax
+%recover item E
+
+S <- '(' L
+L <- ('a' ^item) (')' / L)
+E <- ''
+```
+
+So `L` is treated as a left-recursive rule, and the recovering parse ends even when it comes back to the same position.
+The result is decided by the semantics of parsing left recursion, so the position of the recovery does not always match what the author of the grammar intended.
+In this grammar, `(ab)` is not recovered locally, and the whole input becomes one syntax error.
+The parse without recovery does not call the recovery rules, so its result does not change.
+
 Left recursion has two constraints.
 Parameterized rules cannot take part in left recursion.
 The memoization of rules that take part in left recursion cannot be turned off.
+The two constraints also apply to the rules counted as left-recursive through recovery rules.
 
 Common mistakes:
 
@@ -1503,6 +1523,8 @@ This grammar regards an unclosed `[name` as closed at the end of the line, and c
 Put a label only at a position where, if the parse fails there, no alternative can succeed.
 Putting one at any other position makes input that could have been accepted by backtracking no longer accepted.
 The `]` in the example above comes after `[` and a name have been read, so no input is left on which another alternative could succeed.
+
+In a grammar that comes back to a rule at the same position through a recovery rule, the rule counts as left-recursive ([Left recursion](#left-recursion)).
 
 Common mistakes:
 

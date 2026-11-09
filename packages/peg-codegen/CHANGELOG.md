@@ -111,6 +111,11 @@ Since v0.1.0-rc6:
   when the expression had a value other than `()`: a reference to a rule
   with a value, or `?`, `*` and `+` with `%syntax`
   ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+- A rule that comes back to itself at the same position through a
+  recovery rule is generated with `PegRt.memoLR`, so the recovering parse
+  comes back to it at the same position and ends, as the interpreter
+  does. The code of the other grammars of the repository does not change
+  ([ADR 0095](https://github.com/tett23/peg-hs/blob/main/docs/adr/0095-left-recursion-through-recovery-rules.md)).
 
 ### Security
 
