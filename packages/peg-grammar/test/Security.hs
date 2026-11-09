@@ -26,7 +26,7 @@ securityTests =
 -- The errors of a grammar as (line, column, message).
 errorsAt :: Text -> [(Int, Int, Text)]
 errorsAt src = case parseGrammar src of
-  Left ds -> [(l, c, m) | Diagnostic (Loc l c) m <- ds]
+  Left ds -> [(l, c, m) | Diagnostic (Loc _ l c) m <- ds]
   Right _ -> []
 
 rule :: Text
@@ -70,8 +70,8 @@ exportTests =
                ]
            ]
         ++ [ testCase "an item with a newline is an error" $
-              let l = Loc 2 9
-               in assemble [TDirective (Loc 1 1) "module" (Loc 1 9) "M", TDirective (Loc 2 1) "export" l "f\nevil = 1", TDef (Loc 3 1) "S" [] [Alt (Loc 3 6) [] Nothing Nothing]]
+              let l = Loc 0 2 9
+               in assemble [TDirective (Loc 0 1 1) "module" (Loc 0 1 9) "M", TDirective (Loc 0 2 1) "export" l "f\nevil = 1", TDef (Loc 0 3 1) "S" [] [Alt (Loc 0 3 6) [] Nothing Nothing]]
                     @?= Left [Diagnostic l "%export expects export items, but got f\nevil = 1"]
            , testCase "the second item is reported at its location" $
               errorsAt ("%module M\n%export f, g) where\n" <> rule) @?= [(2, 12, "%export expects export items, but got g) where")]

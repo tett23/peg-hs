@@ -504,3 +504,33 @@ A <- B C @Pair
         (constructor_name))
       (alternative
         (constructor_name)))))
+
+========================================================================
+a library and an import (ADR 0092)
+========================================================================
+
+%library # a library
+%import lex/Ident.hpeg # the identifiers
+%import
+A <- Ident
+
+------------------------------------------------------------------------
+
+(source_file
+  (directive
+    (directive_name))
+  (comment)
+  (directive
+    (directive_name)
+    (import_path))
+  (comment)
+  (directive
+    (directive_name))
+  (definition
+    (rule_name
+      (identifier))
+    (alternatives
+      (alternative
+        (item
+          (rule_reference
+            (identifier)))))))

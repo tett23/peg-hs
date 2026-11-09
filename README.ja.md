@@ -285,6 +285,42 @@ parseFile path = do
 
 このときは、bytestring も `build-depends` に加える。
 
+## 文法の間で規則を共有する
+
+文法は、**ライブラリ**の規則を取り込める。
+ライブラリは、`%library` を書き、コメントと規則だけを持つ `.hpeg` ファイルである（[ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)）。
+
+```hpeg
+# grammar/lex/Ident.hpeg
+%library
+
+Ident :: Text
+Ident <- $[a-zA-Z_]+ Sp
+
+Sp <- [ \t]*
+```
+
+```hpeg
+# grammar/Calc.hpeg
+%module Calc.Parser
+%import lex/Ident.hpeg
+
+%{
+import Data.Text (Text)
+}%
+
+Assign :: (Text, Text)
+Assign <- n:Ident '=' Sp v:Ident { (n, v) }
+```
+
+`%import` のパスは文法のディレクトリからの相対パスで、`..` を含まず、どの部分もシンボリックリンクであってはならない。
+文法とライブラリの規則は一つの名前の集まりになり、ライブラリの規則が呼べるのは同じライブラリの規則だけである。
+生成するモジュールについての決定は文法だけが下す。
+ライブラリは `%library` のほかに指示と verbatim ブロックを持てず、ライブラリの Haskell は文法のモジュールの中で解決される。
+取り込みは一段だけで、ライブラリは取り込みを書けない。
+`gen`、`parse`、`test`、`lint`、`label`、言語サーバー、peg-hooks、WebAssembly がライブラリを読み、ライブラリの中の誤りは `grammar/lex/Ident.hpeg:行:桁: error: ...` の形でライブラリの位置に報告する。
+決まりは [docs/syntax.md](docs/syntax.md#ほかのファイルの規則を取り込む) にある。
+
 ## ビルドの中でモジュールを生成する
 
 `peg-hs gen` で生成してコミットする代わりに、cabal のパッケージのビルドの中でモジュールを生成することもできる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）。
@@ -370,7 +406,7 @@ source-repository-package
 ラベルの警告は表示するが、ビルドは止めない。
 `--Werror` や `--export` に当たるものはない。
 
-文法は `extra-source-files` に書かなければならない。
+文法と、文法が取り込むライブラリは `extra-source-files` に書かなければならない。
 書かないと、cabal は文法の変更を見ず、古いモジュールのままビルドする。
 最初のビルドは数分長くかかる。
 GHC 9.10 に付属する Cabal は 3.12 なので、cabal が setup スクリプトのために Cabal をビルドするからである。
@@ -453,6 +489,8 @@ peg-hs はこれらを検査し、Haskell の宣言として読める値を拒�
 `omittable-unit-annotation` は、型注釈 `A :: ()` を指す。型注釈のない規則の型も `()` なので、行ごと省ける。引数付き規則と雛形の型注釈には出さない（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 言語サーバーは info を重大度 Hint で報告する。多くのエディタは Hint を淡く示す。
 対象のファイルの選び方は `fmt` と同じで、探索はシンボリックリンクをたどらない（[ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)）。
+ライブラリを取り込む文法は、ライブラリとあわせて検査し、文法の中の警告だけを表示する。
+ライブラリは単独で検査するので、その警告はライブラリの位置に一度だけ出る（[ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)）。
 
 ### label
 
@@ -588,7 +626,7 @@ Marketplace にはまだ公開していないので、リポジトリから入�
 `peg-hs` が `PATH` にない場合は、設定 `peg-hs.path` で実行ファイルを指す。
 `peg-hs.path` は利用者の設定に書く。
 scope が `machine` なので、ワークスペースの設定（`.vscode/settings.json`）では変えられず、リポジトリが VS Code に任意の実行ファイルを動かさせることはできない（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
-言語サーバーは文法を読むだけで、文法の Haskell を動かさない。
+言語サーバーは、文法と、文法のディレクトリとその下から文法が取り込むライブラリを読むだけで、文法の Haskell を動かさない。
 そのため拡張機能は、信頼していないワークスペース（制限モード）でも、利用者の設定の `peg-hs.path` で動く。
 拡張機能は言語 `hpeg` の `editor.formatOnSave` を有効にするので、保存のたびに文法が整形される。
 無効にするには、設定に `"[hpeg]": { "editor.formatOnSave": false }` を書く。
@@ -798,6 +836,7 @@ call("analyze", { grammar: "%module Calc\n..." });
 - `sourceName`（既定は `Grammar.hpeg`）：`LINE` プラグマに書く文法のファイル名。`peg-hs gen` に渡すパスにあたる。
 - `outputName`（既定は `sourceName` の拡張子を `.hs` にしたもの）：生成するファイルの名前。`gen` の `-o` にあたる。
 - `debugEntry`（既定は `false`）：`gen` の `--debug-entry` にあたる。
+- `imports`（既定は `{}`）：文法が取り込むライブラリのテキストを、`%import` のパスごとに `{"lex/Ident.hpeg": "%library\n..."}` の形で渡す（[ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)）。WebAssembly はファイルを読まないので、`imports` にないパスは `cannot import lex/Ident.hpeg: no such file` の誤りになる。
 
 応答は、次の形である。
 
@@ -810,7 +849,7 @@ call("analyze", { grammar: "%module Calc\n..." });
 }
 ```
 
-- `diagnostics`：誤りと警告。`severity` は `"error"` か `"warning"` である。`line` と `column` は 1 から数え、`column` はコードポイントで数える（タブも 1 桁、`peg-hs` の表示と同じ）。`message` は、`peg-hs gen` の表示から `ファイル名:行:桁: error: ` を除いたものである。警告は `gen` の出すラベルの警告だけで、`peg-hs lint` の警告は含まない。
+- `diagnostics`：誤りと警告。`severity` は `"error"` か `"warning"` である。`line` と `column` は 1 から数え、`column` はコードポイントで数える（タブも 1 桁、`peg-hs` の表示と同じ）。`message` は、`peg-hs gen` の表示から `ファイル名:行:桁: error: ` を除いたものである。警告は `gen` の出すラベルの警告だけで、`peg-hs lint` の警告は含まない。ライブラリの中の誤りと警告は、`"file"` に `%import` のパスも持つ。
 - `ast`：書いたとおりの（テンプレートを展開する前の）文法の構文木。文法を読めなければ `null`。
 - `types`：生成した型の宣言（[ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)）を規則の順に並べ、空行でつないだもの。生成した型がなければ空の文字列で、テンプレートを展開できなければ `null`。検査で誤りが見つかっても出す。
 - `module`：生成したモジュール。同じ要求の `peg-hs gen` が書くファイルと、バイト単位で一致する。誤りがあれば `null`。
@@ -819,6 +858,7 @@ call("analyze", { grammar: "%module Calc\n..." });
 `text` は `peg-hs fmt` が書くものと同じで、整形できなければ `null` になり、`diagnostics` に誤りが入る。
 `parse` の要求は `{"grammar": "...", "input": "...", "entry": null}` である。
 `entry` は `%entry` の規則の名前で、省くか `null` にすると開始規則で解析する。
+ライブラリは `analyze` と同じく `imports` で渡す。
 `peg-hs parse --interpret` と同じに入力を解析し、次の応答を返す。
 
 ```json
@@ -910,6 +950,7 @@ GHC のランタイムと C ライブラリは、ほかにファイルとポー�
 - **`peg-hs parse` の GHC**：`parse` は `PATH` の `ghc` でパーサーをコンパイルするので、GHC 9.10、9.12、9.14 のどれかが要る（[ADR 0036](docs/adr/0036-parse-command.md)、[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）。`--interpret` は GHC を使わないが、AST は表示せず、述語を評価できる文法だけを扱う。このリポジトリの Lua、TOML、CommonMark の文法と記法の文法は、述語で Haskell の関数を呼ぶので扱えない（[ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)）
 - **型名の重なる規則**：`%syntax` の文法では規則ごとに型を作るので、`expr` と `Expr` のように同じ型名になる二つの規則は誤りになる。`peg-hs parse` は常に構文木も生成するので、`%syntax` を書いていない文法でも、そうした規則があれば扱えない（[ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)）
 - **ラベルの安全性の検査は保守的である**：検査は、正しい入力を拒否しうるラベルを見逃さない代わりに、実際には安全なラベルも警告することがある。作者が確かめたラベルは `%safe` で警告を止める。記法自身の文法は 23 個の `%safe` を持つ（[ADR 0028](docs/adr/0028-label-safety-check.md)、[ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)）
+- **ライブラリ**：取り込みは一段だけで、修飾名、選んだ規則だけの取り込み、パスの `..` は持たない。名前が衝突したら規則名を変える。ライブラリは verbatim ブロックを持てないので、ライブラリのアクションが使う Haskell は取り込む文法が import する。開いていないライブラリのディスクの上の変更を、言語サーバーは文法を開き直すか編集するまで反映しない（[ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)）
 - **規則の雛形**：雛形の引数は呼び出し元の引数を使えるが、呼び出し元の束縛は使えない。束縛の値は値の引数で渡す。雛形は `%entry`、`%start`、`%recover` の規則にできない（[ADR 0031](docs/adr/0031-rule-templates.md)、[ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)）
 - **式の入れ子**：式の入れ子は 256 段までである。群、前置と後置の演算子、ラベル、雛形の呼び出しが一段ずつ数える。上限を超えた式は、超えた段の位置で誤りになる。上限は変えられない（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）
 - **tree-sitter の文法**：アクションも要素もない選択肢（`S <- 'a' /`）を誤りにする。この選択肢は値を持たないので、`peg-hs gen` も必ず誤りにする。そのため、正しい文法を誤りと表示することはない（[ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)）

@@ -74,4 +74,4 @@ definitions root =
             t : _ -> snd (tokenRange t)
             [] -> fst (syntaxRange a)
        in (loc at, any ((== "Constructor") . kindOf) (syntaxChildren a))
-    loc o = let p = syntaxPos root o in Loc (posLine p) (posColumn p)
+    loc o = let p = syntaxPos root o in Loc 0 (posLine p) (posColumn p)

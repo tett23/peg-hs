@@ -133,6 +133,18 @@ Since v0.1.0-rc5:
 
 Since v0.1.0-rc6:
 
+- Libraries (([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)) 0092): a file with `%library` has only comments and
+  rules, and a grammar imports its rules with `%import path`, a path
+  relative to the directory of the grammar without `..`. `Grammar` has
+  `grammarImports` and `grammarLibrary`. `Peg.Grammar.Import` has
+  `resolveImports`, which puts the rules of the libraries into the
+  grammar from their texts, `libraryErrors` and `isImportPath`;
+  `Peg.Grammar.Import.Files` reads the libraries without following
+  symbolic links. `checkLibrary` of `Peg.Grammar.Check` checks a library
+  on its own. `insertLabelsWithImports` and `recoverProposalsWithImports`
+  take the texts of the libraries. `diagnosticFile` and `importedPath`
+  name the file of a location
+  ADR.
 - The directives `%expect Name "display name"` and `%message label
   "message"`, in `grammarExpects` and `grammarMessages` of `Grammar`, with
   their checks. `directiveComment` of `Peg.Grammar.Assemble` splits the
@@ -191,6 +203,12 @@ Since v0.1.0-rc5:
 
 Since v0.1.0-rc6:
 
+- `Loc` has `locFile`, the file of the location: `0` for the grammar and
+  `i` for the library of its `i`-th `%import`. `renderDiagnostic` takes
+  the imports of the grammar to name the file. A library is an error
+  `missing %module directive` for `check`. `peg-grammar` depends on
+  `directory` and `filepath`
+  ([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)).
 - The messages of the syntax errors of the notation are written with
   `%message` in `grammar/Peg.hpeg`. `labelMessage` of `Peg.Grammar.Parser`
   keeps the messages of `escape`, `action` and `argcode` only, which

@@ -189,7 +189,7 @@ interpreter g an = case M.elems (M.fromList (map keyed errors)) of
     readOrder r = [paramName p | p <- ruleParams r, S.member (paramName p) (readOf (ruleName r))]
     -- The grammar is run as with %syntax (ADR 0036), whose rules without a
     -- type annotation have type () (ADR 0068).
-    units = unitRules g {grammarSyntax = Just (fromMaybe (Loc 1 1) (grammarSyntax g))}
+    units = unitRules g {grammarSyntax = Just (fromMaybe (Loc 0 1 1) (grammarSyntax g))}
     inline = S.fromList (map unLoc (grammarInline g))
     tokens = S.fromList (map unLoc (grammarTokens g))
     kinds = zip [ruleName r | r <- rules, not (S.member (ruleName r) inline)] [2 ..]

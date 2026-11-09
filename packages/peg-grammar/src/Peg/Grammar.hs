@@ -6,6 +6,8 @@
 -- The other modules work on a t'Grammar' or on the source text:
 --
 -- * "Peg.Grammar.Parser" reads a grammar ('Peg.Grammar.Parser.parseGrammar').
+-- * "Peg.Grammar.Import" puts the rules of the libraries that a grammar
+--   imports into it (ADR 0092), and "Peg.Grammar.Import.Files" reads them.
 -- * "Peg.Grammar.Templates" expands rule templates (ADR 0031).
 -- * "Peg.Grammar.Check" checks the expanded grammar and analyses it for
 --   the code generator.
@@ -57,6 +59,8 @@ module Peg.Grammar
     -- * Diagnostics
   , Diagnostic (..)
   , renderDiagnostic
+  , diagnosticFile
+  , importedPath
     -- * Names in generated modules
   , syntaxTypeName
     -- * Haskell code
@@ -69,8 +73,15 @@ import qualified Data.Text as T
 
 -- | A location in a grammar file. Lines and columns start at 1, and each
 -- code point counts as one column.
+--
+-- The file is @0@ for the grammar itself, and @i@ for the library of the
+-- @i@-th @%import@ of the grammar (ADR 0092): the parser makes locations
+-- in the file @0@, and 'Peg.Grammar.Import.resolveImports' renumbers
+-- those of the libraries it imports. Locations are ordered by file, line
+-- and column.
 data Loc = Loc
-  { locLine :: !Int
+  { locFile :: !Int
+  , locLine :: !Int
   , locColumn :: !Int
   }
   deriving (Eq, Ord, Show)
@@ -87,7 +98,14 @@ data Located a = Located
 -- decided by 'Peg.Grammar.Check.check'.
 data Grammar = Grammar
   { grammarModule :: Located Text
-  -- ^ @%module@: the name of the generated module.
+  -- ^ @%module@: the name of the generated module. Empty, at the location
+  -- of @%library@, in a library (ADR 0092).
+  , grammarImports :: [Located FilePath]
+  -- ^ @%import@: the paths of the libraries, as written and in order, at
+  -- the locations of the directives (ADR 0092).
+  , grammarLibrary :: Maybe Loc
+  -- ^ @%library@: the file is a library, whose rules other grammars
+  -- import (ADR 0092).
   , grammarStart :: Maybe (Located Text)
   -- ^ @%start@: the start rule. Defaults to the first rule.
   , grammarEntries :: [Located Text]
@@ -226,14 +244,40 @@ data Diagnostic = Diagnostic
   deriving (Eq, Show)
 
 -- | Render as @file:line:column: error: message@, the form @peg-hs@ uses
--- for errors. The file name is written as given.
+-- for errors, given the path of the grammar and its @%import@s
+-- ('grammarImports'). The file is the one of the location
+-- ('diagnosticFile'): the grammar, written as given, or a library that it
+-- imports (ADR 0092).
 --
 -- @
--- either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic \"Calc.hpeg\")) (const (pure ())) (parseGrammar src)
+-- either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic \"Calc.hpeg\" [])) (const (pure ())) (parseGrammar src)
 -- @
-renderDiagnostic :: FilePath -> Diagnostic -> Text
-renderDiagnostic file (Diagnostic (Loc l c) msg) =
-  T.concat [T.pack file, ":", T.pack (show l), ":", T.pack (show c), ": error: ", msg]
+renderDiagnostic :: FilePath -> [Located FilePath] -> Diagnostic -> Text
+renderDiagnostic file imports (Diagnostic (Loc f l c) msg) =
+  T.concat [T.pack (diagnosticFile file imports f), ":", T.pack (show l), ":", T.pack (show c), ": error: ", msg]
+
+-- | The path of the file of a location ('locFile'), given the path of the
+-- grammar and its @%import@s: the grammar for @0@, and for @i@ the path of
+-- the @i@-th import joined to the directory of the grammar
+-- ('importedPath'). A number without an import is the grammar.
+diagnosticFile :: FilePath -> [Located FilePath] -> Int -> FilePath
+diagnosticFile file imports i = case drop (i - 1) imports of
+  Located _ p : _ | i > 0 -> importedPath file p
+  _ -> file
+
+-- | The path of a library given the path of the grammar that imports it
+-- and the path of its @%import@ (ADR 0092): the import joined with @/@ to
+-- the directory of the grammar, or the import itself when the path of the
+-- grammar has no directory.
+--
+-- @
+-- importedPath \"grammar\/Calc.hpeg\" \"lex\/Ident.hpeg\" == \"grammar\/lex\/Ident.hpeg\"
+-- importedPath \"Calc.hpeg\" \"lex\/Ident.hpeg\" == \"lex\/Ident.hpeg\"
+-- @
+importedPath :: FilePath -> FilePath -> FilePath
+importedPath file p = case break (== '/') (reverse file) of
+  (_, '/' : dir) -> reverse dir <> "/" <> p
+  _ -> p
 
 -- | The name of the type of the syntax tree nodes of a rule, in a grammar
 -- with @%syntax@ (ADR 0019): the rule name with its first letter made
@@ -270,15 +314,15 @@ syntaxTypeName n = case T.uncons n of
 -- Template Haskell quotations are read as code.
 --
 -- @
--- codeVariables (Loc 3 8) " y > 0 " == [Located (Loc 3 9) "y"]
+-- codeVariables (Loc 0 3 8) " y > 0 " == [Located (Loc 0 3 9) "y"]
 -- @
 codeVariables :: Loc -> Text -> [Located Text]
 codeVariables start code = go (zip (scanl advance start chars) chars)
   where
     chars = T.unpack code
-    advance (Loc ln col) c
-      | c == '\n' = Loc (ln + 1) 1
-      | otherwise = Loc ln (col + 1)
+    advance (Loc f ln col) c
+      | c == '\n' = Loc f (ln + 1) 1
+      | otherwise = Loc f ln (col + 1)
     -- The characters that remain, each with its location.
     go [] = []
     go s@((l, c) : rest)

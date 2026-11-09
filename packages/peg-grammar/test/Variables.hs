@@ -17,18 +17,18 @@ variableTests =
     "the variables of Haskell code (ADR 0082)"
     [ testGroup "reads" [testCase (T.unpack code) (names code @?= expected) | (code, expected) <- reads']
     , testCase "the locations start at the location of the code" $
-        codeVariables (Loc 3 8) " y > 0 " @?= [Located (Loc 3 9) "y"]
+        codeVariables (Loc 0 3 8) " y > 0 " @?= [Located (Loc 0 3 9) "y"]
     , testCase "a name on a later line is at its column of that line" $
-        codeVariables (Loc 3 13) "case s of\n    _ -> f s\n  " @?= [Located (Loc 3 18) "s", Located (Loc 4 10) "f", Located (Loc 4 12) "s"]
+        codeVariables (Loc 0 3 13) "case s of\n    _ -> f s\n  " @?= [Located (Loc 0 3 18) "s", Located (Loc 0 4 10) "f", Located (Loc 0 4 12) "s"]
     , testProperty "the name at a location is the text there" $
         forAll genCode $ \code ->
           let ls = T.splitOn "\n" code
-              at (Located (Loc l c) n) = T.take (T.length n) (T.drop (c - 1) (ls !! (l - 1)))
-           in conjoin [counterexample (show v) (at v === unLoc v) | v <- codeVariables (Loc 1 1) code]
+              at (Located (Loc _ l c) n) = T.take (T.length n) (T.drop (c - 1) (ls !! (l - 1)))
+           in conjoin [counterexample (show v) (at v === unLoc v) | v <- codeVariables (Loc 0 1 1) code]
     ]
 
 names :: Text -> [Text]
-names = map unLoc . codeVariables (Loc 1 1)
+names = map unLoc . codeVariables (Loc 0 1 1)
 
 -- Code and the variables it refers to.
 reads' :: [(Text, [Text])]

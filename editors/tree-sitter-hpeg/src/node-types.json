@@ -269,6 +269,10 @@
             "named": true
           },
           {
+            "type": "import_path",
+            "named": true
+          },
+          {
             "type": "module_name",
             "named": true
           },
@@ -911,6 +915,10 @@
   },
   {
     "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "import_path",
     "named": true
   },
   {

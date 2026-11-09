@@ -67,7 +67,7 @@
       "restrictedConfigurations": [
         "peg-hs.path"
       ],
-      "description": "The language server only reads grammars and does not run their Haskell, so it runs in an untrusted workspace too, with the peg-hs executable of the user settings."
+      "description": "The language server only reads grammars, and the libraries they import from the directory of a grammar and below it, and does not run their Haskell, so it runs in an untrusted workspace too, with the peg-hs executable of the user settings."
     }
   },
   "main": "./extension.js",

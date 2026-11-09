@@ -278,6 +278,40 @@ parseFile path = do
 This needs bytestring in `build-depends` too.
 `gen --export` narrows the entry points and the names of `%syntax` to those a program uses ([ADR 0061](docs/adr/0061-select-generated-exports.md)).
 
+## Sharing rules between grammars
+
+A grammar can import the rules of a **library**, a `.hpeg` file with `%library` and only comments and rules ([ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)):
+
+```hpeg
+# grammar/lex/Ident.hpeg
+%library
+
+Ident :: Text
+Ident <- $[a-zA-Z_]+ Sp
+
+Sp <- [ \t]*
+```
+
+```hpeg
+# grammar/Calc.hpeg
+%module Calc.Parser
+%import lex/Ident.hpeg
+
+%{
+import Data.Text (Text)
+}%
+
+Assign :: (Text, Text)
+Assign <- n:Ident '=' Sp v:Ident { (n, v) }
+```
+
+The path of `%import` is relative to the directory of the grammar, without `..`, and no part of it may be a symbolic link.
+The rules of the grammar and of its libraries make one set of names, and a rule of a library calls only the rules of its library.
+The grammar alone decides about the generated module: a library has no directives other than `%library` and no verbatim blocks, and its Haskell is resolved in the module of the grammar.
+Imports are one level deep: a library cannot import.
+`gen`, `parse`, `test`, `lint`, `label`, the language server, peg-hooks and the WebAssembly read the libraries; errors in a library are reported at the library, in the form `grammar/lex/Ident.hpeg:LINE:COLUMN: error: ...`.
+[docs/syntax.en.md](docs/syntax.en.md#importing-the-rules-of-other-files) has the rules.
+
 ## Generating the module in the build
 
 Instead of generating the module with `peg-hs gen` and committing it, a cabal package can generate it in its own build, with the package peg-hooks ([ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)).
@@ -359,7 +393,7 @@ Before each component is built, a rule of peg-hooks reads the grammar, checks it
 An error in the grammar stops the build, as `grammar/Calc.hpeg:20:28: error: ...`, and GHC reports a type error of an action at the line of the grammar.
 The warnings about labels are shown and do not stop the build; there are no options such as `--Werror` or `--export`.
 
-The grammar must be in `extra-source-files`.
+The grammar, and the libraries it imports, must be in `extra-source-files`.
 cabal does not see a change of a file that is not listed there, and keeps building the old module.
 The first build takes some minutes more: GHC 9.10 comes with Cabal 3.12, so cabal builds Cabal for the setup script.
 [examples/hooks](examples/hooks) is a package that generates its parser in this way, and CI builds it.
@@ -437,6 +471,7 @@ Infos are shown only with `--verbose`, written with `info:` in place of `warning
 `omittable-unit-annotation` points at a type annotation `A :: ()`, which a rule without a type annotation has anyway; it is not given for rules with parameters and templates ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 The language server reports infos with the severity Hint, which most editors show faintly.
 It chooses files as `fmt` does, and its search does not follow symbolic links either ([ADR 0077](docs/adr/0077-fixes-of-the-security-audit.md)).
+A grammar that imports libraries is checked with them, and only the warnings in the grammar itself are shown; a library is checked on its own, so its warnings are shown once, at the library ([ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)).
 
 ### label
 
@@ -561,7 +596,7 @@ The results of checks go to `docs/editors/`, and an editor loses this mark when 
 It is not on the Marketplace yet, so install it from the repository: install its dependencies, link it into the directory of extensions, and restart VS Code.
 If `peg-hs` is not on `PATH`, the setting `peg-hs.path` points at the executable.
 Write `peg-hs.path` in your user settings: it has the scope `machine`, so the settings of a workspace (`.vscode/settings.json`) cannot change it, and a repository cannot make VS Code run an executable of its choosing ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
-The extension works in an untrusted workspace too (Restricted Mode), with the `peg-hs.path` of your user settings, since the language server only reads grammars and does not run their Haskell.
+The extension works in an untrusted workspace too (Restricted Mode), with the `peg-hs.path` of your user settings, since the language server only reads grammars, and the libraries they import from the directory of a grammar and below it, and does not run their Haskell.
 The extension turns on `editor.formatOnSave` for the language `hpeg`, so a grammar is formatted on every save.
 To turn it off, set `"[hpeg]": { "editor.formatOnSave": false }` in your settings.
 
@@ -767,6 +802,7 @@ The request of `analyze`:
 - `sourceName` (default `Grammar.hpeg`): the name of the grammar file that the `LINE` pragmas name, the path given to `peg-hs gen`.
 - `outputName` (default `sourceName` with the extension `.hs`): the name of the generated file, the `-o` of `gen`.
 - `debugEntry` (default `false`): the `--debug-entry` of `gen`.
+- `imports` (default `{}`): the texts of the libraries that the grammar imports, by the paths of its `%import`s, such as `{"lex/Ident.hpeg": "%library\n..."}` ([ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)). The WebAssembly reads no file: a path not in `imports` is the error `cannot import lex/Ident.hpeg: no such file`.
 
 The response:
 
@@ -779,14 +815,14 @@ The response:
 }
 ```
 
-- `diagnostics`: the errors and warnings, with `severity` `"error"` or `"warning"`. `line` and `column` start at 1, and a column counts code points (a tab is one), as `peg-hs` writes them. `message` is what `peg-hs gen` writes after `file:line:column: error: `. The warnings are those of the labels that `gen` reports; the warnings of `peg-hs lint` are not there.
+- `diagnostics`: the errors and warnings, with `severity` `"error"` or `"warning"`. `line` and `column` start at 1, and a column counts code points (a tab is one), as `peg-hs` writes them. `message` is what `peg-hs gen` writes after `file:line:column: error: `. The warnings are those of the labels that `gen` reports; the warnings of `peg-hs lint` are not there. A diagnostic in a library also has `"file"`, the path of its `%import`.
 - `ast`: the syntax tree of the grammar as written, before the templates are expanded, or `null` when the grammar does not parse.
 - `types`: the declarations of the generated types ([ADR 0075](docs/adr/0075-generated-types-for-rules-without-actions.md)) in the order of their rules, separated by blank lines; the empty string when the grammar has none, and `null` when its templates do not expand. It is there even when the checks find errors.
 - `module`: the generated module, byte for byte the file that `peg-hs gen` writes for the same request, or `null` when there are errors.
 
 The request of `format` is `{"grammar": "..."}`, and its response is `{"text": "...", "diagnostics": [...]}`.
 `text` is what `peg-hs fmt` writes, or `null` with errors in `diagnostics`.
-The request of `parse` is `{"grammar": "...", "input": "...", "entry": null}`, where `entry`, a rule of `%entry`, may be left out or `null` for the start rule.
+The request of `parse` is `{"grammar": "...", "input": "...", "entry": null}`, where `entry`, a rule of `%entry`, may be left out or `null` for the start rule, and `imports` gives the libraries as for `analyze`.
 It parses the input as `peg-hs parse --interpret` does, and its response is:
 
 ```json
@@ -875,6 +911,7 @@ Grammar files were `.peg` until v0.1.0-rc1; they are `.hpeg` now, and the langua
 - **GHC for `peg-hs parse`**: `parse` compiles the parser with the `ghc` on `PATH`, which must be GHC 9.10, 9.12 or 9.14 ([ADR 0036](docs/adr/0036-parse-command.md), [ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)). `--interpret` needs no GHC, but shows no AST and takes only grammars whose predicates it can evaluate ([ADR 0090](docs/adr/0090-grammar-interpreter-without-ghc.md)). The grammars of Lua, TOML and CommonMark in this repository and the grammar of the notation call Haskell functions in their predicates, so the interpreter does not take them.
 - **Rules whose type names collide**: with `%syntax`, each rule has a type named after it, so two rules such as `expr` and `Expr` are an error. `peg-hs parse` always generates the syntax tree too, so it rejects such grammars even without `%syntax` ([ADR 0053](docs/adr/0053-type-names-of-rules-without-case.md)).
 - **The check of labels is conservative**: it does not miss labels that may reject valid input, and in exchange it may warn of labels that are in fact safe. `%safe` silences the warning of a label that the author checked. The grammar of the notation itself has 23 `%safe` ([ADR 0028](docs/adr/0028-label-safety-check.md), [ADR 0038](docs/adr/0038-label-check-precision-and-strip-labels-entries.md)).
+- **Libraries**: imports are one level deep, without qualified names, imports of chosen rules, or `..` in paths; rename a rule whose name collides. A library has no verbatim blocks, so the grammar that imports it imports the Haskell its actions use. The language server sees a change on the disk of a library that is not open when the grammar is opened again or edited ([ADR 0092](docs/adr/0092-import-rules-from-other-grammars.md)).
 - **Rule templates**: the arguments of a template may use the parameters of the caller, but not its bindings; pass the value of a binding as a value argument. A template cannot be a rule of `%entry`, `%start` or `%recover` ([ADR 0031](docs/adr/0031-rule-templates.md), [ADR 0055](docs/adr/0055-templates-and-parameterized-rules-in-stages.md)).
 - **The nesting of expressions**: an expression nests at most 256 levels deep. Each group, prefix and postfix operator, label and template call is a level, and a deeper expression is an error at the level that goes over the limit. The limit cannot be changed ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 - **The tree-sitter grammar**: an alternative with neither elements nor an action (`S <- 'a' /`) is an error. Such an alternative has no value, so `peg-hs gen` always rejects it too, and no valid grammar is shown as an error ([ADR 0045](docs/adr/0045-fixes-before-v0-1-0.md)).

@@ -157,11 +157,11 @@ uninterpretableTests =
               g0 <- parseGrammar src
               either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> check g >>= interpreter g)
         case diags of
-          Left ds -> ds @?= [Diagnostic (Loc 4 13) "the interpreter cannot evaluate the predicate &{ f 1 } (in the template T, expanded at 2:6)"]
+          Left ds -> ds @?= [Diagnostic (Loc 0 4 13) "the interpreter cannot evaluate the predicate &{ f 1 } (in the template T, expanded at 2:6)"]
           Right _ -> assertFailure "the interpreter accepted the grammar"
     ]
   where
-    messages src = either (Left . map (\(Diagnostic (Loc l c) m) -> (l, c, m))) (const (Right ())) (prepare src)
+    messages src = either (Left . map (\(Diagnostic (Loc _ l c) m) -> (l, c, m))) (const (Right ())) (prepare src)
 
 -- Parse, expand, check and prepare a grammar, as peg-hs parse --interpret.
 prepare :: Text -> Either [Diagnostic] Interpreter

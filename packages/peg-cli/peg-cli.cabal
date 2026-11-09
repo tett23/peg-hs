@@ -45,6 +45,7 @@ executable peg-hs
     Embedded
     FileIO
     GhcVersion
+    Imports
     Options
     Paths_peg_cli
     Pretty
@@ -87,6 +88,7 @@ test-suite peg-cli-test
     FileIO
     Files
     GhcVersion
+    Imports
     Options
     Paths_peg_cli
     Pretty

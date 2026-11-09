@@ -64,6 +64,13 @@ Since v0.1.0-rc3:
 
 Since v0.1.0-rc6:
 
+- Libraries: `peg-hs gen`, `parse` (with `--interpret` too), `test`,
+  `lint` and `label` read the libraries that a grammar imports with
+  `%import`, and report their errors at the libraries. The cache of
+  `parse` has the texts of the libraries in its key. `lint` checks a
+  library on its own and reports the warnings of a grammar in the grammar
+  only. `label --write` does not change the libraries
+  ([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)).
 - `peg-hs gen` takes `%expect` and `%message`, `peg-hs fmt` keeps the
   inside of their strings, and `peg-hs parse` shows the display names and
   the messages in its errors

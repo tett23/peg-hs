@@ -27,6 +27,10 @@ import Data.Char (isDigit)
 %deriving Eq, Show
 #         ^ @type
 #             ^ @type
+%import lex/Ident.hpeg # the identifiers
+# <- @keyword.directive
+#        ^ @string.special.path
+#                      ^ @comment
 %entry Pair
 %nomemo Skip
 

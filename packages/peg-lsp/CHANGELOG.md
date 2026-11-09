@@ -71,6 +71,18 @@ Since v0.1.0-rc3:
   constructor names of a rule
   ([ADR 0075](https://github.com/tett23/peg-hs/blob/main/docs/adr/0075-generated-types-for-rules-without-actions.md)).
 
+Since v0.1.0-rc6:
+
+- Libraries: the server reads the libraries that a grammar with a
+  `file:` URI imports, from the directory of the grammar and below it,
+  without following symbolic links; an open library is used as it is.
+  `Step` has `stepReads`, the files to read, and `receiveFiles` takes
+  them. The diagnostics in a library are at its `%import`, go to the
+  definition goes to the library, and the hover shows the types of
+  imported rules. An `%import` of a grammar that is not a file is an
+  error
+  ([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)).
+
 ### Changed
 
 Since v0.1.0-rc4:

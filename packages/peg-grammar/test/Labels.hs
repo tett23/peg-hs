@@ -53,7 +53,7 @@ labelTests files =
         warnedLabels (grammar ["S :: ()", "S <- 'a' ('b' ^l) { () } / 'a' 'c' { () }", "%safe l"]) @?= Right []
     , testCase "%safe of a label that does not appear is an error" $
         fmap (const ()) (parseGrammar (grammar ["S :: ()", "S <- 'a' { () }", "%safe nolabel"]) >>= check)
-          @?= Left [Diagnostic (Loc 4 1) "the label nolabel does not appear in the grammar"]
+          @?= Left [Diagnostic (Loc 0 4 1) "the label nolabel does not appear in the grammar"]
     , testCase "the grammars of the repository have no warnings" $ do
         ws <- mapM (\f -> (,) f . fmap labelWarnings . (>>= \g -> g <$ check g) . (>>= expandTemplates) <$> grammarOf f) files
         [(f, w) | (f, w) <- ws, w /= Right []] @?= []
@@ -99,7 +99,7 @@ labelTests files =
         fmap (map unLoc . grammarEntries . stripLabelsAs "N") (parseGrammar sharedRecovery) @?= Right ["Skip"]
     , testCase "a rule named twice in %entry is an error (ADR 0038)" $
         fmap (const ()) (parseGrammar (grammar ["%entry A", "%entry A", "S :: ()", "S <- A { () }", "A :: ()", "A <- 'a' { () }"]) >>= check)
-          @?= Left [Diagnostic (Loc 3 1) "the rule A is named in %entry twice"]
+          @?= Left [Diagnostic (Loc 0 3 1) "the rule A is named in %entry twice"]
     ]
       ++ chunkedProperty "with parameters, constant predicates and long literals, a grammar without warnings accepts the same language without its labels (ADR 0038)" 3000 (\part ->
           forAll (variant part genGrammarWithParams) $ \src -> case parseGrammar src >>= check >> parseGrammar src of
@@ -151,7 +151,7 @@ labelTests files =
     )
   where
     grammarOf f = parseGrammar <$> TIO.readFile f
-    renderD (Diagnostic (Loc l c) m) = T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> m
+    renderD (Diagnostic (Loc _ l c) m) = T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> m
 
 -- One character deleted or duplicated, at about 200 positions of a file.
 mutants :: Text -> [Text]

@@ -636,6 +636,62 @@
               "type": "FIELD",
               "name": "name",
               "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "STRING",
+                  "value": "%import"
+                },
+                "named": true,
+                "value": "directive_name"
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "_directive_space"
+                    },
+                    {
+                      "type": "FIELD",
+                      "name": "argument",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "import_path"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "%library"
+            },
+            "named": true,
+            "value": "directive_name"
+          }
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "name",
+              "content": {
                 "type": "SYMBOL",
                 "name": "directive_name"
               }
@@ -715,6 +771,13 @@
         "type": "PATTERN",
         "value": "[\\p{L}_][\\p{L}\\p{N}_'.]*",
         "flags": "u"
+      }
+    },
+    "import_path": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[^ \\t\\n#]+([ \\t]+[^ \\t\\n#]+)*"
       }
     },
     "directive_argument": {

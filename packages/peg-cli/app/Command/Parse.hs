@@ -36,8 +36,8 @@ import Peg.Codegen (Options (..), generate)
 import Peg.Grammar
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Interpret (interpret, interpreter, interpreterKindName)
-import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
+import Imports (Loaded (..), loadGrammar)
 import System.Directory
 import System.Environment (lookupEnv)
 import System.Exit (ExitCode (..))
@@ -125,9 +125,9 @@ parseWith grammarFile input format entry ghcArgs =
 
 parseText :: FilePath -> FilePath -> Format -> Maybe String -> [String] -> T.Text -> IO ExitCode
 parseText grammarFile input format entry ghcArgs src =
-  case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (const (Right g0)) (expandTemplates g0 >>= check) of
-    Left diags -> reportErrors grammarFile diags >> pure (ExitFailure 1)
-    Right g
+  loadGrammar grammarFile src >>= \loaded -> case loaded >>= \l -> let g0 = loadedGrammar l in either (\ds -> Left (grammarImports g0, templateNotes g0 ds)) (const (Right l)) (expandTemplates g0 >>= check) of
+    Left (imports, diags) -> reportErrors grammarFile imports diags >> pure (ExitFailure 1)
+    Right (Loaded g libraries)
       | isJust (grammarEnv g) -> failWith (grammarFile <> ": peg-hs parse does not support grammars with %env")
       | Just e <- entry, T.pack e `notElem` map unLoc (grammarEntries g) -> failWith (grammarFile <> ": " <> e <> " is not a rule of %entry")
       | otherwise ->
@@ -135,7 +135,7 @@ parseText grammarFile input format entry ghcArgs src =
             Left msg -> failWith msg
             Right ghc -> do
               base <- cacheBase
-              compiledParser ghc base grammarFile g src (format /= Cst) entry ghcArgs >>= \case
+              compiledParser ghc base grammarFile g src libraries (format /= Cst) entry ghcArgs >>= \case
                 Nothing -> pure (ExitFailure 1)
                 Just exe -> do
                   (code, out', err) <- readProcessBytes exe [modeArg format, input]
@@ -158,13 +158,13 @@ interpretFile grammarFile input entry =
     Right src ->
       readUtf8 directoryHint input >>= \case
         Left e -> reportFileError e >> pure (ExitFailure 1)
-        Right text -> case parseGrammar src >>= \g0 -> either (Left . templateNotes g0) (\(g, an) -> Right (g0, g, an)) (expandTemplates g0 >>= \g -> (,) g <$> check g) of
-          Left diags -> reportErrors grammarFile diags >> pure (ExitFailure 1)
+        Right text -> loadGrammar grammarFile src >>= \loaded -> case loaded >>= \l -> let g0 = loadedGrammar l in either (\ds -> Left (grammarImports g0, templateNotes g0 ds)) (\(g, an) -> Right (g0, g, an)) (expandTemplates g0 >>= \g -> (,) g <$> check g) of
+          Left (imports, diags) -> reportErrors grammarFile imports diags >> pure (ExitFailure 1)
           Right (g0, g, an)
             | Just e <- entry, T.pack e `notElem` map unLoc (grammarEntries g) -> failWith (grammarFile <> ": " <> e <> " is not a rule of %entry")
             | otherwise -> case interpreter g an of
                 Left diags -> do
-                  reportErrors grammarFile (templateNotes g0 diags)
+                  reportErrors grammarFile (grammarImports g0) (templateNotes g0 diags)
                   failWith "the interpreter cannot parse with this grammar; leave out --interpret to compile the parser with ghc"
                 Right ip -> case interpret ip (T.pack <$> entry) text of
                   Left err -> TIO.hPutStrLn stderr (renderParseError err) >> pure (ExitFailure 1)
@@ -208,9 +208,13 @@ cacheBase = do
 -- what it shows to standard output and the parse error to standard error,
 -- and exits with 1 on a parse error. Nothing after reporting the errors of
 -- the build. An executable without the AST needs no Show instance.
-compiledParser :: Ghc -> FilePath -> FilePath -> Grammar -> T.Text -> Bool -> Maybe String -> [String] -> IO (Maybe FilePath)
-compiledParser ghc base grammarFile g src withAst entry ghcArgs = do
-  let dir = cacheDir base (T.unpack src) entry ghcArgs (ghcVersion ghc)
+--
+-- The grammar is given with its text and the texts of the libraries it
+-- imports, by the paths of the @%import@s (ADR 0092), which are all in
+-- the key of the cache: a change of a library builds the parser again.
+compiledParser :: Ghc -> FilePath -> FilePath -> Grammar -> T.Text -> [(FilePath, T.Text)] -> Bool -> Maybe String -> [String] -> IO (Maybe FilePath)
+compiledParser ghc base grammarFile g src libraries withAst entry ghcArgs = do
+  let dir = cacheDir base (T.unpack src) libraries entry ghcArgs (ghcVersion ghc)
       exe = parserPath dir withAst
   built <- doesFileExist exe
   ok <-
@@ -219,10 +223,11 @@ compiledParser ghc base grammarFile g src withAst entry ghcArgs = do
       else build ghc grammarFile g dir withAst entry ghcArgs
   pure (if ok then Just exe else Nothing)
 
--- The cache directory for a grammar, the options and the versions.
-cacheDir :: FilePath -> String -> Maybe String -> [String] -> String -> FilePath
-cacheDir base src entry ghcArgs v =
-  let key = intercalate "\0" [src, fromMaybe "" entry, intercalate "\1" ghcArgs, showVersion version, v, mainVersion]
+-- The cache directory for a grammar, its libraries in the order of the
+-- @%import@s, the options and the versions.
+cacheDir :: FilePath -> String -> [(FilePath, T.Text)] -> Maybe String -> [String] -> String -> FilePath
+cacheDir base src libraries entry ghcArgs v =
+  let key = intercalate "\0" [src, intercalate "\1" [p <> "\2" <> T.unpack t | (p, t) <- libraries], fromMaybe "" entry, intercalate "\1" ghcArgs, showVersion version, v, mainVersion]
    in base </> fnv1a key
 
 -- An executable that shows the AST, the CST or both; one without the AST
@@ -245,10 +250,10 @@ build ghc grammarFile g dir withAst entry ghcArgs = withWorkDir $ \work -> do
   let srcDir = work </> "src"
       moduleName = T.unpack (unLoc (grammarModule g))
       modulePath = srcDir </> map (\c -> if c == '.' then '/' else c) moduleName <> ".hs"
-      syntaxGrammar = g {grammarSyntax = Just (fromMaybe (Loc 1 1) (grammarSyntax g))}
+      syntaxGrammar = g {grammarSyntax = Just (fromMaybe (Loc 0 1 1) (grammarSyntax g))}
       opts = Options {optSourceName = grammarFile, optOutputName = modulePath, optDebugEntry = False, optExports = Nothing}
   case generate opts syntaxGrammar of
-    Left diags -> reportErrors grammarFile diags >> pure False
+    Left diags -> reportErrors grammarFile (grammarImports g) diags >> pure False
     Right code -> do
       createDirectoryIfMissing True (takeDirectory modulePath)
       BS.writeFile modulePath (TE.encodeUtf8 code)

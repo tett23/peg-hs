@@ -27,6 +27,8 @@ extra-source-files:
   test/golden/generated/*.golden
   test/derived/*.hpeg
   test/random/*.txt
+  test/imports/*.hpeg
+  test/imports/lex/*.hpeg
 
 source-repository head
   type:     git
@@ -73,6 +75,7 @@ test-suite peg-codegen-test
     Fixture.Generated
     Fixture.GeneratedNames
     Fixture.GeneratedPlain
+    Fixture.Imports
     Fixture.Indent
     Fixture.Link
     Fixture.Located

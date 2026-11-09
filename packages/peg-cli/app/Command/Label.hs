@@ -20,8 +20,10 @@ import qualified Data.Text as T
 import Diagnostics (reportErrors)
 import FileIO (readUtf8, reportFileError, writeUtf8)
 import Options
-import Peg.Grammar (Loc (..))
-import Peg.Grammar.LabelInsertion (Insertion (..), insertLabels, symbolNames)
+import Peg.Grammar (Diagnostic, Loc (..), Located, grammarImports)
+import Peg.Grammar.Import.Files (readImports)
+import Peg.Grammar.LabelInsertion (Insertion (..), insertLabelsWithImports, symbolNames)
+import Peg.Grammar.Parser (parseGrammar)
 import System.Exit (ExitCode (..))
 
 labelCommand :: Command
@@ -68,8 +70,8 @@ run p = case parsedArguments p of
   [input] ->
     readUtf8 "peg-hs label takes a grammar file, not a directory" input >>= \case
       Left e -> reportFileError e >> pure (ExitFailure 1)
-      Right src -> case insertLabels [T.pack r | ("rule", r) <- parsedOptions p] src of
-        Left diags -> reportErrors input diags >> pure (ExitFailure 1)
+      Right src -> libraries input src >>= \(imports, texts) -> case texts >>= \ts -> insertLabelsWithImports ts [T.pack r | ("rule", r) <- parsedOptions p] src of
+        Left diags -> reportErrors input imports diags >> pure (ExitFailure 1)
         Right (labels, out) -> do
           written <-
             if flag "write" p && out /= src
@@ -83,7 +85,13 @@ run p = case parsedArguments p of
   [] -> commandUsageError "label" "label needs a grammar file"
   _ -> commandUsageError "label" "label takes one grammar file"
 
+-- The libraries of a grammar (ADR 0092), with its @%import@s.
+libraries :: FilePath -> T.Text -> IO ([Located FilePath], Either [Diagnostic] [(FilePath, T.Text)])
+libraries input src = case parseGrammar src of
+  Left diags -> pure ([], Left diags)
+  Right g -> (,) (grammarImports g) <$> readImports input g
+
 line :: FilePath -> Insertion -> String
 line file i =
-  let Loc l c = insertionStart i
+  let Loc _ l c = insertionStart i
    in file <> ":" <> show l <> ":" <> show c <> ": ^" <> T.unpack (insertionName i)

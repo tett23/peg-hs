@@ -23,6 +23,7 @@ import qualified Fixture.Extensions as Extensions
 import qualified Fixture.Generated as Generated
 import qualified Fixture.GeneratedNames as GeneratedNames
 import qualified Fixture.GeneratedPlain as GeneratedPlain
+import qualified Fixture.Imports as Imports
 import qualified Fixture.Indent as Indent
 import qualified Fixture.Link as Link
 import qualified Fixture.Located as Located
@@ -59,6 +60,7 @@ import qualified Fixture.UnitsSyntax as UnitsSyntax
 import qualified Fixture.UntypedSyntax as UntypedSyntax
 import Peg.Codegen
 import Peg.Grammar (Diagnostic (..), Loc (..))
+import Peg.Grammar.Import.Files (readImports)
 import Peg.Grammar.Constructors (constructorNameEdits)
 import Peg.Grammar.LabelInsertion (Edit (..), insertLabels)
 import Peg.Grammar.Labels (stripLabelsAs)
@@ -98,6 +100,7 @@ main =
             text <- T.pack <$> readFile "peg-codegen.cabal"
             let squeeze = T.unwords . T.words
             assertBool "the range of peg-runtime in peg-codegen.cabal" (squeeze runtimeVersions `T.isInfixOf` squeeze text)
+      , importTests
       , sumTests
       , arithTests
       , calcTests
@@ -164,7 +167,7 @@ fileNameTests =
     "a file name with a control character is an error (ADR 0080)"
     ( [ testCase (field <> " " <> show c) $
           generateFromSource (set (T.unpack ("x.hpeg" <> T.singleton c <> "import Evil"))) src
-            @?= Left [Diagnostic (Loc 1 1) "the file name contains a control character"]
+            @?= Left [Diagnostic (Loc 0 1 1) "the file name contains a control character"]
       | (field, set) <- [("optSourceName", \n -> defaultOptions {optSourceName = n}), ("optOutputName", \n -> defaultOptions {optOutputName = n})]
       , c <- ['\n', '\r', '\0', '\t', '\x1F', '\x7F']
       ]
@@ -177,7 +180,7 @@ fileNameTests =
     src = "%module M\nS :: ()\nS <- 'a' { () }\n"
 
 fixtures :: [String]
-fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain", "Differential"]
+fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain", "Differential", "Imports"]
 
 -- The grammar of a fixture. The versions with { () } that the linter
 -- would have omitted are .txt files outside test/fixtures, which
@@ -188,6 +191,9 @@ fixtureSource n
   -- The random grammars of ADR 0090, which the linter would warn about,
   -- outside the walk of peg-hs lint and fmt.
   | n == "Differential" = "test/random/" <> n <> ".txt"
+  -- A grammar and its library (ADR 0092), outside test/fixtures, whose
+  -- grammars the tests of peg-grammar check without their libraries.
+  | n == "Imports" = "test/imports/" <> n <> ".hpeg"
   | otherwise = "test/fixtures/" <> n <> ".hpeg"
 
 fixtureOptions :: String -> Options
@@ -199,12 +205,40 @@ fixtureOptions n =
     , optExports = Nothing
     }
 
+-- The libraries of a fixture are read as peg-hs gen reads them (ADR 0092).
 generateFixture :: Options -> String -> IO BL.ByteString
 generateFixture opts n = do
   src <- TIO.readFile (fixtureSource n)
-  case generateFromSource opts src of
+  libraries <- either (const (pure (Right []))) (readImports (fixtureSource n)) (parseGrammar src)
+  case libraries >>= \ls -> generateWithWarnings opts Nothing ls src >>= generationModule of
     Left ds -> assertFailure (show ds) >> pure ""
     Right code -> pure (BL.fromStrict (TE.encodeUtf8 code))
+
+-- A grammar that imports a library (ADR 0092): test/imports/Imports.hpeg
+-- and its library test/imports/lex/Lex.hpeg.
+importTests :: TestTree
+importTests =
+  testGroup
+    "libraries (ADR 0092)"
+    [ testCase "the rules of the library parse the input" $
+        Imports.parse "x1 = 42" @?= Right ("x1", 42)
+    , testCase "the LINE pragmas of the actions of the library point at the library" $ do
+        code <- TIO.readFile "test/generated/Fixture/Imports.hs"
+        assertBool "a LINE pragma at test/imports/lex/Lex.hpeg:11" ("{-# LINE 11 \"test/imports/lex/Lex.hpeg\" #-}" `T.isInfixOf` code)
+        assertBool "the rule that the grammar does not reach is not generated" (not ("Unused" `T.isInfixOf` code))
+    , testCase "the same grammar and library generate the same module" $ do
+        a <- generateFixture (fixtureOptions "Imports") "Imports"
+        b <- generateFixture (fixtureOptions "Imports") "Imports"
+        a @?= b
+    , skippedWithout "../peg-runtime/src" "a type error in an action of a library is at the library" $ do
+        (ex, err) <-
+          typecheckWithLibraries
+            "Uses"
+            (T.unlines ["%module Uses", "%import lex/Bad.hpeg", "", "S :: Int", "S <- N"])
+            [("lex/Bad.hpeg", T.unlines ["%library", "", "N :: Int", "N <- 'n' { not True }"])]
+        ex @?= ExitFailure 1
+        assertBool ("error not reported at lex/Bad.hpeg:4:12\n" <> err) ("lex/Bad.hpeg:4:12" `T.isInfixOf` T.pack err)
+    ]
 
 -- The committed generated modules must be exactly what the generator
 -- produces now (ADR 0002, ADR 0010).
@@ -395,7 +429,7 @@ generatedTypeTests =
   where
     -- Edits at locations of the text, applied from the last.
     applyEdits edits t = foldr insertAt t (sortOn (\(Edit l _) -> l) edits)
-    insertAt (Edit (Loc l c) x) t =
+    insertAt (Edit (Loc _ l c) x) t =
       case splitAt (l - 1) (T.splitOn "\n" t) of
         (above, line : below) -> T.intercalate "\n" (above ++ [T.take (c - 1) line <> x <> T.drop (c - 1) line] ++ below)
         _ -> t
@@ -865,18 +899,18 @@ exportTests =
     , testGroup
         "names that the generator does not define"
         [ testCase "parseRecover without labels" $
-            exportErrors "Sum" ["parseRecover"] >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define parseRecover"])
+            exportErrors "Sum" ["parseRecover"] >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define parseRecover"])
         , testCase "a name of %export" $
-            exportErrors "Recover" ["Block(..)"] >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define Block(..)"])
+            exportErrors "Recover" ["Block(..)"] >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define Block(..)"])
         , testCase "a name of %export without (..)" $
-            exportErrors "Recover" ["Inline"] >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define Inline"])
+            exportErrors "Recover" ["Inline"] >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define Inline"])
         , testCase "a type with (..)" $
-            exportErrors "Syntax" ["ExprSyntax(..)"] >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define ExprSyntax(..)"])
+            exportErrors "Syntax" ["ExprSyntax(..)"] >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define ExprSyntax(..)"])
         , testCase "parseSyntax without %syntax" $
-            exportErrors "Sum" ["parseSyntax"] >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define parseSyntax"])
+            exportErrors "Sum" ["parseSyntax"] >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define parseSyntax"])
         , testCase "two names, in the order given" $
             exportErrors "Sum" ["parseZ", "parse", "parseA"]
-              >>= (@?= [Diagnostic (Loc 1 1) "the generator does not define parseZ", Diagnostic (Loc 1 1) "the generator does not define parseA"])
+              >>= (@?= [Diagnostic (Loc 0 1 1) "the generator does not define parseZ", Diagnostic (Loc 0 1 1) "the generator does not define parseA"])
         ]
     ]
   where
@@ -936,6 +970,20 @@ ghc = "ghc-" <> showVersion fullCompilerVersion
 -- archive has no runtime sources, and the tests are skipped.
 typecheck :: String -> Text -> IO (ExitCode, String)
 typecheck = typecheckWith []
+
+-- 'typecheck' for a grammar with the texts of its libraries (ADR 0092).
+typecheckWithLibraries :: String -> Text -> [(FilePath, Text)] -> IO (ExitCode, String)
+typecheckWithLibraries name src libraries = do
+  tmp <- getTemporaryDirectory
+  let dir = tmp </> "peg-codegen-test"
+      opts = Options {optSourceName = name <> ".hpeg", optOutputName = name <> ".hs", optDebugEntry = False, optExports = Nothing}
+  createDirectoryIfMissing True dir
+  case generateWithWarnings opts Nothing libraries src >>= generationModule of
+    Left ds -> assertFailure (show ds) >> pure (ExitFailure 1, "")
+    Right code -> do
+      TIO.writeFile (dir </> name <> ".hs") code
+      (ex, _, err) <- readProcessWithExitCode ghc ["-fno-code", "-i../peg-runtime/src", "-outputdir", dir </> "out", dir </> name <> ".hs"] ""
+      pure (ex, err)
 
 -- 'typecheck' with more options of GHC, such as warnings.
 typecheckWith :: [String] -> String -> Text -> IO (ExitCode, String)

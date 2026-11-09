@@ -512,7 +512,7 @@ verdictMessage name = \case
   Unchecked why -> Just ("the label " <> name <> " cannot be checked: " <> why)
 
 showLoc :: Loc -> Text
-showLoc (Loc l c) = T.pack (show l) <> ":" <> T.pack (show c)
+showLoc (Loc _ l c) = T.pack (show l) <> ":" <> T.pack (show c)
 
 visit :: Text -> [Frame] -> Mode -> ([Item], Int) -> CharSet -> State Visited Verdict -> State Visited Verdict
 visit rule fs mode (pre, lifts) k act = do
@@ -685,7 +685,7 @@ plainExpr = \case
   ETemplate _ n as vs -> ETemplate noLoc n (map plainExpr as) [Located noLoc (unLoc v) | v <- vs]
   e -> e
   where
-    noLoc = Loc 0 0
+    noLoc = Loc 0 0 0
 
 -- The Haskell code of an expression: arguments and predicates.
 exprCodes :: Expr -> [Text]

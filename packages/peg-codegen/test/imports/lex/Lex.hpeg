@@ -1,0 +1,17 @@
+# The lexical rules that test/imports/Imports.hpeg imports (ADR 0092).
+%library
+
+Ident :: Text
+Ident <- $(IdentStart IdentChar*) Sp
+
+IdentStart <- [a-zA-Z_]
+
+IdentChar <- [a-zA-Z0-9_]
+
+Num :: Int
+Num <- d:$[0-9]+ Sp { read (T.unpack d) }
+
+Sp <- [ \t]*
+
+# Not reached from the grammar: not generated.
+Unused <- 'u'

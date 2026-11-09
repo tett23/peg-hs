@@ -68,6 +68,11 @@ Since v0.1.0-rc3:
 
 Since v0.1.0-rc6:
 
+- Libraries: `generateWithWarnings` takes the texts of the libraries
+  that the grammar imports, and the `LINE` pragmas of the actions of a
+  library name the library. `renderWarning` takes the imports of the
+  grammar to name the file of a warning
+  ([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)).
 - `generateWithWarnings` and `Generation`, the steps of `peg-hs gen`
   without reading and writing files: parse, expand the templates, check,
   collect the warnings about labels and generate. `peg-hs gen` and

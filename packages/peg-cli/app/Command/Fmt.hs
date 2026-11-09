@@ -42,7 +42,7 @@ format checkOnly file =
   readUtf8 "" file >>= \case
     Left e -> reportFileError e >> pure False
     Right src -> case formatGrammar src of
-      Left diags -> reportErrors file diags >> pure False
+      Left diags -> reportErrors file [] diags >> pure False
       Right out
         | out == src -> pure True
         | checkOnly -> putStrLn file >> pure False

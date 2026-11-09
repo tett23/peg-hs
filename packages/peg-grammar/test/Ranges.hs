@@ -45,7 +45,7 @@ rangeTests files =
             | h <- maybe [] id (highlights src)
             , Just k <- [lookup (hlKind h) compared]
             ]
-    pos (Loc l c) = T.pack (show l) <> ":" <> T.pack (show c)
+    pos (Loc _ l c) = T.pack (show l) <> ":" <> T.pack (show c)
 
 -- A path relative to the package as a path relative to the repository.
 repoPath :: FilePath -> FilePath

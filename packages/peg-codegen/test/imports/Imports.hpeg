@@ -1,0 +1,11 @@
+# A grammar that imports the rules of a library (ADR 0092).
+%module Fixture.Imports
+%import lex/Lex.hpeg
+
+%{
+import Data.Text (Text)
+import qualified Data.Text as T
+}%
+
+Assign :: (Text, Int)
+Assign <- n:Ident '=' Sp v:Num { (n, v) }

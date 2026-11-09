@@ -20,7 +20,7 @@ import Peg.Grammar.Assemble
 import Peg.Runtime (Pos (..), Span (..))
 
 here :: Span -> Loc
-here s = Loc (posLine (spanStart s)) (posColumn (spanStart s))
+here s = Loc 0 (posLine (spanStart s)) (posColumn (spanStart s))
 
 firstChar :: Text -> Char
 firstChar = T.foldr const ' '
@@ -687,7 +687,7 @@ peg'rule'Declaration =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure (
 {-# LINE 191 "bench/PegCounted.txt" #-}
- {-# COLUMN 90 #-} TVerbatim (Loc 0 0) T.empty 
+ {-# COLUMN 90 #-} TVerbatim (Loc 0 0 0) T.empty 
 {-# LINE 692 "bench/Conformance/Bench/PegCounted.hs" #-}
     )
           }

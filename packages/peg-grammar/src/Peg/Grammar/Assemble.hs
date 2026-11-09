@@ -19,6 +19,7 @@ module Peg.Grammar.Assemble
   , verbatimBody
   , directiveArg
   , directiveComment
+  , isImportPath
   ) where
 
 import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
@@ -59,8 +60,8 @@ isValidIdent t = case T.uncons t of
 advanceLoc :: Loc -> Text -> Loc
 advanceLoc = T.foldl' step
   where
-    step (Loc l _) '\n' = Loc (l + 1) 1
-    step (Loc l c) _ = Loc l (c + 1)
+    step (Loc f l _) '\n' = Loc f (l + 1) 1
+    step (Loc f l c) _ = Loc f l (c + 1)
 
 -- | A parameter @name :: Type@ from an argument chunk.
 toParam :: Located Text -> Either Text Param
@@ -82,7 +83,7 @@ toParam (Located l t) = case T.breakOn "::" t of
 verbatimBody :: Loc -> Text -> (Loc, Text)
 verbatimBody l body =
   let (start, text) = case T.uncons body of
-        Just ('\n', rest) -> (Loc (locLine l + 1) 1, rest)
+        Just ('\n', rest) -> (Loc (locFile l) (locLine l + 1) 1, rest)
         _ -> (l, T.stripStart body)
    in (start, T.stripEnd text)
 
@@ -184,6 +185,11 @@ decodeString start = go (next start '"') []
 -- module name, and the items of @%export@ items of an export list
 -- (ADR 0080). The rules themselves are checked by
 -- 'Peg.Grammar.Check.check'.
+--
+-- A file with @%library@ is a library (ADR 0092): it has no @%module@, its
+-- 'grammarModule' is empty at the location of @%library@, and it has only
+-- comments and rules besides @%library@. The paths of @%import@ must have
+-- the form of 'isImportPath', and a path is imported once.
 assemble :: [Top] -> Either [Diagnostic] Grammar
 assemble items =
   case errors of
@@ -192,6 +198,8 @@ assemble items =
         Right
           Grammar
             { grammarModule = m
+            , grammarImports = [Located l (T.unpack a) | (l, _, a) <- imports]
+            , grammarLibrary = libraryLoc
             , grammarStart = single "start"
             , grammarEntries = [Located l a | TDirective l "entry" _ a <- items]
             , grammarExports = concat [splitExports al a | TDirective _ "export" al a <- items]
@@ -219,12 +227,27 @@ assemble items =
             , grammarVerbatim = [Located l t | TVerbatim l t <- items]
             , grammarRules = rules
             }
-      Nothing -> Left [Diagnostic (Loc 1 1) "missing %module directive"]
+      Nothing -> Left [Diagnostic (Loc 0 1 1) "missing %module directive"]
     es -> Left (sortOn diagLoc es)
   where
     directives = [(l, n, a) | TDirective l n _ a <- items]
     argLocs = [(n, al, a) | TDirective _ n al a <- items]
-    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message"]
+    known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
+    -- ADR 0092
+    libraryLoc = case [l | (l, "library", _) <- directives] of
+      l : _ -> Just l
+      [] -> Nothing
+    imports = [(l, al, a) | TDirective l "import" al a <- items]
+    libraryErrors = case libraryLoc of
+      Nothing -> []
+      Just ll ->
+        [Diagnostic ll "%library and %module cannot be in the same file" | (_, "module", _) <- take 1 [d | d@(_, "module", _) <- directives]]
+          ++ [ Diagnostic l ("a library cannot have %" <> n <> "; write it in the grammar that imports the library")
+             | (l, n, _) <- directives
+             , n `elem` known
+             , n `notElem` ["library", "module"]
+             ]
+          ++ [Diagnostic l "a library cannot have %{ ... }%; write it in the grammar that imports the library" | TVerbatim l _ <- items]
     -- ADR 0089
     stringArgs d = [(l, stringArg d l (Located al a)) | TDirective l d' al a <- items, d' == d, not (T.null a)]
     expects = stringArgs "expect"
@@ -232,7 +255,9 @@ assemble items =
     single n = case [Located l a | (l, n', a) <- directives, n' == n] of
       x : _ -> Just x
       [] -> Nothing
-    moduleName = single "module"
+    moduleName = case libraryLoc of
+      Just l -> Just (Located l "")
+      Nothing -> single "module"
     tabstop = case single "tabstop" of
       Just (Located l a) | T.all isDigit a, not (T.null a) -> Just (Located l (read (T.unpack a)))
       _ -> Nothing
@@ -251,11 +276,23 @@ assemble items =
     errors =
       [Diagnostic l ("unknown directive %" <> n) | (l, n, _) <- directives, n `notElem` known]
         ++ [ Diagnostic l ("duplicate %" <> n <> " directive")
-           | n <- ["module", "start", "env", "tabstop", "syntax", "deriving"]
+           | n <- ["module", "start", "env", "tabstop", "syntax", "deriving", "library"]
            , (l, _, _) : _ : _ <- [reverse [d | d@(_, n', _) <- directives, n' == n]]
            ]
-        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n `notElem` ["syntax", "deriving"], T.null a]
-        ++ [Diagnostic l "%syntax takes no argument" | (l, "syntax", a) <- directives, not (T.null a)]
+        ++ [Diagnostic l ("%" <> n <> " needs an argument") | (l, n, a) <- directives, n `elem` known, n `notElem` ["syntax", "deriving", "library"], T.null a]
+        ++ [Diagnostic l ("%" <> n <> " takes no argument") | (l, n, a) <- directives, n `elem` ["syntax", "library"], not (T.null a)]
+        -- ADR 0092
+        ++ libraryErrors
+        ++ [ Diagnostic al "%import expects a path such as lex/Ident.hpeg: parts of ASCII letters, digits, _, - and . separated by /, other than . and .., ending in .hpeg"
+           | (_, al, a) <- imports
+           , not (T.null a)
+           , not (isImportPath a)
+           ]
+        ++ [ Diagnostic l (a <> " is imported twice")
+           | (k, (l, _, a)) <- zip [0 :: Int ..] imports
+           , isImportPath a
+           , a `elem` [b | (_, _, b) <- take k imports]
+           ]
         ++ [ Diagnostic l "%recover expects a label and a rule name"
            | (l, "recover", a) <- directives
            , not (T.null a)
@@ -323,13 +360,30 @@ assemble items =
            , c > 1
            , (l, _, _) : _ <- [drop 1 [d | d@(_, n', _) <- defs, n' == n]]
            ]
-        ++ [Diagnostic (Loc 1 1) "the grammar has no rules" | null defs, isJust moduleName]
+        ++ [Diagnostic (Loc 0 1 1) "the grammar has no rules" | null defs, isJust moduleName]
         -- ADR 0031
         ++ [ Diagnostic dl ("the template parameters of the definition of " <> n <> " do not match its type annotation")
            | (n, (dl, tns)) <- M.toList defTemplateNames
            , Just ((_, _, tps, _) : _) <- [M.lookup n annots]
            , tns /= map templateParamName tps
            ]
+
+-- | Whether a text is a path that @%import@ accepts (ADR 0092): one or more
+-- parts separated by @/@, not starting with @/@, each part a non-empty run
+-- of ASCII letters, digits, @_@, @-@ and @.@ other than @.@ and @..@, and
+-- the last part ending in @.hpeg@. Such a path names a file in the
+-- directory of the grammar or under it, and two paths name the same file
+-- when they are the same.
+--
+-- @
+-- isImportPath \"lex\/Ident.hpeg\" == True
+-- isImportPath \"..\/x.hpeg\" == False
+-- @
+isImportPath :: Text -> Bool
+isImportPath t = all part parts && ".hpeg" `T.isSuffixOf` t
+  where
+    parts = T.splitOn "/" t
+    part p = not (T.null p) && p `notElem` [".", ".."] && T.all (\c -> isAscii c && (isAlphaNum c || c `elem` ("_-." :: String))) p
 
 -- The lexical form of a GHC language extension name.
 isExtensionName :: Text -> Bool
@@ -412,7 +466,7 @@ splitExports l0 t = go l0 (T.unpack t) (0 :: Int) Nothing [] []
           let d' = if c `elem` ("([" :: String) then d + 1 else if c `elem` (")]" :: String) then d - 1 else d
               start' = maybe (Just l) Just start
            in go (adv l) cs d' start' (c : cur) acc
-    adv (Loc ln col) = Loc ln (col + 1)
+    adv (Loc f ln col) = Loc f ln (col + 1)
     finish start cur acc =
       let s = T.strip (T.pack (reverse cur))
        in case start of

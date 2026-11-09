@@ -40,6 +40,9 @@ peg=$("$cabal" list-bin exe:peg-hs)
   # The random grammars on which the interpreter is compared with the
   # generated parser (ADR 0090), made by the tests (test/Differential.hs).
   "$peg" gen test/random/Differential.txt -o test/generated/Fixture/Differential.hs --debug-entry >/dev/null
+  # A grammar that imports a library (ADR 0092), outside test/fixtures,
+  # whose grammars the tests of peg-grammar check without libraries.
+  "$peg" gen test/imports/Imports.hpeg -o test/generated/Fixture/Imports.hs --debug-entry >/dev/null
   # Golden output of the default options.
   "$peg" gen test/fixtures/Sum.hpeg -o test/golden/Sum.hs.golden >/dev/null
   # The recovery fixture without its labels, for the label safety tests (ADR 0028).

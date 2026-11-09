@@ -99,13 +99,44 @@ else
 fi
 restore grammar/Calc.hpeg
 
-edit grammar/Calc.hpeg 's/{ Num (read (T.unpack d)) }/{ Num d }/'
+edit grammar/Calc.hpeg 's/{ Num n }/{ Num True }/'
 if ! build && grep -q 'grammar/Calc\.hpeg:[0-9]*:[0-9]*: error: \[GHC-' "$log"; then
   pass "a type error of an action is at the grammar"
 else
   fail "a type error of an action"
 fi
 restore grammar/Calc.hpeg
+
+# The library of the grammar (ADR 0092): a change of it generates the
+# module again, and its errors are at the library.
+edit grammar/lex/Number.hpeg 's/{ read (T.unpack d) }/{ read (T.unpack d) * 10 }/'
+if build && grep -q 'Compiling Calc.Parser' "$log"; then
+  out=$(run '1 + 2 * 3')
+  if [ "$out" = 'Add (Num 10) (Mul (Num 20) (Num 30))' ]; then
+    pass "a change of the library changes the parser"
+  else
+    fail "after a change of the library, 1 + 2 * 3 gives: $out"
+  fi
+else
+  fail "a change of the library does not compile Calc.Parser"
+fi
+restore grammar/lex/Number.hpeg
+
+edit grammar/lex/Number.hpeg 's/^Number <- /Number <- Missing /'
+if ! build && grep -q '^grammar/lex/Number\.hpeg:[0-9]*:[0-9]*: error: ' "$log" && ! grep -q 'GHC-' "$log"; then
+  pass "an error of the library stops the build, at the library"
+else
+  fail "an error of the library"
+fi
+restore grammar/lex/Number.hpeg
+
+edit grammar/lex/Number.hpeg 's/{ read (T.unpack d) }/{ T.unpack d }/'
+if ! build && grep -q 'grammar/lex/Number\.hpeg:[0-9]*:[0-9]*: error: \[GHC-' "$log"; then
+  pass "a type error of an action of the library is at the library"
+else
+  fail "a type error of an action of the library"
+fi
+restore grammar/lex/Number.hpeg
 
 # The module is named in the .cabal file too: cabal runs only the rules
 # whose modules a component lists in autogen-modules.
@@ -127,8 +158,8 @@ fi
 rm -rf "$work/sdist"
 if "$cabal" sdist --output-directory "$work/sdist" > "$log" 2>&1; then
   tar -tzf "$work"/sdist/calc-*.tar.gz > "$log"
-  if grep -q 'grammar/Calc\.hpeg$' "$log" && grep -q 'SetupHooks\.hs$' "$log" && ! grep -q 'Parser\.hs$' "$log"; then
-    pass "the source tarball has the grammar and not the generated module"
+  if grep -q 'grammar/Calc\.hpeg$' "$log" && grep -q 'grammar/lex/Number\.hpeg$' "$log" && grep -q 'SetupHooks\.hs$' "$log" && ! grep -q 'Parser\.hs$' "$log"; then
+    pass "the source tarball has the grammar, its library and not the generated module"
   else
     fail "the files of the source tarball"
   fi

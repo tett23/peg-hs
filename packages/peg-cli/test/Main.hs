@@ -1009,6 +1009,7 @@ main = do
       , securityTests
       , auditFixTests
       , grammarTestTests
+      , importTests
       ]
 
 -- The fixes of the security audit of 2026-11-07 (ADR 0080).
@@ -1264,6 +1265,76 @@ testWithPath dir path args = do
 compiledGrammar :: String
 compiledGrammar = "%module M\n%{\nimport qualified Data.Text as T\n}%\n\nS <- n:$[a-z]+ &{ T.length n > 1 } !.\n"
 
+-- A grammar that imports a library (ADR 0092), and the library.
+importingGrammar, wordLibrary :: String
+importingGrammar = "%module G\n%import lex/Word.hpeg\n\nS <- Word !.\n"
+wordLibrary = "%library\n\nWord <- 'a'\n"
+
+-- The tests of the libraries (ADR 0092).
+importTests :: TestTree
+importTests =
+  testGroup
+    "libraries (ADR 0092)"
+    [ testCase "gen writes an error of a library at the library, by the path of the grammar" $ do
+        dir <- treeWith "import-gen" [("grammar/G.hpeg", importingGrammar), ("grammar/lex/Word.hpeg", "%library\n\nWord <- 'a' Missing\n")]
+        (code, _, err) <- pegHsIn dir ["gen", "grammar/G.hpeg"]
+        code @?= ExitFailure 1
+        err @?= "grammar/lex/Word.hpeg:3:13: error: undefined rule Missing\n"
+    , testCase "gen generates a grammar with a library, and a library is not a grammar to generate" $ do
+        dir <- treeWith "import-gen-ok" [("G.hpeg", importingGrammar), ("lex/Word.hpeg", wordLibrary)]
+        (code, _, err) <- pegHsIn dir ["gen", "G.hpeg"]
+        (code, err) @?= (ExitSuccess, "")
+        hs <- readFile (dir </> "G.hs")
+        assertBool "the module has the rule of the library" ("rule'Word" `isInfixOf` hs)
+        r <- pegHsIn dir ["gen", "lex/Word.hpeg"]
+        r @?= (ExitFailure 1, "", "lex/Word.hpeg:1:1: error: missing %module directive\n")
+    , testCase "gen does not read a library through a symbolic link" $ do
+        dir <- treeWith "import-link" [("G.hpeg", importingGrammar), ("outside/Word.hpeg", wordLibrary)]
+        createDirectoryLink (dir </> "outside") (dir </> "lex")
+        r <- pegHsIn dir ["gen", "G.hpeg"]
+        r @?= (ExitFailure 1, "", "G.hpeg:2:1: error: cannot import lex/Word.hpeg: it is a symbolic link\n")
+    , testCase "parse --interpret reads the library" $ do
+        dir <- treeWith "import-interpret" [("G.hpeg", importingGrammar), ("lex/Word.hpeg", wordLibrary), ("in.txt", "a")]
+        r <- pegHsIn dir ["parse", "--interpret", "G.hpeg", "in.txt"]
+        r @?= (ExitSuccess, "S@0..1\n  Word@0..1\n    TEXT@0..1 \"a\"\n", "")
+    , testCase "parse compiles the parser again after a change of the library only" $ do
+        dir <- treeWith "import-parse" [("G.hpeg", importingGrammar), ("lex/Word.hpeg", wordLibrary), ("in.txt", "a")]
+        -- A cache of an earlier run would have both parsers.
+        (base, _) <- parseEnv "import-parse"
+        removePathForcibly (base </> "parse-cache-import-parse")
+        before <- compiles "import-parse"
+        r1 <- parseIn dir ["parse", "--format", "cst", "G.hpeg", "in.txt"]
+        r1 @?= (ExitSuccess, "S@0..1\n  Word@0..1\n    TEXT@0..1 \"a\"\n", "")
+        writeFile (dir </> "lex" </> "Word.hpeg") "%library\n\nWord <- 'b'\n"
+        (code, _, err) <- parseIn dir ["parse", "--format", "cst", "G.hpeg", "in.txt"]
+        (code, err) @?= (ExitFailure 1, "1:1: expected 'b'\n")
+        after <- compiles "import-parse"
+        after - before @?= 2
+    , testCase "lint warns about a library once, at the library" $ do
+        dir <- treeWith "import-lint" [("G.hpeg", importingGrammar), ("lex/Word.hpeg", "%library\n\nWord <- x:$'a' { () }\n")]
+        (code, _, err) <- pegHsIn dir ["lint"]
+        code @?= ExitFailure 1
+        lines err @?= ["lex/Word.hpeg:3:9: warning: the binding x is not used [unused-binding]; remove x:"]
+    , testCase "label --write does not change the library" $ do
+        let lib = "%library\n\nWord <- 'a' 'b'\n"
+        dir <- treeWith "import-label" [("G.hpeg", "%module G\n%import lex/Word.hpeg\n\nS <- 'x' Word !.\n"), ("lex/Word.hpeg", lib)]
+        (code, out, err) <- pegHsIn dir ["label", "--write", "G.hpeg"]
+        (code, err) @?= (ExitSuccess, "")
+        out @?= "G.hpeg:4:10: ^S_Word\n"
+        readFile (dir </> "lex" </> "Word.hpeg") >>= (@?= lib)
+    , testCase "fmt formats a library" $ do
+        dir <- treeWith "import-fmt" [("lex/Word.hpeg", "%library\nWord<-'a'\n")]
+        r <- pegHsIn dir ["fmt", "lex/Word.hpeg"]
+        r @?= (ExitSuccess, "", "")
+        readFile (dir </> "lex" </> "Word.hpeg") >>= (@?= wordLibrary)
+        r' <- pegHsIn dir ["fmt", "--check"]
+        r' @?= (ExitSuccess, "", "")
+    , testCase "test parses the examples with the library" $ do
+        dir <- treeWith "import-test" [("G.hpeg", importingGrammar), ("lex/Word.hpeg", wordLibrary), ("G.cases/a.in", "a"), ("G.cases/a.cst", "S@0..1\n  Word@0..1\n    TEXT@0..1 \"a\"\n")]
+        r <- pegHsIn dir ["test"]
+        r @?= (ExitSuccess, "1 passed, 0 failed\n", "")
+    ]
+
 -- The tests of peg-hs test (ADR 0091).
 grammarTestTests :: TestTree
 grammarTestTests =
@@ -1404,7 +1475,7 @@ grammarTestTests =
         program <- findExecutable "ghc-9.10.3" >>= maybe (maybe "ghc" id <$> findExecutable "ghc") pure
         (_, v, _) <- readProcessWithExitCode program ["--numeric-version"] ""
         base <- testDir
-        Just compiled <- compiledWay (Ghc program (takeWhile (not . isSpace) v)) (base </> "parse-cache-json") "Json.hpeg" g src [] [Nothing]
+        Just compiled <- compiledWay (Ghc program (takeWhile (not . isSpace) v)) (base </> "parse-cache-json") "Json.hpeg" g src [] [] [Nothing]
         let dir = "../../conformance/data/JSONTestSuite/test_parsing"
         names <- sort <$> listDirectory dir
         inputs <- forM names $ \n -> (,) n . decodeUtf8File <$> BS.readFile (dir </> n)

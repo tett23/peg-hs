@@ -350,7 +350,7 @@ plain = \case
   EDiscard x -> EDiscard (plain x)
   e -> e
   where
-    noLoc = Loc 0 0
+    noLoc = Loc 0 0 0
 
 -- | Add to the diagnostics located in the body of a template the call that
 -- expanded it, and remove duplicates: an error in a template is found once
@@ -389,7 +389,7 @@ templateNotes g = nub . map note
     note d@(Diagnostic l msg) = case mapMaybe (\(n, ls) -> if S.member l ls then Just n else Nothing) owners of
       n : _ | Just c <- M.lookup n firstCall -> Diagnostic l (msg <> " (in the template " <> n <> ", expanded at " <> showLoc c <> ")")
       _ -> d
-    showLoc (Loc a b) = T.pack (show a) <> ":" <> T.pack (show b)
+    showLoc (Loc _ a b) = T.pack (show a) <> ":" <> T.pack (show b)
 
 -- The rule whose body has a template call: its name, for the messages,
 -- and its parameters (ADR 0055).
@@ -434,7 +434,7 @@ exprChildren = \case
 -- lexically by 'codeVariables' (ADR 0082): a name bound inside the code
 -- (\\x -> x) counts too.
 haskellIdents :: Text -> [Text]
-haskellIdents = map unLoc . codeVariables (Loc 1 1)
+haskellIdents = map unLoc . codeVariables (Loc 0 1 1)
 
 -- A small state monad, so that peg-grammar keeps its dependencies.
 data St = St

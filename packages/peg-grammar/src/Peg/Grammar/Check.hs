@@ -36,6 +36,7 @@
 module Peg.Grammar.Check
   ( Analysis (..)
   , check
+  , checkLibrary
   , hasValue
   , countedItems
   , unitRules
@@ -138,17 +139,45 @@ childLabel units i = case itemBind i of
 
 -- | Check a grammar whose templates have been expanded. The errors are
 -- sorted by location.
+--
+-- A library (ADR 0092) is not a grammar to generate: it is an error
+-- @missing %module directive@, as for @peg-hs gen@. Check a library on its
+-- own with 'checkLibrary'. In a grammar whose imports are resolved
+-- ('Peg.Grammar.Import.resolveImports'), only the rules of the grammar
+-- itself ('locFile' @0@) must be reachable.
 check :: Grammar -> Either [Diagnostic] Analysis
-check g = case grammarRules g of
-  [] -> Left [Diagnostic (Loc 1 1) "the grammar has no rules"]
-  firstRule : _ -> checkRules g firstRule
+check g = case (grammarLibrary g, grammarRules g) of
+  (Just _, _) -> Left [Diagnostic (Loc 0 1 1) "missing %module directive"]
+  (_, []) -> Left [Diagnostic (Loc 0 1 1) "the grammar has no rules"]
+  (_, firstRule : _) -> checkRules True g firstRule
 
-checkRules :: Grammar -> Rule -> Either [Diagnostic] Analysis
-checkRules g firstRule =
-  case sortOn diagLoc errors of
+-- | Check a library on its own (ADR 0092), with its templates expanded:
+-- the checks of 'check' that do not depend on the grammar that imports
+-- it. Undefined rules, wrong numbers of arguments, repetitions of
+-- expressions that can match the empty string, bindings, references of
+-- code to bindings and rules with parameters in left recursion are
+-- checked; the start rule and reachability, and the values and types of
+-- rules, which @%syntax@ and @%deriving@ of the grammar decide, are not.
+-- The errors are sorted by location.
+checkLibrary :: Grammar -> [Diagnostic]
+checkLibrary g = case grammarRules g of
+  [] -> []
+  firstRule : _ -> either id (const []) (checkRules False g firstRule)
+
+-- The checks of a grammar, or with False of a library on its own.
+checkRules :: Bool -> Grammar -> Rule -> Either [Diagnostic] Analysis
+checkRules root g firstRule =
+  case sortOn diagLoc (if root then errors else libraryErrors) of
     [] -> Right (Analysis start lr nullable units classes)
     es -> Left es
   where
+    libraryErrors =
+      undefinedErrors
+        ++ arityErrors
+        ++ concatMap (repetitionErrors nullable) rules
+        ++ concatMap (altErrors False units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
+        ++ concatMap bindingReferenceErrors rules
+        ++ paramLrErrors
     rules = grammarRules g
     ruleMap = M.fromList [(ruleName r, r) | r <- rules]
     start = maybe (ruleName firstRule) unLoc (grammarStart g)
@@ -162,7 +191,7 @@ checkRules g firstRule =
         ++ entryErrors
         ++ reachabilityErrors
         ++ concatMap (repetitionErrors nullable) rules
-        ++ concatMap (altErrors units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
+        ++ concatMap (altErrors True units (discardingRules g) (valuedRules g classes) (classUnknown classes)) rules
         ++ concatMap bindingReferenceErrors rules
         ++ constructorErrors g classes
         ++ paramLrErrors
@@ -229,6 +258,7 @@ checkRules g firstRule =
     reachabilityErrors =
       [ Diagnostic (ruleLoc r) ("rule " <> ruleName r <> " is unreachable from the start, entry and recovery rules")
       | r <- rules
+      , locFile (ruleLoc r) == 0
       , not (S.member (ruleName r) reachable)
       ]
 
@@ -425,13 +455,16 @@ leftRecursiveRules known rules = S.fromList (concatMap cyclic sccs)
 
 -- Alternatives -------------------------------------------------------------------
 
-altErrors :: Set Text -> Set Text -> Set Text -> Set Text -> Rule -> [Diagnostic]
-altErrors units discarding valued unknown r = concatMap alt (ruleAlts r)
+-- The errors of the alternatives of a rule; with False, of a library on its
+-- own (ADR 0092), without those about values, which depend on the grammar
+-- that imports the library.
+altErrors :: Bool -> Set Text -> Set Text -> Set Text -> Set Text -> Rule -> [Diagnostic]
+altErrors withValues units discarding valued unknown r = concatMap alt (ruleAlts r)
   where
     alt a =
       bindingErrors (altItems a)
         ++ duplicateErrors (altItems a)
-        ++ omissionErrors a
+        ++ (if withValues then omissionErrors a else [])
         ++ concatMap groupErrors (altItems a)
     bindingErrors items =
       [ Diagnostic (itemLoc i) msg
@@ -442,7 +475,8 @@ altErrors units discarding valued unknown r = concatMap alt (ruleAlts r)
           | "_" `T.isPrefixOf` n
           ]
             ++ [ "cannot bind " <> n <> ": the expression has no value (capture the text with $)"
-               | not (hasValue units (itemExpr i))
+               | withValues
+               , not (hasValue units (itemExpr i))
                ]
       ]
     duplicateErrors items =
@@ -592,7 +626,7 @@ constructorErrors g c =
       | (k, d) <- zip [0 :: Int ..] types
       , e : _ <- [[e | e <- take k types, dataName e == dataName d]]
       ]
-    ruleLocOf n = maybe (Loc 1 1) ruleLoc (M.lookup n ruleMap)
+    ruleLocOf n = maybe (Loc 0 1 1) ruleLoc (M.lookup n ruleMap)
     ruleMap = M.fromList [(ruleName r, r) | r <- grammarRules g]
     -- A type with a constructor of its name clashes as a constructor.
     typeOwners = M.fromListWith (\_ x -> x) [(dataName d, dataRule d) | d <- types, dataName d `notElem` map conName (dataConstructors d)]
@@ -620,7 +654,7 @@ constructorErrors g c =
 -- Lexical checks that user code does not define names the generated code
 -- relies on (ADR 0014).
 hygieneErrors :: Located Text -> [Diagnostic]
-hygieneErrors (Located (Loc l0 _) body) =
+hygieneErrors (Located (Loc f l0 _) body) =
   concat (zipWith lineErrors [l0 ..] (T.lines body))
   where
     reservedName t = "peg'" `T.isPrefixOf` t || "Peg'" `T.isPrefixOf` t
@@ -634,12 +668,12 @@ hygieneErrors (Located (Loc l0 _) body) =
           alias = case toks of
             "import" : rest -> fromMaybe [] (afterAs rest)
             _ -> []
-       in [ Diagnostic (Loc ln 1) ("the name " <> n <> " is reserved for generated code")
+       in [ Diagnostic (Loc f ln 1) ("the name " <> n <> " is reserved for generated code")
           | Just n <- [defined]
           , atColumnOne
           , reservedName n
           ]
-            ++ [ Diagnostic (Loc ln 1) ("the module alias " <> a <> " is reserved for generated code")
+            ++ [ Diagnostic (Loc f ln 1) ("the module alias " <> a <> " is reserved for generated code")
                | a <- alias
                , a `elem` ["PegRt", "PegPrelude"]
                ]
