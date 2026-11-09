@@ -85,6 +85,7 @@ test-suite peg-grammar-test
     Labels
     Lint
     Ranges
+    RecoverLeftRecursion
     Recovery
     GeneratedTypes
     Imports

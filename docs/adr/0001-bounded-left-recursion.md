@@ -1,6 +1,6 @@
 # ADR 0001: 左再帰の意味論として bounded left recursion を採用する
 
-ステータス: 採択
+ステータス: 採択→左再帰に関与する規則の判定（回復の規則を経由する呼び出し）は [ADR 0095](0095-left-recursion-through-recovery-rules.md)
 
 ## 文脈
 

@@ -8,7 +8,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md)、[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md)、[ADR 0092](adr/0092-import-rules-from-other-grammars.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md)、[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md)、[ADR 0092](adr/0092-import-rules-from-other-grammars.md)、[ADR 0095](adr/0095-left-recursion-through-recovery-rules.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -1065,9 +1065,29 @@ Num <- ds:$[0-9]+ { read (unpack ds) }
 
 `parse "2*(3+4)"` は `Right 14` を返す。
 
+回復の規則を経由して同じ位置に戻る呼び出しも、左再帰に数える（[ADR 0095](adr/0095-left-recursion-through-recovery-rules.md)）。
+回復するモードでは、`%recover l R` を持つ `e ^l` は、`e` が失敗した位置で `R` を試すので、`e / R` のように振る舞う（[構文エラーからの回復](#構文エラーからの回復)）。
+次の文法の `L` は、`'a'` が失敗すると `E` が何も読まずに回復し、続く `L` を同じ位置で呼ぶ。
+
+```hpeg
+%module Example.Items
+%syntax
+%recover item E
+
+S <- '(' L
+L <- ('a' ^item) (')' / L)
+E <- ''
+```
+
+そのため `L` は左再帰の規則として扱われ、回復するモードの解析は同じ位置に戻っても終わる。
+結果は左再帰の解析の意味論で決まるので、回復の位置が文法の作者の意図と一致するとは限らない。
+この文法では、`(ab)` は局所的に回復せず、入力全体が一つの構文エラーになる。
+回復しないモードでは回復の規則を呼ばないので、解析の結果は変わらない。
+
 左再帰には二つの制約がある。
 引数付き規則は左再帰に関与できない。
 左再帰に関与する規則のメモ化は外せない。
+回復の規則を経由して左再帰に数えられた規則にも、この二つの制約が及ぶ。
 
 よくある誤り：
 
@@ -1503,6 +1523,8 @@ CloseAtLineEnd <- &('\n' / !.)
 ラベルは、そこで失敗したらどの選択肢でも成功しえない位置にだけ付ける。
 そうでない位置に付けると、後戻りすれば受理できた入力まで受理されなくなる。
 上の例の `]` は、`[` と名前を読んだ後なので、ほかの選択肢が成功しうる入力は残っていない。
+
+回復の規則を経由して同じ位置の規則に戻る文法では、その規則が左再帰に数えられる（[左再帰](#左再帰)）。
 
 よくある誤り：
 

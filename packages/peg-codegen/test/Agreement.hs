@@ -1,3 +1,4 @@
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | The interpreter agrees with the generated parsers (ADR 0090): on the
@@ -5,6 +6,7 @@
 -- trees and errors are those of the committed generated modules.
 module Agreement (agreementTests) where
 
+import Control.Exception (finally)
 import Data.List (nub, sort)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -27,6 +29,7 @@ import qualified Fixture.Misc as Misc
 import qualified Fixture.NoMemo as NoMemo
 import qualified Fixture.Recover as Recover
 import qualified Fixture.RecoverInsert as RecoverInsert
+import qualified Fixture.RecoverLeft as RecoverLeft
 import qualified Fixture.RecoverShared as RecoverShared
 import qualified Fixture.Runs as Runs
 import qualified Fixture.RunsSyntax as RunsSyntax
@@ -47,7 +50,9 @@ import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import Peg.Runtime (ParseError, SyntaxError)
 import Peg.Runtime.Syntax (SyntaxKind, SyntaxNode, debugTree)
 import System.Directory (listDirectory)
+import GHC.Conc (disableAllocationLimit, enableAllocationLimit, setAllocationCounter)
 import System.FilePath (dropExtension, takeExtension)
+import System.Timeout (timeout)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -110,6 +115,12 @@ targets =
   , ( "RecoverInsert"
     , [withRecoverErrors RecoverInsert.parseRecover (withRecover RecoverInsert.parseSyntaxRecover (syntaxEntry Nothing RecoverInsert.parse RecoverInsert.parseSyntax RecoverInsert.nameOfSyntaxKind))]
     , []
+    )
+  , ( "RecoverLeft"
+    , [ withRecover RecoverLeft.parseSyntaxRecover (syntaxEntry Nothing RecoverLeft.parse RecoverLeft.parseSyntax RecoverLeft.nameOfSyntaxKind)
+      , withRecover RecoverLeft.parseSyntaxRecoverD (syntaxEntry (Just "D") RecoverLeft.parseD RecoverLeft.parseSyntaxD RecoverLeft.nameOfSyntaxKind)
+      ]
+    , ["(aa)", "(ab)", "(a)", "()", "(a)(", "(aab)"]
     )
   , ("RecoverShared", [withRecoverErrors RecoverShared.parseRecover (plainEntry Nothing RecoverShared.parse)], [])
   , ("Runs", [plainEntry Nothing Runs.parse, plainEntry (Just "PlainDoc") Runs.parsePlainDoc, plainEntry (Just "DeepDoc") Runs.parseDeepDoc], [runsInput])
@@ -221,11 +232,24 @@ agreementTests =
     ]
 
 fixtureTest :: String -> [Entry] -> [Text] -> TestTree
-fixtureTest name entries inputs = testCase name $ do
+fixtureTest name entries inputs = testCase name . (if name `elem` boundedFixtures then bounded else id) $ do
   src <- TIO.readFile ("test/fixtures/" <> name <> ".hpeg")
   ip <- either (\ds -> assertFailure (show ds) >> error "unreachable") pure (prepare src)
   let all' = nub (inputs ++ short (alphabet src))
   mapM_ (agree ip all') entries
+
+-- The fixtures whose recovering parses did not end before ADR 0095. Their
+-- tests fail after 10 seconds or 4 GB of allocation instead of hanging.
+boundedFixtures :: [String]
+boundedFixtures = ["RecoverLeft"]
+
+bounded :: Assertion -> Assertion
+bounded a = do
+  r <- timeout 10_000_000 $ do
+    setAllocationCounter 4_000_000_000
+    enableAllocationLimit
+    a `finally` disableAllocationLimit
+  maybe (assertFailure "the parses did not end in 10 seconds") pure r
 
 -- Compare the interpreter with an entry point on the inputs.
 agree :: Interpreter -> [Text] -> Entry -> Assertion

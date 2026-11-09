@@ -251,6 +251,15 @@ Since v0.1.0-rc6:
   where other labels had made the check give up early
   ([ADR 0087](https://github.com/tett23/peg-hs/blob/main/docs/adr/0087-other-labels-do-not-change-the-label-check.md),
   [ADR 0088](https://github.com/tett23/peg-hs/blob/main/docs/adr/0088-correct-the-second-example-of-adr-0087.md)).
+- `analysisLeftRecursive` counts the recovery rule `R` of `%recover l R`
+  as an alternative of each `e ^l`: `R` is called at the position of `e`,
+  and `e ^l` matches the empty string if `R` does. A rule that comes back
+  to itself at the same position only through a recovery rule is left
+  recursive, so it is memoised with `memoLR`, and `interpretRecover` ends
+  on it instead of running out of memory. The errors about parameters
+  and `%nomemo` in left recursion apply to these rules too.
+  `analysisNullable` and the errors about repetitions do not change
+  ([ADR 0095](https://github.com/tett23/peg-hs/blob/main/docs/adr/0095-left-recursion-through-recovery-rules.md)).
 
 ### Security
 
