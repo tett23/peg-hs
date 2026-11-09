@@ -119,6 +119,13 @@ module.exports = grammar({
           )),
         )),
       ),
+      // The path of a library, and the directive of a library, which takes
+      // no argument (ADR 0092).
+      seq(
+        field('name', alias('%import', $.directive_name)),
+        optional(seq($._directive_space, field('argument', $.import_path))),
+      ),
+      field('name', alias('%library', $.directive_name)),
       seq(
         field('name', $.directive_name),
         optional(field('argument', $.directive_argument)),
@@ -137,6 +144,9 @@ module.exports = grammar({
 
     // A class name, which may be qualified.
     class_name: _ => token.immediate(/[\p{L}_][\p{L}\p{N}_'.]*/u),
+
+    // The path of %import, up to the spaces before a comment (ADR 0092).
+    import_path: _ => token.immediate(/[^ \t\n#]+([ \t]+[^ \t\n#]+)*/),
 
     // The rest of the line up to a comment.
     directive_argument: _ => token.immediate(/[ \t]*[^ \t\n#][^\n#]*/),

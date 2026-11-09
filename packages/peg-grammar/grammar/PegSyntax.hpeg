@@ -74,7 +74,7 @@ import Peg.Grammar.Assemble
 import Peg.Runtime (Pos (..), Span (..))
 
 here :: Span -> Loc
-here s = Loc (posLine (spanStart s)) (posColumn (spanStart s))
+here s = Loc 0 (posLine (spanStart s)) (posColumn (spanStart s))
 
 firstChar :: Text -> Char
 firstChar = T.foldr const ' '
@@ -188,7 +188,7 @@ Declaration :: Top
 # 値は、回復（ADR 0035）したときにだけ使われる
 Declaration <- l:Here n:Ident tps:TemplateParams? ps:ParamList? Ws '::' InlineSp tl:Here ty:(TypeText ^type) { TAnnot l n (maybe [] id ps) (maybe [] id tps) (Located tl ty) }
             / l:Here n:Ident tps:TemplateParams? Ws '<-' as:Alts { TDef l n (maybe [] (map templateParamName) tps) as }
-            / Ident TemplateParams? ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { TVerbatim (Loc 0 0) T.empty }
+            / Ident TemplateParams? ParamList? Ws (!'<-') ^params (('::' / '<-') ^decl) { TVerbatim (Loc 0 0 0) T.empty }
 
 # 雛形の引数（ADR 0031）。型注釈では値を使う引数に型変数を付ける
 TemplateParams :: [TemplateParam]
@@ -415,7 +415,7 @@ HsIdent <- c:$. &{ isIdentChar (firstChar c) && firstChar c /= '\'' } IdentChar*
 SkipToTop <- (!('\n' ![ \t\r\n/#]) .)*
 
 RecoverTop :: Top
-RecoverTop <- SkipToTop { TVerbatim (Loc 0 0) T.empty }
+RecoverTop <- SkipToTop { TVerbatim (Loc 0 0 0) T.empty }
 
 RecoverText :: Text
 RecoverText <- SkipToTop { T.empty }

@@ -1,4 +1,5 @@
 %module Calc.Parser
+%import lex/Number.hpeg
 %{
 import qualified Data.Text as T
 
@@ -17,7 +18,7 @@ Term <- l:Term '*' Sp r:Atom { Mul l r }
      / Atom
 
 Atom :: Expr
-Atom <- d:$[0-9]+ Sp { Num (read (T.unpack d)) }
+Atom <- n:Number Sp { Num n }
      / '(' Sp Expr ')' Sp
 
 Sp <- ' '*

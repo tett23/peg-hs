@@ -17,6 +17,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Peg.Grammar (Diagnostic (..), Loc (..))
 import Peg.Grammar.Highlight
+import Imports (importTests)
 import Peg.Grammar.LabelInsertion (insertLabels)
 import Peg.Lsp (runServer)
 import Peg.Lsp.Json
@@ -67,6 +68,7 @@ main = do
           ]
       , securityTests
       , auditFixTests
+      , importTests
       , goldenVsString "a session" "test/golden/session.txt" (pure (BL.fromStrict (TE.encodeUtf8 (T.unlines (map renderJson (session sessionMessages))))))
       , testCase "UTF-16 positions count surrogate pairs" $ do
           -- U+1D465 is a letter outside the basic multilingual plane.
@@ -79,7 +81,7 @@ main = do
               tokens = decodeTokens src (fromMaybe [] (lastResult out >>= member "data" >>= asArray))
               hs = fromMaybe [] (highlights src)
           assertBool "tokens" (length tokens > 100)
-          [t | t@(a, b) <- tokens, (a, b) `notElem` [(hlStart h, hlEnd h) | h <- hs], (a, b) `notElem` [(hlStart h, Loc (locLine (hlEnd h)) (locColumn (hlEnd h) - 1)) | h <- hs, hlKind h == HBinding]] @?= []
+          [t | t@(a, b) <- tokens, (a, b) `notElem` [(hlStart h, hlEnd h) | h <- hs], (a, b) `notElem` [(hlStart h, Loc 0 (locLine (hlEnd h)) (locColumn (hlEnd h) - 1)) | h <- hs, hlKind h == HBinding]] @?= []
       , testProperty "every request has one response, and nothing throws" $
           withNumTests 300 $
             forAll genSession $ \msgs -> ioProperty $ do
@@ -112,7 +114,7 @@ main = do
               out = session [initialize False, open src, request 2 "textDocument/semanticTokens/full" (object [("textDocument", object [("uri", String uri)])]), request 3 "textDocument/definition" (docAt 3 5)]
               results = [r | m <- out, Just r <- [member "result" m]]
               typed = decodeTypedTokens src (fromMaybe [] (member "data" (results !! 1) >>= asArray))
-          [ty | (Loc 4 6, Loc 4 7, ty) <- typed] @?= ["macro"]
+          [ty | (Loc 0 4 6, Loc 0 4 7, ty) <- typed] @?= ["macro"]
           drop 2 results @?= [object [("uri", String uri), ("range", rangeOf (6, 0) (6, 1))]]
           [(locLine l, locColumn l, m) | (Error, Diagnostic l m, _) <- diagnose src]
             @?= [(4, 6, "the template T takes no value arguments")]
@@ -409,7 +411,7 @@ decodeTokens src vs = go 0 0 (mapMaybe asInt vs)
           ch' = if dl == 0 then ch + ds else ds
           text = ls !! line'
           col n = T.length (TE.decodeUtf8 (BS.take n (TE.encodeUtf8 text))) + 1
-       in (Loc (line' + 1) (col ch'), Loc (line' + 1) (col (ch' + len))) : go line' ch' rest
+       in (Loc 0 (line' + 1) (col ch'), Loc 0 (line' + 1) (col (ch' + len))) : go line' ch' rest
     go _ _ _ = []
 
 -- The ranges and the types of semantic tokens.

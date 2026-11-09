@@ -21,8 +21,8 @@ expectMessageTests =
     [ testCase "the values go to the grammar" $ do
         let src = "%module M\n%expect A \"an a\"   # comment\n%message l \"x # y \\\"q\\\" \\u{41}\\-\\[\\]\\'\\\\\"\nA <- 'a' ^l\n"
         g <- either (assertFailure . show) pure (parseGrammar src)
-        grammarExpects g @?= [(Located (Loc 2 9) "A", Located (Loc 2 11) "an a")]
-        grammarMessages g @?= [(Located (Loc 3 10) "l", Located (Loc 3 12) "x # y \"q\" A-[]'\\")]
+        grammarExpects g @?= [(Located (Loc 0 2 9) "A", Located (Loc 0 2 11) "an a")]
+        grammarMessages g @?= [(Located (Loc 0 3 10) "l", Located (Loc 0 3 12) "x # y \"q\" A-[]'\\")]
     , testGroup
         "errors"
         [ errorCase "no string" "%expect A" [(2, 1, "%expect expects a rule name and a string")]
@@ -69,7 +69,7 @@ expectMessageTests =
         grammarMessages s @?= []
     ]
   where
-    pos (Loc l c) = (l, c)
+    pos (Loc _ l c) = (l, c)
 
 -- The errors of a grammar whose rule A has the label l, after the lines.
 errorCase :: String -> Text -> [(Int, Int, Text)] -> TestTree

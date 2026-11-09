@@ -44,6 +44,8 @@ library
     Peg.Grammar.Constructors
     Peg.Grammar.Format
     Peg.Grammar.Highlight
+    Peg.Grammar.Import
+    Peg.Grammar.Import.Files
     Peg.Grammar.Incremental
     Peg.Grammar.Interpret
     Peg.Grammar.LabelInsertion
@@ -60,6 +62,8 @@ library
     , base         >=4.20  && <4.23
     , bytestring   >=0.11  && <0.13
     , containers   >=0.6   && <0.8
+    , directory    >=1.3   && <1.4
+    , filepath     >=1.4   && <1.6
     , peg-runtime  >=0.1   && <0.2
     , text         >=2.0   && <2.2
   hs-source-dirs:   src
@@ -83,6 +87,7 @@ test-suite peg-grammar-test
     Ranges
     Recovery
     GeneratedTypes
+    Imports
     Shard
     Security
     SelfHostedNoLabels

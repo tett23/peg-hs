@@ -48,7 +48,7 @@ parseTops src = case SelfHosted.parse src of
         msg = case (parseErrorLabel e, parseErrorMessage e) of
           (Just l, Nothing) -> labelMessage (charAt p) l
           _ -> rendered
-     in Left [Diagnostic (Loc (posLine p) (posColumn p)) msg]
+     in Left [Diagnostic (Loc 0 (posLine p) (posColumn p)) msg]
   where
     charAt p = case drop (posLine p - 1) (T.lines src) of
       line : _ -> fmap fst (T.uncons (T.drop (posColumn p - 1) line))

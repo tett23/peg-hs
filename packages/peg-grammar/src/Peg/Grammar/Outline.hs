@@ -147,7 +147,7 @@ shiftOutlinePart d (OutlinePart hs ds rs drs) =
     (map ref rs)
     (map ref drs)
   where
-    down (Loc l c) = Loc (l + d) c
+    down (Loc f l c) = Loc f (l + d) c
     ref r = r {refStart = down (refStart r), refEnd = down (refEnd r)}
 
 -- | The outline of a text from the parts of its consecutive pieces, with
@@ -176,7 +176,7 @@ recoveredText :: Text -> Text
 recoveredText = syntaxText . fst . S.parseSyntaxRecover
 
 sliceText :: [Text] -> Loc -> Loc -> Text
-sliceText ls (Loc l1 c1) (Loc l2 c2)
+sliceText ls (Loc _ l1 c1) (Loc _ l2 c2)
   | l1 == l2 = T.take (c2 - c1) (T.drop (c1 - 1) (line l1))
   | otherwise = T.intercalate "\n" ([T.drop (c1 - 1) (line l1)] ++ map line [l1 + 1 .. l2 - 1] ++ [T.take (c2 - 1) (line l2)])
   where
@@ -188,7 +188,7 @@ kindOf :: SyntaxNode -> Text
 kindOf = S.nameOfSyntaxKind . syntaxKind
 
 loc :: SyntaxNode -> Int -> Loc
-loc root o = let p = syntaxPos root o in Loc (posLine p) (posColumn p)
+loc root o = let p = syntaxPos root o in Loc 0 (posLine p) (posColumn p)
 
 declarations :: SyntaxNode -> [Declaration]
 declarations root = concatMap go (syntaxChildren root)
@@ -229,6 +229,6 @@ syntaxError src e =
       at = case drop (posLine p - 1) (T.lines src) of
         l : _ -> fmap fst (T.uncons (T.drop (posColumn p - 1) l))
         [] -> Nothing
-   in Diagnostic (Loc (posLine p) (posColumn p)) $ case syntaxErrorMessage e of
+   in Diagnostic (Loc 0 (posLine p) (posColumn p)) $ case syntaxErrorMessage e of
         Just m -> m
         Nothing -> maybe "unexpected input" (labelMessage at) (syntaxErrorLabel e)

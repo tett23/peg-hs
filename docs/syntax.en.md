@@ -8,7 +8,7 @@ The norms are in the ADRs, and this document puts them together in a form that c
 Where the description disagrees with an ADR, the ADR takes precedence.
 
 This document reflects only the content of adopted ADRs.
-The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md), [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md) and [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md).
+The reflected ADRs are [ADR 0001](adr/0001-bounded-left-recursion.md), [ADR 0003](adr/0003-typed-semantic-actions.md), [ADR 0004](adr/0004-peg-notation.md), [ADR 0005](adr/0005-error-reporting.md), [ADR 0006](adr/0006-memoization-control.md), [ADR 0008](adr/0008-source-positions.md), [ADR 0012](adr/0012-context-sensitive-extensions.md), [ADR 0014](adr/0014-generated-module-api.md), [ADR 0015](adr/0015-implementation-deviations.md), [ADR 0016](adr/0016-language-extensions.md), [ADR 0017](adr/0017-nomemo-implementation.md), [ADR 0018](adr/0018-tab-partial-consumption.md), [ADR 0019](adr/0019-lossless-syntax-tree.md), [ADR 0020](adr/0020-unicode-identifiers-self-hosted.md), [ADR 0021](adr/0021-error-recovery.md), [ADR 0026](adr/0026-discard-unused-values.md), [ADR 0027](adr/0027-switch-to-self-hosted-parser.md), [ADR 0028](adr/0028-label-safety-check.md), [ADR 0029](adr/0029-label-safety-implementation-deviations.md), [ADR 0030](adr/0030-unit-values-are-not-counted.md), [ADR 0031](adr/0031-rule-templates.md), [ADR 0033](adr/0033-grammar-linter.md), [ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md), [ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md), [ADR 0050](adr/0050-hpeg-extension.md), [ADR 0053](adr/0053-type-names-of-rules-without-case.md), [ADR 0054](adr/0054-automatic-label-insertion.md), [ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md), [ADR 0056](adr/0056-label-insertion-and-template-deviations.md), [ADR 0061](adr/0061-select-generated-exports.md), [ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md), [ADR 0063](adr/0063-omit-unit-actions.md), [ADR 0064](adr/0064-unit-rules-always-return-unit.md), [ADR 0065](adr/0065-omittable-identity-actions.md), [ADR 0066](adr/0066-omit-unit-type-annotations.md), [ADR 0067](adr/0067-lint-info-with-verbose.md), [ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md), [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md), [ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md), [ADR 0082](adr/0082-static-check-of-binding-references.md), [ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md), [ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md), [ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md), [ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md), [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) and [ADR 0092](adr/0092-import-rules-from-other-grammars.md).
 
 Among the code blocks of this document, those that start with `%module` are complete grammars, and `peg-hs gen` can generate code from them as they are.
 The others are fragments taken out of a grammar.
@@ -92,7 +92,7 @@ A directive is a line that starts with `%`, and specifies something about the wh
 
 | Directive | Meaning | ADR |
 |---|---|---|
-| `%module A.B.C` | The name of the module to generate. Required | [ADR 0004](adr/0004-peg-notation.md) |
+| `%module A.B.C` | The name of the module to generate. Required, except in a library | [ADR 0004](adr/0004-peg-notation.md) |
 | `%start Name` | The start rule. If omitted, the rule defined first is the start rule | [ADR 0004](adr/0004-peg-notation.md) |
 | `%entry Name` | Generates an entry point for a rule other than the start rule too | [ADR 0014](adr/0014-generated-module-api.md) |
 | `%export item, ...` | Exports names defined in verbatim blocks from the generated module | [ADR 0014](adr/0014-generated-module-api.md) |
@@ -109,9 +109,11 @@ A directive is a line that starts with `%`, and specifies something about the wh
 | `%expect Name "display name"` | Shows the display name instead of the terminals of the rule `Name` in the expected list of an error | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%message label "message"` | The message of an error that fails with the label `label` | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%deriving Class, ...` | The classes that the generated types derive. Without arguments, nothing is derived | [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) |
+| `%import path` | Imports the rules of a library | [ADR 0092](adr/0092-import-rules-from-other-grammars.md) |
+| `%library` | Makes this file a library, whose rules other grammars import | [ADR 0092](adr/0092-import-rules-from-other-grammars.md) |
 
-`%module`, `%start`, `%env`, `%tabstop`, `%syntax` and `%deriving` can be written only once.
-`%entry`, `%export`, `%language`, `%nomemo`, `%token`, `%trivia`, `%inline`, `%recover`, `%safe`, `%expect` and `%message` can be written any number of times.
+`%module`, `%start`, `%env`, `%tabstop`, `%syntax`, `%deriving` and `%library` can be written only once.
+`%entry`, `%export`, `%language`, `%nomemo`, `%token`, `%trivia`, `%inline`, `%recover`, `%safe`, `%expect`, `%message` and `%import` can be written any number of times.
 For directives that take one rule per line (`%entry`, `%nomemo` and so on), write one line for each rule.
 
 The value of `%module` and the items of `%export` are written into the generated module as they are.
@@ -933,6 +935,89 @@ Common mistakes:
 | A different number of value arguments (`Indented<Item>(1, 2)`) | `error: the template Indented expects 1 value argument(s), but got 2` |
 | Wrote value parameters on the side of the definition of the template (`Indented<p>(n :: Int) <- ...`) | `error: parameters belong to the type annotation, not the definition` |
 | An argument of a template that uses `x` in its body used the caller's parameter `x` | `error: the template T uses the name x in its body, so its argument cannot take the parameter x of the rule B; rename the parameter` |
+
+## Importing the rules of other files
+
+Lexical rules such as identifiers and whitespace tend to take the same form across grammars.
+Such rules can be put in one file and used from several grammars ([ADR 0092](adr/0092-import-rules-from-other-grammars.md)).
+A file that holds the rules is called a **library**.
+A library is a `.hpeg` file with `%library`, without arguments, near its top.
+
+```hpeg
+# grammar/lex/Ident.hpeg
+%library
+
+Ident :: Text
+Ident <- $(IdentStart IdentChar*) Sp
+
+IdentStart <- [a-zA-Z_]
+
+IdentChar <- [a-zA-Z0-9_]
+
+Sp <- [ \t]*
+```
+
+The importing side is a grammar with `%module`, as before.
+With the path of a library in `%import`, it calls the rules of the library as it calls its own.
+
+```hpeg
+# grammar/Calc.hpeg
+%module Calc.Parser
+%import lex/Ident.hpeg
+
+%{
+import Data.Text (Text)
+}%
+
+Assign :: (Text, Text)
+Assign <- n:Ident '=' Sp v:Ident { (n, v) }
+```
+
+The path is relative to the directory of the grammar that writes the `%import`.
+It has one or more parts separated by `/`, and each part has only ASCII letters, digits, `_`, `-` and `.`.
+It may not start with `/` or have the parts `.` and `..`, and its last part ends in `.hpeg`.
+Only the files in the directory of the grammar and under it can therefore be imported.
+No part of the path may be a symbolic link, and links are not followed.
+
+The rules of the libraries and of the importing grammar make one set of names.
+The following holds.
+
+- Rules of the same name in two files are an error. It is at the definition read later, and the order of reading is the importing grammar, then the libraries in the order of `%import`.
+- A rule of a library calls only the rules of the same library. The meaning of a library thus does not change with the grammar that imports it.
+- The importing grammar can also call the templates of a library, and pass its own rules to them. Directives such as `%start`, `%entry`, `%token` and `%recover` can name the rules of a library too.
+- A rule of a library that the importing grammar does not reach is not an error, and is not generated. A rule of the importing grammar that is not reached is an error, as before.
+
+A library may have only `%library`, comments and rules (type annotations, definitions, templates and parameterized rules).
+Other directives and verbatim blocks cannot be written in it.
+Since `%import` cannot be written in it either, imports are one level deep.
+The importing grammar alone decides about the generated module.
+The Haskell names written in the actions and type annotations of a library are resolved in the module of the importing grammar.
+To import a library that uses `Text` in a type, the verbatim block of the importing grammar imports `Data.Text`.
+The types of the values of rules without type annotations, and the safety of labels (`%safe`), also follow the importing grammar.
+
+The generated module is one module, as before.
+GHC reports an error in an action of a library at the line and column of the library.
+The errors and warnings of peg-hs are also reported in the file where they are, as in `grammar/lex/Ident.hpeg:3:5: error: ...`.
+
+The tools treat libraries as follows.
+
+- `peg-hs gen`, `parse` and `test` read the `%import`s and use the grammar with the libraries. The cache of `parse` compiles again when a library is changed.
+- `peg-hs lint` reports the warnings in the importing grammar and those of a library checked on its own, once each, in their files.
+- `peg-hs fmt` formats a library as a file of its own.
+- `peg-hs label` inserts labels only in the rules of the importing grammar, and does not change libraries.
+
+Common mistakes:
+
+| Writing | Report |
+|---|---|
+| A path of another form (`%import ../x.hpeg`) | `error: %import expects a path such as lex/Ident.hpeg: ...` |
+| Imported a file that does not exist | `error: cannot import lex/Ident.hpeg: no such file` |
+| Imported a symbolic link | `error: cannot import lex/Ident.hpeg: it is a symbolic link` |
+| Imported a file without `%library` | `error: lex/Ident.hpeg is not a library: it has no %library directive` |
+| Wrote the same path twice | `error: lex/Ident.hpeg is imported twice` |
+| Wrote a directive in a library (`%syntax`) | `error: a library cannot have %syntax; write it in the grammar that imports the library` |
+| Wrote `%module` and `%library` in one file | `error: %library and %module cannot be in the same file` |
+| Gave a library to `peg-hs gen` | `error: missing %module directive` |
 
 ## Left recursion
 

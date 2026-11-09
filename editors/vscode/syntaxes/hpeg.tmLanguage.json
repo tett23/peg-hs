@@ -52,7 +52,7 @@
       ]
     },
     "directive": {
-      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069), and so do the classes of %deriving (ADR 0075) and the strings of %expect and %message (ADR 0089).",
+      "comment": "The arguments of the directives that name the module, rules, labels and extensions have their own scopes (ADR 0069), and so do the classes of %deriving (ADR 0075), the strings of %expect and %message (ADR 0089) and the path of %import (ADR 0092).",
       "patterns": [
         {
           "match": "^\\s*(%module)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([\\p{L}_][\\p{L}\\p{N}_'.]*))?[ \\t]*(#.*)?$",
@@ -199,6 +199,31 @@
               ]
             },
             "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%import)(?![\\p{L}\\p{N}_'])(?:[ \\t]+([^#\\n]*[^#\\s]))?[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
+              "name": "string.other.path.hpeg"
+            },
+            "3": {
+              "name": "comment.line.number-sign.hpeg"
+            }
+          }
+        },
+        {
+          "match": "^\\s*(%library)(?![\\p{L}\\p{N}_'])[ \\t]*(#.*)?$",
+          "captures": {
+            "1": {
+              "name": "keyword.other.directive.hpeg"
+            },
+            "2": {
               "name": "comment.line.number-sign.hpeg"
             }
           }

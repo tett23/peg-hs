@@ -1,6 +1,6 @@
 ; The captures follow the table of ADR 0034, with the punctuation and the
-; arguments of directives of ADR 0069, and the constructor names and the
-; classes of %deriving of ADR 0075.
+; arguments of directives of ADR 0069, the constructor names and the
+; classes of %deriving of ADR 0075, and the path of %import of ADR 0092.
 
 (comment) @comment
 
@@ -9,6 +9,8 @@
 (directive_argument) @string.special
 
 (module_name) @module
+
+(import_path) @string.special.path
 
 (rule_name_argument) @function.call
 

@@ -8,6 +8,9 @@ import Diagnostics (reportErrors, reportWarnings)
 import FileIO (readUtf8, reportFileError, writeUtf8)
 import Options
 import Peg.Codegen
+import Peg.Grammar (grammarImports)
+import Peg.Grammar.Import.Files (readImports)
+import Peg.Grammar.Parser (parseGrammar)
 import System.Exit (ExitCode (..))
 import System.FilePath (replaceExtension)
 
@@ -62,17 +65,25 @@ run p = case parsedArguments p of
   [] -> commandUsageError "gen" "gen needs a grammar file"
   _ -> commandUsageError "gen" "gen takes one grammar file"
 
+-- The libraries of the grammar are read first (ADR 0092).
 generateFrom :: FilePath -> FilePath -> Options -> Maybe String -> Parsed -> T.Text -> IO ExitCode
 generateFrom input out opts strip p src =
-  case generateWithWarnings opts (T.pack <$> strip) src of
-    Left diags -> reportErrors input diags >> pure (ExitFailure 1)
-    Right gen -> do
+  libraries >>= \case
+    Left (imports, diags) -> reportErrors input imports diags >> pure (ExitFailure 1)
+    Right (imports, texts) -> case generateWithWarnings opts (T.pack <$> strip) texts src of
+      Left diags -> reportErrors input imports diags >> pure (ExitFailure 1)
+      Right gen -> written imports gen
+  where
+    libraries = case parseGrammar src of
+      Left diags -> pure (Left ([], diags))
+      Right g -> either (\ds -> Left (grammarImports g, ds)) (\ts -> Right (grammarImports g, ts)) <$> readImports input g
+    written imports gen = do
       let warnings = generationWarnings gen
-      reportWarnings input warnings
+      reportWarnings input imports warnings
       if flag "Werror" p && not (null warnings)
         then pure (ExitFailure 1)
         else case generationModule gen of
-          Left diags -> reportErrors input diags >> pure (ExitFailure 1)
+          Left diags -> reportErrors input imports diags >> pure (ExitFailure 1)
           Right code ->
             writeUtf8 out code >>= \case
               Left e -> reportFileError e >> pure (ExitFailure 1)

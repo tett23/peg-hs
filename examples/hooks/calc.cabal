@@ -3,16 +3,19 @@ name:          calc
 version:       0.1.0.0
 synopsis:      An example of peg-hooks
 description:
-  Generates the parser of the grammar grammar/Calc.hpeg in the build, with
-  peg-hooks (ADR 0085). The CI job hooks builds it and runs test.sh.
+  Generates the parser of the grammar grammar/Calc.hpeg, which imports the
+  library grammar/lex/Number.hpeg (ADR 0092), in the build, with peg-hooks
+  (ADR 0085). The CI job hooks builds it and runs test.sh.
 license:       MIT
 author:        tett23
 maintainer:    tett23@gmail.com
 category:      Parsing
 build-type:    Hooks
--- Without the grammar here, cabal does not see a change of it, and keeps
--- the old parser.
-extra-source-files: grammar/Calc.hpeg
+-- Without the grammar and its library here, cabal does not see a change of
+-- them, and keeps the old parser.
+extra-source-files:
+  grammar/Calc.hpeg
+  grammar/lex/Number.hpeg
 
 custom-setup
   setup-depends:

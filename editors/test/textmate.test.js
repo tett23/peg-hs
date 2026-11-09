@@ -57,6 +57,17 @@ test('the VS Code extension formats grammars on save by default', () => {
   assert.deepEqual(manifest.contributes.configurationDefaults, { '[hpeg]': { 'editor.formatOnSave': true } });
 });
 
+test('the path of %import has its own scope, and %library is a directive (ADR 0092)', () => {
+  const scopesOf = (src) => tokenize(src).map((t) => [t.text, t.scopes.at(-1)]).filter(([, s]) => s !== 'source.hpeg');
+  assert.deepEqual(scopesOf('%library # l\n%import lex/Ident.hpeg # i\n'), [
+    ['%library', 'keyword.other.directive.hpeg'],
+    ['# l', 'comment.line.number-sign.hpeg'],
+    ['%import', 'keyword.other.directive.hpeg'],
+    ['lex/Ident.hpeg', 'string.other.path.hpeg'],
+    ['# i', 'comment.line.number-sign.hpeg'],
+  ]);
+});
+
 test('the arguments of directives have their own scopes (ADR 0069)', () => {
   const scopesOf = (src) => tokenize(src).map((t) => [t.text, t.scopes.at(-1)]);
   assert.deepEqual(scopesOf('%module A.B # c\n'), [

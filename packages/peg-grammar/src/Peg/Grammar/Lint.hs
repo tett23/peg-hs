@@ -137,10 +137,10 @@ unitActionInfos g = case expandTemplates g of
         found =
           M.fromListWith
             (&&)
-            [ (Loc line (col - 1), omitsUnitAction units (ruleName r) (altItems a))
+            [ (Loc f line (col - 1), omitsUnitAction units (ruleName r) (altItems a))
             | r <- rules
             , a <- ruleAlts r
-            , Just (Located (Loc line col) code) <- [altAction a]
+            , Just (Located (Loc f line col) code) <- [altAction a]
             , T.filter (not . isSpace) code == "()"
             ]
      in [ LintWarning l "omittable-unit-action" "the action can be omitted: the rule has type () and the alternative has no value" "remove { () }" LevelInfo
@@ -160,10 +160,10 @@ identityActionInfos g = case expandTemplates g of
         found =
           M.fromListWith
             (\(n, a) (_, b) -> (n, a && b))
-            [ (Loc line (col - 1), (name, identity units name (altItems a)))
+            [ (Loc f line (col - 1), (name, identity units name (altItems a)))
             | r <- rules
             , a <- ruleAlts r
-            , Just (Located (Loc line col) code) <- [altAction a]
+            , Just (Located (Loc f line col) code) <- [altAction a]
             , let name = T.filter (not . isSpace) code
             , any ((== Just name) . itemBind) (altItems a)
             ]
@@ -269,7 +269,7 @@ sameAlternative :: Alt -> Alt -> Bool
 sameAlternative a b = map (item keepBinds) (altItems a) == map (item keepBinds) (altItems b)
   where
     keepBinds = not (null (concatMap (codesOf . itemExpr) (altItems a ++ altItems b)))
-    z = Loc 0 0
+    z = Loc 0 0 0
     item keep (Item _ n e) = Item z (if keep then n else Nothing) (expr keep e)
     expr keep = \case
       ERef _ n as -> ERef z n [Located z t | Located _ t <- as]
@@ -333,7 +333,7 @@ bindingWarnings units rule a = concatMap (sequenceWarnings True) [altItems a]
 -- The variables of Haskell code, read lexically (ADR 0082): a name inside
 -- a string, a character or a comment does not count.
 variables :: Text -> [Text]
-variables = map unLoc . codeVariables (Loc 1 1)
+variables = map unLoc . codeVariables (Loc 0 1 1)
 
 -- The code of the predicates and arguments in an expression.
 codesOf :: Expr -> [Text]
@@ -374,4 +374,4 @@ mapChildren f = \case
   e -> e
 
 showLoc :: Loc -> Text
-showLoc (Loc l c) = T.pack (show l) <> ":" <> T.pack (show c)
+showLoc (Loc _ l c) = T.pack (show l) <> ":" <> T.pack (show c)

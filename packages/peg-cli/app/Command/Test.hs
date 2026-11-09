@@ -40,8 +40,8 @@ import Options
 import Peg.Grammar
 import Peg.Grammar.Check (Analysis, check)
 import Peg.Grammar.Interpret (Interpreter, interpret, interpreter, interpreterKindName)
-import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
+import Imports (Loaded (..), loadGrammar)
 import Peg.Runtime (renderParseError)
 import Peg.Runtime.Syntax (debugTree)
 import qualified Pretty
@@ -107,9 +107,12 @@ interpretedWay = Interpreted
 -- | The compiled parsers of a checked grammar for the entries given, with
 -- the ghc, the directory of the cache and the arguments to ghc given;
 -- Nothing after reporting the errors of a build.
-compiledWay :: Ghc -> FilePath -> FilePath -> Grammar -> Text -> [String] -> [Maybe Text] -> IO (Maybe Way)
-compiledWay ghc base grammarFile g src ghcArgs entries = do
-  exes <- forM (nub entries) $ \e -> fmap ((,) e) <$> compiledParser ghc base grammarFile g src False (T.unpack <$> e) ghcArgs
+--
+-- The grammar is given with its text and the texts of the libraries it
+-- imports (ADR 0092), as 'Command.Parse.compiledParser' takes them.
+compiledWay :: Ghc -> FilePath -> FilePath -> Grammar -> Text -> [(FilePath, Text)] -> [String] -> [Maybe Text] -> IO (Maybe Way)
+compiledWay ghc base grammarFile g src libraries ghcArgs entries = do
+  exes <- forM (nub entries) $ \e -> fmap ((,) e) <$> compiledParser ghc base grammarFile g src libraries False (T.unpack <$> e) ghcArgs
   pure (Compiled <$> sequence exes)
 
 -- | Parse an input, the text of the file given, with an entry; or the
@@ -195,43 +198,47 @@ testGrammar accept ghcArgs (file, named) = do
         Left e -> reportFileError e >> pure broken
         Right src
           | not hasCases -> failWith (file <> " has no examples: the directory " <> cases <> " does not exist")
-          | otherwise -> case loadGrammar src of
-              Left diags -> reportErrors file diags >> pure broken
-              Right (g0, g, an) -> do
-                (layoutErrors, examples) <- scanCases cases (map unLoc (grammarEntries g))
-                mapM_ (hPutStrLn stderr . ("peg-hs: " <>)) layoutErrors
-                let layout = if null layoutErrors then mempty else broken
-                if null examples
-                  then pure layout
-                  else
-                    wayOf file g0 g an src ghcArgs (map exEntry examples) >>= \case
-                      Nothing -> pure broken
-                      Just way -> (layout <>) . mconcat <$> mapM (runExample accept way) examples
+          | otherwise ->
+              loadChecked file src >>= \case
+                Left (imports, diags) -> reportErrors file imports diags >> pure broken
+                Right (g0, g, an, libraries) -> do
+                  (layoutErrors, examples) <- scanCases cases (map unLoc (grammarEntries g))
+                  mapM_ (hPutStrLn stderr . ("peg-hs: " <>)) layoutErrors
+                  let layout = if null layoutErrors then mempty else broken
+                  if null examples
+                    then pure layout
+                    else
+                      wayOf file g0 g an src libraries ghcArgs (map exEntry examples) >>= \case
+                        Nothing -> pure broken
+                        Just way -> (layout <>) . mconcat <$> mapM (runExample accept way) examples
   where
     failWith msg = hPutStrLn stderr ("peg-hs: " <> msg) >> pure broken
 
--- The grammar as written, expanded and checked, and its analysis.
-loadGrammar :: Text -> Either [Diagnostic] (Grammar, Grammar, Analysis)
-loadGrammar src =
-  parseGrammar src >>= \g0 ->
-    either (Left . templateNotes g0) (\(g, an) -> Right (g0, g, an)) (expandTemplates g0 >>= \g -> (,) g <$> check g)
+-- The grammar as written with the rules of its libraries (ADR 0092),
+-- expanded and checked, its analysis and the texts of the libraries; or
+-- the errors with the imports of the grammar.
+loadChecked :: FilePath -> Text -> IO (Either ([Located FilePath], [Diagnostic]) (Grammar, Grammar, Analysis, [(FilePath, Text)]))
+loadChecked file src =
+  loadGrammar file src >>= \loaded -> pure $
+    loaded >>= \(Loaded g0 libraries) ->
+      either (\ds -> Left (grammarImports g0, templateNotes g0 ds)) (\(g, an) -> Right (g0, g, an, libraries)) (expandTemplates g0 >>= \g -> (,) g <$> check g)
 
 -- How to parse the examples of a grammar: by the interpreter if it can
 -- parse with the grammar, else compiled, but not a grammar with %env.
 -- Nothing after reporting why the examples cannot be parsed.
-wayOf :: FilePath -> Grammar -> Grammar -> Analysis -> Text -> [String] -> [Maybe Text] -> IO (Maybe Way)
-wayOf file g0 g an src ghcArgs entries = case interpreter g an of
+wayOf :: FilePath -> Grammar -> Grammar -> Analysis -> Text -> [(FilePath, Text)] -> [String] -> [Maybe Text] -> IO (Maybe Way)
+wayOf file g0 g an src libraries ghcArgs entries = case interpreter g an of
   Right ip -> pure (Just (interpretedWay ip))
   Left diags
     | isJust (grammarEnv g) -> do
-        reportErrors file (templateNotes g0 diags)
+        reportErrors file (grammarImports g0) (templateNotes g0 diags)
         Nothing <$ hPutStrLn stderr ("peg-hs: " <> file <> ": the interpreter cannot parse with this grammar, and peg-hs test does not compile grammars with %env")
     | otherwise ->
         findGhc "test" >>= \case
           Left msg -> Nothing <$ hPutStrLn stderr ("peg-hs: " <> msg)
           Right ghc -> do
             base <- cacheBase
-            compiledWay ghc base file g src ghcArgs entries
+            compiledWay ghc base file g src libraries ghcArgs entries
 
 -- The examples in the directory of the examples of a grammar, with the
 -- errors of their layout, in the order of their paths.

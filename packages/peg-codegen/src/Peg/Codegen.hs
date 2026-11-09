@@ -58,6 +58,7 @@ import Peg.Grammar
 import Peg.Grammar.Check
 import Peg.Grammar.Labels (labelWarnings, stripLabelsAs)
 import Peg.Grammar.Types (Classification (..), Constructor (..), DataType (..), RuleType (..), ValueType (..), defaultDeriving, fieldItems, typeAtom, typeCode)
+import Peg.Grammar.Import (resolveImports)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 
@@ -111,14 +112,17 @@ defaultOptions = Options "Grammar.hpeg" "Grammar.hs" False Nothing
 --   src <- TIO.readFile \"grammar\/Calc.hpeg\"
 --   let opts = defaultOptions {optSourceName = \"grammar\/Calc.hpeg\", optOutputName = \"src\/Calc.hs\"}
 --   case generateFromSource opts src of
---     Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"grammar\/Calc.hpeg\") diags
+--     Left diags -> mapM_ (TIO.putStrLn . renderDiagnostic \"grammar\/Calc.hpeg\" []) diags
 --     Right code -> TIO.writeFile \"src\/Calc.hs\" code
 -- @
 --
 -- The name of the generated module is the one given by @%module@ in the
--- grammar; 'optOutputName' is only written into @LINE@ pragmas.
+-- grammar; 'optOutputName' is only written into @LINE@ pragmas. The
+-- grammar imports no library: an @%import@ is an error
+-- @cannot import lex\/Ident.hpeg: no such file@. Give the libraries to
+-- 'generateWithWarnings' (ADR 0092).
 generateFromSource :: Options -> Text -> Either [Diagnostic] Text
-generateFromSource opts src = parseGrammar src >>= generate opts
+generateFromSource opts src = parseGrammar src >>= \g -> resolveImports g [] >>= generate opts
 
 -- | Check a grammar and generate its module. Templates are expanded first
 -- ('Peg.Grammar.Templates.expandTemplates', ADR 0031), then the grammar
@@ -139,13 +143,13 @@ generateFromSource opts src = parseGrammar src >>= generate opts
 generate :: Options -> Grammar -> Either [Diagnostic] Text
 generate opts g0 = do
   if any (any isControlChar) [optSourceName opts, optOutputName opts]
-    then Left [Diagnostic (Loc 1 1) "the file name contains a control character"]
+    then Left [Diagnostic (Loc 0 1 1) "the file name contains a control character"]
     else pure ()
   g <- either (Left . templateNotes g0) Right (expandTemplates g0)
   analysis <- either (Left . templateNotes g0) Right (check g)
   case undefinedExports opts g analysis of
     [] -> Right (finalize opts (render opts g analysis))
-    missing -> Left [Diagnostic (Loc 1 1) ("the generator does not define " <> n) | n <- missing]
+    missing -> Left [Diagnostic (Loc 0 1 1) ("the generator does not define " <> n) | n <- missing]
 
 -- | What 'generateWithWarnings' makes of a grammar that parses and passes
 -- the checks.
@@ -164,29 +168,35 @@ data Generation = Generation
   }
 
 -- | The steps of @peg-hs gen@ without reading and writing files (ADR 0085):
--- parse the grammar, expand its templates, check it, collect the warnings
--- about labels, and generate the module with 'generate'. @peg-hs gen@ and
--- the setup hooks of peg-hooks both call it.
+-- parse the grammar, put the rules of the libraries it imports into it
+-- ('Peg.Grammar.Import.resolveImports', ADR 0092), expand its templates,
+-- check it, collect the warnings about labels, and generate the module
+-- with 'generate'. @peg-hs gen@ and the setup hooks of peg-hooks both call
+-- it.
 --
 -- The second argument strips the labels of the grammar and names the module
 -- of the result, as @peg-hs gen --strip-labels MODULE@ does
--- ('Peg.Grammar.Labels.stripLabelsAs'); 'Nothing' keeps them.
+-- ('Peg.Grammar.Labels.stripLabelsAs'); 'Nothing' keeps them. The third
+-- has the texts of the libraries by the paths of their @%import@s
+-- ('Peg.Grammar.Import.Files.readImports'), and the fourth is the grammar.
 --
--- 'Left' has the errors of parsing and checking, located in the grammar;
--- inside a template, they name the call that expanded it
--- ('Peg.Grammar.Templates.templateNotes'). The errors of the generation
--- itself are in 'generationModule'.
+-- 'Left' has the errors of parsing and checking, located in the grammar
+-- or in a library ('locFile'); inside a template, they name the call that
+-- expanded it ('Peg.Grammar.Templates.templateNotes'). The errors of the
+-- generation itself are in 'generationModule'. Render them with the
+-- @%import@s of the grammar ('grammarImports'), which the grammar of
+-- 'generationGrammar' keeps.
 --
 -- @
--- case generateWithWarnings opts Nothing src of
---   Left errors -> mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file) errors
+-- case generateWithWarnings opts Nothing libraries src of
+--   Left errors -> mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file imports) errors
 --   Right gen -> do
---     mapM_ (TIO.hPutStrLn stderr . renderWarning file) (generationWarnings gen)
---     either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file)) (TIO.writeFile out) (generationModule gen)
+--     mapM_ (TIO.hPutStrLn stderr . renderWarning file imports) (generationWarnings gen)
+--     either (mapM_ (TIO.hPutStrLn stderr . renderDiagnostic file imports)) (TIO.writeFile out) (generationModule gen)
 -- @
-generateWithWarnings :: Options -> Maybe Text -> Text -> Either [Diagnostic] Generation
-generateWithWarnings opts strip src = do
-  g0 <- parseGrammar src
+generateWithWarnings :: Options -> Maybe Text -> [(FilePath, Text)] -> Text -> Either [Diagnostic] Generation
+generateWithWarnings opts strip libraries src = do
+  g0 <- parseGrammar src >>= \g -> resolveImports g libraries
   g <- either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> g <$ check g)
   let target = maybe g (`stripLabelsAs` g) strip
       warnings = maybe (templateNotes g0 (labelWarnings g)) (const []) strip
@@ -194,9 +204,9 @@ generateWithWarnings opts strip src = do
 
 -- | Like 'renderDiagnostic', for a warning:
 -- @file:line:column: warning: message@ (ADR 0037).
-renderWarning :: FilePath -> Diagnostic -> Text
-renderWarning file (Diagnostic (Loc l c) msg) =
-  T.pack file <> ":" <> showT l <> ":" <> showT c <> ": warning: " <> msg
+renderWarning :: FilePath -> [Located FilePath] -> Diagnostic -> Text
+renderWarning file imports (Diagnostic (Loc f l c) msg) =
+  T.pack (diagnosticFile file imports f) <> ":" <> showT l <> ":" <> showT c <> ": warning: " <> msg
 
 -- The control characters of ADR 0080.
 isControlChar :: Char -> Bool
@@ -215,13 +225,16 @@ restoreMarker = "{-# PEG'RESTORE #-}"
 -- fragment's line and column in the grammar file. The pragmas must not
 -- start a line that the layout rule would see, so COLUMN shares the line
 -- with the fragment and the code after it is indented.
-fragment :: Options -> Located Text -> Text
-fragment opts (Located (Loc l c) t) =
+--
+-- The first argument gives the path of the file of the fragment from its
+-- 'locFile' ('envSources').
+fragment :: (Int -> FilePath) -> Located Text -> Text
+fragment sources (Located (Loc f l c) t) =
   T.concat
     [ "\n{-# LINE "
     , showT l
     , " "
-    , T.pack (show (optSourceName opts))
+    , T.pack (show (sources f))
     , " #-}\n {-# COLUMN "
     , showT c
     , " #-}"
@@ -257,6 +270,12 @@ data Env = Env
   -- ^ @%syntax@: every parser also returns syntax tree children (ADR 0019).
   }
 
+-- The path of the file of each location ('locFile') in the LINE pragmas:
+-- the grammar as 'optSourceName' names it, or a library that it imports
+-- (ADR 0092).
+envSources :: Env -> Int -> FilePath
+envSources env = diagnosticFile (optSourceName (envOpts env)) (grammarImports (envGrammar env))
+
 -- | The versions of peg-runtime that generated modules need, as a range of
 -- Cabal, which the header of every generated module names (ADR 0046).
 -- Generated modules use "Peg.Runtime.Internal", whose changes are major
@@ -289,6 +308,7 @@ render opts g an =
     )
   where
     env = Env opts g an (M.fromList [(ruleName r, r) | r <- grammarRules g]) syntax
+    src = envSources env
     syntax = isJust (grammarSyntax g)
     start = analysisStart an
     entries = entryPoints g an
@@ -339,9 +359,9 @@ render opts g an =
     -- When the generator restores the implicit Prelude import, it also uses
     -- it, so that the import is never reported as redundant.
     fstName = if importsPrelude g then "PegPrelude.fst" else "Prelude.fst"
-    envType = maybe "()" (fragment opts) (grammarEnv g)
+    envType = maybe "()" (fragment src) (grammarEnv g)
     resultType n = maybe "()" (ruleTypeFragment env) (M.lookup n (envRules env))
-    verbatimBlock (Located (Loc l _) t) =
+    verbatimBlock (Located (Loc _ l _) t) =
       T.concat ["{-# LINE ", showT l, " ", T.pack (show (optSourceName opts)), " #-}\n", t, "\n", restoreMarker, "\n"]
     envArg = if hasEnv then " peg'env" else ""
     envParamType = if hasEnv then "(" <> envType <> ") -> " else ""
@@ -461,8 +481,8 @@ render opts g an =
     tableType r = case ruleParams r of
       [] -> "PegRt.Table peg's " <> resultTypeText env r
       ps -> "PegRt.ArgTable peg's (" <> keyType ps <> ") " <> resultTypeText env r
-    keyType [p] = fragment opts (paramType p)
-    keyType ps = T.intercalate ", " ["(" <> fragment opts (paramType p) <> ")" | p <- ps]
+    keyType [p] = fragment src (paramType p)
+    keyType ps = T.intercalate ", " ["(" <> fragment src (paramType p) <> ")" | p <- ps]
     storeDecl
       | null storeFields = "data Peg'Store peg's = Peg'Store\n"
       | otherwise =
@@ -699,7 +719,7 @@ resultTypeText env r
 -- type generated for it (ADR 0075), which no line of the grammar states.
 ruleTypeFragment :: Env -> Rule -> Text
 ruleTypeFragment env r = case ruleAnnotation r of
-  Just _ -> fragment (envOpts env) (ruleType r)
+  Just _ -> fragment (envSources env) (ruleType r)
   Nothing -> case M.lookup (ruleName r) (classRules (classes env)) of
     Just (Inferred t) -> typeCode t
     Just (Generated d) -> dataName d
@@ -709,7 +729,7 @@ ruleDecl :: Env -> Rule -> Text
 ruleDecl env r =
   T.intercalate
     "\n"
-    [ ruleVar (ruleName r) <> " :: " <> T.concat ["(" <> fragment opts (paramType p) <> ") -> " | p <- ruleParams r]
+    [ ruleVar (ruleName r) <> " :: " <> T.concat ["(" <> fragment (envSources env) (paramType p) <> ") -> " | p <- ruleParams r]
         <> "PegRt.P (Peg'Store peg's) peg's "
         <> resultTypeText env r
     , ruleVar (ruleName r) <> T.concat [" " <> paramName p | p <- ruleParams r] <> " ="
@@ -717,7 +737,6 @@ ruleDecl env r =
     , ""
     ]
   where
-    opts = envOpts env
     name = ruleName r
     -- The choice is shared with the interpreter (ADR 0090).
     memoCall = case ruleMemoisation (envGrammar env) (envAnalysis env) r of
@@ -773,7 +792,7 @@ altCode env rule a = do
           ( envStmt
               ++ ["peg'start <- PegRt.getOffset"]
               ++ stmts
-              ++ ["_span <- PegRt.spanFrom peg'start", "PegPrelude.pure (" <> fragment (envOpts env) act <> ")"]
+              ++ ["_span <- PegRt.spanFrom peg'start", "PegPrelude.pure (" <> fragment (envSources env) act <> ")"]
           )
     Nothing
       -- An alternative of a rule of type () whose action is omitted, because
@@ -888,7 +907,7 @@ exprCodeU env used expr = case expr of
   EAny -> pure "PegRt.anyChar"
   ERef _ n [] -> pure (ruleVar n)
   ERef _ n args ->
-    pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragment opts x <> ")" | x <- args] <> ")")
+    pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragment (envSources env) x <> ")" | x <- args] <> ")")
   EGroup alts
     | used && hasValue (units env) expr -> do
         bodies <- mapM (\is -> passThrough env False is >>= \(stmts, v) -> pure (doBlock (stmts ++ ["PegPrelude.pure " <> v]))) alts
@@ -905,12 +924,11 @@ exprCodeU env used expr = case expr of
   ELabel _ x name -> do
     e <- exprCodeU env used x
     pure (labeledCode env False name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
-  EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment opts f <> ")")
-  EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment opts f <> "))")
+  EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment (envSources env) f <> ")")
+  EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment (envSources env) f <> "))")
   EDiscard x -> wrap "PegRt.voidP" False x
   ETemplate {} -> error "a template call must be expanded before generating code: call Peg.Grammar.Templates.expandTemplates first"
   where
-    opts = envOpts env
     valued x = used && hasValue (units env) x
     wrap f inner x = do
       e <- exprCodeU env inner x
@@ -1083,7 +1101,7 @@ altCodeS env rule a = do
       pure $
         doReturn
           (envStmt ++ ["peg'start <- PegRt.getOffset"] ++ map fst rs ++ ["_span <- PegRt.spanFrom peg'start"])
-          ("(" <> fragment (envOpts env) act <> ")")
+          ("(" <> fragment (envSources env) act <> ")")
           (map snd rs)
     Nothing
       -- As in 'altCode' (ADR 0063). The bound items keep their labels, so

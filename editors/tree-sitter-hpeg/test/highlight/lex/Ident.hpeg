@@ -1,0 +1,5 @@
+# The library that notation.hpeg imports (ADR 0092).
+%library
+
+Ident <- [a-z]+
+# <- @function

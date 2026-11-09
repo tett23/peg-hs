@@ -242,7 +242,7 @@ import Peg.Grammar.Assemble
 import Peg.Runtime (Pos (..), Span (..))
 
 here :: Span -> Loc
-here s = Loc (posLine (spanStart s)) (posColumn (spanStart s))
+here s = Loc 0 (posLine (spanStart s)) (posColumn (spanStart s))
 
 firstChar :: Text -> Char
 firstChar = T.foldr const ' '
@@ -1937,7 +1937,7 @@ peg'rule'Declaration =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 191 "grammar/PegSyntax.hpeg" #-}
- {-# COLUMN 90 #-} TVerbatim (Loc 0 0) T.empty 
+ {-# COLUMN 90 #-} TVerbatim (Loc 0 0 0) T.empty 
 {-# LINE 1942 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ), PegPrelude.concat [peg'k17, peg'k18, peg'k19, peg'k20, peg'k22, peg'k26])
           }
@@ -3367,7 +3367,7 @@ peg'rule'RecoverTop =
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 418 "grammar/PegSyntax.hpeg" #-}
- {-# COLUMN 26 #-} TVerbatim (Loc 0 0) T.empty 
+ {-# COLUMN 26 #-} TVerbatim (Loc 0 0 0) T.empty 
 {-# LINE 3372 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ), peg'k0)
           }

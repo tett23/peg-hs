@@ -8,6 +8,9 @@ import Files (grammarFiles)
 import Options
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Lint (LintLevel (..), LintWarning (..), lintGrammar, renderLintWarning)
+import Peg.Grammar
+import Peg.Grammar.Import (libraryErrors, resolveImports)
+import Peg.Grammar.Import.Files (readImports)
 import Peg.Grammar.Parser (parseGrammar)
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import System.Exit (ExitCode (..))
@@ -54,12 +57,25 @@ lint verbose file =
     Left e -> reportFileError e >> pure False
     Right src -> lintText verbose file src
 
+-- A library is checked on its own (ADR 0092). A grammar that imports
+-- libraries is checked with their rules, and only the warnings in the
+-- grammar itself are reported: those in a library are reported with the
+-- library, once.
 lintText :: Bool -> FilePath -> Text -> IO Bool
 lintText verbose file src =
-  case parseGrammar src >>= \g -> either (Left . templateNotes g) (const (Right g)) (expandTemplates g >>= check) of
-    Left diags -> reportErrors file diags >> pure False
-    Right g -> do
-      let ws = lintGrammar g
-          shown = if verbose then ws else filter ((/= LevelInfo) . lintLevel) ws
+  case parseGrammar src of
+    Left diags -> reportErrors file [] diags >> pure False
+    Right g0
+      | Just _ <- grammarLibrary g0 -> case libraryErrors g0 of
+          [] -> report (lintGrammar g0)
+          diags -> reportErrors file [] diags >> pure False
+      | otherwise ->
+          readImports file g0 >>= \texts ->
+            case texts >>= resolveImports g0 >>= \g -> either (Left . templateNotes g) (const (Right g)) (expandTemplates g >>= check) of
+              Left diags -> reportErrors file (grammarImports g0) diags >> pure False
+              Right g -> report (filter ((== 0) . locFile . lintLoc) (lintGrammar g))
+  where
+    report ws = do
+      let shown = if verbose then ws else filter ((/= LevelInfo) . lintLevel) ws
       mapM_ (TIO.hPutStrLn stderr . renderLintWarning file) shown
       pure (all ((== LevelInfo) . lintLevel) ws)

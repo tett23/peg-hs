@@ -8,7 +8,7 @@ peg-hs の文法定義ファイル（`.hpeg`）の書き方を、例を中心に
 記述が ADR と食い違う場合は ADR が優先する。
 
 この文書は、採択済みの ADR の内容だけを反映する。
-反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md)、[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) である。
+反映している ADR は [ADR 0001](adr/0001-bounded-left-recursion.md)、[ADR 0003](adr/0003-typed-semantic-actions.md)、[ADR 0004](adr/0004-peg-notation.md)、[ADR 0005](adr/0005-error-reporting.md)、[ADR 0006](adr/0006-memoization-control.md)、[ADR 0008](adr/0008-source-positions.md)、[ADR 0012](adr/0012-context-sensitive-extensions.md)、[ADR 0014](adr/0014-generated-module-api.md)、[ADR 0015](adr/0015-implementation-deviations.md)、[ADR 0016](adr/0016-language-extensions.md)、[ADR 0017](adr/0017-nomemo-implementation.md)、[ADR 0018](adr/0018-tab-partial-consumption.md)、[ADR 0019](adr/0019-lossless-syntax-tree.md)、[ADR 0020](adr/0020-unicode-identifiers-self-hosted.md)、[ADR 0021](adr/0021-error-recovery.md)、[ADR 0026](adr/0026-discard-unused-values.md)、[ADR 0027](adr/0027-switch-to-self-hosted-parser.md)、[ADR 0028](adr/0028-label-safety-check.md)、[ADR 0029](adr/0029-label-safety-implementation-deviations.md)、[ADR 0030](adr/0030-unit-values-are-not-counted.md)、[ADR 0031](adr/0031-rule-templates.md)、[ADR 0033](adr/0033-grammar-linter.md)、[ADR 0038](adr/0038-label-check-precision-and-strip-labels-entries.md)、[ADR 0049](adr/0049-lint-false-positive-test-and-expected-sets.md)、[ADR 0050](adr/0050-hpeg-extension.md)、[ADR 0053](adr/0053-type-names-of-rules-without-case.md)、[ADR 0054](adr/0054-automatic-label-insertion.md)、[ADR 0055](adr/0055-templates-and-parameterized-rules-in-stages.md)、[ADR 0056](adr/0056-label-insertion-and-template-deviations.md)、[ADR 0061](adr/0061-select-generated-exports.md)、[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)、[ADR 0063](adr/0063-omit-unit-actions.md)、[ADR 0064](adr/0064-unit-rules-always-return-unit.md)、[ADR 0065](adr/0065-omittable-identity-actions.md)、[ADR 0066](adr/0066-omit-unit-type-annotations.md)、[ADR 0067](adr/0067-lint-info-with-verbose.md)、[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)、[ADR 0075](adr/0075-generated-types-for-rules-without-actions.md)、[ADR 0080](adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)、[ADR 0082](adr/0082-static-check-of-binding-references.md)、[ADR 0083](adr/0083-bindings-inside-a-group-are-not-visible.md)、[ADR 0086](adr/0086-inserted-labels-pass-the-label-check.md)、[ADR 0087](adr/0087-other-labels-do-not-change-the-label-check.md)、[ADR 0088](adr/0088-correct-the-second-example-of-adr-0087.md)、[ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md)、[ADR 0092](adr/0092-import-rules-from-other-grammars.md) である。
 
 この文書のコードブロックのうち、`%module` で始まるものは完全な文法であり、そのまま `peg-hs gen` で生成できる。
 それ以外は文法の一部を抜き出した断片である。
@@ -92,7 +92,7 @@ Hash <- '#' # リテラルの '#' はコメントではない
 
 | ディレクティブ | 意味 | ADR |
 |---|---|---|
-| `%module A.B.C` | 生成するモジュールの名前。必須 | [ADR 0004](adr/0004-peg-notation.md) |
+| `%module A.B.C` | 生成するモジュールの名前。ライブラリを除いて必須 | [ADR 0004](adr/0004-peg-notation.md) |
 | `%start Name` | 開始規則。省略すると、最初に定義した規則が開始規則になる | [ADR 0004](adr/0004-peg-notation.md) |
 | `%entry Name` | 開始規則以外の規則にも入口を生成する | [ADR 0014](adr/0014-generated-module-api.md) |
 | `%export 項目, ...` | verbatim ブロックで定義した名前を生成モジュールから公開する | [ADR 0014](adr/0014-generated-module-api.md) |
@@ -109,9 +109,11 @@ Hash <- '#' # リテラルの '#' はコメントではない
 | `%expect Name "表示名"` | 誤りの期待の一覧で、規則 `Name` の終端の代わりに表示名を表示する | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%message label "文言"` | ラベル `label` で失敗したときの誤りの文言 | [ADR 0089](adr/0089-rule-names-and-label-messages-in-errors.md) |
 | `%deriving クラス, ...` | 生成する型が導出するクラス。引数なしなら何も導出しない | [ADR 0075](adr/0075-generated-types-for-rules-without-actions.md) |
+| `%import パス` | ライブラリの規則を取り込む | [ADR 0092](adr/0092-import-rules-from-other-grammars.md) |
+| `%library` | このファイルを、ほかの文法が取り込むライブラリにする | [ADR 0092](adr/0092-import-rules-from-other-grammars.md) |
 
-`%module`、`%start`、`%env`、`%tabstop`、`%syntax`、`%deriving` は一度しか書けない。
-`%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe`、`%expect`、`%message` は何度でも書ける。
+`%module`、`%start`、`%env`、`%tabstop`、`%syntax`、`%deriving`、`%library` は一度しか書けない。
+`%entry`、`%export`、`%language`、`%nomemo`、`%token`、`%trivia`、`%inline`、`%recover`、`%safe`、`%expect`、`%message`、`%import` は何度でも書ける。
 一行に一つの規則を書くディレクティブ（`%entry`、`%nomemo` など）は、規則ごとに一行を書く。
 
 `%module` の値と `%export` の項目は、生成モジュールにそのまま書き出される。
@@ -933,6 +935,89 @@ Ind <- ' '* &{ _col == n }
 | 値の引数の数が違う（`Indented<Item>(1, 2)`） | `error: the template Indented expects 1 value argument(s), but got 2` |
 | 雛形の定義の側に値の引数を書いた（`Indented<p>(n :: Int) <- ...`） | `error: parameters belong to the type annotation, not the definition` |
 | 本体で `x` を使う雛形の引数が、呼び出し元の引数 `x` を使った | `error: the template T uses the name x in its body, so its argument cannot take the parameter x of the rule B; rename the parameter` |
+
+## ほかのファイルの規則を取り込む
+
+識別子や空白のような字句の規則は、文法をまたいで同じ形になりやすい。
+そうした規則を一つのファイルに置き、複数の文法から使える（[ADR 0092](adr/0092-import-rules-from-other-grammars.md)）。
+規則を置くファイルを**ライブラリ**と呼ぶ。
+ライブラリは、先頭近くに引数のない `%library` を書いた `.hpeg` ファイルである。
+
+```hpeg
+# grammar/lex/Ident.hpeg
+%library
+
+Ident :: Text
+Ident <- $(IdentStart IdentChar*) Sp
+
+IdentStart <- [a-zA-Z_]
+
+IdentChar <- [a-zA-Z0-9_]
+
+Sp <- [ \t]*
+```
+
+取り込む側は、これまでどおり `%module` を書いた文法である。
+`%import` にライブラリのパスを書くと、ライブラリの規則を自分の規則と同じに呼べる。
+
+```hpeg
+# grammar/Calc.hpeg
+%module Calc.Parser
+%import lex/Ident.hpeg
+
+%{
+import Data.Text (Text)
+}%
+
+Assign :: (Text, Text)
+Assign <- n:Ident '=' Sp v:Ident { (n, v) }
+```
+
+パスは、`%import` を書いた文法のディレクトリからの相対パスである。
+`/` で区切った一つ以上の部分からなり、各部分は ASCII の英字、数字、`_`、`-`、`.` だけで書く。
+`/` で始めることと、`.` と `..` の部分は許さず、最後の部分は `.hpeg` で終える。
+そのため取り込めるのは、文法のディレクトリとその下のファイルだけである。
+パスのどの部分もシンボリックリンクであってはならず、リンクは辿らない。
+
+ライブラリの規則と取り込む文法の規則は、一つの名前の集まりになる。
+次の決まりがある。
+
+- 同じ名前の規則が二つのファイルにあれば誤りになる。位置は後に読んだほうの定義で、読む順は取り込む文法、ライブラリを `%import` の順である。
+- ライブラリの規則が呼べるのは、同じライブラリの規則だけである。こうしておくと、ライブラリの意味が取り込む文法によって変わらない。
+- 取り込む文法は、ライブラリの雛形も呼べ、自分の規則を引数に渡せる。`%start`、`%entry`、`%token`、`%recover` などのディレクティブも、ライブラリの規則を名指しできる。
+- 取り込む文法から到達しないライブラリの規則は、誤りにならず、生成もされない。取り込む文法の規則が到達しないときは、これまでどおり誤りである。
+
+ライブラリに書けるのは `%library`、コメント、規則（型注釈、定義、雛形、引数付き規則）だけである。
+ほかのディレクティブと verbatim ブロックは書けない。
+`%import` も書けないので、取り込みは一段だけになる。
+生成するモジュールについての決定は、取り込む文法だけが下す。
+ライブラリのアクションや型注釈に書いた Haskell の名前は、取り込む文法のモジュールの中で解決される。
+`Text` を型に使うライブラリを取り込むなら、取り込む文法の verbatim ブロックが `Data.Text` を import する。
+型注釈のない規則の値の型と、ラベルの安全性（`%safe`）も、取り込む文法に従って決まる。
+
+生成するのは、これまでどおり一つのモジュールである。
+ライブラリのアクションの誤りは、GHC がライブラリの行と桁で報告する。
+peg-hs の誤りと警告も、それが起きたファイルで `grammar/lex/Ident.hpeg:3:5: error: ...` のように報告する。
+
+道具はライブラリを次のように扱う。
+
+- `peg-hs gen`、`parse`、`test` は、`%import` を読んで取り込んだ文法を使う。`parse` のキャッシュは、ライブラリを書き換えるとコンパイルし直す。
+- `peg-hs lint` は、取り込む文法の中の警告と、ライブラリを単独で検査した警告を、それぞれのファイルで一度ずつ報告する。
+- `peg-hs fmt` は、ライブラリも一つのファイルとして整形する。
+- `peg-hs label` は、取り込む文法の規則にだけラベルを挿入し、ライブラリを書き換えない。
+
+よくある誤り：
+
+| 書き方 | 報告 |
+|---|---|
+| パスの形が違う（`%import ../x.hpeg`） | `error: %import expects a path such as lex/Ident.hpeg: ...` |
+| ないファイルを取り込んだ | `error: cannot import lex/Ident.hpeg: no such file` |
+| シンボリックリンクを取り込んだ | `error: cannot import lex/Ident.hpeg: it is a symbolic link` |
+| `%library` のないファイルを取り込んだ | `error: lex/Ident.hpeg is not a library: it has no %library directive` |
+| 同じパスを二度書いた | `error: lex/Ident.hpeg is imported twice` |
+| ライブラリにディレクティブを書いた（`%syntax`） | `error: a library cannot have %syntax; write it in the grammar that imports the library` |
+| `%module` と `%library` を同じファイルに書いた | `error: %library and %module cannot be in the same file` |
+| ライブラリを `peg-hs gen` に渡した | `error: missing %module directive` |
 
 ## 左再帰
 

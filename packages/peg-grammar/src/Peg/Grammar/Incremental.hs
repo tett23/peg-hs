@@ -269,7 +269,7 @@ shiftTop d top = case top of
   TAnnot l n ps tps ty -> TAnnot (loc l) n [p {paramType = located (paramType p)} | p <- ps] tps (located ty)
   TDef l n tps as -> TDef (loc l) n tps (map alt as)
   where
-    loc (Loc a b) = Loc (a + d) b
+    loc (Loc f a b) = Loc f (a + d) b
     located (Located l x) = Located (loc l) x
     alt (Alt l is act c) = Alt (loc l) (map item is) (fmap located act) (fmap located c)
     item (Item l b e) = Item (loc l) b (expr e)

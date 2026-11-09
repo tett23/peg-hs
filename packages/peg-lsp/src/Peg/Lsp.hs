@@ -27,9 +27,15 @@ module Peg.Lsp
 import Control.Exception (IOException, try)
 import qualified Data.ByteString as BS
 import qualified Data.Text.IO as TIO
+import Peg.Grammar.Import.Files (readLibrary)
 import Peg.Lsp.Rpc (decodeFrames, encodeMessage, renderFrameError)
 import Peg.Lsp.Server
 import System.IO
+
+-- The server reads files only for the libraries that the open grammars
+-- import (ADR 0092): the files under the directory of a grammar whose URI
+-- is a @file:@ URI, named by its @%import@s, without following symbolic
+-- links ("Peg.Grammar.Import.Files").
 
 -- | Serve on an input and an output handle until the client sends @exit@
 -- or closes the input, and return the exit status: 0 after a @shutdown@
@@ -70,9 +76,15 @@ runServer input output = do
       case stepExit step of
         Just code -> pure (Left code)
         Nothing -> handleAll st' fs
+    -- The files that a step asks for (ADR 0092) are read, and given to the
+    -- server, before the next message.
     send step = do
       mapM_ (BS.hPut output . encodeMessage) (stepOutput step)
       hFlush output
-      pure (stepState step)
+      case stepReads step of
+        [] -> pure (stepState step)
+        requests -> do
+          files <- mapM (\r -> (,) (requestUri r) <$> readLibrary (requestDirectory r) (requestPath r)) requests
+          send (receiveFiles (stepState step) files)
     -- At the end of the input, nothing is waiting.
     inputWaiting = either (\(_ :: IOException) -> False) id <$> try (hWaitForInput input 0)

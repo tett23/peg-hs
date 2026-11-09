@@ -113,7 +113,7 @@ tokenKindName :: SyntaxToken -> Text
 tokenKindName = S.nameOfSyntaxKind . tokenKind
 
 loc :: SyntaxNode -> Int -> Loc
-loc root o = let p = syntaxPos root o in Loc (posLine p) (posColumn p)
+loc root o = let p = syntaxPos root o in Loc 0 (posLine p) (posColumn p)
 
 -- A range of bytes as a highlight.
 range :: SyntaxNode -> HighlightKind -> (Int, Int) -> Highlight

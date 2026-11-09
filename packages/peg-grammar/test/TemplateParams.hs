@@ -98,10 +98,10 @@ stage2Tests =
     "stage 2: the notation of value arguments"
     [ testCase "a template call with value arguments" $ do
         g <- parsed (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind + 2, 3) { () }")
-        exprsOf g "B" @?= [[ETemplate (Loc 13 6) "Lines" [ERef (Loc 13 12) "Item" [Located (Loc 13 17) "ind"]] [Located (Loc 13 23) "ind + 2", Located (Loc 13 32) "3"]]]
+        exprsOf g "B" @?= [[ETemplate (Loc 0 13 6) "Lines" [ERef (Loc 0 13 12) "Item" [Located (Loc 0 13 17) "ind"]] [Located (Loc 0 13 23) "ind + 2", Located (Loc 0 13 32) "3"]]]
     , testCase "a space before the parenthesis makes a group" $ do
         g <- parsed (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)> (N) { () }")
-        exprsOf g "B" @?= [[ETemplate (Loc 13 6) "Lines" [ERef (Loc 13 12) "Item" [Located (Loc 13 17) "ind"]] [], EGroup [[Item (Loc 13 24) Nothing (ERef (Loc 13 24) "N" [])]]]]
+        exprsOf g "B" @?= [[ETemplate (Loc 0 13 6) "Lines" [ERef (Loc 0 13 12) "Item" [Located (Loc 0 13 17) "ind"]] [], EGroup [[Item (Loc 0 13 24) Nothing (ERef (Loc 0 13 24) "N" [])]]]]
     , testCase "a template takes no value arguments" $
         expansionErrors (base "B(ind :: Int) :: ()\nB <- Lines<Item(ind)>(ind) { () }")
           @?= [(13, 6, "the template Lines takes no value arguments")]

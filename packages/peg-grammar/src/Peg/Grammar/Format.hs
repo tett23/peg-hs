@@ -51,7 +51,7 @@ formatGrammar input = do
     then Right out
     else Left [internalError "formatting would change the grammar"]
   where
-    internalError m = Diagnostic (Loc 1 1) ("internal error of the formatter: " <> m)
+    internalError m = Diagnostic (Loc 0 1 1) ("internal error of the formatter: " <> m)
 
 -- | The comments of a grammar in order, without trailing spaces. The empty
 -- list for a grammar with a syntax error.
@@ -83,7 +83,7 @@ eraseTop = \case
   TAnnot _ n ps tps ty -> TAnnot z n [Param pn (erase t) | Param pn t <- ps] tps (erase ty)
   TDef _ n tps as -> TDef z n tps (map alt as)
   where
-    z = Loc 0 0
+    z = Loc 0 0 0
     erase (Located _ x) = Located z x
     alt (Alt _ is a c) = Alt z (map item is) (fmap (\(Located _ x) -> Located z (oneLine x)) a) (fmap erase c)
     oneLine c = if T.any (== '\n') c then c else T.strip c

@@ -1,0 +1,6 @@
+# A library of grammar/Calc.hpeg (ADR 0092). Its action is Haskell of the
+# module of Calc.hpeg, which imports Data.Text as T.
+%library
+
+Number :: Int
+Number <- d:$[0-9]+ { read (T.unpack d) }

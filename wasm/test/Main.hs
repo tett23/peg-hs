@@ -34,6 +34,7 @@ main = do
       [ analyzeTests
       , testGroup "the module is the one of peg-hs gen" [genTest f d | f <- conformance ++ fixtures, d <- [False, True]]
       , testGroup "the names of the files" nameTests
+      , importTests
       , astTests conformance
       , formatTests conformance
       , requestTests
@@ -203,6 +204,44 @@ genTest file debug = testCase (file <> (if debug then " --debug-entry" else ""))
   let r = analyze [("grammar", String (TE.decodeUtf8 bytes)), ("sourceName", String (T.pack source)), ("outputName", String (T.pack output)), ("debugEntry", Bool debug)]
   assertBool "peg-hs gen generates the module" (isJust expected || any (\d -> member "severity" d == Just (String "error")) (diagnostics r))
   moduleBytes r @?= expected
+
+-- The libraries of a grammar, given in "imports" (ADR 0092).
+importTests :: TestTree
+importTests =
+  testGroup
+    "libraries (ADR 0092)"
+    [ testCase "the module is the one of peg-hs gen for the same grammar and library" $ do
+        let root = TE.encodeUtf8 importingGrammar
+        expected <- withSystemTempDirectory "peg-wasm-test" $ \dir -> do
+          createDirectoryIfMissing True (dir </> "grammar" </> "lex")
+          BS.writeFile (dir </> "grammar" </> "Calc.hpeg") root
+          TIO.writeFile (dir </> "grammar" </> "lex" </> "Ident.hpeg") identLibrary
+          (code, _, err) <- readCreateProcessWithExitCode (proc "peg-hs" ["gen", "grammar/Calc.hpeg", "-o", "Calc.hs"]) {cwd = Just dir} ""
+          code @?= ExitSuccess
+          err @?= ""
+          BS.readFile (dir </> "Calc.hs")
+        let r = analyze [("grammar", String importingGrammar), ("sourceName", String "grammar/Calc.hpeg"), ("outputName", String "Calc.hs"), ("imports", object [("lex/Ident.hpeg", String identLibrary)])]
+        map diagnostic (diagnostics r) @?= []
+        moduleBytes r @?= Just expected
+    , testCase "a path that is not in imports cannot be imported" $ do
+        let r = analyze [("grammar", String importingGrammar)]
+        map diagnostic (diagnostics r) @?= [("error", 2, 1, "cannot import lex/Ident.hpeg: no such file")]
+        field "module" r @?= Null
+    , testCase "a diagnostic in a library has its path as file" $ do
+        let r = analyze [("grammar", String importingGrammar), ("imports", object [("lex/Ident.hpeg", String (identLibrary <> "Bad <- Missing\n"))])]
+        map (\d -> (diagnostic d, member "file" d)) (diagnostics r) @?= [(("error", 7, 8, "undefined rule Missing"), Just (String "lex/Ident.hpeg"))]
+    , testCase "imports that are not an object of strings are an error" $
+        analyze [("grammar", String importingGrammar), ("imports", Array [])] @?= object [("error", String "imports is not an object of strings")]
+    , testCase "parse takes the libraries in imports" $ do
+        let r = response (parseInputJson (renderJson (object [("grammar", String importingGrammar), ("input", String "a=b"), ("imports", object [("lex/Ident.hpeg", String identLibrary)])])))
+        field "accepted" r @?= Bool True
+    ]
+
+importingGrammar :: Text
+importingGrammar = T.unlines ["%module Calc.Parser", "%import lex/Ident.hpeg", "", "%{", "import Data.Text (Text)", "}%", "", "Assign :: (Text, Text)", "Assign <- n:Ident '=' Sp v:Ident { (n, v) }"]
+
+identLibrary :: Text
+identLibrary = T.unlines ["%library", "", "Ident :: Text", "Ident <- $[a-z]+ Sp", "", "Sp <- ' '*"]
 
 nameTests :: [TestTree]
 nameTests =

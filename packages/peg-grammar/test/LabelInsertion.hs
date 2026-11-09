@@ -84,8 +84,8 @@ labelInsertionTests files =
           "names"
           [ testCase "the targets" $
               map targetName
-                [ ERef (Loc 1 1) "Expr" []
-                , ERef (Loc 1 1) "Indent" [Located (Loc 1 1) "n"]
+                [ ERef (Loc 0 1 1) "Expr" []
+                , ERef (Loc 0 1 1) "Indent" [Located (Loc 0 1 1) "n"]
                 , ELit "end" "'end'"
                 , ELit ")" "')'"
                 , ELit "]" "']'"
@@ -118,9 +118,9 @@ labelInsertionTests files =
           , testCase "a rule given selects its candidates" $
               fmap (map insertionName . fst) (insertLabels ["C"] covered) @?= Right ["C_d"]
           , testCase "a rule that is not in the grammar is an error" $
-              fmap fst (insertLabels ["Nope"] covered) @?= Left [Diagnostic (Loc 1 1) "undefined rule Nope"]
+              fmap fst (insertLabels ["Nope"] covered) @?= Left [Diagnostic (Loc 0 1 1) "undefined rule Nope"]
           , testCase "a grammar with an error inserts nothing" $
-              fmap fst (insertLabels [] (grammar ["S :: ()", "S <- 'a' Missing { () }"])) @?= Left [Diagnostic (Loc 3 10) "undefined rule Missing"]
+              fmap fst (insertLabels [] (grammar ["S :: ()", "S <- 'a' Missing { () }"])) @?= Left [Diagnostic (Loc 0 3 10) "undefined rule Missing"]
           , testCase "the grammars of the repository: inserting succeeds, and again inserts nothing" $ do
               rs <- mapM (\f -> (,) f . twice <$> TIO.readFile f) files
               [(f, r) | (f, r) <- rs, r /= Right []] @?= []
@@ -169,8 +169,8 @@ labelInsertionTests files =
       Left ds -> Left ds
       Right (_, out) -> fmap fst (insertLabels [] out)
     showInsertion i =
-      let Loc l c = insertionStart i
-          Loc l' c' = insertionEnd i
+      let Loc _ l c = insertionStart i
+          Loc _ l' c' = insertionEnd i
        in T.intercalate " " [T.pack (show l) <> ":" <> T.pack (show c), T.pack (show l') <> ":" <> T.pack (show c'), insertionRule i, insertionName i]
 
 -- The rule, path and target of each candidate.
@@ -247,7 +247,7 @@ unlabelAt src =
       prefix = T.take o before
       line = T.count "\n" prefix + 1
       col = T.length (snd (T.breakOnEnd "\n" prefix)) + 1
-   in (out, Loc line col)
+   in (out, Loc 0 line col)
   where
     -- The offset of the parenthesis left open at the end of a text.
     openOf t = go (T.length t - 1) (0 :: Int)

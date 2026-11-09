@@ -50,10 +50,12 @@ module Peg.Grammar.LabelInsertion
     -- * Inserting
   , Insertion (..)
   , insertLabels
+  , insertLabelsWithImports
     -- * Recovery rules
   , Edit (..)
   , RecoverProposal (..)
   , recoverProposals
+  , recoverProposalsWithImports
   , applyEdits
   ) where
 
@@ -68,6 +70,7 @@ import Peg.Grammar
 import Peg.Grammar.Assemble (isIdentChar)
 import Peg.Grammar.Check (check)
 import Peg.Grammar.Labels (labelSafeAt, labelWarnings, matchesEmpty)
+import Peg.Grammar.Import (resolveImports)
 import Peg.Grammar.Parser (parseGrammar)
 import qualified Peg.Grammar.SelfHostedSyntax as S
 import Peg.Grammar.Templates (expandTemplates, templateNotes)
@@ -376,19 +379,29 @@ data Insertion = Insertion
 -- The result is parsed again and compared with the grammar with the labels
 -- added; if they differ, which is a bug, an internal error is returned.
 insertLabels :: [Text] -> Text -> Either [Diagnostic] ([Insertion], Text)
-insertLabels only src = do
-  g0 <- parseGrammar src
+insertLabels = insertLabelsWithImports []
+
+-- | 'insertLabels' for a grammar that imports libraries (ADR 0092), given
+-- their texts by the paths of the @%import@s
+-- ('Peg.Grammar.Import.resolveImports'). The candidates are judged in the
+-- grammar with the rules of the libraries, and the labels are inserted in
+-- the rules of the grammar only: the libraries are not changed, since a
+-- label that is safe in one grammar may not be in another. A rule name
+-- given that is not a rule of the grammar itself is an undefined rule.
+insertLabelsWithImports :: [(FilePath, Text)] -> [Text] -> Text -> Either [Diagnostic] ([Insertion], Text)
+insertLabelsWithImports libraries only src = do
+  g0 <- parseGrammar src >>= \g -> resolveImports g libraries
   g <- either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> g <$ check g)
-  let names = S.fromList (map ruleName (grammarRules g0))
+  let names = S.fromList [ruleName r | r <- grammarRules g0, locFile (ruleLoc r) == 0]
   case [r | r <- only, not (S.member r names)] of
     [] -> pure ()
-    missing -> Left [Diagnostic (Loc 1 1) ("undefined rule " <> r) | r <- missing]
+    missing -> Left [Diagnostic (Loc 0 1 1) ("undefined rule " <> r) | r <- missing]
   root <- either (const (Left [internalError "the syntax tree parser rejected the grammar"])) Right (S.parseSyntax src)
-  named <- passing g0 g [c | c <- safeCandidates g0 g, null only || candidateRule c `elem` only]
+  named <- passing g0 g [c | c <- safeCandidates g0 g, S.member (candidateRule c) names, null only || candidateRule c `elem` only]
   located <- maybe (Left [internalError "an expression was not found in the syntax tree"]) Right (mapM (locate root) named)
   let out = insertAt [(end, " ^" <> name) | (_, name, _, end) <- located] root
       expected = labelled g0 named
-  case parseGrammar out of
+  case parseGrammar out >>= \g' -> resolveImports g' libraries of
     Right g' | eraseGrammar g' == eraseGrammar expected -> pure ()
     _ -> Left [internalError "inserting the labels would change the grammar"]
   pure ([Insertion name (candidateRule c) (loc root start) (loc root end) | (c, name, start, end) <- located], out)
@@ -401,7 +414,7 @@ insertLabels only src = do
       pure (c, name, fst (tokenRange start), snd (tokenRange end))
 
 internalError :: Text -> Diagnostic
-internalError m = Diagnostic (Loc 1 1) ("internal error of label: " <> m)
+internalError m = Diagnostic (Loc 0 1 1) ("internal error of label: " <> m)
 
 -- The candidates, named, without those whose labels the check of
 -- @peg-hs gen@ ('Peg.Grammar.Labels.labelWarnings') warns about in the
@@ -435,7 +448,7 @@ kindOf :: SyntaxNode -> Text
 kindOf = S.nameOfSyntaxKind . syntaxKind
 
 loc :: SyntaxNode -> Int -> Loc
-loc root o = let p = syntaxPos root o in Loc (posLine p) (posColumn p)
+loc root o = let p = syntaxPos root o in Loc 0 (posLine p) (posColumn p)
 
 -- The definition of a rule in the syntax tree.
 definitionNode :: SyntaxNode -> Text -> Maybe SyntaxNode
@@ -513,13 +526,15 @@ addLabel c name g = g {grammarRules = map rule (grammarRules g)}
         _ -> e
     labelled = \case
       ECapture x -> ECapture (labelled x)
-      x -> ELabel (Loc 0 0) x name
+      x -> ELabel (Loc 0 0 0) x name
 
 -- A grammar without its locations.
 eraseGrammar :: Grammar -> Grammar
 eraseGrammar g =
   Grammar
     { grammarModule = erase (grammarModule g)
+    , grammarImports = map erase (grammarImports g)
+    , grammarLibrary = fmap (const z) (grammarLibrary g)
     , grammarStart = fmap erase (grammarStart g)
     , grammarEntries = map erase (grammarEntries g)
     , grammarExports = map erase (grammarExports g)
@@ -540,7 +555,7 @@ eraseGrammar g =
     , grammarRules = map rule (grammarRules g)
     }
   where
-    z = Loc 0 0
+    z = Loc 0 0 0
     erase (Located _ x) = Located z x
     rule r = r {ruleLoc = z, ruleParams = [p {paramType = erase (paramType p)} | p <- ruleParams r], ruleType = erase (ruleType r), ruleAnnotation = z <$ ruleAnnotation r, ruleAlts = map alt (ruleAlts r)}
     alt (Alt _ is a c) = Alt z (map item is) (fmap erase a) (fmap erase c)
@@ -599,8 +614,14 @@ data RecoverProposal = RecoverProposal
 -- line without one. Its action is the typed hole @{ _ }@, which GHC reports
 -- with its type at the line of the action.
 recoverProposals :: Text -> Either [Diagnostic] [RecoverProposal]
-recoverProposals src = do
-  g0 <- parseGrammar src
+recoverProposals = recoverProposalsWithImports []
+
+-- | 'recoverProposals' for a grammar that imports libraries (ADR 0092),
+-- given their texts by the paths of the @%import@s. The proposals are
+-- those of the labels of the grammar itself, written in the grammar.
+recoverProposalsWithImports :: [(FilePath, Text)] -> Text -> Either [Diagnostic] [RecoverProposal]
+recoverProposalsWithImports libraries src = do
+  g0 <- parseGrammar src >>= \g -> resolveImports g libraries
   g <- either (Left . templateNotes g0) Right (expandTemplates g0 >>= \g -> g <$ check g)
   root <- either (const (Left [])) Right (S.parseSyntax src)
   let recovered = S.fromList [unLoc l | (l, _) <- grammarRecovers g0]
@@ -612,6 +633,7 @@ recoverProposals src = do
       labels =
         [ (r, path, x, name, next)
         | r <- grammarRules g0
+        , locFile (ruleLoc r) == 0
         , null (ruleTemplateParams r)
         , not (S.member (ruleName r) covered)
         , (i, a) <- zip [0 ..] (ruleAlts r)
@@ -636,9 +658,9 @@ recoverProposals src = do
             skip = case next of
               Just lit -> "(!" <> lit <> " .)*"
               Nothing -> "(![\\n] .)*"
-            Loc dl _ = loc root (snd (syntaxRange dir))
+            Loc _ dl _ = loc root (snd (syntaxRange dir))
             dirEdit
-              | dl < length (T.splitOn "\n" src) = Edit (Loc (dl + 1) 1) ("%recover " <> name <> " " <> recoverName <> nl)
+              | dl < length (T.splitOn "\n" src) = Edit (Loc 0 (dl + 1) 1) ("%recover " <> name <> " " <> recoverName <> nl)
               | otherwise = Edit (loc root (snd (syntaxRange dir))) (nl <> "%recover " <> name <> " " <> recoverName)
             ruleEdit = Edit (loc root (snd (tokenRange declEnd))) (T.concat [nl, nl, recoverName, " :: ", ty, nl, recoverName, " <- ", skip, " { _ }"])
         pure (RecoverProposal name recoverName (loc root (fst (tokenRange start))) (loc root (snd (tokenRange labelPart))) [dirEdit, ruleEdit])
@@ -680,6 +702,6 @@ applyEdits :: [Edit] -> Text -> Text
 applyEdits edits src = foldl apply src (sortOn (Down . fst) (zip (map offset edits) [0 :: Int ..]) `zipWithEdits` edits)
   where
     ls = T.splitOn "\n" src
-    offset (Edit (Loc l c) _) = sum (map ((+ 1) . T.length) (take (l - 1) ls)) + c - 1
+    offset (Edit (Loc _ l c) _) = sum (map ((+ 1) . T.length) (take (l - 1) ls)) + c - 1
     zipWithEdits order es = [(o, es !! k) | (o, k) <- order]
     apply t (o, Edit _ x) = T.take o t <> x <> T.drop o t

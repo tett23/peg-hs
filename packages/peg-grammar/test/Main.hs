@@ -16,6 +16,7 @@ import Peg.Grammar.Templates (expandTemplates, templateNotes)
 import ExpectMessage (expectMessageTests)
 import Format (formatTests)
 import GeneratedTypes (generatedTypeTests)
+import Imports (importTests)
 import Incremental (incrementalTests)
 import Interpret (interpretTests)
 import Labels (labelTests)
@@ -60,6 +61,7 @@ main = do
       , bindingReferenceTests files
       , variableTests
       , securityTests
+      , importTests
       , repositoryGrammarTests files
       , errorReportTests
       , expectMessageTests
@@ -88,7 +90,7 @@ main = do
       , incrementalTests files
       , documentExampleTests
       , translationTests
-      , testGroup "editor grammars" [if editors then rangeTests files else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
+      , testGroup "editor grammars" [if editors then rangeTests (files ++ importingFiles) else testCaseInfo "the ranges for the editor grammars (ADR 0034)" (pure "skipped: ../../editors/test is not in a source archive")]
       , testCaseInfo "the grammars of the repository" (pure (unlines' [ "skipped: " <> d <> " is not in a source archive" | d <- missing ]))
       ]
 
@@ -102,6 +104,12 @@ grammarFiles = concat <$> mapM pegsIn grammarDirectories
       if exists
         then map (d </>) . filter ((== ".hpeg") . takeExtension) <$> listDirectory d
         else pure []
+
+-- A grammar that imports a library and the library (ADR 0092), whose
+-- ranges the editor grammars are compared on too. They are not among the
+-- grammars above, which the tests check without libraries.
+importingFiles :: [FilePath]
+importingFiles = ["../peg-codegen/test/imports/Imports.hpeg", "../peg-codegen/test/imports/lex/Lex.hpeg"]
 
 grammarDirectories :: [FilePath]
 grammarDirectories =
@@ -207,7 +215,7 @@ errorSnippets =
 -- The first diagnostic, as line:column: message.
 report :: Either [Diagnostic] Grammar -> Text
 report = \case
-  Left (Diagnostic (Loc l c) msg : _) -> T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> msg
+  Left (Diagnostic (Loc _ l c) msg : _) -> T.pack (show l) <> ":" <> T.pack (show c) <> ": " <> msg
   Left [] -> "no diagnostic"
   Right _ -> "accepted"
 
@@ -276,7 +284,7 @@ notationTests =
         fmap unLoc (grammarEnv g) @?= Just "Set Text"
         fmap unLoc (grammarTabstop g) @?= Just 4
         map unLoc (grammarVerbatim g) @?= ["import X"]
-        map locOf (grammarVerbatim g) @?= [Loc 8 1]
+        map locOf (grammarVerbatim g) @?= [Loc 0 8 1]
     , testCase "comments" $ do
         g <- parseOk "# top\n%module M # trailing\nA :: () \nA <- '#' # not the literal\n  { () } # after\n"
         exprs' g @?= [ELit "#" "'#'"]
@@ -304,7 +312,7 @@ notationTests =
         fmap unLoc (altAction (firstAlt g)) @?= Just " \"}{\" ++ ['}'] ++ f' "
     , testCase "action location is just after the brace" $ do
         g <- parseOk "%module M\nA :: ()\nA <- 'a'   { () }\n"
-        fmap locOf (altAction (firstAlt g)) @?= Just (Loc 3 13)
+        fmap locOf (altAction (firstAlt g)) @?= Just (Loc 0 3 13)
     , testCase "A(x) is a call, A (x) is a sequence" $ do
         es1 <- exprs "B(1 + f (2, 3), x)"
         case es1 of
@@ -375,7 +383,7 @@ unitAnnotationTests =
         messagesOf (g "A :: Int\nA <- W N\nW <- ' ' { () }") @?= []
     , testCase "its type is ()" $
         fmap (map (\r -> (ruleName r, unLoc (ruleType r), ruleAnnotation r))) (grammarRules <$> parseGrammar (g "W <- ' '"))
-          @?= Right [("W", "()", Nothing), ("Sp", "()", Just (Loc 3 1)), ("N", "Int", Just (Loc 5 1))]
+          @?= Right [("W", "()", Nothing), ("Sp", "()", Just (Loc 0 3 1)), ("N", "Int", Just (Loc 0 5 1))]
     , testCase "a group does not count its value" $
         messagesOf (g "A :: [Int]\nA <- n:N ns:(',' W N)* { n : ns }\nW <- ' '*") @?= []
     , testCase "its alternatives without values may omit their actions" $
@@ -462,7 +470,7 @@ templateTests =
     [ testCase "parse a template and its calls" $ do
         g <- parseOk (t "S :: [Int]\nS <- List<N, ','>")
         [ruleTemplateParams r | r <- grammarRules g, ruleName r == "List"] @?= [[TemplateParam "p" (Just "a"), TemplateParam "sep" Nothing]]
-        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "S", a <- ruleAlts r] @?= [[ETemplate (Loc 10 6) "List" [ERef (Loc 10 11) "N" [], ELit "," "','"] []]]
+        [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "S", a <- ruleAlts r] @?= [[ETemplate (Loc 0 10 6) "List" [ERef (Loc 0 10 11) "N" [], ELit "," "','"] []]]
     , testCase "the same arguments make one instance, others another" $ do
         g <- expanded (t "S :: ([Int], [Int], [Int])\nS <- a:List<N, ','> b:List<N, ','> c:List<N, ';'> { (a, b, c) }")
         sort [ruleName r | r <- grammarRules g] @?= ["List'0", "List'1", "N", "S", "Sp"]
@@ -475,7 +483,7 @@ templateTests =
     , testCase "an untyped argument's value is discarded" $ do
         g <- expanded (t "S :: [Int]\nS <- List<N, N>")
         [map itemExpr (altItems a) | r <- grammarRules g, ruleName r == "List'0", a <- ruleAlts r]
-          @?= [[ERef (Loc 10 11) "N" [], EStar (EGroup [[Item (Loc 4 25) Nothing (EDiscard (ERef (Loc 10 14) "N" [])), Item (Loc 4 29) Nothing (ERef (Loc 4 29) "Sp" []), Item (Loc 4 32) Nothing (ERef (Loc 10 11) "N" [])]])]]
+          @?= [[ERef (Loc 0 10 11) "N" [], EStar (EGroup [[Item (Loc 0 4 25) Nothing (EDiscard (ERef (Loc 0 10 14) "N" [])), Item (Loc 0 4 29) Nothing (ERef (Loc 0 4 29) "Sp" []), Item (Loc 0 4 32) Nothing (ERef (Loc 0 10 11) "N" [])]])]]
         checkErrors (t "S :: [Int]\nS <- List<N, N>") @?= []
     , testCase "templates calling templates" $
         checkErrors (t "S :: [[Int]]\nS <- List<List<N, ','>, ';'>") @?= []

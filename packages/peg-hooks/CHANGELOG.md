@@ -12,6 +12,10 @@ cabal package in its build.
 
 Since v0.1.0-rc6:
 
+- The rule of a grammar has the libraries that the grammar imports as
+  file dependencies, so a change of a library generates the module
+  again; the libraries go in `extra-source-files` too
+  ([ADR 0092](https://github.com/tett23/peg-hs/blob/main/docs/adr/0092-import-rules-from-other-grammars.md)).
 - `Peg.Hooks.pegSetupHooks`, the setup hooks of a package with
   `build-type: Hooks`: before each component is built, a rule generates
   the module of each `Grammar` of the package into the autogen directory,
