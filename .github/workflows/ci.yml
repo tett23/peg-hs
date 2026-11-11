@@ -413,11 +413,65 @@ jobs:
           PEG_HS_WASM_RAW: ${{ runner.temp }}/raw.wasm
         run: deno test --allow-read --allow-write --allow-env --allow-run wasm/test
 
+  lsp-latency:
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 86
+    runs-on: ubuntu-latest
+    env:
+      BASE: ${{ github.event.pull_request.base.sha }}
+      HEAD: ${{ github.event.pull_request.head.sha }}
+      GOLEM: 89ae4b4142c58cb8937e10c18c0e664280397547
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: node --test scripts/lsp-latency.test.mjs
+      - uses: actions/cache@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Prepare toolchain and identical grammar inputs
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE"
+          git show "$BASE:conformance/bench/Memo.hpeg" > "$RUNNER_TEMP/Memo.hpeg"
+          curl --fail --location --retry 3 "https://raw.githubusercontent.com/tett23/golem/$GOLEM/modules/golem-parser/grammar/Golem.hpeg" -o "$RUNNER_TEMP/Golem.hpeg"
+          echo "e27f6daf94af567afbf0712eae8f2ec4e9d45801571b61b90af04929020d1a2c  $RUNNER_TEMP/Golem.hpeg" | sha256sum --check
+      - name: Build and measure both revisions on this runner
+        run: |
+          {
+            echo "Base $BASE, head $HEAD. Memo from base, Golem from $GOLEM."
+            echo "Runner $ImageOS $ImageVersion ($(uname -m)), GHC $(ghc --numeric-version), Cabal $(cabal --numeric-version), -O1, RTS -A64m."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          cabal update
+          for revision in base head; do
+            if [ "$revision" = base ]; then cd "$RUNNER_TEMP/base"; else cd "$GITHUB_WORKSPACE"; fi
+            cabal build bench:peg-bench --enable-optimization=1
+            bench=$(cabal list-bin bench:peg-bench --enable-optimization=1)
+            cd conformance
+            for grammar in Memo Golem; do
+              PEG_BENCH_LSP_GRAMMAR="$RUNNER_TEMP/$grammar.hpeg" "$bench" \
+                --match pattern range --json "$RUNNER_TEMP/$revision-$grammar.json" +RTS -A64m -RTS
+            done
+          done
+      - name: Check all twelve head means and record both revisions
+        run: |
+          node scripts/lsp-latency.mjs "$RUNNER_TEMP"/{base-Memo,base-Golem,head-Memo,head-Golem}.json | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
   # One result for the branch protection of main (ADR 0072): it fails when a
   # job failed or was cancelled, and passes when every job passed or was
   # skipped because only documents changed. A new job goes to needs.
   ci:
-    needs: [changes, haskell, test, haddock, sdist, hooks, editors, wasm]
+    needs: [changes, haskell, test, haddock, sdist, hooks, editors, wasm, lsp-latency]
     if: always()
     runs-on: ubuntu-latest
     steps:
