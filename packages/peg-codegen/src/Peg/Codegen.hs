@@ -923,7 +923,7 @@ exprCodeU env used expr = case expr of
   ECapture x -> wrap "PegRt.capture" False x
   ELabel _ x name -> do
     e <- exprCodeU env used x
-    pure (labeledCode env False name <> " " <> recoveryCode env False (valued x) name <> " (" <> e <> ")")
+    pure (labelCall env False (valued x) name e)
   EPred True f -> pure ("PegRt.predicate (\\_col -> " <> fragment (envSources env) f <> ")")
   EPred False f -> pure ("PegRt.predicate (\\_col -> PegPrelude.not (" <> fragment (envSources env) f <> "))")
   EDiscard x -> wrap "PegRt.voidP" False x
@@ -1171,7 +1171,7 @@ exprCodeSU env used expr = case expr of
   ECapture x -> wrap "PegRt.captureS" False x
   ELabel _ x name -> do
     e <- exprCodeSU env used x
-    pure (labeledCode env True name <> " " <> recoveryCode env True (used && hasValue (units env) x) name <> " (" <> e <> ")")
+    pure (labelCall env True (used && hasValue (units env) x) name e)
   EDiscard x -> wrap "PegRt.voidS" False x
   ETemplate {} -> error "a template call must be expanded before generating code: call Peg.Grammar.Templates.expandTemplates first"
   where
@@ -1190,13 +1190,19 @@ labeledCode env syntaxMode name =
     m : _ -> (if syntaxMode then "PegRt.labeledMessageS " else "PegRt.labeledMessage ") <> hsString name <> " " <> hsString m
     [] -> (if syntaxMode then "PegRt.labeledS " else "PegRt.labeled ") <> hsString name
 
--- The recovery parser for a label, if the grammar gives one (ADR 0021). A
--- label on an expression without a value discards the recovery's value.
-recoveryCode :: Env -> Bool -> Bool -> Text -> Text
-recoveryCode env syntaxMode valued name =
+-- The call of a label on the code of its expression. A label whose recovery
+-- the grammar gives (ADR 0021) on an expression whose value is not used
+-- discards the values of both the recovery and the expression, so that the
+-- two have the same type @()@ (ADR 0094): in the discarding context, a
+-- reference to a rule with a value, and in a grammar with @%syntax@ also @*@,
+-- @+@ and @?@, keep their values.
+labelCall :: Env -> Bool -> Bool -> Text -> Text -> Text
+labelCall env syntaxMode valued name e =
   case [unLoc r | (Located _ l, r) <- grammarRecovers (envGrammar env), l == name] of
     r : _
-      | valued -> "(PegPrelude.Just " <> ruleVar r <> ")"
-      | syntaxMode -> "(PegPrelude.Just (PegRt.voidS " <> ruleVar r <> "))"
-      | otherwise -> "(PegPrelude.Just (PegRt.voidP " <> ruleVar r <> "))"
-    [] -> "PegPrelude.Nothing"
+      | valued -> call ("(PegPrelude.Just " <> ruleVar r <> ")") e
+      | otherwise -> call ("(PegPrelude.Just (" <> void <> " " <> ruleVar r <> "))") (void <> " (" <> e <> ")")
+    [] -> call "PegPrelude.Nothing" e
+  where
+    call recovery body = labeledCode env syntaxMode name <> " " <> recovery <> " (" <> body <> ")"
+    void = if syntaxMode then "PegRt.voidS" else "PegRt.voidP"

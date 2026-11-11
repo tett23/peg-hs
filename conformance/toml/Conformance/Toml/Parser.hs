@@ -1381,7 +1381,7 @@ peg'rule'Expression =
           ; PegRt.touch l
           ; (_, peg'k2) <- (PegRt.optionalS) (peg'rule'Ws)
           ; (_, peg'k3) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (PegRt.voidS (peg'rule'EndOfLine))
           ; PegPrelude.pure ((), peg'k4)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -1397,7 +1397,7 @@ peg'rule'Expression =
           ; PegRt.touch l
           ; (_, peg'k8) <- (PegRt.optionalS) (peg'rule'Ws)
           ; (_, peg'k9) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (PegRt.voidS (peg'rule'EndOfLine))
           ; PegPrelude.pure ((), peg'k10)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -1410,7 +1410,7 @@ peg'rule'Expression =
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k12) <- (PegRt.optionalS) (peg'rule'Ws)
           ; (_, peg'k13) <- (PegRt.optionalS) (peg'rule'Comment)
-          ; (_, peg'k15) <- PegRt.choice [do { (_, peg'k14) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (peg'rule'EndOfLine)
+          ; (_, peg'k15) <- PegRt.choice [do { (_, peg'k14) <- PegRt.labeledS "eol" (PegPrelude.Just (PegRt.voidS peg'rule'SkipLine)) (PegRt.voidS (peg'rule'EndOfLine))
           ; PegPrelude.pure ((), peg'k14)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -1445,7 +1445,7 @@ peg'rule'KeyVal =
       [ do { peg'start <- PegRt.getOffset
           ; (k, peg'k0) <- PegRt.label "k" (peg'rule'Key)
           ; PegRt.touch k
-          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "eq" (PegPrelude.Just (PegRt.voidS peg'rule'MissingEq)) (peg'rule'KeyValSep)
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "eq" (PegPrelude.Just (PegRt.voidS peg'rule'MissingEq)) (PegRt.voidS (peg'rule'KeyValSep))
           ; PegPrelude.pure ((), peg'k1)
           }]
           ; (v, peg'k5) <- PegRt.label "v" (PegRt.choice [do { (peg'v4, peg'k3) <- PegRt.labeledS "value" (PegPrelude.Just peg'rule'SkipValue) (peg'rule'Val)

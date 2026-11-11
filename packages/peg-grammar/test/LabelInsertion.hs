@@ -44,6 +44,10 @@ labelInsertionTests files =
               candidatesOf (grammar ["S :: ()", "S <- 'a'? 'b' { () }"]) @?= Right []
           , testCase "not in an alternative that always succeeds for lint, and the rules it calls" $
               candidatesOf (grammar ["S :: ()", "S <- ('a' 'b')* B? { () } / 'c' 'd' { () }", "B :: ()", "B <- 'e' 'f' { () }"]) @?= Right [("S", [(1, 1)], "d")]
+          , testCase "not in duplicate alternatives (ADR 0094)" $
+              candidatesOf (grammar ["S <- 'c' 'd' / 'c' 'd'"]) @?= Right []
+          , testCase "not in duplicate alternatives that are not adjacent, but between them (ADR 0094)" $
+              candidatesOf (grammar ["S <- 'c' 'd' / 'x' 'y' / 'c' 'd'"]) @?= Right [("S", [(1, 1)], "y")]
           , testCase "an item after a call of a template" $
               candidatesOf templateCall @?= Right [("S", [(0, 2)], "c")]
           ]

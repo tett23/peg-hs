@@ -251,6 +251,20 @@ Since v0.1.0-rc6:
   where other labels had made the check give up early
   ([ADR 0087](https://github.com/tett23/peg-hs/blob/main/docs/adr/0087-other-labels-do-not-change-the-label-check.md),
   [ADR 0088](https://github.com/tett23/peg-hs/blob/main/docs/adr/0088-correct-the-second-example-of-adr-0087.md)).
+- `labelCandidates` leaves out the items of an alternative that is the
+  same as another alternative of its rule, as `sameAlternative` of
+  `Peg.Grammar.Lint`, now exported, compares them. `peg-hs label` and the
+  code action of the language server inserted labels there, which took
+  away the warning `duplicate-alternative` of `peg-hs lint`
+  ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
+- The parse by fragments of `Peg.Grammar.Incremental` reads a character
+  literal with an escape across lines to its closing quote, and does not
+  take a quote inside an identifier (`x'`) for the start of a character
+  literal, as the grammar of the notation does. A fragment whose end was
+  inside such a literal was not joined with the next one, and its errors
+  and outline differed from those of the whole parse. `open`, the check,
+  is exported
+  ([ADR 0094](https://github.com/tett23/peg-hs/blob/main/docs/adr/0094-fixes-of-recovered-labels-duplicate-alternatives-and-incremental-quotes.md)).
 - `analysisLeftRecursive` counts the recovery rule `R` of `%recover l R`
   as an alternative of each `e ^l`: `R` is called at the position of `e`,
   and `e ^l` matches the empty string if `R` does. A rule that comes back

@@ -1631,9 +1631,9 @@ peg'rule'File =
     (PegRt.node syntaxKindFile (PegRt.choice
       [ do { (_, peg'k0) <- peg'rule'Ws
           ; (peg'v2, peg'k1) <- (PegRt.manyS) (peg'rule'TopItem)
-          ; (_, peg'k4) <- PegRt.labeledMessageS "top" "expected a rule, a directive or %{ ... }%" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
+          ; (_, peg'k4) <- PegRt.labeledMessageS "top" "expected a rule, a directive or %{ ... }%" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; PegPrelude.pure ((), peg'k3)
-          }])
+          }]))
           ; PegPrelude.pure (peg'v2, PegPrelude.concat [peg'k0, peg'k1, peg'k4])
           }
       ]))
@@ -1823,7 +1823,7 @@ peg'rule'Verbatim =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }])))
           ; PegRt.touch b
-          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "verbatim" "unterminated %{ block" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "}%" "'}%'"))
+          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "verbatim" "unterminated %{ block" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "}%" "'}%'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -1924,14 +1924,14 @@ peg'rule'Declaration =
           ; (_, peg'k18) <- (PegRt.optionalS) (peg'rule'TemplateParams)
           ; (_, peg'k19) <- (PegRt.optionalS) (peg'rule'ParamList)
           ; (_, peg'k20) <- peg'rule'Ws
-          ; (_, peg'k22) <- PegRt.labeledMessageS "params" "parameters belong to the type annotation, not the definition" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k21) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "<-" "'<-'"))
+          ; (_, peg'k22) <- PegRt.labeledMessageS "params" "parameters belong to the type annotation, not the definition" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k21) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "<-" "'<-'"))
           ; PegPrelude.pure ((), peg'k21)
-          }])
-          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledMessageS "decl" "expected :: or <-" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "::" "'::'")
+          }]))
+          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledMessageS "decl" "expected :: or <-" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "::" "'::'")
           ; PegPrelude.pure ((), peg'k23)
           }, do { (_, peg'k24) <- PegRt.plain (PegRt.lit "<-" "'<-'")
           ; PegPrelude.pure ((), peg'k24)
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k25)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -2091,30 +2091,30 @@ peg'rule'ParamChunk =
           ; PegRt.touch l
           ; (c, peg'k2) <- PegRt.label "c" ((PegRt.captureS) (peg'rule'ArgCode))
           ; PegRt.touch c
-          ; (_, peg'k4) <- PegRt.labeledMessageS "argument" "expected an argument" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k4) <- PegRt.labeledMessageS "argument" "expected an argument" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 211 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 39 #-} not (T.null (T.strip c)) 
 {-# LINE 2098 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k3)
-          }])
-          ; (_, peg'k6) <- PegRt.labeledMessageS "paramform" "expected a parameter of the form name :: Type" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k5) <- PegRt.plain (PegRt.predicate (\_col -> 
+          }]))
+          ; (_, peg'k6) <- PegRt.labeledMessageS "paramform" "expected a parameter of the form name :: Type" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k5) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 211 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 81 #-} paramError l c /= Just paramFormMessage 
 {-# LINE 2105 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k5)
-          }])
-          ; (_, peg'k8) <- PegRt.labeledMessageS "paramtype" "expected a parameter type" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.predicate (\_col -> 
+          }]))
+          ; (_, peg'k8) <- PegRt.labeledMessageS "paramtype" "expected a parameter type" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 211 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 139 #-} paramError l c == Nothing 
 {-# LINE 2112 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k7)
-          }])
-          ; (_, peg'k10) <- PegRt.labeledS "argcode" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.cls [(',', ','), (')', ')')] "[,)]"))
+          }]))
+          ; (_, peg'k10) <- PegRt.labeledS "argcode" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.cls [(',', ','), (')', ')')] "[,)]"))
           ; PegPrelude.pure ((), peg'k9)
-          }])
+          }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 211 "grammar/PegSyntax.hpeg" #-}
@@ -2331,13 +2331,13 @@ peg'rule'PrefixE d =
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "{" "'{'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
           }])
-          ; (_, peg'k7) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k7) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 244 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 37 #-} d < maxDepth 
 {-# LINE 2338 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k6)
-          }])
+          }]))
           ; (_, peg'k8) <- PegRt.plain (PegRt.lit "&" "'&'")
           ; (_, peg'k9) <- peg'rule'Ws
           ; (e, peg'k12) <- PegRt.label "e" (PegRt.choice [do { (peg'v11, peg'k10) <- PegRt.labeledMessageS "expression" "expected an expression" (PegPrelude.Just peg'rule'RecoverExpr) (PegRt.withCol (\_col -> peg'rule'PrefixE (
@@ -2377,13 +2377,13 @@ peg'rule'PrefixE d =
           ; (_, peg'k22) <- PegRt.plain (PegRt.lit "{" "'{'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k21, peg'k22])
           }])
-          ; (_, peg'k25) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k24) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k25) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k24) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 246 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 36 #-} d < maxDepth 
 {-# LINE 2384 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k24)
-          }])
+          }]))
           ; (_, peg'k26) <- PegRt.plain (PegRt.lit "!" "'!'")
           ; (_, peg'k27) <- peg'rule'Ws
           ; (e, peg'k30) <- PegRt.label "e" (PegRt.choice [do { (peg'v29, peg'k28) <- PegRt.labeledMessageS "expression" "expected an expression" (PegPrelude.Just peg'rule'RecoverExpr) (PegRt.withCol (\_col -> peg'rule'PrefixE (
@@ -2418,13 +2418,13 @@ peg'rule'PrefixE d =
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k36) <- peg'rule'Ws
           ; (_, peg'k37) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.lit "$" "'$'"))
-          ; (_, peg'k39) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k38) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k39) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k38) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 248 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 22 #-} d < maxDepth 
 {-# LINE 2425 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k38)
-          }])
+          }]))
           ; (_, peg'k40) <- PegRt.plain (PegRt.lit "$" "'$'")
           ; (e, peg'k43) <- PegRt.label "e" (PegRt.choice [do { (peg'v42, peg'k41) <- PegRt.labeledMessageS "expression" "expected an expression" (PegPrelude.Just peg'rule'RecoverExpr) (PegRt.withCol (\_col -> peg'rule'PrefixE (
 {-# LINE 248 "grammar/PegSyntax.hpeg" #-}
@@ -2501,13 +2501,13 @@ peg'rule'LabelPart d =
           ; (l, peg'k1) <- PegRt.label "l" (peg'rule'Here)
           ; PegRt.touch l
           ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.lit "^" "'^'"))
-          ; (_, peg'k4) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k4) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 255 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 32 #-} d < maxDepth 
 {-# LINE 2508 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k3)
-          }])
+          }]))
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "^" "'^'")
           ; (n, peg'k6) <- PegRt.label "n" (peg'rule'Ident)
           ; PegRt.touch n
@@ -2611,13 +2611,13 @@ peg'rule'PostOp d =
       [ do { peg'start <- PegRt.getOffset
           ; (_, peg'k0) <- peg'rule'Ws
           ; (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.cls [('*', '*'), ('+', '+'), ('?', '?')] "[*+?]"))
-          ; (_, peg'k3) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k3) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 266 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 24 #-} d < maxDepth 
 {-# LINE 2618 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k2)
-          }])
+          }]))
           ; (c, peg'k4) <- PegRt.label "c" ((PegRt.captureS) (PegRt.plain (PegRt.cls [('*', '*'), ('+', '+'), ('?', '?')] "[*+?]")))
           ; PegRt.touch c
           ; _span <- PegRt.spanFrom peg'start
@@ -2687,13 +2687,13 @@ peg'rule'Primary d =
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k8) <- peg'rule'Ws
           ; (_, peg'k9) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.lit "(" "'('"))
-          ; (_, peg'k11) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k10) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k11) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k10) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 273 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 22 #-} d < maxDepth 
 {-# LINE 2694 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k10)
-          }])
+          }]))
           ; (_, peg'k12) <- PegRt.plain (PegRt.lit "(" "'('")
           ; (g, peg'k13) <- PegRt.label "g" (PegRt.withCol (\_col -> peg'rule'GroupAlts (
 {-# LINE 273 "grammar/PegSyntax.hpeg" #-}
@@ -2702,10 +2702,10 @@ peg'rule'Primary d =
     )))
           ; PegRt.touch g
           ; (_, peg'k14) <- peg'rule'Ws
-          ; (_, peg'k16) <- PegRt.labeledMessageS "groupaction" "actions are not allowed inside a group" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k15) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "{" "'{'"))
+          ; (_, peg'k16) <- PegRt.labeledMessageS "groupaction" "actions are not allowed inside a group" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k15) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "{" "'{'"))
           ; PegPrelude.pure ((), peg'k15)
-          }])
-          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledMessageS "paren" "expected ')'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit ")" "')'"))
+          }]))
+          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledMessageS "paren" "expected ')'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit ")" "')'")))
           ; PegPrelude.pure ((), peg'k17)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -2784,13 +2784,13 @@ peg'rule'TemplateArgs d =
           ; (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "-" "'-'"))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }])
-          ; (_, peg'k4) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k4) <- PegRt.labeledMessageS "nest" "the expression nests deeper than 256" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 281 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 32 #-} d < maxDepth 
 {-# LINE 2791 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k3)
-          }])
+          }]))
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "<" "'<'")
           ; (a, peg'k6) <- PegRt.label "a" (PegRt.withCol (\_col -> peg'rule'TemplateArg (
 {-# LINE 281 "grammar/PegSyntax.hpeg" #-}
@@ -2929,7 +2929,7 @@ peg'rule'Lit1 =
           ; (_, peg'k3) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }])
-          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "literal" "unterminated literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "'" "'\\''"))
+          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "literal" "unterminated literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "'" "'\\''")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k4, peg'k6])
@@ -2947,7 +2947,7 @@ peg'rule'Lit2 =
           ; (_, peg'k3) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }])
-          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "literal" "unterminated literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "\"" "'\"'"))
+          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "literal" "unterminated literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "\"" "'\"'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k4, peg'k6])
@@ -2959,7 +2959,7 @@ peg'rule'Escape =
   PegRt.memo peg'memo'Escape "Escape"
     (PegRt.node syntaxKindEscape (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "\\" "'\\\\'")
-          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "escape" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (peg'rule'EscapeBody)
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "escape" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (peg'rule'EscapeBody))
           ; PegPrelude.pure ((), peg'k1)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k2])
@@ -2975,21 +2975,21 @@ peg'rule'EscapeBody =
           }
       , do { peg'start <- PegRt.getOffset
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "u" "'u'")
-          ; (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledMessageS "ubrace" "expected '{'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "{" "'{'"))
+          ; (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledMessageS "ubrace" "expected '{'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "{" "'{'")))
           ; PegPrelude.pure ((), peg'k2)
           }]
           ; (h, peg'k4) <- PegRt.label "h" ((PegRt.captureS) ((PegRt.manyS) (PegRt.plain (PegRt.cls [('0', '9'), ('a', 'f'), ('A', 'F')] "[0-9a-fA-F]"))))
           ; PegRt.touch h
-          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "uclose" "expected '}'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "}" "'}'"))
+          ; (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "uclose" "expected '}'" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "}" "'}'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
-          ; (_, peg'k8) <- PegRt.labeledMessageS "uescape" "invalid \\u escape" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k8) <- PegRt.labeledMessageS "uescape" "invalid \\u escape" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 303 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 65 #-} validHex h 
 {-# LINE 2990 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k7)
-          }])
+          }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 303 "grammar/PegSyntax.hpeg" #-}
@@ -3004,11 +3004,11 @@ peg'rule'ClassLit =
   PegRt.memo peg'memo'ClassLit "ClassLit"
     (PegRt.token syntaxKindClassLit (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "[" "'['")
-          ; (_, peg'k2) <- PegRt.labeledMessageS "emptyclass" "empty character class" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "]" "']'"))
+          ; (_, peg'k2) <- PegRt.labeledMessageS "emptyclass" "empty character class" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.lit "]" "']'"))
           ; PegPrelude.pure ((), peg'k1)
-          }])
+          }]))
           ; (_, peg'k3) <- (PegRt.manyS) (peg'rule'ClassItem)
-          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledMessageS "class" "unterminated character class" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "]" "']'"))
+          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledMessageS "class" "unterminated character class" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "]" "']'")))
           ; PegPrelude.pure ((), peg'k4)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k2, peg'k3, peg'k5])
@@ -3029,13 +3029,13 @@ peg'rule'ClassItem =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k4])
           }]))
           ; PegRt.touch s
-          ; (_, peg'k7) <- PegRt.labeledMessageS "range" "the range is empty" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k7) <- PegRt.labeledMessageS "range" "the range is empty" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 307 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 54 #-} nonEmptyRanges s 
 {-# LINE 3036 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k6)
-          }])
+          }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 307 "grammar/PegSyntax.hpeg" #-}
@@ -3072,7 +3072,7 @@ peg'rule'Action =
           ; PegRt.touch l
           ; (c, peg'k2) <- PegRt.label "c" ((PegRt.captureS) (peg'rule'ActionCode))
           ; PegRt.touch c
-          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledS "action" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "}" "'}'"))
+          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledS "action" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "}" "'}'")))
           ; PegPrelude.pure ((), peg'k3)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -3097,7 +3097,7 @@ peg'rule'PredCode =
           ; PegRt.touch l
           ; (c, peg'k1) <- PegRt.label "c" ((PegRt.captureS) (peg'rule'ActionCode))
           ; PegRt.touch c
-          ; (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledS "action" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "}" "'}'"))
+          ; (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledS "action" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "}" "'}'")))
           ; PegPrelude.pure ((), peg'k2)
           }]
           ; _span <- PegRt.spanFrom peg'start
@@ -3157,16 +3157,16 @@ peg'rule'ArgChunk =
           ; PegRt.touch l
           ; (c, peg'k2) <- PegRt.label "c" ((PegRt.captureS) (peg'rule'ArgCode))
           ; PegRt.touch c
-          ; (_, peg'k4) <- PegRt.labeledMessageS "argument" "expected an argument" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
+          ; (_, peg'k4) <- PegRt.labeledMessageS "argument" "expected an argument" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.predicate (\_col -> 
 {-# LINE 324 "grammar/PegSyntax.hpeg" #-}
  {-# COLUMN 37 #-} not (T.null (T.strip c)) 
 {-# LINE 3164 "src/Peg/Grammar/SelfHostedSyntax.hs" #-}
     ))
           ; PegPrelude.pure ((), peg'k3)
-          }])
-          ; (_, peg'k6) <- PegRt.labeledS "argcode" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.choice [do { (_, peg'k5) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.cls [(',', ','), (')', ')')] "[,)]"))
+          }]))
+          ; (_, peg'k6) <- PegRt.labeledS "argcode" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.choice [do { (_, peg'k5) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.plain (PegRt.cls [(',', ','), (')', ')')] "[,)]"))
           ; PegPrelude.pure ((), peg'k5)
-          }])
+          }]))
           ; _span <- PegRt.spanFrom peg'start
           ; PegPrelude.pure ((
 {-# LINE 324 "grammar/PegSyntax.hpeg" #-}
@@ -3283,7 +3283,7 @@ peg'rule'HsString =
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
-          ; (_, peg'k7) <- PegRt.choice [do { (_, peg'k6) <- PegRt.labeledMessageS "hsstring" "unterminated string literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "\"" "'\"'"))
+          ; (_, peg'k7) <- PegRt.choice [do { (_, peg'k6) <- PegRt.labeledMessageS "hsstring" "unterminated string literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "\"" "'\"'")))
           ; PegPrelude.pure ((), peg'k6)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k5, peg'k7])
@@ -3301,7 +3301,7 @@ peg'rule'HsChar =
           ; (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }])
-          ; (_, peg'k7) <- PegRt.choice [do { (_, peg'k6) <- PegRt.labeledMessageS "hschar" "unterminated character literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.plain (PegRt.lit "'" "'\\''"))
+          ; (_, peg'k7) <- PegRt.choice [do { (_, peg'k6) <- PegRt.labeledMessageS "hschar" "unterminated character literal" (PegPrelude.Just (PegRt.voidS peg'rule'SkipToTop)) (PegRt.voidS (PegRt.plain (PegRt.lit "'" "'\\''")))
           ; PegPrelude.pure ((), peg'k6)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2, peg'k5, peg'k7])

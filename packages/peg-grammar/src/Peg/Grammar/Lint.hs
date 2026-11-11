@@ -54,6 +54,7 @@ module Peg.Grammar.Lint
   , LintLevel (..)
   , lintGrammar
   , renderLintWarning
+  , sameAlternative
   ) where
 
 import Data.Char (isSpace)
@@ -262,9 +263,11 @@ mayThrow throwing = \case
   ENot _ -> False
   e -> any (mayThrow throwing) (children e)
 
--- Two alternatives that match the same inputs in the same way: equal but for
--- the locations, and for the bindings when no code of the alternative can
--- read them.
+-- | Whether two alternatives match the same inputs in the same way, as the
+-- warning @duplicate-alternative@ compares them: equal but for the
+-- locations, and for the bindings when no code of the alternatives can read
+-- them. Labels are compared. @peg-hs label@ inserts no label in such
+-- alternatives, which would take the warning away (ADR 0094).
 sameAlternative :: Alt -> Alt -> Bool
 sameAlternative a b = map (item keepBinds) (altItems a) == map (item keepBinds) (altItems b)
   where

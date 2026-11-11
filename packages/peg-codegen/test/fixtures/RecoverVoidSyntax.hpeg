@@ -1,0 +1,18 @@
+# ADR 0094（%syntax）：値を使わない位置の、回復の規則を与えたラベルは、
+# ラベルを付けた式の値も捨てる
+%module Fixture.RecoverVoidSyntax
+%syntax
+%recover o Skip
+%recover m Skip
+%recover p Skip
+%recover q Skip
+%message q "one x or more"
+
+Items <- Item*
+
+Item <- '?' ('x')? ^o ';'
+     / '*' ('x')* ^m ';'
+     / '+' ('x')+ ^p ';'
+     / '!' ('x')+ ^q ';'
+
+Skip <- (!';' .)*

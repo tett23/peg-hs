@@ -8,7 +8,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Peg.Grammar.Incremental
-import Peg.Grammar.Outline (outline)
+import Peg.Grammar.Outline (Outline (..), outline)
 import Peg.Grammar.Parser (parseTops)
 import Peg.Runtime (SyntaxError (..))
 import Peg.Runtime.Syntax (debugTree)
@@ -40,9 +40,11 @@ incrementalTests files =
         withNumTests 300 $
           forAll (elements editBases) $ \base -> forAll (listOf1 (genEdit base)) $ \edits ->
             let versions = scanl (flip applyEdit) base edits
-                step (_, table) v = let p = parseFragments table v in (sameAsWhole v p, parsedFragments p)
-                results = drop 1 (scanl step (True, noFragments) versions)
-             in counterexample (concat [show v <> "\n" <> unlines (differences v (parseFragments noFragments v)) | (v, (False, _)) <- take 1 (filter (not . fst . snd) (zip (drop 1 versions) results))]) (all fst results)
+                -- The table with which each version is parsed: that of the
+                -- version before it.
+                tables = scanl (\table v -> parsedFragments (parseFragments table v)) noFragments versions
+                failing = [(k, v, d) | (k, v, table) <- zip3 [0 :: Int ..] versions tables, let d = differences v (parseFragments table v), not (null d)]
+             in counterexample (concat ["version " <> show k <> " of 0 to " <> show (length versions - 1) <> ":\n" <> show v <> "\nfragments: " <> show (splitFragments v) <> "\n" <> unlines d | (k, v, d) <- take 1 failing]) (null failing)
     , testCase "a change of one character inside a rule parses one or two fragments" $ do
         src <- TIO.readFile "grammar/Peg.hpeg"
         let p0 = parseFragments noFragments src
@@ -59,6 +61,15 @@ incrementalTests files =
             b = "%module M\nA <- 'a'\nC <- 'c'\n"
             p = parseFragments (parsedFragments (parseFragments noFragments a)) b
         fragmentTexts (parsedFragments p) @?= ["%module M\n", "A <- 'a'\n", "C <- 'c'\n"]
+    , testCase "a character literal with an escape runs across lines (ADR 0094)" $ do
+        -- The whole text has no error: the action of A ends on the last line.
+        let src = "%module M\nA <- 'a' { { '\\x ) }\nB <- 'b' } }\n"
+        assertBool (unlines (differences src (parseFragments noFragments src))) (sameAsWhole src (parseFragments noFragments src))
+    , testCase "the syntax errors of the outline of the counterexample of CI on PR 82 (ADR 0094)" $ do
+        let src = "module/\nX <-\n{{ / '\\t)* { () }{ # c\nx -}B\n <- \nT<&p}> : ()\nT<$}}\nX <- 'x'\n}%\n"
+        map show (outlineSyntaxErrors (parsedOutline (parseFragments noFragments src))) @?= map show (outlineSyntaxErrors (outline src))
+    , testCase "a quote inside an identifier does not start a character literal (ADR 0094)" $
+        open "x' ( y'" @?= True
     , testCase "a line that continues the previous rule is parsed with it" $ do
         let src = "%module M\nA <- 'a'\nB\nC <- 'c' (\nD <- 'd'\n"
         assertBool "same" (sameAsWhole src (parseFragments noFragments src))

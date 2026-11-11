@@ -557,6 +557,13 @@ main = do
               readFile (dir </> "G.hpeg") >>= (@?= labelledGrammar)
               (code', out', _) <- pegHsIn dir ["label", "G.hpeg"]
               (code', out') @?= (ExitSuccess, "")
+          , testCase "the warning duplicate-alternative of lint stays after --write (ADR 0094)" $ do
+              dir <- treeWith "label-duplicate" [("G.hpeg", "%module G\nS <- 'c' 'd' / 'c' 'd'\n")]
+              (_, _, before) <- pegHsIn dir ["lint", "G.hpeg"]
+              assertBool before ("[duplicate-alternative]" `isInfixOf` before)
+              _ <- pegHsIn dir ["label", "--write", "G.hpeg"]
+              (_, _, after) <- pegHsIn dir ["lint", "G.hpeg"]
+              after @?= before
           , testCase "--rule selects the rules" $ do
               dir <- treeWith "label-rule" [("G.hpeg", labelGrammar)]
               (code, out, _) <- pegHsIn dir ["label", "--rule", "Num", "G.hpeg"]

@@ -52,12 +52,12 @@ peg'rule'S =
   PegRt.memo peg'memo'S "S"
     (PegRt.choice
       [ do { PegRt.lit "(" "'('"
-          ; PegRt.labeled "a" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.choice [do { PegRt.lit "x" "'x'"
+          ; PegRt.labeled "a" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.voidP (PegRt.choice [do { PegRt.lit "x" "'x'"
           ; PegPrelude.pure ()
-          }])
-          ; PegRt.labeled "b" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.choice [do { PegRt.lit ")" "')'"
+          }]))
+          ; PegRt.labeled "b" (PegPrelude.Just (PegRt.voidP peg'rule'Skip)) (PegRt.voidP (PegRt.choice [do { PegRt.lit ")" "')'"
           ; PegPrelude.pure ()
-          }])
+          }]))
           ; PegPrelude.pure ()
           }
       ])

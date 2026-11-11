@@ -3712,10 +3712,10 @@ peg'rule'D2_S :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'D2_S =
   PegRt.memoLR peg'memo'D2_S "D2_S"
     (PegRt.node syntaxKindD2_S (PegRt.choice
-      [ do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+      [ do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k0)
           }]
-          ; (_, peg'k2) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.plain (PegRt.lit "ab" "'ab'"))
+          ; (_, peg'k2) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "ab" "'ab'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }]
           ; PegPrelude.pure ((), peg'k3)
@@ -3723,7 +3723,7 @@ peg'rule'D2_S =
       , do { (x1, peg'k10) <- PegRt.label "x1" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k9) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k4) <- PegRt.plain (PegRt.anyChar)
           ; (_, peg'k5) <- peg'rule'D2_S
           ; (_, peg'k8) <- PegRt.choice [do { (_, peg'k6) <- peg'rule'D2_S
-          ; (_, peg'k7) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (peg'rule'D2_S)
+          ; (_, peg'k7) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.voidS (peg'rule'D2_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5, peg'k8])
@@ -3731,7 +3731,7 @@ peg'rule'D2_S =
           ; PegPrelude.pure ((), peg'k9)
           }]))
           ; PegRt.touch x1
-          ; (_, peg'k43) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.choice [do { (_, peg'k12) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k11) <- peg'rule'D2_S
+          ; (_, peg'k43) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledMessageS "D2_l" "missing D2_" (PegPrelude.Just (PegRt.voidS peg'rule'D2_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k12) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k11) <- peg'rule'D2_S
           ; PegPrelude.pure ((), peg'k11)
           }])
           ; (_, peg'k16) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k13) <- PegRt.plain (PegRt.lit "c" "'c'")
@@ -3753,7 +3753,7 @@ peg'rule'D2_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k22, peg'k23])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k24])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k25)
           }]
           ; (_, peg'k35) <- PegRt.choice [do { (_, peg'k28) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k27) <- peg'rule'D2_S
@@ -3808,7 +3808,7 @@ peg'rule'D3_S =
           ; (_, peg'k2) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2, peg'k3])
-          }, do { (_, peg'k19) <- PegRt.choice [do { (_, peg'k18) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.choice [do { (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k4) <- PegRt.plain (PegRt.lit "c" "'c'")
+          }, do { (_, peg'k19) <- PegRt.choice [do { (_, peg'k18) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k4) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k6) <- peg'rule'D3_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
@@ -3828,10 +3828,10 @@ peg'rule'D3_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16])
           }]
           ; PegPrelude.pure ((), peg'k17)
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k18)
           }]
-          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k20) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k20) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k20)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k21])
@@ -3839,13 +3839,13 @@ peg'rule'D3_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k22])
           }
       , do { (_, peg'k72) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k46) <- PegRt.choice [do { (_, peg'k29) <- PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k28) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.choice [do { (_, peg'k24) <- peg'rule'D3_S
+          ; (_, peg'k28) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k24) <- peg'rule'D3_S
           ; PegPrelude.pure ((), peg'k24)
           }, do { (_, peg'k25) <- peg'rule'D3_B
           ; (_, peg'k26) <- peg'rule'D3_A
           ; (_, peg'k27) <- peg'rule'D3_B
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k25, peg'k26, peg'k27])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k28])
           }]
           ; (_, peg'k33) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k30) <- peg'rule'D3_A
@@ -3876,13 +3876,13 @@ peg'rule'D3_S =
           ; PegPrelude.pure ((), peg'k47)
           }])
           ; (_, peg'k49) <- peg'rule'D3_S
-          ; (_, peg'k62) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.choice [do { (_, peg'k55) <- PegRt.choice [do { (_, peg'k54) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.choice [do { (_, peg'k50) <- PegRt.plain (PegRt.lit "a" "'a'")
+          ; (_, peg'k62) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k55) <- PegRt.choice [do { (_, peg'k54) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k50) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k51) <- peg'rule'D3_A
           ; (_, peg'k52) <- peg'rule'D3_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k50, peg'k51, peg'k52])
           }, do { (_, peg'k53) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k53)
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k54)
           }]
           ; PegPrelude.pure ((), peg'k55)
@@ -3895,7 +3895,7 @@ peg'rule'D3_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k58, peg'k59, peg'k60])
           }]
           ; PegPrelude.pure ((), peg'k61)
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k48, peg'k49, peg'k62])
           }]
           ; (_, peg'k71) <- PegRt.choice [do { (_, peg'k67) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k64) <- PegRt.plain (PegRt.lit "c" "'c'")
@@ -3906,7 +3906,7 @@ peg'rule'D3_S =
           ; (_, peg'k69) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k68) <- peg'rule'D3_S
           ; PegPrelude.pure ((), peg'k68)
           }])
-          ; (_, peg'k70) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.anyChar)))
+          ; (_, peg'k70) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.anyChar))))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k67, peg'k69, peg'k70])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k46, peg'k63, peg'k71])
@@ -3960,7 +3960,7 @@ peg'rule'D3_A =
           ; PegPrelude.pure ((), peg'k0)
           }
       , do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k1) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
-          ; (_, peg'k2) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k2) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }]
           ; PegPrelude.pure ((), peg'k3)
@@ -3997,7 +3997,7 @@ peg'rule'D3_B =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k11, peg'k12])
           }]
           ; (_, peg'k14) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k15) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k15) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k13, peg'k14, peg'k15])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7, peg'k16])
@@ -4014,14 +4014,14 @@ peg'rule'D3_B =
           ; (_, peg'k36) <- PegRt.choice [do { (_, peg'k21) <- peg'rule'D3_S
           ; (_, peg'k34) <- PegRt.choice [do { (_, peg'k25) <- PegRt.choice [do { (_, peg'k22) <- peg'rule'D3_A
           ; (_, peg'k23) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
-          ; (_, peg'k24) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k24) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k22, peg'k23, peg'k24])
           }]
           ; (_, peg'k28) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k26) <- peg'rule'D3_S
           ; (_, peg'k27) <- peg'rule'D3_B
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k26, peg'k27])
           }])
-          ; (_, peg'k33) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.choice [do { (_, peg'k30) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k29) <- PegRt.plain (PegRt.lit "b" "'b'")
+          ; (_, peg'k33) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k30) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k29) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; PegPrelude.pure ((), peg'k29)
           }])
           ; PegPrelude.pure ((), peg'k30)
@@ -4029,10 +4029,10 @@ peg'rule'D3_B =
           ; PegPrelude.pure ((), peg'k31)
           }])
           ; PegPrelude.pure ((), peg'k32)
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k25, peg'k28, peg'k33])
           }]
-          ; (_, peg'k35) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k35) <- PegRt.labeledS "D3_l" (PegPrelude.Just (PegRt.voidS peg'rule'D3_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k21, peg'k34, peg'k35])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k36])
@@ -4202,7 +4202,7 @@ peg'rule'D5_S =
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }
-      , do { (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+      , do { (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; (x2, peg'k22) <- PegRt.label "x2" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k7) <- peg'rule'D5_A
@@ -4240,12 +4240,12 @@ peg'rule'D5_S =
           }])
           ; (_, peg'k35) <- PegRt.choice [do { (_, peg'k29) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; (_, peg'k30) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k34) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.choice [do { (_, peg'k31) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
+          ; (_, peg'k34) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k31) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; PegPrelude.pure ((), peg'k31)
           }, do { (_, peg'k32) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k33) <- peg'rule'D5_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k32, peg'k33])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k29, peg'k30, peg'k34])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k28, peg'k35])
@@ -4254,23 +4254,23 @@ peg'rule'D5_S =
           }])
           ; (_, peg'k41) <- PegRt.choice [do { (_, peg'k38) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; (_, peg'k39) <- peg'rule'D5_S
-          ; (_, peg'k40) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k40) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k38, peg'k39, peg'k40])
           }]
-          ; (_, peg'k47) <- PegRt.choice [do { (_, peg'k46) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.choice [do { (_, peg'k42) <- peg'rule'D5_A
+          ; (_, peg'k47) <- PegRt.choice [do { (_, peg'k46) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k42) <- peg'rule'D5_A
           ; (_, peg'k43) <- peg'rule'D5_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k42, peg'k43])
           }, do { (_, peg'k44) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; (_, peg'k45) <- peg'rule'D5_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k44, peg'k45])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k46)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k37, peg'k41, peg'k47])
           }]
           ; (_, peg'k63) <- PegRt.choice [do { (_, peg'k52) <- PegRt.choice [do { (_, peg'k49) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; (_, peg'k50) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k51) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (peg'rule'D5_A)
+          ; (_, peg'k51) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (peg'rule'D5_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k49, peg'k50, peg'k51])
           }]
           ; (_, peg'k53) <- peg'rule'D5_A
@@ -4280,7 +4280,7 @@ peg'rule'D5_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k54, peg'k55])
           }])
           ; (_, peg'k59) <- PegRt.choice [do { (_, peg'k57) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k58) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k58) <- PegRt.labeledMessageS "D5_l" "missing D5_" (PegPrelude.Just (PegRt.voidS peg'rule'D5_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k57, peg'k58])
           }]
           ; (_, peg'k62) <- PegRt.choice [do { (_, peg'k60) <- peg'rule'D5_A
@@ -4591,7 +4591,7 @@ peg'rule'D7_S =
           ; (_, peg'k3) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k2) <- peg'rule'D7_A
           ; PegPrelude.pure ((), peg'k2)
           }])
-          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k4)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k3, peg'k5])
@@ -4603,7 +4603,7 @@ peg'rule'D7_S =
           ; (_, peg'k10) <- peg'rule'D7_B
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k9, peg'k10])
           }])
-          ; (_, peg'k13) <- PegRt.choice [do { (_, peg'k12) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (peg'rule'D7_S)
+          ; (_, peg'k13) <- PegRt.choice [do { (_, peg'k12) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.voidS (peg'rule'D7_S))
           ; PegPrelude.pure ((), peg'k12)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k8, peg'k11, peg'k13])
@@ -4638,11 +4638,11 @@ peg'rule'D7_B =
   PegRt.memoLR peg'memo'D7_B "D7_B"
     (PegRt.expecting "D7_B" (PegRt.node syntaxKindD7_B (PegRt.choice
       [ do { (_, peg'k7) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k6) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k2) <- PegRt.choice [do { (_, peg'k0) <- peg'rule'D7_B
-          ; (_, peg'k1) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k1) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }]
           ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k3) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k4) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (peg'rule'D7_S)
+          ; (_, peg'k4) <- PegRt.labeledS "D7_l" (PegPrelude.Just (PegRt.voidS peg'rule'D7_R)) (PegRt.voidS (peg'rule'D7_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k5])
@@ -4684,13 +4684,13 @@ peg'rule'D8_S =
           ; (_, peg'k6) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }]
-          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k9) <- PegRt.choice [do { (_, peg'k8) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (peg'rule'D8_S)
+          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k9) <- PegRt.choice [do { (_, peg'k8) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (PegRt.voidS (peg'rule'D8_S))
           ; PegPrelude.pure ((), peg'k8)
           }]
-          ; (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (peg'rule'D8_S)
+          ; (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (PegRt.voidS (peg'rule'D8_S))
           ; PegPrelude.pure ((), peg'k10)
           }]
-          ; (_, peg'k20) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (PegRt.choice [do { (_, peg'k13) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k12) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
+          ; (_, peg'k20) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k13) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k12) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
           ; PegPrelude.pure ((), peg'k12)
           }])
           ; PegPrelude.pure ((), peg'k13)
@@ -4703,10 +4703,10 @@ peg'rule'D8_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k17, peg'k18])
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16, peg'k19])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k9, peg'k11, peg'k20])
           }]
-          ; (_, peg'k22) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (peg'rule'D8_S)
+          ; (_, peg'k22) <- PegRt.labeledMessageS "D8_l" "missing D8_" (PegPrelude.Just (PegRt.voidS peg'rule'D8_R)) (PegRt.voidS (peg'rule'D8_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k7, peg'k21, peg'k22])
           }]
           ; PegPrelude.pure ((), peg'k23)
@@ -4807,7 +4807,7 @@ peg'rule'D9_S =
           ; (_, peg'k16) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k13) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k12) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), peg'k12)
           }])
-          ; (_, peg'k15) <- PegRt.choice [do { (_, peg'k14) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k15) <- PegRt.choice [do { (_, peg'k14) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k14)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k13, peg'k15])
@@ -4819,11 +4819,11 @@ peg'rule'D9_S =
           ; (_, peg'k20) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k18, peg'k19, peg'k20])
           }])
-          ; (_, peg'k22) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k22) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k17, peg'k21, peg'k22])
           }]
           ; (_, peg'k24) <- peg'rule'D9_S
-          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (peg'rule'D9_S)
+          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.voidS (peg'rule'D9_S))
           ; PegPrelude.pure ((), peg'k25)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k24, peg'k26])
@@ -4842,7 +4842,7 @@ peg'rule'D9_S =
           ; PegPrelude.pure ((), peg'k34)
           }, do { (_, peg'k38) <- PegRt.choice [do { (_, peg'k35) <- peg'rule'D9_S
           ; (_, peg'k36) <- peg'rule'D9_S
-          ; (_, peg'k37) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (peg'rule'D9_S)
+          ; (_, peg'k37) <- PegRt.labeledS "D9_l" (PegPrelude.Just (PegRt.voidS peg'rule'D9_R)) (PegRt.voidS (peg'rule'D9_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k35, peg'k36, peg'k37])
           }]
           ; (_, peg'k39) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -5176,13 +5176,13 @@ peg'rule'D12_S =
   PegRt.memoLR peg'memo'D12_S "D12_S"
     (PegRt.node syntaxKindD12_S (PegRt.choice
       [ do { (_, peg'k4) <- PegRt.choice [do { (_, peg'k2) <- PegRt.choice [do { (_, peg'k0) <- peg'rule'D12_S
-          ; (_, peg'k1) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.plain (PegRt.anyChar))
+          ; (_, peg'k1) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.voidS (PegRt.plain (PegRt.anyChar)))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }]
-          ; (_, peg'k3) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (peg'rule'D12_S)
+          ; (_, peg'k3) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.voidS (peg'rule'D12_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }]
-          ; (x2, peg'k18) <- PegRt.label "x2" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.choice [do { (_, peg'k5) <- peg'rule'D12_S
+          ; (x2, peg'k18) <- PegRt.label "x2" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k11) <- PegRt.choice [do { (_, peg'k10) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k5) <- peg'rule'D12_S
           ; (_, peg'k8) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7])
@@ -5190,12 +5190,12 @@ peg'rule'D12_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k8])
           }, do { (_, peg'k9) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k9)
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k10)
           }]
           ; (_, peg'k16) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k15) <- PegRt.choice [do { (_, peg'k12) <- peg'rule'D12_S
           ; (_, peg'k13) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k14) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k14) <- PegRt.labeledMessageS "D12_l" "missing D12_" (PegPrelude.Just (PegRt.voidS peg'rule'D12_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k12, peg'k13, peg'k14])
           }]
           ; PegPrelude.pure ((), peg'k15)
@@ -5317,7 +5317,7 @@ peg'rule'D14_S =
           }])
           ; PegPrelude.pure ((), peg'k10)
           }]
-          ; (_, peg'k12) <- PegRt.labeledMessageS "D14_l" "missing D14_" (PegPrelude.Just (PegRt.voidS peg'rule'D14_R)) (PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]"))
+          ; (_, peg'k12) <- PegRt.labeledMessageS "D14_l" "missing D14_" (PegPrelude.Just (PegRt.voidS peg'rule'D14_R)) (PegRt.voidS (PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k11, peg'k12])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k13])
@@ -5342,7 +5342,7 @@ peg'rule'D15_S =
     (PegRt.node syntaxKindD15_S (PegRt.choice
       [ do { (x1, peg'k0) <- PegRt.label "x1" (peg'rule'D15_S)
           ; PegRt.touch x1
-          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k1)
           }]
           ; (_, peg'k3) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -5351,13 +5351,13 @@ peg'rule'D15_S =
       , do { (_, peg'k4) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; (_, peg'k8) <- PegRt.choice [do { (_, peg'k5) <- peg'rule'D15_S
           ; (_, peg'k6) <- peg'rule'D15_B
-          ; (_, peg'k7) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k7) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6, peg'k7])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k8])
           }
       , do { (_, peg'k11) <- PegRt.choice [do { (_, peg'k9) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k10) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (peg'rule'D15_A)
+          ; (_, peg'k10) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (peg'rule'D15_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k9, peg'k10])
           }]
           ; (x2, peg'k12) <- PegRt.label "x2" (peg'rule'D15_S)
@@ -5431,7 +5431,7 @@ peg'rule'D15_B =
     (PegRt.node syntaxKindD15_B (PegRt.choice
       [ do { (_, peg'k52) <- PegRt.choice [do { (_, peg'k11) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k0) <- peg'rule'D15_B
           ; (_, peg'k1) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
-          ; (_, peg'k2) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (peg'rule'D15_S)
+          ; (_, peg'k2) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (peg'rule'D15_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }]
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -5445,7 +5445,7 @@ peg'rule'D15_B =
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k3, peg'k4, peg'k10])
           }])
-          ; (_, peg'k14) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k13) <- PegRt.choice [do { (_, peg'k12) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (peg'rule'D15_A)
+          ; (_, peg'k14) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k13) <- PegRt.choice [do { (_, peg'k12) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (peg'rule'D15_A))
           ; PegPrelude.pure ((), peg'k12)
           }]
           ; PegPrelude.pure ((), peg'k13)
@@ -5478,13 +5478,13 @@ peg'rule'D15_B =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k31, peg'k32])
           }]
           ; (_, peg'k40) <- PegRt.choice [do { (_, peg'k34) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k39) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.choice [do { (_, peg'k35) <- peg'rule'D15_B
+          ; (_, peg'k39) <- PegRt.labeledS "D15_l" (PegPrelude.Just (PegRt.voidS peg'rule'D15_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k35) <- peg'rule'D15_B
           ; (_, peg'k36) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k35, peg'k36])
           }, do { (_, peg'k37) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k38) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k37, peg'k38])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k34, peg'k39])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k33, peg'k40])
@@ -5804,7 +5804,7 @@ peg'rule'D17_S =
           ; PegPrelude.pure ((), peg'k0)
           }])
           ; (_, peg'k6) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k2) <- peg'rule'D17_S
-          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledMessageS "D17_l" "missing D17_" (PegPrelude.Just (PegRt.voidS peg'rule'D17_R)) (peg'rule'D17_S)
+          ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledMessageS "D17_l" "missing D17_" (PegPrelude.Just (PegRt.voidS peg'rule'D17_R)) (PegRt.voidS (peg'rule'D17_S))
           ; PegPrelude.pure ((), peg'k3)
           }]
           ; (_, peg'k5) <- peg'rule'D17_S
@@ -5825,7 +5825,7 @@ peg'rule'D17_A =
   PegRt.memoLR peg'memo'D17_A "D17_A"
     (PegRt.node syntaxKindD17_A (PegRt.choice
       [ do { (_, peg'k0) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledMessageS "D17_l" "missing D17_" (PegPrelude.Just (PegRt.voidS peg'rule'D17_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledMessageS "D17_l" "missing D17_" (PegPrelude.Just (PegRt.voidS peg'rule'D17_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k1)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k2])
@@ -5899,19 +5899,19 @@ peg'rule'D19_S =
       , do { (_, peg'k1) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; PegPrelude.pure ((), peg'k1)
           }
-      , do { (_, peg'k11) <- PegRt.choice [do { (_, peg'k4) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (peg'rule'D19_S)
+      , do { (_, peg'k11) <- PegRt.choice [do { (_, peg'k4) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k2) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (peg'rule'D19_S))
           ; PegPrelude.pure ((), peg'k2)
           }]
           ; PegPrelude.pure ((), peg'k3)
           }])
           ; (_, peg'k9) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k8) <- PegRt.choice [do { (_, peg'k5) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k6) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k7) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k7) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6, peg'k7])
           }]
           ; PegPrelude.pure ((), peg'k8)
           }])
-          ; (_, peg'k10) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (peg'rule'D19_A)
+          ; (_, peg'k10) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (peg'rule'D19_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k9, peg'k10])
           }]
           ; (x2, peg'k12) <- PegRt.label "x2" (peg'rule'D19_S)
@@ -5928,7 +5928,7 @@ peg'rule'D19_A :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'D19_A =
   PegRt.memo peg'memo'D19_A "D19_A"
     (PegRt.node syntaxKindD19_A (PegRt.choice
-      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+      [ do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k0)
           }]
           ; PegPrelude.pure ((), peg'k1)
@@ -5939,7 +5939,7 @@ peg'rule'D19_A =
           ; PegPrelude.pure ((), peg'k3)
           }]))
           ; PegRt.touch x2
-          ; (_, peg'k28) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k12) <- PegRt.choice [do { (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k28) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k12) <- PegRt.choice [do { (_, peg'k6) <- PegRt.choice [do { (_, peg'k5) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k5)
           }]
           ; (_, peg'k10) <- PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.lit "ab" "'ab'")
@@ -5948,7 +5948,7 @@ peg'rule'D19_A =
           ; (_, peg'k9) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k8, peg'k9])
           }]
-          ; (_, peg'k11) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (peg'rule'D19_S)
+          ; (_, peg'k11) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (peg'rule'D19_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k10, peg'k11])
           }]
           ; (_, peg'k13) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -5962,7 +5962,7 @@ peg'rule'D19_A =
           }])
           ; (_, peg'k22) <- PegRt.choice [do { (_, peg'k19) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
           ; (_, peg'k20) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k21) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k21) <- PegRt.labeledS "D19_l" (PegPrelude.Just (PegRt.voidS peg'rule'D19_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k20, peg'k21])
           }]
           ; (_, peg'k26) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k23) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -6334,7 +6334,7 @@ peg'rule'D22_S =
           }]
           ; PegPrelude.pure ((), peg'k5)
           }])
-          ; (_, peg'k7) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k7) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k8])
@@ -6342,7 +6342,7 @@ peg'rule'D22_S =
       , do { (_, peg'k28) <- PegRt.choice [do { (_, peg'k12) <- PegRt.choice [do { (_, peg'k10) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k9) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k9)
           }])
-          ; (_, peg'k11) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (peg'rule'D22_A)
+          ; (_, peg'k11) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (peg'rule'D22_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k10, peg'k11])
           }]
           ; PegPrelude.pure ((), peg'k12)
@@ -6354,7 +6354,7 @@ peg'rule'D22_S =
           }])
           ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k18) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
           ; (_, peg'k19) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
-          ; (_, peg'k20) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k20) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k18, peg'k19, peg'k20])
           }]
           ; (_, peg'k25) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k22) <- PegRt.plain (PegRt.lit "ab" "'ab'")
@@ -6387,16 +6387,16 @@ peg'rule'D22_A =
           ; PegPrelude.pure ((), peg'k3)
           }]
           ; (_, peg'k5) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k6) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k6) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k5, peg'k6])
           }]
-          ; (_, peg'k8) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (peg'rule'D22_A)
+          ; (_, peg'k8) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (peg'rule'D22_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k7, peg'k8])
           }]
           ; PegPrelude.pure ((), peg'k9)
           }
       , do { (_, peg'k37) <- PegRt.choice [do { (_, peg'k10) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k12) <- PegRt.choice [do { (_, peg'k11) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k12) <- PegRt.choice [do { (_, peg'k11) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k11)
           }]
           ; (_, peg'k23) <- PegRt.choice [do { (_, peg'k19) <- PegRt.choice [do { (_, peg'k13) <- PegRt.plain (PegRt.lit "ab" "'ab'")
@@ -6408,18 +6408,18 @@ peg'rule'D22_A =
           ; (_, peg'k18) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k16, peg'k17, peg'k18])
           }]
-          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k20) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k21) <- PegRt.choice [do { (_, peg'k20) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), peg'k20)
           }]
-          ; (_, peg'k22) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k22) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k21, peg'k22])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k10, peg'k12, peg'k23])
           }, do { (_, peg'k28) <- PegRt.choice [do { (_, peg'k26) <- PegRt.choice [do { (_, peg'k24) <- peg'rule'D22_S
-          ; (_, peg'k25) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (peg'rule'D22_S)
+          ; (_, peg'k25) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (peg'rule'D22_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k24, peg'k25])
           }]
-          ; (_, peg'k27) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k27) <- PegRt.labeledS "D22_l" (PegPrelude.Just (PegRt.voidS peg'rule'D22_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k26, peg'k27])
           }]
           ; (_, peg'k29) <- PegRt.plain (PegRt.lit "ab" "'ab'")
@@ -6589,7 +6589,7 @@ peg'rule'D24_S =
       [ do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k1) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k0) <- peg'rule'D24_S
           ; PegPrelude.pure ((), peg'k0)
           }])
-          ; (_, peg'k2) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k2) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2])
           }]
           ; (_, peg'k10) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k9) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k4) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
@@ -6642,20 +6642,20 @@ peg'rule'D24_S =
           }]
           ; (_, peg'k72) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k48) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k43) <- PegRt.choice [do { (_, peg'k35) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k36) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k42) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.choice [do { (_, peg'k37) <- PegRt.plain (PegRt.lit "b" "'b'")
+          ; (_, peg'k42) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k37) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k38) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k37, peg'k38])
           }, do { (_, peg'k39) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k40) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k41) <- peg'rule'D24_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k39, peg'k40, peg'k41])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k35, peg'k36, peg'k42])
           }]
-          ; (_, peg'k45) <- PegRt.choice [do { (_, peg'k44) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (peg'rule'D24_S)
+          ; (_, peg'k45) <- PegRt.choice [do { (_, peg'k44) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.voidS (peg'rule'D24_S))
           ; PegPrelude.pure ((), peg'k44)
           }]
-          ; (_, peg'k47) <- PegRt.choice [do { (_, peg'k46) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k47) <- PegRt.choice [do { (_, peg'k46) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), peg'k46)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k43, peg'k45, peg'k47])
@@ -6664,7 +6664,7 @@ peg'rule'D24_S =
           ; (_, peg'k50) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k49, peg'k50])
           }])
-          ; (_, peg'k70) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.choice [do { (_, peg'k57) <- PegRt.choice [do { (_, peg'k52) <- peg'rule'D24_S
+          ; (_, peg'k70) <- PegRt.labeledMessageS "D24_l" "missing D24_" (PegPrelude.Just (PegRt.voidS peg'rule'D24_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k57) <- PegRt.choice [do { (_, peg'k52) <- peg'rule'D24_S
           ; (_, peg'k53) <- peg'rule'D24_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k52, peg'k53])
           }, do { (_, peg'k54) <- peg'rule'D24_S
@@ -6689,7 +6689,7 @@ peg'rule'D24_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k66, peg'k67, peg'k68])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k62, peg'k69])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k51, peg'k70])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k48, peg'k71])
@@ -6719,7 +6719,7 @@ peg'rule'D25_S =
           ; PegRt.touch x2
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }
-      , do { (_, peg'k11) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k10) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k9) <- PegRt.choice [do { (_, peg'k8) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit "c" "'c'")
+      , do { (_, peg'k11) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k10) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k9) <- PegRt.choice [do { (_, peg'k8) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k3) <- peg'rule'D25_S
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
@@ -6727,7 +6727,7 @@ peg'rule'D25_S =
           ; (_, peg'k6) <- peg'rule'D25_S
           ; (_, peg'k7) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6, peg'k7])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k8)
           }]
           ; PegPrelude.pure ((), peg'k9)
@@ -6747,12 +6747,12 @@ peg'rule'D25_S =
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k16, peg'k20])
           }, do { (_, peg'k21) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.choice [do { (_, peg'k22) <- PegRt.plain (PegRt.lit "ab" "'ab'")
+          ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k25) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k22) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; PegPrelude.pure ((), peg'k22)
           }, do { (_, peg'k23) <- peg'rule'D25_S
           ; (_, peg'k24) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k24])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k25)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k21, peg'k26])
@@ -6774,7 +6774,7 @@ peg'rule'D25_S =
           }])
           ; PegPrelude.pure ((), peg'k36)
           }])
-          ; (_, peg'k38) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (peg'rule'D25_S)
+          ; (_, peg'k38) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.voidS (peg'rule'D25_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k34, peg'k37, peg'k38])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k11, peg'k30, peg'k39])
@@ -6808,7 +6808,7 @@ peg'rule'D25_A =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k7, peg'k11])
           }])
           ; (_, peg'k16) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k15) <- PegRt.choice [do { (_, peg'k13) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k14) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k14) <- PegRt.labeledS "D25_l" (PegPrelude.Just (PegRt.voidS peg'rule'D25_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k13, peg'k14])
           }]
           ; PegPrelude.pure ((), peg'k15)
@@ -6837,7 +6837,7 @@ peg'rule'D26_S =
     (PegRt.node syntaxKindD26_S (PegRt.choice
       [ do { (_, peg'k37) <- PegRt.choice [do { (_, peg'k4) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k3) <- PegRt.choice [do { (_, peg'k0) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k1) <- peg'rule'D26_B
-          ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.anyChar)))
+          ; (_, peg'k2) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.anyChar))))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1, peg'k2])
           }]
           ; PegPrelude.pure ((), peg'k3)
@@ -6872,19 +6872,19 @@ peg'rule'D26_S =
           ; (_, peg'k23) <- peg'rule'D26_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k21, peg'k22, peg'k23])
           }]
-          ; (_, peg'k25) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]"))
+          ; (_, peg'k25) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k24, peg'k25])
           }]
           ; (_, peg'k27) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
           ; (_, peg'k36) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k28) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k35) <- PegRt.choice [do { (_, peg'k34) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.choice [do { (_, peg'k29) <- peg'rule'D26_S
+          ; (_, peg'k35) <- PegRt.choice [do { (_, peg'k34) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k29) <- peg'rule'D26_S
           ; (_, peg'k30) <- peg'rule'D26_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k29, peg'k30])
           }, do { (_, peg'k31) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k32) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; (_, peg'k33) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k31, peg'k32, peg'k33])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k34)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k28, peg'k35])
@@ -6894,10 +6894,10 @@ peg'rule'D26_S =
           ; PegPrelude.pure ((), peg'k37)
           }
       , do { (x1, peg'k43) <- PegRt.label "x1" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k42) <- PegRt.choice [do { (_, peg'k40) <- PegRt.choice [do { (_, peg'k38) <- peg'rule'D26_B
-          ; (_, peg'k39) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k39) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k38, peg'k39])
           }]
-          ; (_, peg'k41) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.lit "ab" "'ab'"))
+          ; (_, peg'k41) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "ab" "'ab'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k40, peg'k41])
           }]
           ; PegPrelude.pure ((), peg'k42)
@@ -6989,7 +6989,7 @@ peg'rule'D26_B =
           }])
           ; (_, peg'k42) <- PegRt.choice [do { (_, peg'k39) <- peg'rule'D26_A
           ; (_, peg'k40) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k41) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k41) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k39, peg'k40, peg'k41])
           }]
           ; (_, peg'k45) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k43) <- PegRt.plain (PegRt.lit "b" "'b'")
@@ -7008,7 +7008,7 @@ peg'rule'D26_B =
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k48, peg'k49, peg'k51])
           }])
-          ; (_, peg'k55) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k54) <- PegRt.choice [do { (_, peg'k53) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]"))
+          ; (_, peg'k55) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k54) <- PegRt.choice [do { (_, peg'k53) <- PegRt.labeledS "D26_l" (PegPrelude.Just (PegRt.voidS peg'rule'D26_R)) (PegRt.voidS (PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")))
           ; PegPrelude.pure ((), peg'k53)
           }]
           ; PegPrelude.pure ((), peg'k54)
@@ -7065,7 +7065,7 @@ peg'rule'D28_S =
           ; PegRt.touch x1
           ; (_, peg'k13) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k1) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; (_, peg'k4) <- PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k3) <- PegRt.labeledS "D28_l" (PegPrelude.Just (PegRt.voidS peg'rule'D28_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k3) <- PegRt.labeledS "D28_l" (PegPrelude.Just (PegRt.voidS peg'rule'D28_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3])
           }]
           ; (_, peg'k12) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k6) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k5) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
@@ -7087,7 +7087,7 @@ peg'rule'D28_S =
           }])
           ; (_, peg'k19) <- PegRt.choice [do { (_, peg'k16) <- peg'rule'D28_S
           ; PegPrelude.pure ((), peg'k16)
-          }, do { (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledS "D28_l" (PegPrelude.Just (PegRt.voidS peg'rule'D28_R)) (peg'rule'D28_S)
+          }, do { (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledS "D28_l" (PegPrelude.Just (PegRt.voidS peg'rule'D28_R)) (PegRt.voidS (peg'rule'D28_S))
           ; PegPrelude.pure ((), peg'k17)
           }]
           ; PegPrelude.pure ((), peg'k18)
@@ -7159,14 +7159,14 @@ peg'rule'D30_S =
           }]
           ; (_, peg'k16) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k25) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k24) <- PegRt.choice [do { (_, peg'k17) <- peg'rule'D30_S
-          ; (_, peg'k23) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.choice [do { (_, peg'k18) <- peg'rule'D30_S
+          ; (_, peg'k23) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k18) <- peg'rule'D30_S
           ; (_, peg'k19) <- peg'rule'D30_A
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k18, peg'k19])
           }, do { (_, peg'k20) <- peg'rule'D30_A
           ; (_, peg'k21) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k22) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k21, peg'k22])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k17, peg'k23])
           }]
           ; PegPrelude.pure ((), peg'k24)
@@ -7178,20 +7178,20 @@ peg'rule'D30_S =
           ; (_, peg'k28) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k27, peg'k28])
           }])
-          ; (_, peg'k38) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.choice [do { (_, peg'k30) <- PegRt.plain (PegRt.lit "c" "'c'")
+          ; (_, peg'k38) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k30) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k32) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k31) <- PegRt.plain (PegRt.lit "ab" "'ab'")
           ; PegPrelude.pure ((), peg'k31)
           }])
-          ; (_, peg'k34) <- PegRt.choice [do { (_, peg'k33) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.plain (PegRt.anyChar))
+          ; (_, peg'k34) <- PegRt.choice [do { (_, peg'k33) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.voidS (PegRt.plain (PegRt.anyChar)))
           ; PegPrelude.pure ((), peg'k33)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k30, peg'k32, peg'k34])
-          }, do { (_, peg'k36) <- PegRt.choice [do { (_, peg'k35) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          }, do { (_, peg'k36) <- PegRt.choice [do { (_, peg'k35) <- PegRt.labeledS "D30_l" (PegPrelude.Just (PegRt.voidS peg'rule'D30_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), peg'k35)
           }]
           ; (_, peg'k37) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k36, peg'k37])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k29, peg'k38])
           }]
           ; (_, peg'k45) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k44) <- PegRt.choice [do { (_, peg'k40) <- PegRt.plain (PegRt.lit "a" "'a'")
@@ -7270,13 +7270,13 @@ peg'rule'D31_S :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'D31_S =
   PegRt.memoLR peg'memo'D31_S "D31_S"
     (PegRt.node syntaxKindD31_S (PegRt.choice
-      [ do { (_, peg'k19) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (peg'rule'D31_S)
+      [ do { (_, peg'k19) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (peg'rule'D31_S))
           ; PegPrelude.pure ((), peg'k0)
           }]
           ; (_, peg'k9) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k3) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k2) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k2)
           }])
-          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (peg'rule'D31_B)
+          ; (_, peg'k5) <- PegRt.choice [do { (_, peg'k4) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (peg'rule'D31_B))
           ; PegPrelude.pure ((), peg'k4)
           }]
           ; (_, peg'k8) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k6) <- PegRt.plain (PegRt.lit "c" "'c'")
@@ -7306,7 +7306,7 @@ peg'rule'D31_S =
           ; (_, peg'k22) <- PegRt.plain (PegRt.cls [('b', 'c')] "[b-c]")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k21, peg'k22])
           }])
-          ; (_, peg'k24) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k24) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k24])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k19, peg'k20, peg'k25])
@@ -7332,7 +7332,7 @@ peg'rule'D31_B :: PegRt.P (Peg'Store peg's) peg's ((()), [PegRt.Child])
 peg'rule'D31_B =
   PegRt.memoLR peg'memo'D31_B "D31_B"
     (PegRt.choice
-      [ do { (_, peg'k10) <- PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (peg'rule'D31_B)
+      [ do { (_, peg'k10) <- PegRt.choice [do { (_, peg'k1) <- PegRt.choice [do { (_, peg'k0) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (peg'rule'D31_B))
           ; PegPrelude.pure ((), peg'k0)
           }]
           ; PegPrelude.pure ((), peg'k1)
@@ -7341,7 +7341,7 @@ peg'rule'D31_B =
           ; (_, peg'k4) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k3, peg'k4])
           }])
-          ; (_, peg'k6) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.plain (PegRt.lit "ab" "'ab'"))
+          ; (_, peg'k6) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "ab" "'ab'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k5, peg'k6])
           }]
           ; (_, peg'k8) <- peg'rule'D31_A
@@ -7358,7 +7358,7 @@ peg'rule'D31_B =
           }])
           ; PegPrelude.pure ((), peg'k15)
           }, do { (_, peg'k16) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
-          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (peg'rule'D31_B)
+          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (peg'rule'D31_B))
           ; PegPrelude.pure ((), peg'k17)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k16, peg'k18])
@@ -7376,7 +7376,7 @@ peg'rule'D31_B =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k25, peg'k26])
           }])
           ; (_, peg'k30) <- PegRt.choice [do { (_, peg'k28) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k29) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.plain (PegRt.lit "ab" "'ab'"))
+          ; (_, peg'k29) <- PegRt.labeledS "D31_l" (PegPrelude.Just (PegRt.voidS peg'rule'D31_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "ab" "'ab'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k28, peg'k29])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k24, peg'k27, peg'k30])
@@ -7440,7 +7440,7 @@ peg'rule'D32_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k10])
           }, do { (_, peg'k11) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k15) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k14) <- PegRt.choice [do { (_, peg'k12) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k13) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (peg'rule'D32_S)
+          ; (_, peg'k13) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (peg'rule'D32_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k12, peg'k13])
           }]
           ; PegPrelude.pure ((), peg'k14)
@@ -7479,13 +7479,13 @@ peg'rule'D32_S =
           ; (_, peg'k37) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k36) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k36)
           }])
-          ; (_, peg'k51) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.choice [do { (_, peg'k38) <- peg'rule'D32_S
+          ; (_, peg'k51) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k38) <- peg'rule'D32_S
           ; (_, peg'k40) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k39) <- peg'rule'D32_S
           ; PegPrelude.pure ((), peg'k39)
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k38, peg'k40])
           }, do { (_, peg'k43) <- PegRt.choice [do { (_, peg'k41) <- peg'rule'D32_S
-          ; (_, peg'k42) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k42) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k41, peg'k42])
           }]
           ; (_, peg'k46) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.choice [do { (_, peg'k44) <- peg'rule'D32_S
@@ -7494,11 +7494,11 @@ peg'rule'D32_S =
           }])
           ; (_, peg'k50) <- PegRt.choice [do { (_, peg'k47) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k48) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k49) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k49) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k47, peg'k48, peg'k49])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k43, peg'k46, peg'k50])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k35, peg'k37, peg'k51])
           }]
           ; (_, peg'k53) <- PegRt.plain (PegRt.lit "a" "'a'")
@@ -7512,20 +7512,20 @@ peg'rule'D32_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k57, peg'k58])
           }])
           ; (_, peg'k62) <- PegRt.choice [do { (_, peg'k60) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k61) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (peg'rule'D32_S)
+          ; (_, peg'k61) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (peg'rule'D32_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k60, peg'k61])
           }]
           ; (_, peg'k63) <- peg'rule'D32_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k59, peg'k62, peg'k63])
           }])
           ; (_, peg'k72) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k71) <- PegRt.choice [do { (_, peg'k65) <- peg'rule'D32_S
-          ; (_, peg'k70) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.choice [do { (_, peg'k66) <- peg'rule'D32_S
+          ; (_, peg'k70) <- PegRt.labeledMessageS "D32_l" "missing D32_" (PegPrelude.Just (PegRt.voidS peg'rule'D32_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k66) <- peg'rule'D32_S
           ; PegPrelude.pure ((), peg'k66)
           }, do { (_, peg'k67) <- peg'rule'D32_S
           ; (_, peg'k68) <- peg'rule'D32_S
           ; (_, peg'k69) <- peg'rule'D32_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k67, peg'k68, peg'k69])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k65, peg'k70])
           }]
           ; PegPrelude.pure ((), peg'k71)
@@ -7614,13 +7614,13 @@ peg'rule'D33_S =
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k31, peg'k34, peg'k39])
           }, do { (_, peg'k46) <- PegRt.choice [do { (_, peg'k40) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.plain (PegRt.anyChar))
-          ; (_, peg'k45) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (PegRt.choice [do { (_, peg'k41) <- PegRt.plain (PegRt.lit "c" "'c'")
+          ; (_, peg'k45) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k41) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; (_, peg'k42) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k41, peg'k42])
           }, do { (_, peg'k43) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
           ; (_, peg'k44) <- PegRt.plain (PegRt.anyChar)
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k43, peg'k44])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k40, peg'k45])
           }]
           ; PegPrelude.pure ((), peg'k46)
@@ -7630,7 +7630,7 @@ peg'rule'D33_S =
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k25, peg'k49])
           }
-      , do { (_, peg'k51) <- PegRt.choice [do { (_, peg'k50) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (PegRt.plain (PegRt.lit "ab" "'ab'"))
+      , do { (_, peg'k51) <- PegRt.choice [do { (_, peg'k50) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "ab" "'ab'")))
           ; PegPrelude.pure ((), peg'k50)
           }]
           ; (_, peg'k52) <- PegRt.plain (PegRt.lit "a" "'a'")
@@ -7659,7 +7659,7 @@ peg'rule'D33_A =
           ; (_, peg'k10) <- PegRt.choice [do { (_, peg'k8) <- (PegRt.plain PegPrelude.. PegRt.andP) (PegRt.choice [do { (_, peg'k7) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; PegPrelude.pure ((), peg'k7)
           }])
-          ; (_, peg'k9) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (peg'rule'D33_S)
+          ; (_, peg'k9) <- PegRt.labeledS "D33_l" (PegPrelude.Just (PegRt.voidS peg'rule'D33_R)) (PegRt.voidS (peg'rule'D33_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k8, peg'k9])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k4, peg'k6, peg'k10])
@@ -7831,7 +7831,7 @@ peg'rule'D35_S =
     (PegRt.node syntaxKindD35_S (PegRt.choice
       [ do { (x1, peg'k0) <- PegRt.label "x1" (peg'rule'D35_S)
           ; PegRt.touch x1
-          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k2) <- PegRt.choice [do { (_, peg'k1) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k1)
           }]
           ; (x3, peg'k3) <- PegRt.label "x3" (peg'rule'D35_S)
@@ -7864,11 +7864,11 @@ peg'rule'D35_S =
           ; PegPrelude.pure ((), peg'k19)
           }])
           ; (_, peg'k26) <- PegRt.choice [do { (_, peg'k23) <- PegRt.choice [do { (_, peg'k21) <- peg'rule'D35_S
-          ; (_, peg'k22) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (peg'rule'D35_S)
+          ; (_, peg'k22) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (PegRt.voidS (peg'rule'D35_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k21, peg'k22])
           }]
           ; (_, peg'k24) <- PegRt.plain (PegRt.lit "a" "'a'")
-          ; (_, peg'k25) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k25) <- PegRt.labeledS "D35_l" (PegPrelude.Just (PegRt.voidS peg'rule'D35_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k23, peg'k24, peg'k25])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k18, peg'k20, peg'k26])
@@ -8399,7 +8399,7 @@ peg'rule'D41_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k7, peg'k13])
           }])
           ; (_, peg'k17) <- PegRt.choice [do { (_, peg'k15) <- PegRt.plain (PegRt.lit "c" "'c'")
-          ; (_, peg'k16) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k16) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k16])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k14, peg'k17])
@@ -8412,12 +8412,12 @@ peg'rule'D41_S =
           }, do { (_, peg'k21) <- PegRt.plain (PegRt.lit "c" "'c'")
           ; PegPrelude.pure ((), peg'k21)
           }]
-          ; (_, peg'k34) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.choice [do { (_, peg'k24) <- PegRt.choice [do { (_, peg'k23) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.plain (PegRt.lit "a" "'a'"))
+          ; (_, peg'k34) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k24) <- PegRt.choice [do { (_, peg'k23) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "a" "'a'")))
           ; PegPrelude.pure ((), peg'k23)
           }]
           ; (_, peg'k28) <- PegRt.choice [do { (_, peg'k25) <- PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")
           ; (_, peg'k26) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k27) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.plain (PegRt.lit "c" "'c'"))
+          ; (_, peg'k27) <- PegRt.labeledMessageS "D41_l" "missing D41_" (PegPrelude.Just (PegRt.voidS peg'rule'D41_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "c" "'c'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k25, peg'k26, peg'k27])
           }]
           ; (_, peg'k30) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k29) <- peg'rule'D41_S
@@ -8429,7 +8429,7 @@ peg'rule'D41_S =
           ; PegPrelude.pure ((), peg'k32)
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k31, peg'k33])
-          }])
+          }]))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k22, peg'k34])
           }]
           ; PegPrelude.pure ((), peg'k35)
@@ -8548,7 +8548,7 @@ peg'rule'D43_S =
           ; (_, peg'k1) <- PegRt.plain (PegRt.lit "b" "'b'")
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k1])
           }])
-          ; (x2, peg'k28) <- PegRt.label "x2" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k14) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledS "D43_l" (PegPrelude.Just (PegRt.voidS peg'rule'D43_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (x2, peg'k28) <- PegRt.label "x2" ((PegRt.captureS) (PegRt.choice [do { (_, peg'k14) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k4) <- PegRt.choice [do { (_, peg'k3) <- PegRt.labeledS "D43_l" (PegPrelude.Just (PegRt.voidS peg'rule'D43_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), peg'k3)
           }]
           ; (_, peg'k8) <- (PegRt.optionalS) (PegRt.choice [do { (_, peg'k5) <- peg'rule'D43_S
@@ -8586,11 +8586,11 @@ peg'rule'D43_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k14, peg'k26, peg'k27])
           }]))
           ; PegRt.touch x2
-          ; (_, peg'k32) <- PegRt.choice [do { (_, peg'k31) <- PegRt.labeledS "D43_l" (PegPrelude.Just (PegRt.voidS peg'rule'D43_R)) (PegRt.choice [do { (_, peg'k29) <- peg'rule'D43_S
+          ; (_, peg'k32) <- PegRt.choice [do { (_, peg'k31) <- PegRt.labeledS "D43_l" (PegPrelude.Just (PegRt.voidS peg'rule'D43_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k29) <- peg'rule'D43_S
           ; PegPrelude.pure ((), peg'k29)
           }, do { (_, peg'k30) <- peg'rule'D43_S
           ; PegPrelude.pure ((), peg'k30)
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k31)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k2, peg'k28, peg'k32])
@@ -8637,7 +8637,7 @@ peg'rule'D44_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k1, peg'k2, peg'k15])
           }]))
           ; PegRt.touch x2
-          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D44_l" (PegPrelude.Just (PegRt.voidS peg'rule'D44_R)) (PegRt.plain (PegRt.anyChar)))
+          ; (_, peg'k18) <- PegRt.choice [do { (_, peg'k17) <- (PegRt.plain PegPrelude.. PegRt.notP) (PegRt.labeledS "D44_l" (PegPrelude.Just (PegRt.voidS peg'rule'D44_R)) (PegRt.voidS (PegRt.plain (PegRt.anyChar))))
           ; PegPrelude.pure ((), peg'k17)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k0, peg'k16, peg'k18])
@@ -8694,7 +8694,7 @@ peg'rule'D44_A =
           }]
           ; (_, peg'k24) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k23) <- PegRt.choice [do { (_, peg'k20) <- peg'rule'D44_S
           ; (_, peg'k21) <- PegRt.plain (PegRt.lit "ab" "'ab'")
-          ; (_, peg'k22) <- PegRt.labeledS "D44_l" (PegPrelude.Just (PegRt.voidS peg'rule'D44_R)) (peg'rule'D44_A)
+          ; (_, peg'k22) <- PegRt.labeledS "D44_l" (PegPrelude.Just (PegRt.voidS peg'rule'D44_R)) (PegRt.voidS (peg'rule'D44_A))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k20, peg'k21, peg'k22])
           }]
           ; PegPrelude.pure ((), peg'k23)
@@ -8817,12 +8817,12 @@ peg'rule'D46_S =
           ; (_, peg'k7) <- peg'rule'D46_S
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k6, peg'k7])
           }])
-          ; (_, peg'k10) <- PegRt.choice [do { (_, peg'k9) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]"))
+          ; (_, peg'k10) <- PegRt.choice [do { (_, peg'k9) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.voidS (PegRt.plain (PegRt.cls [('a', 'a'), ('b', 'b')] "[ab]")))
           ; PegPrelude.pure ((), peg'k9)
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k8, peg'k10])
           }
-      , do { (_, peg'k39) <- PegRt.choice [do { (_, peg'k20) <- PegRt.choice [do { (_, peg'k19) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.choice [do { (_, peg'k11) <- peg'rule'D46_S
+      , do { (_, peg'k39) <- PegRt.choice [do { (_, peg'k20) <- PegRt.choice [do { (_, peg'k19) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.voidS (PegRt.choice [do { (_, peg'k11) <- peg'rule'D46_S
           ; PegPrelude.pure ((), peg'k11)
           }, do { (_, peg'k15) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k12) <- PegRt.plain (PegRt.lit "a" "'a'")
           ; (_, peg'k13) <- peg'rule'D46_S
@@ -8834,7 +8834,7 @@ peg'rule'D46_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k16, peg'k17])
           }])
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k15, peg'k18])
-          }])
+          }]))
           ; PegPrelude.pure ((), peg'k19)
           }]
           ; (_, peg'k25) <- (PegRt.manyS) (PegRt.choice [do { (_, peg'k24) <- (PegRt.many1S) (PegRt.choice [do { (_, peg'k21) <- PegRt.plain (PegRt.lit "a" "'a'")
@@ -8855,7 +8855,7 @@ peg'rule'D46_S =
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k29, peg'k30, peg'k31])
           }])
           ; (_, peg'k35) <- PegRt.choice [do { (_, peg'k33) <- PegRt.plain (PegRt.lit "b" "'b'")
-          ; (_, peg'k34) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.plain (PegRt.lit "b" "'b'"))
+          ; (_, peg'k34) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.voidS (PegRt.plain (PegRt.lit "b" "'b'")))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k33, peg'k34])
           }]
           ; (_, peg'k36) <- peg'rule'D46_S
@@ -8884,7 +8884,7 @@ peg'rule'D46_S =
           }])
           ; PegPrelude.pure ((), peg'k51)
           }]
-          ; (_, peg'k53) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (peg'rule'D46_S)
+          ; (_, peg'k53) <- PegRt.labeledS "D46_l" (PegPrelude.Just (PegRt.voidS peg'rule'D46_R)) (PegRt.voidS (peg'rule'D46_S))
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k44, peg'k52, peg'k53])
           }]
           ; PegPrelude.pure ((), PegPrelude.concat [peg'k39, peg'k40, peg'k54])

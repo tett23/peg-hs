@@ -1,0 +1,20 @@
+# ADR 0094：値を使わない位置の、回復の規則を与えたラベルは、
+# ラベルを付けた式の値も捨てる。先読みの中のラベルの後には選択肢を置き、
+# lint の警告 ineffective-label を避ける
+%module Fixture.RecoverVoid
+%recover r Skip
+%recover a Skip
+%safe a
+
+Items :: [Int]
+Items <- Item*
+
+# X の値は使わない
+Item :: Int
+Item <- 'r' X ^r ';' { 1 }
+     / '&' &(X ^a / 'y') 'x' ';' { 2 }
+
+X :: Int
+X <- 'x' { 1 }
+
+Skip <- (!';' .)*

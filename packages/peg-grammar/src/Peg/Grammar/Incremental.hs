@@ -36,6 +36,7 @@ module Peg.Grammar.Incremental
   , parseFragments
   , parseSyntaxWhole
   , syntaxKindName
+  , open
   ) where
 
 import Data.Char (isSpace)
@@ -45,7 +46,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as TU
 import Peg.Grammar
-import Peg.Grammar.Assemble (Top (..))
+import Peg.Grammar.Assemble (Top (..), isIdentChar)
 import Peg.Grammar.Outline (Outline, OutlinePart, joinOutline, outlineFromTree, outlinePart, shiftOutlinePart)
 import Peg.Grammar.Parser (parseTops)
 import qualified Peg.Grammar.SelfHosted as SelfHosted
@@ -193,12 +194,31 @@ errorAtEnd (t, e) = case snd (entrySyntax e) of
       Just ('#', r) -> trivia (T.dropWhile (/= '\n') r)
       Just _ -> False
 
--- Whether a text leaves a bracket, a string or a verbatim block open at
--- its end. Haskell code, its strings and verbatim blocks can span lines:
--- in a fragment with an error, the parse may have read an open one up to
--- the end of the fragment, where the parse of the whole text could find
--- its end, and read the fragment differently. The check is lexical, and
--- errs on the side of open: a quote closed on its line is a literal.
+-- | Whether a text leaves a bracket, a string, a character literal or a
+-- verbatim block open at its end. Haskell code, its strings, its character
+-- literals and verbatim blocks can span lines: in a fragment with an
+-- error, the parse may have read an open one up to the end of the
+-- fragment, where the parse of the whole text could find its end, and read
+-- the fragment differently.
+--
+-- The check is lexical, and follows the rules of the notation's grammar
+-- (@grammar/Peg.hpeg@) for Haskell code (ADR 0094):
+--
+-- * brackets of any kind are counted, and a closing one with none open is
+--   ignored;
+-- * a string (@HsString@) runs to its closing @\"@, across lines;
+-- * a character literal with an escape (the first alternative of
+--   @HsChar@, from @\'\\@) runs to the next @\'@, across lines, and is
+--   open without one;
+-- * a word that starts with an identifier character other than @\'@
+--   (@HsIdent@) is skipped with its identifier characters, so that a quote
+--   inside it, as in @x\'@, does not start a character literal;
+-- * any other quote closed on its line is a literal, which errs on the
+--   side of open.
+--
+-- When the lexical rules of the grammar change, this function has to
+-- follow them; the property test of the agreement with the whole parse
+-- finds the differences.
 open :: Text -> Bool
 open = go (0 :: Int) . T.unpack
   where
@@ -208,6 +228,11 @@ open = go (0 :: Int) . T.unpack
         (_, r) | T.null r -> True
         (_, r) -> go d (T.unpack (T.drop 2 r))
       '"' : rest -> string d rest
+      c : rest
+        | isIdentChar c && c /= '\'' -> go d (dropWhile isIdentChar rest)
+      '\'' : '\\' : _ : rest -> case break (== '\'') rest of
+        (_, []) -> True
+        (_, _ : rest') -> go d rest'
       '\'' : rest | Just rest' <- quoted rest -> go d rest'
       c : rest
         | c `elem` ("([{" :: String) -> go (d + 1) rest
