@@ -65,6 +65,7 @@ module Peg.Grammar
   , syntaxTypeName
     -- * Haskell code
   , codeVariables
+  , reservedWords
   ) where
 
 import Data.Char (isAlpha, isAlphaNum, isDigit, isPunctuation, isSymbol, isUpper, toUpper)
@@ -386,7 +387,7 @@ codeVariables start code = go (zip (scanl advance start chars) chars)
             (_, '.') : after'@((_, d) : _) | isIdentStart d, not (isUpper d) -> fields after'
             _ -> after
 
--- The reserved words of Haskell 2010, which are not variables.
+-- | The reserved words of Haskell 2010, which are not variables.
 reservedWords :: [Text]
 reservedWords =
   [ "case", "class", "data", "default", "deriving", "do", "else", "foreign", "if", "import", "in"

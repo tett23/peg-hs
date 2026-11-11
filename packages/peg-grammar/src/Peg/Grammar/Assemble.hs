@@ -20,6 +20,7 @@ module Peg.Grammar.Assemble
   , directiveArg
   , directiveComment
   , isImportPath
+  , isModuleName
   ) where
 
 import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
@@ -400,7 +401,7 @@ isClassName t = not (T.null t) && all part (T.splitOn "." t)
       Just (c, rest) -> isUpper c && T.all isIdentChar rest
       Nothing -> False
 
--- A module name: parts separated by dots, each of which starts with an
+-- | A module name: parts separated by dots, each of which starts with an
 -- upper case letter, followed by letters, digits, @_@ and @'@ (ADR 0080).
 isModuleName :: Text -> Bool
 isModuleName = isClassName
@@ -434,12 +435,12 @@ isExportItem t = not (any (`T.isInfixOf` t) ["--", "{-", "-}"]) && maybe False n
         _ -> Nothing
     member = \case
       "(" : op : ")" : rest | isOperator op -> Just rest
-      n : rest | isValidIdent (T.pack n) -> Just rest
+      n : rest | isValidIdent (T.pack n) && T.pack n `notElem` reservedWords -> Just rest
       _ -> Nothing
     isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))
     -- A variable or a type name, after a module name and a dot.
     isQualifiedName n = case T.breakOnEnd "." (T.pack n) of
-      ("", name) -> isValidIdent name
+      ("", name) -> isValidIdent name && name `notElem` reservedWords
       (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
     isOperator op = not (null op) && all isSymbolChar op
     isSymbolChar c = c `elem` ("!#$%&*+./<=>?@\\^|-~:" :: String)
