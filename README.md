@@ -443,6 +443,7 @@ Values outside those blocks go into the module too: the value of `%module`, the 
 peg-hs checks them and rejects values that would read as Haskell declarations ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 `%module` takes a module name (`A.B.C`), and `%export` takes items of an export list: a name that may be qualified (`evalExpr`, `Expr`, `M.f`), a type name with `(..)` or with names and operators in parentheses (`Expr(..)`, `Expr(Add, Mul)`), an operator in parentheses (`(+++)`), any of these after `type` or `pattern` (`type (:+)`, `pattern P`), and `module` with a module name (`module Data.Text`).
 An item outside these forms, such as one with `--`, `{-` or `where`, is an error at the item.
+The replacement module name passed to `--strip-labels` must also be a valid Haskell module name, such as `Test.NoLabels`.
 A file name with a control character (U+0000 to U+001F, or U+007F), such as a newline, is an error at line 1, column 1, and nothing is written.
 
 ### fmt

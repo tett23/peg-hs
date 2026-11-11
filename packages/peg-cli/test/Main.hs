@@ -986,6 +986,15 @@ main = do
               out <- readFile (dir </> "strip.hs")
               assertBool "module N" ("module N" `isInfixOf` out)
               assertBool "no label" (not ("labeled" `isInfixOf` out))
+          , testCase "invariant 3: --strip-labels rejects an invalid module name" $ do
+              (code, out, err, written) <- genOn "strip-invalid" unsafe ["--strip-labels", "invalid"]
+              (code, out, written) @?= (ExitFailure 1, "", False)
+              assertBool err ("the generated module name is invalid: invalid" `isInfixOf` err)
+          , testCase "invariant 3: reserved export names are rejected" $ do
+              forM_ ["where", "T(where)"] $ \name -> do
+                (code, out, err, written) <- genOn ("export-" <> name) ("%module M\n%export " <> name <> "\nS <- 'a'\n") []
+                (code, out, written) @?= (ExitFailure 1, "", False)
+                assertBool err (("%export expects export items, but got " <> name) `isInfixOf` err)
           ]
       , testGroup
           "gen --export (ADR 0061)"

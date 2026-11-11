@@ -55,6 +55,7 @@ import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Grammar
+import Peg.Grammar.Assemble (isModuleName)
 import Peg.Grammar.Check
 import Peg.Grammar.Labels (labelWarnings, stripLabelsAs)
 import Peg.Grammar.Types (Classification (..), Constructor (..), DataType (..), RuleType (..), ValueType (..), defaultDeriving, fieldItems, typeAtom, typeCode)
@@ -145,6 +146,9 @@ generate opts g0 = do
   if any (any isControlChar) [optSourceName opts, optOutputName opts]
     then Left [Diagnostic (Loc 0 1 1) "the file name contains a control character"]
     else pure ()
+  if isModuleName (unLoc (grammarModule g0))
+    then pure ()
+    else Left [Diagnostic (Loc 0 1 1) ("the generated module name is invalid: " <> unLoc (grammarModule g0))]
   g <- either (Left . templateNotes g0) Right (expandTemplates g0)
   analysis <- either (Left . templateNotes g0) Right (check g)
   case undefinedExports opts g analysis of
