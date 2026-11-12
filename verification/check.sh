@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue Pipeline Pragmas; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -27,7 +27,10 @@ verification/check-nullable.sh "$work"
 verification/check-reachable.sh
 verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
+verification/check-no-record.sh
 verification/check-pipeline.sh
+verification/check-rule-rejection.sh
+verification/check-rule-rejection-nullable.sh
 
 extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
