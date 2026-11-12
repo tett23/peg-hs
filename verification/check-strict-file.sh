@@ -2,6 +2,10 @@
 set -eu
 cd "$(dirname "$0")"
 work=${1:?pass the Lean object directory}
+runtime=../packages/peg-runtime/src/Peg/Runtime/Internal.hs
+runghc-9.10.3 -Werror ExtractRuntimeChoice.hs "$runtime" > "$work/TranslatedRuntimeChoice.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedRuntimeChoice.olean" "$work/TranslatedRuntimeChoice.lean"
+lean -DwarningAsError=true -o "$work/RuntimeChoiceProof.olean" RuntimeChoiceProof.lean
 source=../packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs
 runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$source" > "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedStrictFile.olean" "$work/TranslatedStrictFile.lean"
