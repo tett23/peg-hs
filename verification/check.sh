@@ -19,6 +19,7 @@ done
 runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedEscapes.olean" "$work/TranslatedEscapes.lean"
 lean -DwarningAsError=true -o "$work/SimpleEscapeProof.olean" SimpleEscapeProof.lean
+lean -DwarningAsError=true -o "$work/DirectiveDecode.olean" DirectiveDecode.lean
 runghc-9.10.3 -Werror ExtractTabstop.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedTabstop.olean" "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -o "$work/TabstopProof.olean" TabstopProof.lean
