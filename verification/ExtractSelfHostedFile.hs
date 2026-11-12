@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -443,6 +443,43 @@ depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
 
+labeledRule :: ReadP String
+labeledRule = do
+  depthHeader "Labeled"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "e", "<-"]
+  expr <- depthCall 94 ["d"]
+  mapM_ token [";", "lab", "<-", "PegRt.optional", "("]
+  suffix <- depthCall 95 ["d", "+", "snd", "e"]
+  token ")"
+  returnAction ["maybe", "e", "(", "\\", "(", "l", ",", "n", ")", "->", "deeper", "(", "\\x",
+    "->", "ELabel", "l", "x", "n", ")", "e", ")", "lab"]
+  pure (".action 7 (.seq (.bind 47 \"e\" " ++ expr ++ ") (.alt (.bind 48 \"lab\" " ++ suffix ++ ") .eps))")
+
+depthCheck :: Int -> ReadP String
+depthCheck site = labelled $ do
+  mapM_ token ["PegRt.choice", "[", "do", "{", "PegRt.predicate", "(", "\\_col", "->"]
+  embedded ["d", "<", "maxDepth"]
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
+  pure ("(.predicate " ++ show site ++ ")")
+
+labelPartRule :: ReadP String
+labelPartRule = do
+  depthHeader "LabelPart"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"]
+  ws <- call 96
+  mapM_ token [";", "l", "<-"]
+  loc <- call 97
+  mapM_ token [";", "PegRt.andP", "("]
+  literal "^"
+  mapM_ token [")", ";"]
+  limit <- depthCheck 10
+  token ";" >> literal "^"
+  mapM_ token [";", "n", "<-"]
+  name <- call 98
+  returnAction ["(", "l", ",", "n", ")"]
+  pure (sequenceBody [ws, "(.bind 49 \"l\" " ++ loc ++ ")", "(.ahead (.terminal 50))", limit,
+    "(.terminal 51)", "(.bind 50 \"n\" " ++ name ++ ")"])
+
 prefixRule :: ReadP String
 prefixRule = do
   depthHeader "PrefixE"
@@ -489,11 +526,7 @@ prefixRule = do
         mapM_ token [";", "PegPrelude.pure", "()", "}", "]", ")"]
         pure (["(.notAhead " ++ sequenceBody [term (t+1), inner, term (t+2)] ++ ")"], site+2, t+3)
       token ";"
-      limit <- labelled $ do
-        mapM_ token ["PegRt.choice", "[", "do", "{", "PegRt.predicate", "(", "\\_col", "->"]
-        embedded ["d", "<", "maxDepth"]
-        mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
-        pure ("(.predicate " ++ show (7+index) ++ ")")
+      limit <- depthCheck (7+index)
       token ";" >> literal op
       (spaces, childSite) <- if op == "$" then pure ([], nextSite) else do
         mapM_ token [";", "_", "<-"]
@@ -652,9 +685,10 @@ main = do
          ("TypeText", typeTextRule), ("ParamList", paramListRule), ("ParamChunks", paramChunksRule),
          ("ParamChunk", paramChunkRule),
          ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
-         ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule)] $
+         ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule),
+         ("Labeled", labeledRule), ("LabelPart", labelPartRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
-        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE"] then " d =" else " =")] of
+        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)

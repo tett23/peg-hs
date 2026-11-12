@@ -71,6 +71,10 @@ set_option maxRecDepth 8192 in
 theorem invariant1_strict_prefix (input : List Char) :
     translatedStrictPrefixE = (context false input).rules 27 := rfl
 
+theorem invariant1_strict_label_suffix (input : List Char) :
+    translatedStrictLabeled = (context false input).rules 28 ∧
+    translatedStrictLabelPart = (context false input).rules 29 := ⟨rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
