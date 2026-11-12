@@ -23,9 +23,9 @@ private def syntaxPeg := inputs MetaTerminal2.environmentBody MetaTerminal2.term
 
 private def check (source : String) (expected : String) : IO Unit := do
   let chars := source.toList
-  for make in [peg, syntaxPeg] do
+  for (make, start) in [(peg, MetaTerminal1.startRule), (syntaxPeg, MetaTerminal2.startRule)] do
     let ctx := make chars
-    let actual := match runFuel ctx 12000 (ctx.rules 0) chars.length {} with
+    let actual := match runFuel ctx 12000 (ctx.rules start) chars.length {} with
       | some (.ok 0 _) => "ok"
       | some (.ok rest _) => s!"remaining {rest}"
       | some (.throwLabel _ name _) => name

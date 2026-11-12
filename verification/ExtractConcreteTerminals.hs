@@ -8,6 +8,7 @@ import Control.Monad.State.Strict (StateT, get, put, runStateT)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (ord)
 import Data.List (intercalate)
+import Data.Maybe (listToMaybe)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Data.Text as T
@@ -302,6 +303,9 @@ emit index g = do
   when (null rs || length rs /= S.size (S.fromList names) || not (null (grammarImports g)) ||
         any (not . null . ruleTemplateParams) rs)
     (Left "duplicate/empty rules, imports, or unexpanded templates in metagrammar")
+  let start = maybe (listToMaybe names) (Just . unLoc) (grammarStart g)
+  when (start /= Just "File") (Left "expected File as the metagrammar start rule")
+  startId <- maybe (Left "missing start rule") Right (start >>= (`M.lookup` nameToIndex))
   rows <- traverse (traverse (terminals . itemExpr) . concatMap altItems . ruleAlts) rs
   (bodies, assigned) <- runStateT (traverse (alternatives nameToIndex . map altItems . ruleAlts) rs) 0
   let messages = M.fromList [(unLoc name, unLoc msg) | (name, msg) <- grammarMessages g]
@@ -324,6 +328,7 @@ emit index g = do
         envTerm envState /= assigned || envPred envState /= labeledPredicates)
     (Left "site numbering differs from source extraction")
   pure ["namespace " ++ ns,
+        "def startRule : Nat := " ++ show startId,
         "def table : Array (Nat × Terminal) := #[\n" ++ intercalate ",\n" table ++ "]",
         "theorem invariant1_terminal_count : table.size = " ++ show (length numbered) ++ " := by decide",
         "theorem invariant1_all_match (i : Fin table.size) (xs ys : List Char) :",
