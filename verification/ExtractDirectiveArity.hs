@@ -3,7 +3,7 @@ module Main (main) where
 
 import Control.Monad (unless)
 import Data.Char (isAsciiLower)
-import Data.List (stripPrefix, tails)
+import Data.List (isPrefixOf, stripPrefix, tails)
 import System.Environment (getArgs)
 import System.Exit (die)
 
@@ -20,6 +20,9 @@ main :: IO ()
 main = do
   [path] <- getArgs
   source <- lines <$> readFile path
+  unless (filter (isPrefixOf "    directives =") source ==
+      ["    directives = [(l, n, a) | TDirective l n _ a <- items]"])
+    (die "unsupported directives projection")
   known <- names source "    known = " ""
   optional <- names source
     "        ++ [Diagnostic l (\"%\" <> n <> \" needs an argument\") | (l, n, a) <- directives, n `elem` known, n `notElem` "
@@ -35,6 +38,10 @@ main = do
     _ -> die "unsupported duplicate directive clause"
   putStrLn "import DirectiveAssembly"
   putStrLn "namespace PegHs.TranslatedArity"
+  putStrLn "def locatedDirectives (items : List (α × PegHs.AssembleValidation.Top)) : List (α × String × String) :="
+  putStrLn "  items.filterMap fun (l, t) => match t with"
+  putStrLn "    | .directive n a => some (l, n, a)"
+  putStrLn "    | _ => none"
   putStrLn ("def known : List String := " ++ known)
   putStrLn ("def optional : List String := " ++ optional)
   putStrLn ("def flags : List String := " ++ flags)

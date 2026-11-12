@@ -25,12 +25,20 @@ theorem duplicateLocation_iff (name : String) (ds : List (α × String × String
   | nil => simp
   | cons first rest => cases rest <;> simp
 
-theorem invariant2_source_duplicate (tops : List Top) (p : Predicates) (name : String)
-    (ds : List (α × String × String)) (project : ds.map Prod.snd = directives tops)
-    (selected : name ∈ uniqueNames) (duplicate : (duplicateLocation name ds).isSome) :
-    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors tops p := by
-  apply invariant2_duplicate_directive tops p name selected
-  rw [← project, List.filter_map]
-  simpa [Function.comp_def] using (duplicateLocation_iff name ds).mp duplicate
+theorem eraseDirectiveLocations (items : List (α × Top)) :
+    (locatedDirectives items).map Prod.snd = directives (items.map Prod.snd) := by
+  induction items with
+  | nil => rfl
+  | cons item rest ih =>
+    obtain ⟨loc, top⟩ := item
+    cases top <;> simpa [locatedDirectives, directives] using ih
+
+theorem invariant2_source_duplicate (items : List (α × Top)) (p : Predicates) (name : String)
+    (selected : name ∈ uniqueNames)
+    (duplicate : (duplicateLocation name (locatedDirectives items)).isSome) :
+    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors (items.map Prod.snd) p := by
+  apply invariant2_duplicate_directive _ p name selected
+  rw [← eraseDirectiveLocations, List.filter_map]
+  simpa [Function.comp_def] using (duplicateLocation_iff name _).mp duplicate
 
 end PegHs.TranslatedArity
