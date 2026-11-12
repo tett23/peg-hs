@@ -1,5 +1,6 @@
 -- Translate the two local counters in directiveComment. The offset counts
--- Unicode characters, as in Text.splitAt; arithmetic is modeled by Nat.
+-- Unicode characters, as in Text.splitAt. The same extracted transitions
+-- can be evaluated with a checked or an unbounded counter.
 module Main (main) where
 
 import Data.Char (isSpace, ord)
@@ -37,7 +38,7 @@ branch line = case break (== '>') line of
     result _ ["n"] = Right "n"
     result k [state,"(n","+",delta,"rest"]
       | state `elem` ["outside","inside"], delta == show k ++ ")", k > 0 =
-          Right ("translatedOffset " ++ (if state == "inside" then "true" else "false") ++ " (n + " ++ show k ++ ") rest")
+          Right ("scanWith advance " ++ (if state == "inside" then "true" else "false") ++ " (advance n " ++ show k ++ ") rest")
     result _ _ = Left line
 
 main :: IO ()
@@ -50,6 +51,8 @@ main = do
       let arms q rows = traverse (fmap (("  | " ++ q ++ ", n, ") ++) . branch . trim) rows
       case (++) <$> arms "false" outer <*> arms "true" inner of
         Right rows -> putStr (unlines (["import DirectiveArgument", "namespace PegHs.DirectiveArgument",
-          "def translatedOffset : Bool → Nat → List Char → Nat"] ++ rows ++ ["end PegHs.DirectiveArgument"]))
+          "def scanWith {α : Type} (advance : α → Nat → α) : Bool → α → List Char → α"] ++ rows ++
+          ["abbrev translatedOffset := scanWith (fun n k : Nat => n + k)", "def ghcIntMax : Nat := " ++ show (maxBound :: Int),
+           "end PegHs.DirectiveArgument"]))
         Left unknown -> die ("unsupported directive comment branch: " ++ unknown)
     _ -> die "missing directiveComment scanner"
