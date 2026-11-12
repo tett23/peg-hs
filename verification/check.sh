@@ -74,6 +74,8 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true MetaEnvCompatibleTests.lean &&
   lean -DwarningAsError=true -o "$work/MemoKeyEnvironment.olean" MemoKeyEnvironment.lean &&
   lean -DwarningAsError=true MemoKeyEnvironmentTests.lean &&
+  lean -DwarningAsError=true -o "$work/NoArgInputReads.olean" NoArgInputReads.lean &&
+  lean -DwarningAsError=true NoArgInputReadsTests.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimScan.olean" VerbatimScan.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimRule.olean" VerbatimRule.lean &&
   lean -DwarningAsError=true -o "$work/PrefixReplay.olean" PrefixReplay.lean &&
