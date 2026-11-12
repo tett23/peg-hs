@@ -86,4 +86,37 @@ theorem invariant1_both_repeat_guards (input : List Char) (before after : Nat)
   have h := invariant1_runtime_repeat_progress input before after beginBound endBound
   exact ⟨h, h⟩
 
+-- Each invocation evaluates the child once. Only a byte-advancing success recurs.
+noncomputable def runtimeRepeat {ctx : Inputs} {a : Body}
+    (step : ∀ n env, {r // Derives ctx a n env r})
+    (n : Nat) (env : Env) (bound : n ≤ ctx.input.length) :
+    {r // Derives ctx (.starLoop a) n env r} := by
+  classical
+  obtain ⟨child, derivation⟩ := step n env
+  cases child with
+  | fail => exact ⟨_, .loopStop derivation⟩
+  | throwLabel => exact ⟨_, .loopThrow derivation⟩
+  | ok rest next =>
+    have le := invariant1_success_remaining_le derivation rest next rfl
+    have endBound := Nat.le_trans le bound
+    have guards := invariant1_both_repeat_guards ctx.input n rest bound endBound
+    if advance : translatedManyProgress (Utf8Terminals.byteOffset ctx.input (ctx.input.length - n))
+        (Utf8Terminals.byteOffset ctx.input (ctx.input.length - rest)) then
+      have lt := guards.1.mp advance
+      obtain ⟨r, tail⟩ := runtimeRepeat step rest
+        {next with resultDepth := max env.resultDepth next.resultDepth} endBound
+      exact ⟨r, .loopMore derivation lt tail⟩
+    else
+      have stop : ¬ rest < n := fun lt => advance (guards.1.mpr lt)
+      have same : rest = n := by omega
+      subst rest
+      exact ⟨_, .loopZero derivation⟩
+termination_by n
+
+theorem invariant1_runtime_repeat {ctx : Inputs} {a : Body}
+    (step : ∀ n env, {r // Derives ctx a n env r})
+    (n : Nat) (env : Env) (bound : n ≤ ctx.input.length) :
+    Derives ctx (.star a) n env (runtimeRepeat step n {env with resultDepth := 0} bound).val :=
+  .star (runtimeRepeat step n _ bound).property
+
 end PegHs.EnvironmentEval
