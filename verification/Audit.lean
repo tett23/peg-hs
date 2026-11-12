@@ -152,15 +152,16 @@ run_cmd do
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
+    let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop].contains moduleName
     let mut checked := 0
     for (name, info) in env.constants.toList do
       if env.getModuleIdxFor? name != some idx then continue
       if info.isAxiom then throwError "unexpected axiom declaration {name}"
-      if !info.isTheorem then continue
+      if !info.isTheorem && !(generated && info.isDefinition) then continue
       checked := checked + 1
       let axioms ← collectAxioms name
       logInfo m!"{name}: {axioms}"
       for ax in axioms do
         unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
           throwError "{name} depends on unexpected axiom {ax}"
-    if checked == 0 then throwError "no theorems in {moduleName}"
+    if checked == 0 then throwError "no audited declarations in {moduleName}"
