@@ -58,21 +58,21 @@ theorem invariant2_duplicate_scan {R D : Type} (name : R → String) (report : R
       grind
 
 def resolve {D R : Type} (libraryRoot : Bool) (missingModule : D) (root : List R)
-    (imports : List (Except (Errors D) (List R))) (sort : List D → List D)
+    (imports : List (Except (Errors D) (List R))) (locationLE : D → D → Bool)
     (name : R → String) (report : R → D) (keep : List R → List R) : Except (List D) (List R) :=
   if libraryRoot then .error [missingModule] else
     match collect imports with
-    | .error (d, ds) => .error (sort (d :: ds))
+    | .error (d, ds) => .error ((d :: ds).mergeSort locationLE)
     | .ok rs =>
       match duplicateDiagnostics name report [] (root ++ rs) with
       | [] => .ok (keep (root ++ rs))
       | d :: ds => .error (d :: ds)
 
 theorem invariant2_resolve_failure_nonempty {D R : Type} (lib : Bool) (missing : D)
-    (root : List R) (imports : List (Except (Errors D) (List R))) (sort : List D → List D)
-    (ordered : ∀ xs, (sort xs).Perm xs) (name : R → String) (report : R → D)
+    (root : List R) (imports : List (Except (Errors D) (List R))) (locationLE : D → D → Bool)
+    (name : R → String) (report : R → D)
     (keep : List R → List R) (ds : List D)
-    (failure : resolve lib missing root imports sort name report keep = .error ds) : ds ≠ [] := by
+    (failure : resolve lib missing root imports locationLE name report keep = .error ds) : ds ≠ [] := by
   unfold resolve at failure
   split at failure
   · cases failure
@@ -81,7 +81,7 @@ theorem invariant2_resolve_failure_nonempty {D R : Type} (lib : Bool) (missing :
     · rename_i d rest _
       cases failure
       intro h
-      have hp := ordered (d :: rest)
+      have hp := List.mergeSort_perm (d :: rest) locationLE
       rw [h] at hp
       simp at hp
     · split at failure <;> cases failure
@@ -89,8 +89,8 @@ theorem invariant2_resolve_failure_nonempty {D R : Type} (lib : Bool) (missing :
 
 theorem invariant2_import_merge_ok_iff {D R : Type} (missing : D) (root rs : List R)
     (imports : List (Except (Errors D) (List R))) (loaded : collect imports = .ok rs)
-    (sort : List D → List D) (name : R → String) (report : R → D) (keep : List R → List R) :
-    resolve false missing root imports sort name report keep = .ok (keep (root ++ rs)) ↔
+    (locationLE : D → D → Bool) (name : R → String) (report : R → D) (keep : List R → List R) :
+    resolve false missing root imports locationLE name report keep = .ok (keep (root ++ rs)) ↔
       ((root ++ rs).map name).Nodup := by
   have scan := invariant2_duplicate_scan name report [] (root ++ rs)
   cases h : duplicateDiagnostics name report [] (root ++ rs) <;>
