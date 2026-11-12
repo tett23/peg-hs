@@ -1,5 +1,7 @@
 import Lean
 import Guard
+import SemanticPredicates
+import GhcPredicates
 import ParameterPredicates
 import EscapePredicates
 import ExpressionDepth
@@ -23,7 +25,7 @@ import RuleRejectionNullable
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`ParameterPredicates, `EscapePredicates, `ExpressionDepth, `Guard, `Parsing, `Header,
+  for moduleName in [`SemanticPredicates, `GhcPredicates, `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `Guard, `Parsing, `Header,
       `Lexical, `Nullable, `Reachable, `Literal, `Signatures, `File,
       `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs,
       `RuleRejectionRepeat, `RuleRejectionNullable] do
