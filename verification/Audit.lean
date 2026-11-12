@@ -1,6 +1,7 @@
 import Lean
 import CallOrder
 import CallTables
+import RecursiveEval
 import Guard
 import Parsing
 import Header
@@ -17,10 +18,34 @@ import FileTrees
 import Pipeline
 import Pragmas
 
+namespace PegHs.RecursiveEval
+
+-- The two tables are extracted from Peg.hpeg and PegSyntax.hpeg by
+-- ExtractCallOrder.hs during verification/check.sh.
+def actualMetaRules (syntaxMode : Bool) : Nat → CallOrder.Body :=
+  if syntaxMode then Meta2.rules else Meta1.rules
+
+theorem invariant1_actual_meta_total (syntaxMode : Bool) (token : Nat → Option Nat)
+    (rule remaining : Nat) :
+    ∃ fuel result,
+      runFuel (actualMetaRules syntaxMode) token fuel
+        (actualMetaRules syntaxMode rule) remaining = some result := by
+  cases syntaxMode with
+  | false =>
+      simpa [actualMetaRules] using
+        (invariant1_rule_executable (token := token) Meta1.invariant1_checked (remaining, rule))
+  | true =>
+      simpa [actualMetaRules] using
+        (invariant1_rule_executable (token := token) Meta2.invariant1_checked (remaining, rule))
+
+#print axioms invariant1_actual_meta_total
+
+end PegHs.RecursiveEval
+
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CallOrder, `CallTables, `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
+  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
