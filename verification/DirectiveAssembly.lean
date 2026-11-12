@@ -46,15 +46,26 @@ theorem invariant2_directive_captures (c : Char) (cs : List Char) :
       PegVerification.isInlineSpace) = '%' :: c :: cs := by simp [pre, List.append_assoc]
   rw [← split, directiveRawCapture]
 
-theorem unknownDirectiveDiagnostic (name arg : String) (p : Predicates)
+theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String) (p : Predicates)
+    (member : Top.directive name arg ∈ tops)
     (unknown : known.contains name = false) :
-    diagnostic ⟨.unknownDirective, name⟩ ∈ errors [.directive name arg] p := by
+    diagnostic ⟨.unknownDirective, name⟩ ∈ errors tops p := by
   apply List.mem_map.mpr
   refine ⟨⟨.unknownDirective, name⟩, List.mem_append_left _ ?_, rfl⟩
   unfold otherViolations
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat apply List.mem_append_left
-  simpa [directives, emit] using (show name ∉ known by simpa using unknown)
+  apply List.mem_map.mpr
+  refine ⟨name, List.mem_map.mpr ⟨(name, arg), List.mem_filter.mpr ⟨?_, by change (!known.contains name) = true; rw [unknown]; rfl⟩, rfl⟩, rfl⟩
+  exact List.mem_filterMap.mpr ⟨.directive name arg, member, rfl⟩
+
+theorem unknownDirectiveRejected (tops : List Top) (name arg : String) (p : Predicates)
+    (member : Top.directive name arg ∈ tops) (unknown : known.contains name = false) :
+    ∃ ds, assemble tops p = .error ds ∧ diagnostic ⟨.unknownDirective, name⟩ ∈ ds := by
+  have reported := unknownDirectiveDiagnostic tops name arg p member unknown
+  cases he : errors tops p with
+  | nil => simp [he] at reported
+  | cons d ds => exact ⟨_, by simp only [assemble, he], he ▸ reported⟩
 
 -- The successful File derivation and the assembly error refer to the same input slices.
 theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Predicates)
@@ -71,13 +82,7 @@ theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Pre
         diagnostic ⟨.unknownDirective, String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)⟩ ∈ ds := by
   refine ⟨invariant1_single_directive_file c cs start endOfArg, ?_⟩
   rw [invariant2_directive_captures]
-  have member := unknownDirectiveDiagnostic _ (String.ofList (DirectiveArgument.argument (String.ofList (c :: cs.takeWhile CharRule.identChar.accepts))
-    (((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace).takeWhile
-      (· != '\n')))) p unknown
-  generalize he : errors _ p = ds at member
-  cases ds with
-  | nil => simp at member
-  | cons d ds => exact ⟨_, by simp only [assemble, he], member⟩
+  exact unknownDirectiveRejected _ _ _ p (.head _) unknown
 
 #print axioms invariant2_single_unknown_directive
 end PegHs.MetaExecution
