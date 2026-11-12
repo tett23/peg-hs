@@ -20,6 +20,7 @@ securityTests =
     "security fixes (ADR 0080)"
     [ moduleTests
     , exportTests
+    , generatedBindingTests
     , nestingTests
     ]
 
@@ -31,6 +32,36 @@ errorsAt src = case parseGrammar src of
 
 rule :: Text
 rule = "S :: ()\nS <- 'a' { () }\n"
+
+generatedBindingTests :: TestTree
+generatedBindingTests =
+  testGroup "0097 generated Haskell binders are identifiers"
+    [ testCase "0097 parser alone accepts a reserved rule parameter" $
+        assertBool "parseTops should only check hpeg syntax"
+          (case parseTops "%module Probe\nS :: ()\nS <- P(1)\nP(case :: Int) :: ()\nP <- 'a' { () }\n" of
+            Right _ -> True
+            Left _ -> False)
+    , testCase "0097 rejects a reserved rule parameter" $
+        assertBool "case parameter reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(case :: Int) :: ()\nP <- 'a' { () }\n")))
+    , testCase "0097 rejects a reserved sequence binding" $
+        assertBool "case item binding reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- case:'a' { case }\n")))
+    , testCase "0097 rejects a reserved nested binding" $
+        assertBool "case nested binding reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- (case:'a') { () }\n")))
+    , testCase "0097 keeps ordinary parameter and binding names" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(value :: Int) :: ()\nP <- item:$'a' { () }\n" @?= []
+    , testCase "0097 keeps wildcard parameter for the generator" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(_ :: Int) :: ()\nP <- 'a' { () }\n" @?= []
+    , testCase "0097 keeps mdo without RecursiveDo" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n" @?= []
+    , testCase "0097 rejects mdo with RecursiveDo" $
+        assertBool "mdo became a keyword under RecursiveDo"
+          (length (errorsAt "%module Probe\n%language RecursiveDo\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n") >= 2)
+    , testCase "0097 restores mdo with NoRecursiveDo" $
+        errorsAt "%module Probe\n%language RecursiveDo, NoRecursiveDo\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n" @?= []
+    ]
 
 moduleTests :: TestTree
 moduleTests =
@@ -75,6 +106,43 @@ exportTests =
                     @?= Left [Diagnostic l "%export expects export items, but got f\nevil = 1"]
            , testCase "the second item is reported at its location" $
               errorsAt ("%module M\n%export f, g) where\n" <> rule) @?= [(2, 12, "%export expects export items, but got g) where")]
+           ]
+        ++ [ testCase "0097 rejects qualified do, which GHC lexes as a keyword" $
+              errorsAt ("%module M\n%export Q.do\n" <> rule)
+                @?= [(2, 9, "%export expects export items, but got Q.do")]
+           , testCase "0097 rejects qualified mdo with RecursiveDo" $
+              errorsAt ("%module M\n%language RecursiveDo\n%export Q.mdo\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got Q.mdo")]
+           , testCase "0097 accepts qualified mdo without RecursiveDo" $
+              errorsAt ("%module M\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 accepts qualified mdo with QualifiedDo alone" $
+              errorsAt ("%module M\n%language QualifiedDo\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 accepts other qualified reserved words as GHC qvarid" $
+              errorsAt ("%module M\n%export Q.where, Q.type, Q.if, Q.case, Q.module\n" <> rule) @?= []
+           , testCase "0097 follows the last RecursiveDo setting" $
+              errorsAt ("%module M\n%language RecursiveDo, NoRecursiveDo\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 follows deprecated NoDoRec alias" $
+              errorsAt ("%module M\n%language RecursiveDo, NoDoRec\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 follows deprecated DoRec alias" $
+              errorsAt ("%module M\n%language DoRec\n%export Q.mdo\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got Q.mdo")]
+           ]
+        ++ [ testCase ("0097 rejects reserved export operator " <> show op) $
+              errorsAt ("%module M\n%export (" <> op <> ")\n" <> rule)
+                @?= [(2, 9, "%export expects export items, but got (" <> op <> ")")]
+           | op <- ["->", "=", "::", "<-", "..", "|", "=>", "\\"]
+           ]
+        ++ [ testCase ("0097 rejects Arrows export operator " <> show op) $
+              errorsAt ("%module M\n%language Arrows\n%export (" <> op <> ")\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got (" <> op <> ")")]
+           | op <- ["-<", ">-", "-<<", ">>-"]
+           ]
+        ++ [ testCase ("0097 accepts ordinary export operator " <> show op) $
+              errorsAt ("%module M\n%export (" <> op <> ")\n" <> rule) @?= []
+           | op <- ["-<", ">-", "-<<", ">>-", "*", "-", ":", ".", "++"]
+           ]
+        ++ [ testCase "0097 NoArrows restores operator lexing" $
+              errorsAt ("%module M\n%language Arrows, NoArrows\n%export (-<)\n" <> rule) @?= []
            ]
     )
 

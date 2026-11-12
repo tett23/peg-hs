@@ -520,8 +520,11 @@ render opts g an marker =
     tableType r = case ruleParams r of
       [] -> "PegRt.Table peg's " <> resultTypeText env r
       ps -> "PegRt.ArgTable peg's (" <> keyType ps <> ") " <> resultTypeText env r
-    keyType [p] = fragment src marker (paramType p)
-    keyType ps = T.intercalate ", " ["(" <> fragment src marker (paramType p) <> ")" | p <- ps]
+    keyType [p] = keyParamType p
+    keyType ps = T.intercalate ", " ["(" <> keyParamType p <> ")" | p <- ps]
+    keyParamType p
+      | paramName p == "_" = "()"
+      | otherwise = fragment src marker (paramType p)
     storeDecl
       | null storeFields = "data Peg'Store peg's = Peg'Store\n"
       | not noTraditionalRecordSyntax =
@@ -793,8 +796,11 @@ ruleDecl env r =
       MemoisedLeftRecursive -> "PegRt.memoLR " <> memoVar r <> " " <> hsString name
       Memoised -> "PegRt.memo " <> memoVar r <> " " <> hsString name
       MemoisedWithArguments -> case ruleParams r of
-        [p] -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " " <> paramName p
-        ps -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " (" <> T.intercalate ", " (map paramName ps) <> ")"
+        [p] -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " " <> keyParam p
+        ps -> "PegRt.memoArg " <> memoVar r <> " " <> hsString name <> " (" <> T.intercalate ", " (map keyParam ps) <> ")"
+    keyParam p
+      | paramName p == "_" = "()"
+      | otherwise = paramName p
     alts
       | envSyntax env = fst (runGen (mapM (altCodeS env name) (ruleAlts r)) 0)
       | otherwise = fst (runGen (mapM (altCode env name) (ruleAlts r)) 0)

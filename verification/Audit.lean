@@ -30,6 +30,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import RenderExpression
 import AssembleValidation
 import ImportResolution
 import PublicParsing
@@ -99,7 +100,7 @@ run_cmd do
   for moduleName in [`CapturedPredicates, `SemanticPredicates, `GhcPredicates, `ParameterPredicates, `EscapePredicates, `ExpressionDepth,
       `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
       `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal,
-      `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `DirectiveNames,
+      `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `RenderExpression, `DirectiveNames,
       `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
       `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal,
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration, `InnerUnicode,

@@ -7,7 +7,9 @@ namespace PegHs.AssembleValidation
 inductive Top where
   | directive (name arg : String)
   | annotation (name : String) (templateParams : List String)
+  | annotationWithParams (name : String) (templateParams params : List String)
   | definition (name : String) (templateNames : List String)
+  | definitionWithBindings (name : String) (templateNames bindings : List String)
   | verbatim
   deriving BEq
 
@@ -17,10 +19,12 @@ def directives (tops : List Top) : List (String × String) := tops.filterMap fun
 
 def annotations (tops : List Top) : List (String × List String) := tops.filterMap fun
   | .annotation n ps => some (n, ps)
+  | .annotationWithParams n ps _ => some (n, ps)
   | _ => none
 
 def definitions (tops : List Top) : List (String × List String) := tops.filterMap fun
   | .definition n ps => some (n, ps)
+  | .definitionWithBindings n ps _ => some (n, ps)
   | _ => none
 
 def known : List String :=
@@ -43,6 +47,7 @@ structure Predicates where
   validClass : String → Bool
   isDigit : Char → Bool
   words : String → List String
+  reservedBinder : String → Bool
 
 -- The second and later occurrences are the rejection witnesses. Assemble.hs
 -- may report only one duplicate directive per name; multiplicity is erased
@@ -61,6 +66,7 @@ inductive Kind where
   | invalidSafe | invalidRuleName | invalidTabstop | missingTemplateType
   | orphanAnnotation | duplicateAnnotation | duplicateDefinition | noRules
   | templateMismatch
+  | reservedParameter | reservedBinding
   deriving BEq, DecidableEq, Repr
 
 structure Violation where
@@ -144,8 +150,19 @@ def structuralViolations (tops : List Top) : List Violation :=
   emit .duplicateDefinition (repeated defs) ++
   (if defs.isEmpty && modulePresent tops then [⟨.noRules, ""⟩] else [])
 
+-- The model's input projects TAnnot.params and all recursively nested TDef
+-- item bindings. A general extractor for this projection is not yet proved.
+-- Haskell's binderKeyword predicate is pinned by the checker and probed.
+def binderViolations (tops : List Top) (p : Predicates) : List Violation :=
+  emit .reservedParameter ((tops.flatMap fun
+    | .annotationWithParams _ _ params => params
+    | _ => []).filter p.reservedBinder) ++
+  emit .reservedBinding ((tops.flatMap fun
+    | .definitionWithBindings _ _ bindings => bindings
+    | _ => []).filter p.reservedBinder)
+
 def violations (tops : List Top) (p : Predicates) : List Violation :=
-  otherViolations tops p ++ structuralViolations tops
+  otherViolations tops p ++ structuralViolations tops ++ binderViolations tops p
 
 -- The exact wording and locations remain in Haskell. A distinct nonempty
 -- diagnostic is constructed for each violation solely for rejection proofs.
@@ -205,10 +222,35 @@ theorem structural_violation_rejected (tops : List Top) (p : Predicates)
     (v : Violation) (h : v ∈ structuralViolations tops) :
     ∃ ds, assemble tops p = .error ds ∧ ds ≠ [] := by
   have hv : ∃ x, x ∈ violations tops p :=
-    ⟨v, List.mem_append.mpr (Or.inr h)⟩
+    ⟨v, by simp [violations, h]⟩
   obtain ⟨ds, hd⟩ := (assemble_failure_iff_violation_or_missing_module tops p).2
     (Or.inl hv)
   exact ⟨ds, hd, assemble_failure_nonempty tops p ds hd⟩
+
+theorem binder_violation_rejected (tops : List Top) (p : Predicates)
+    (v : Violation) (h : v ∈ binderViolations tops p) :
+    ∃ ds, assemble tops p = .error ds ∧ ds ≠ [] := by
+  have hv : ∃ x, x ∈ violations tops p :=
+    ⟨v, by simp [violations, h]⟩
+  obtain ⟨ds, hd⟩ := (assemble_failure_iff_violation_or_missing_module tops p).2
+    (Or.inl hv)
+  exact ⟨ds, hd, assemble_failure_nonempty tops p ds hd⟩
+
+theorem reserved_parameter_rejected (p : Predicates)
+    (h : p.reservedBinder "case" = true) :
+    ∃ ds, assemble [.directive "module" "M",
+      .annotationWithParams "P" [] ["case"], .definition "P" []]
+      p = .error ds ∧ ds ≠ [] := by
+  apply binder_violation_rejected _ p ⟨.reservedParameter, "case"⟩
+  simp [binderViolations, h, emit]
+
+theorem reserved_binding_rejected (p : Predicates)
+    (h : p.reservedBinder "case" = true) :
+    ∃ ds, assemble [.directive "module" "M",
+      .definitionWithBindings "S" [] ["case"]]
+      p = .error ds ∧ ds ≠ [] := by
+  apply binder_violation_rejected _ p ⟨.reservedBinding, "case"⟩
+  simp [binderViolations, h, emit]
 
 theorem duplicate_definition_rejected (p : Predicates) :
     ∃ ds, assemble [.directive "module" "M", .definition "S" [], .definition "S" []]
@@ -271,6 +313,8 @@ theorem public_assemble_failure (tops : List Top) (p : Predicates)
   · exact assemble_failure_nonempty tops p ds ha
 
 #print axioms PegHs.AssembleValidation.assemble_failure_iff_violation_or_missing_module
+#print axioms PegHs.AssembleValidation.reserved_parameter_rejected
+#print axioms PegHs.AssembleValidation.reserved_binding_rejected
 #print axioms PegHs.AssembleValidation.public_assemble_failure
 
 end PegHs.AssembleValidation

@@ -5,7 +5,7 @@ module Main (main) where
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Codegen (generateWithWarnings, defaultOptions)
-import Peg.Grammar (Diagnostic (..), Loc (..), Located (..), Alt (..), TemplateParam (..))
+import Peg.Grammar (Diagnostic (..), Loc (..), Located (..), Alt (..), Item (..), Expr (..), Param (..), TemplateParam (..))
 import Peg.Grammar.Assemble (Top (..), assemble)
 import System.Exit (die)
 
@@ -77,6 +77,11 @@ main = do
     (assemble [modM, TAnnot l "S" [] [TemplateParam "x" Nothing] (Located l "()"),
       TDef l "S" ["y"] [Alt l [] Nothing Nothing]])
   assertFailure "invariant2_no_rules" "the grammar has no rules" (assemble [modM])
+  assertFailure "invariant2_reserved_parameter" "parameter name case is a Haskell reserved word"
+    (assemble [modM, TAnnot l "P" [Param "case" (Located l "Int")] [] (Located l "()"),
+      TDef l "P" [] [Alt l [] Nothing Nothing]])
+  assertFailure "invariant2_reserved_binding" "binding name case is a Haskell reserved word"
+    (assemble [modM, TDef l "S" [] [Alt l [Item l (Just "case") (ELit "a" "'a'")] Nothing Nothing]])
   assertFailure "invariant2_public_missing_module" "missing %module"
     (generateWithWarnings defaultOptions Nothing [] "S <- 'a'\n")
   assertFailure "invariant2_public_duplicate_definition" "duplicate definition of S"

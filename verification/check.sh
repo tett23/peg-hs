@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers AssembleValidation Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable CallOrder RecursiveEval ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates Header Lexical Nullable Reachable Literal Signatures File Consumption Pipeline Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh DirectiveNames AssembleValidationHelpers AssembleValidation CallOrder RecursiveEval ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -33,6 +33,7 @@ verification/check-nullable.sh "$work"
 verification/check-reachable.sh
 verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
+verification/check-render-expression.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
 verification/check-assemble-validation.sh
@@ -116,3 +117,10 @@ if "$cabal" exec -- ghc-9.10.3 -fno-code -package peg-runtime -outputdir "$work"
   exit 1
 fi
 grep -q 'parse error' "$work/ghc-error" || { cat "$work/ghc-error" >&2; exit 1; }
+
+verification/check-render-expression-boundary.sh "$work"
+verification/check-ghc-parser-trace.sh "$work"
+verification/check-render-expression-lexer.sh "$work"
+verification/check-ghc-derivations.sh "$work"
+verification/check-render-module-names.sh "$work/module-names"
+GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-operators.sh "$work/module-operators"

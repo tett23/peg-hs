@@ -110,6 +110,17 @@ jobs:
           tar -xzf elan.tar.gz
           ./elan-init -y --default-toolchain none --no-modify-path
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install the parser generator and fetch the GHC grammar for derivation checks
+        working-directory: ${{ runner.temp }}
+        run: |
+          cabal install happy-2.1.7 --ignore-project --installdir="$RUNNER_TEMP" --overwrite-policy=always
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/Parser.y" \
+            https://raw.githubusercontent.com/ghc/ghc/3f4d7d38b9661435bdde981451ac50c4335ed090/compiler/GHC/Parser.y
+          echo "HAPPY=$RUNNER_TEMP/happy" >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/Lexer.x" \
+            https://raw.githubusercontent.com/ghc/ghc/3f4d7d38b9661435bdde981451ac50c4335ed090/compiler/GHC/Parser/Lexer.x
+          echo "GHC_LEXER_X=$RUNNER_TEMP/Lexer.x" >> "$GITHUB_ENV"
+          echo "GHC_PARSER_Y=$RUNNER_TEMP/Parser.y" >> "$GITHUB_ENV"
       - name: Check Lean proofs and compare the Haskell entry points
         run: verification/check.sh
       # The grammars of the repository are formatted (ADR 0032).
