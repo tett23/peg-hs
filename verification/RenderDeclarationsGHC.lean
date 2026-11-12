@@ -219,6 +219,37 @@ theorem generated_pair_varid_arguments (ty body : List Symbol) (arity : Nat)
   have eq := List.eq_of_mem_replicate member
   exact eq ▸ varid_argument
 
+-- ruleDecl emits "(parameterType) -> " once per value parameter.
+def parameterArrows (params : List (List Symbol)) (result : List Symbol) : List Symbol :=
+  params.foldr (fun param tail => [.terminal 107] ++ param ++ [.terminal 108, .terminal 83] ++ tail) result
+
+theorem parameter_arrows (params : List (List Symbol)) (result : List Symbol)
+    (valid : ∀ p ∈ params, Derives productions [.nonterminal 163] p)
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 163] (parameterArrows params result) := by
+  induction params with
+  | nil => exact result_ok
+  | cons p ps ih =>
+    have kt : productions 374 = some (162, [.nonterminal 163]) := by decide
+    have paren : productions 412 = some (172, [.terminal 107, .nonterminal 162, .terminal 108]) := by decide
+    have app : productions 390 = some (169, [.nonterminal 172]) := by decide
+    have infixTy : productions 387 = some (168, [.nonterminal 169]) := by decide
+    have base : productions 386 = some (167, [.nonterminal 168]) := by decide
+    have arrow : productions 382 = some (165, [.nonterminal 167, .terminal 83, .nonterminal 163]) := by decide
+    have ctype : productions 379 = some (163, [.nonterminal 165]) := by decide
+    have inner := oneRule kt (valid p (by simp))
+    have lhs := applyRule paren (beside (.refl [.terminal 107]) (beside inner (.refl [.terminal 108])))
+    have tail := ih (fun x hx => valid x (List.mem_cons_of_mem _ hx))
+    have rhs := beside (oneRule base (oneRule infixTy (oneRule app lhs))) (beside (.refl [.terminal 83]) tail)
+    simpa [parameterArrows, List.append_assoc] using oneRule ctype (applyRule arrow rhs)
+
+theorem generated_rule_signature (params : List (List Symbol)) (result : List Symbol)
+    (valid : ∀ p ∈ params, Derives productions [.nonterminal 163] p)
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 78] ([.terminal 117, .terminal 76] ++ parameterArrows params result) :=
+  signature_named_ctype (parameter_arrows params result valid result_ok)
+
+#print axioms generated_rule_signature
 #print axioms generated_pair_varid_arguments
 #print axioms signature
 #print axioms binding
