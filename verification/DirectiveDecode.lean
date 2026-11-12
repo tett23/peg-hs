@@ -1,4 +1,5 @@
 import SimpleEscapeProof
+import DirectiveStringDiagnostic
 
 namespace PegHs.TranslatedEscapes
 open AssembleValidationHelpers
@@ -75,5 +76,33 @@ theorem invariant2_decode_string (input : List Char) :
     run (input.length + 1) .plain [] input = decodeString input :=
   invariant2_decode_run _ _ _ _ (by omega)
 
+open AssembleValidation
+
+theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)
+    (directive : String) (name gap body : List Char) (msg : String)
+    (supported : directive = "expect" ∨ directive = "message")
+    (member : Top.directive directive (String.ofList (name ++ gap ++ '"' :: body)) ∈ tops)
+    (valid : p.validIdent (String.ofList name) = true)
+    (noSpace : ∀ c ∈ name, PegVerification.ghcIsSpace c = false)
+    (separator : gap ≠ []) (spaces : ∀ c ∈ gap, PegVerification.ghcIsSpace c = true)
+    (failed : run (body.length + 1) .plain [] body = .error msg)
+    (resolve expand check : Unit → Except (List String) Unit)
+    (notes : Unit → List String → List String)
+    (strip : Option (Unit → Unit)) (warningFor : Unit → Unit → List String)
+    (generate : Unit → Except (List String) String) :
+    ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok tops) p)
+        resolve expand check notes strip warningFor generate) = .error ds ∧
+      diagnostic ⟨.invalidString, msg⟩ ∈ ds := by
+  rw [invariant2_decode_string] at failed
+  have reported := invariant2_directive_decoder_diagnostic tops p directive name gap body msg
+    supported member valid noSpace separator spaces failed
+  cases he : errors tops p with
+  | nil => simp [he] at reported
+  | cons d ds =>
+    have rejected := public_assemble_failure tops p (d :: ds) (by simp only [assemble, he])
+      resolve expand check notes strip warningFor generate
+    exact ⟨_, rejected.1, he ▸ reported⟩
+
+#print axioms invariant2_decoder_public_rejection
 #print axioms invariant2_decode_string
 end PegHs.TranslatedEscapes
