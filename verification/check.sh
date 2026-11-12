@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers AssembleValidation Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -26,6 +26,8 @@ verification/check-semantic-predicates.sh "$work"
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
+verification/check-template-substitution.sh
+verification/check-template-expansion-fresh.sh
 verification/check-template-queue.sh "$work"
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
@@ -34,6 +36,8 @@ verification/check-pragmas.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
 verification/check-public-parsing.sh "$work"
+verification/check-assemble-validation.sh
+verification/check-assemble-validation-helpers.sh
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh

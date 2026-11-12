@@ -43,6 +43,9 @@ import ExpressionDepth
 import Parsing
 import Header
 import Whitespace
+import TemplateExpansion
+import TemplateExpansionFresh
+import TemplateSubstitution
 import TemplateQueue
 import Lexical
 import Nullable
@@ -53,6 +56,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import AssembleValidation
 import ImportResolution
 import LabelPropagation
 import InnerGeneration
@@ -119,9 +123,9 @@ run_cmd do
   let env ← getEnv
   for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor,
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard,
-      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
+      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
-      `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
+      `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution,
       `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictComment, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
