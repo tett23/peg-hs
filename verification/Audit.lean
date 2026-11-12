@@ -21,6 +21,7 @@ import MetaExecution
 import PrefixReplay
 import WindowReplay
 import WindowReads
+import ItemWindow
 import InitialWhitespaceCall
 import FileTopItems
 import FileEnd
@@ -118,7 +119,7 @@ run_cmd do
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution,
-      `PrefixReplay, `WindowReplay, `WindowReads, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileEntry, `PublicParsing,
+      `PrefixReplay, `WindowReplay, `WindowReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileEntry, `PublicParsing,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do
