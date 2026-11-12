@@ -13,12 +13,18 @@ import FileTrees
 import Pipeline
 import RenderExpression
 import Pragmas
+import RuleRejection
+import RuleRejectionRefs
+import RuleRejectionRepeat
+import RuleRejectionNullable
 
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
-      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `RenderExpression] do
+      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
+      `Pipeline, `Pragmas, `RenderExpression, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
+      `RuleRejectionNullable] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
