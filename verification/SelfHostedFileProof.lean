@@ -14,4 +14,11 @@ theorem invariant1_translated_strict_run (input : List Char) (reply : Reply) :
   rw [← invariant1_translated_strict_file]
   exact ⟨fun ⟨_, observed⟩ => invariant1_runFuel_sound observed, invariant1_derivation_has_fuel⟩
 
+theorem invariant1_strict_child_bodies (input : List Char) :
+    translatedStrictTopItem = (context false input).rules 1 ∧
+    translatedStrictTopOne = (context false input).rules 2 ∧
+    translatedStrictWs = (context false input).rules 4 ∧
+    translatedStrictSpaceChar = (context false input).rules 5 ∧
+    translatedStrictComment = (context false input).rules 6 := ⟨rfl, rfl, rfl, rfl, rfl⟩
+
 end PegHs.MetaExecution
