@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation DirectiveDuplicates Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 runghc-9.10.3 -Werror ExtractTabstop.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedTabstop.lean"
@@ -36,6 +36,7 @@ verification/check-nullable.sh "$work"
 verification/check-reachable.sh
 verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
+verification/check-render-expression.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
 verification/check-public-parsing.sh "$work"
@@ -146,3 +147,10 @@ if "$cabal" exec -- ghc-9.10.3 -fno-code -package peg-runtime -outputdir "$work"
   exit 1
 fi
 grep -q 'parse error' "$work/ghc-error" || { cat "$work/ghc-error" >&2; exit 1; }
+
+verification/check-render-expression-boundary.sh "$work"
+verification/check-ghc-parser-trace.sh "$work"
+verification/check-render-expression-lexer.sh "$work"
+verification/check-ghc-derivations.sh "$work"
+verification/check-render-module-names.sh "$work/module-names"
+GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-operators.sh "$work/module-operators"

@@ -69,6 +69,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import RenderExpression
 import AssembleValidation
 import ImportResolution
 import LabelPropagation
@@ -138,7 +139,7 @@ run_cmd do
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard,
       `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
-      `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
+      `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
       `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `MemoTrace, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveHex, `TabstopProof, `TranslatedTabstop, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,

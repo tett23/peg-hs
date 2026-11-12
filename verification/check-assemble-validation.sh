@@ -11,13 +11,13 @@ trap 'rm -f "$expected" "$actual"' EXIT HUP INT TERM
 
 # Covers every validation list-comprehension, the missing-module branch,
 # rule construction, and the finite scans in assemble. Any source change
-# requires re-review of the Lean data model and all 23 diagnostic sources.
+# requires re-review of the Lean data model and every diagnostic source.
 sed -n '/^assemble ::/,/^-- | Whether a text is a path/p' "$source_file" |
   sed '$d' > "$actual"
-[ "$(git hash-object --stdin < "$actual")" = abebec93cdf2d8d200a34577c5f57a64e93ef8d9 ]
+[ "$(git hash-object --stdin < "$actual")" = 47a3413aa08f794f7acd663957963c0e8b4fc92e ]
 # Predicate and splitting helpers (including stringArg/decodeString) are
 # opaque in Lean. Pin them too so that a semantic change stops this check.
-[ "$(git hash-object "$source_file")" = 973481075495c8a2bb77413da75c994a3771f504 ]
+[ "$(git hash-object "$source_file")" = 7a3eb05bf4d3be02ad1c845a9ccea9a5b68f2738 ]
 
 cat > "$expected" <<'SOURCE'
 parseGrammar :: Text -> Either [Diagnostic] Grammar

@@ -91,6 +91,7 @@ Sp <- ' '*
 `Expr :: Expr` は規則 `Expr` の結果の型で、`Expr <- ...` が規則の定義である。
 `Sp` のように型注釈がなく値を持たない規則の型は `()` である。引数付き規則と雛形には型注釈が要る（[ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)）。
 `l:Expr` は結果に名前を付け（束縛）、`{ Add l r }` はアクションである。
+規則の引数名と束縛名には、`case` などの Haskell の予約語を使えない。`RecursiveDo` の `mdo` など、言語拡張で予約される名前は `%language` に従って検査する。引数名の `_` はワイルドカードとして使え、メモ化するときはその成分のキーを `()` にする（[ADR 0097](docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md)）。
 `$[0-9]+` は、読んだ範囲の文字列（`Text`）を値にする。
 記法の詳しい解説は [docs/syntax.md](docs/syntax.md) にある。
 
