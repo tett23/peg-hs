@@ -11,6 +11,12 @@ main :: IO ()
 main = do
   [file] <- getArgs
   source <- lines <$> readFile file
+  let plain = ["    go l acc = \\case",
+               "      [] -> Left (Diagnostic l \"unterminated literal\")",
+               "      '\"' : rest -> Right (T.pack (reverse acc), rest)",
+               "      '\\\\' : rest -> escape l (next l '\\\\') acc rest",
+               "      c : rest -> go (next l c) (c : acc) rest"]
+  unless (plain `isInfixOf` source) (die "unsupported literal decoder branch")
   let branch = [ "    escape back l acc = \\case"
                , "      [] -> Left (Diagnostic l \"unterminated literal\")"
                , "      'u' : rest -> unicode back (next l 'u') acc rest"
@@ -32,6 +38,12 @@ main = do
       putStrLn "  | c :: rest => match table.lookup c with"
       putStrLn "    | some d => go (d :: acc) rest"
       putStrLn "    | none => .error (\"unknown escape \\\\\" ++ String.singleton c)"
+      putStrLn "def plain (go escaped : List Char → List Char → Except String (List Char × List Char))"
+      putStrLn "    (acc : List Char) : List Char → Except String (List Char × List Char)"
+      putStrLn "  | [] => .error \"unterminated literal\""
+      putStrLn "  | '\"' :: rest => .ok (acc.reverse, rest)"
+      putStrLn "  | '\\\\' :: rest => escaped acc rest"
+      putStrLn "  | c :: rest => go (c :: acc) rest"
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where

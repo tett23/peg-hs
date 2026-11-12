@@ -31,6 +31,27 @@ theorem invariant2_escape_branch (acc input : List Char) :
           | cons _ _ ih => exact ih
         simp [stuck, finishDecode]
 
+theorem invariant2_plain_branch (acc input : List Char) :
+    plain
+      (fun rev rest => finishDecode (rest.foldl decodeStep (.plain rev.reverse)))
+      (fun rev rest => finishDecode (rest.foldl decodeStep (.escaped rev.reverse)))
+      acc input = finishDecode (input.foldl decodeStep (.plain acc.reverse)) := by
+  cases input with
+  | nil => rfl
+  | cons c rest =>
+    by_cases quote : c = '"'
+    · subst c
+      have done (tail : List Char) :
+          rest.foldl decodeStep (.done acc.reverse tail) = .done acc.reverse (tail ++ rest) := by
+        induction rest generalizing tail with
+        | nil => simp
+        | cons x xs ih => simpa [List.foldl_cons, decodeStep, List.append_assoc] using ih (tail ++ [x])
+      simp [plain, decodeStep, List.foldl_cons, done, finishDecode]
+    · by_cases slash : c = '\\'
+      · subst c; rfl
+      · simp [plain, quote, slash, List.foldl_cons, decodeStep]
+
+#print axioms invariant2_plain_branch
 #print axioms invariant2_escape_branch
 #print axioms invariant2_simple_lookup
 end PegHs.TranslatedEscapes
