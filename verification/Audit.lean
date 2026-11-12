@@ -35,6 +35,7 @@ import StrictInlineSpace
 import DirectiveCommentProof
 import DirectiveSuccess
 import DirectiveAssembly
+import DirectiveHex
 import TabstopProof
 import BoundedDecimal
 import DirectiveDuplicates
@@ -138,7 +139,7 @@ run_cmd do
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
-      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `TabstopProof, `TranslatedTabstop, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
+      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveHex, `TabstopProof, `TranslatedTabstop, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do
