@@ -14,6 +14,7 @@ compile() {
 compile GHCGrammar
 ./check-render-expression-ghc.sh "$work"
 ./check-render-module-ghc.sh "$work"
+./check-render-composition.sh "$work"
 ./check-render-declarations-ghc.sh "$work"
 ./check-render-declaration-binders.sh "$work"
 for name in Peg PegSyntax; do
