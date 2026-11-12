@@ -85,6 +85,11 @@ theorem invariant1_strict_quoted_literals (input : List Char) :
     translatedStrictLit2 = (context false input).rules 40 ∧
     translatedStrictEscape = (context false input).rules 41 := ⟨rfl, rfl, rfl⟩
 
+theorem invariant1_strict_character_classes (input : List Char) :
+    translatedStrictClassLit = (context false input).rules 43 ∧
+    translatedStrictClassItem = (context false input).rules 44 ∧
+    translatedStrictClassChar = (context false input).rules 45 := ⟨rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
