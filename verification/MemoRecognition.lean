@@ -102,11 +102,11 @@ theorem hit_miss_same_recognition [DecidableEq κ] (enabled : Bool)
   | true =>
     simp only [memoStep, ↓reduceIte]
     cases found : lookupEntry table key with
-    | none => simp [found]
+    | none => simp
     | some e =>
       have eq := h key e found
       subst e
-      simp [found]
+      simp
 
 theorem strict_errors_empty [DecidableEq κ] (evalBody : κ → Entry α)
     (table : List (κ × Entry α)) (key : κ)

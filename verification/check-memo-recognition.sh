@@ -3,8 +3,12 @@ set -eu
 
 cd "$(dirname "$0")/.."
 source_file=${1:-packages/peg-runtime/src/Peg/Runtime/Internal.hs}
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+if [ -n "${MEMO_PROOF_DIR:-}" ]; then
+  work=$MEMO_PROOF_DIR
+else
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT HUP INT TERM
+fi
 
 # Exact bodies are pinned: an added branch or side effect must be reviewed
 # before the Lean projection can be trusted again. The predicates below cover
@@ -44,6 +48,7 @@ check_body memoArg 'memoArg ::' '-- | A rule that is not memoised' 18cb782ba5492
 grep -Fqx '  ctx <- newCtx cfg {cfgRecover = False} mkStore input' "$source_file"
 grep -Fqx 'defaultConfig = Config {cfgMemo = True, cfgDiscard = True, cfgDiscardAll = False, cfgCount = False, cfgTabstop = 0, cfgRecover = False}' "$source_file"
 
-LEAN_PATH="$work${LEAN_PATH:+:$LEAN_PATH}" lean -DwarningAsError=true -o "$work/MemoRecognition.olean" verification/MemoRecognition.lean
-LEAN_PATH="$work${LEAN_PATH:+:$LEAN_PATH}" lean -DwarningAsError=true verification/MemoRecognitionTests.lean
+cd verification
+LEAN_PATH="$work${LEAN_PATH:+:$LEAN_PATH}" lean -DwarningAsError=true -o "$work/MemoRecognition.olean" MemoRecognition.lean
+LEAN_PATH="$work${LEAN_PATH:+:$LEAN_PATH}" lean -DwarningAsError=true MemoRecognitionTests.lean
 echo 'Checked 10 memo source bodies, 2 strict/default guards, and 9 Lean boundary cases.'

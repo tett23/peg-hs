@@ -50,9 +50,7 @@ verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh
 verification/check-inner-unicode.sh
-verification/check-memo-recognition.sh
-verification/check-memo-trace.sh
-verification/check-memo-tables.sh
+MEMO_PROOF_DIR="$work" verification/check-memo-tables.sh
 
 extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
