@@ -48,4 +48,12 @@ theorem invariant1_runtime_sequence (ctx : Inputs) (fuel n : Nat) (env : Env) (a
   | none => simp [runFuel, translatedBind, h]
   | some r => cases r <;> simp [runFuel, translatedBind, h]
 
+theorem invariant1_runtime_optional {ctx : Inputs} {a : Body} {n : Nat} {env : Env} {r : Reply}
+    (child : Derives ctx a n env r) :
+    Derives ctx (.alt a .eps) n env (translatedOptional n {env with resultDepth := 0} r) := by
+  cases r with
+  | ok => exact .altLeft child (by simp [translatedOptional])
+  | fail => exact .altRetry child .eps
+  | throwLabel => exact .altLeft child (by simp [translatedOptional])
+
 end PegHs.EnvironmentEval

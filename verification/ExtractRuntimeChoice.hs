@@ -67,6 +67,18 @@ main = do
       putStrLn ("  | some (.throwLabel pos label msg) => some (" ++ thrown ++ ")")
       putStrLn "  | none => none"
     _ -> die "unsupported parser bind"
+  case body "optional p =" of
+    ["optional p = P $ \\c i -> do", "  saved <- saveErrors c", "  unP p c i >>= \\case",
+     "    Ok j x -> pure (Ok j (Just x))", empty, "    r -> restoreErrors c saved >> pure (failed r)"] -> do
+      onFail <- case empty of
+        "    Fail -> restoreErrors c saved >> pure (Ok i Nothing)" -> pure ".ok n absent"
+        "    Fail -> restoreErrors c saved >> pure Fail" -> pure ".fail"
+        _ -> die "unsupported optional failure"
+      putStrLn "def translatedOptional (n : Nat) (absent : Env) : Reply → Reply"
+      putStrLn "  | .ok rest value => .ok rest value"
+      putStrLn ("  | .fail => " ++ onFail)
+      putStrLn ("  | .throwLabel pos label msg => " ++ thrown)
+    _ -> die "unsupported optional"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of
