@@ -35,4 +35,10 @@ theorem invariant1_runtime_choice_list {ctx : Inputs} {n : Nat} {env : Env}
     | throwLabel pos name message => exact ⟨_, rfl, .altLeft head (by simp)⟩
     | fail => exact ⟨r, observed, .altRetry head tail⟩
 
+theorem invariant1_runtime_lookahead {ctx : Inputs} {a : Body} {n : Nat} {env : Env} {r : Reply}
+    (child : Derives ctx a n env r) :
+    Derives ctx (.ahead a) n env (translatedAhead n env r) ∧
+    Derives ctx (.notAhead a) n env (translatedNotAhead n env r) := by
+  cases r <;> exact ⟨.ahead child, .notAhead child⟩
+
 end PegHs.EnvironmentEval

@@ -1,7 +1,7 @@
 -- Translate the result projection of choice with recovery disabled.
 module Main (main) where
 
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, stripPrefix)
 import System.Environment (getArgs)
 import System.Exit (die)
 
@@ -33,5 +33,25 @@ main = do
           putStrLn "  | [] => some .fail"
           putStrLn "  | result :: rest => match result with"
           putStrLn ("    | some .fail => " ++ fallback)
-          putStrLn "    | other => other\nend PegHs.EnvironmentEval"
+          putStrLn "    | other => other"
     _ -> die "unsupported runtime choice"
+  let emitLook name leanName setup =
+        case splitAt (length setup) (body (name ++ " p =")) of
+          (prefix, ["  case r of", ok, bad]) | prefix == setup -> do
+            success <- branch "    Ok _ _ -> " ok
+            failure <- branch "    _ -> " bad
+            putStrLn ("def " ++ leanName ++ " (n : Nat) (env : Env) : Reply → Reply")
+            putStrLn ("  | .ok _ _ => " ++ success)
+            putStrLn ("  | _ => " ++ failure)
+          _ -> die ("unsupported runtime " ++ name)
+  emitLook "andP" "translatedAhead" ["andP p = P $ \\c i -> do", "  saved <- saveErrors c",
+    "  r <- unP p c i", "  restoreErrors c saved"]
+  emitLook "notP" "translatedNotAhead" ["notP p = P $ \\c i -> do", "  saved <- readSTRef (ctxFail c)",
+    "  savedErrors <- saveErrors c", "  r <- unP p c i", "  writeSTRef (ctxFail c) saved",
+    "  restoreErrors c savedErrors"]
+  putStrLn "end PegHs.EnvironmentEval"
+  where
+    branch prefix line = case stripPrefix prefix line of
+      Just "pure (Ok i ())" -> pure ".ok n env"
+      Just "pure Fail" -> pure ".fail"
+      _ -> die ("unsupported lookahead branch: " ++ line)
