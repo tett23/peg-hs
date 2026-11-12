@@ -119,6 +119,10 @@ theorem invariant1_strict_group_alternatives (input : List Char) :
     translatedStrictGroupAlts = (context false input).rules 37 ∧
     translatedStrictMoreGroup = (context false input).rules 38 := ⟨rfl, rfl⟩
 
+theorem invariant1_strict_template_arguments (input : List Char) :
+    translatedStrictTemplateArgs = (context false input).rules 34 ∧
+    translatedStrictTemplateArg = (context false input).rules 35 := ⟨rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
