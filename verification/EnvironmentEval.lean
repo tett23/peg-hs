@@ -121,7 +121,7 @@ structure Inputs where
   hooks : Hooks
   input : List Char
 
-private def matchedText (input : List Char) (start rest : Nat) : List Char :=
+def matchedText (input : List Char) (start rest : Nat) : List Char :=
   (input.drop (input.length - start)).take (start - rest)
 
 -- A failed choice retries with the original env. Lookahead also restores it.

@@ -1,25 +1,6 @@
-import PredicateBindings
-import EnvironmentDepth
+import MetaExecution
 
-open PegHs PegHs.EnvironmentEval PegHs.MetagrammarPredicates
-
-private def inputs (rules : Nat → Body) (terms : Nat → Option ConcreteTerminal.Terminal)
-    (preds : Array Site) (actions : Array (String × String × DepthAction))
-    (calls : Array EnvironmentDepth.CallSite) (source : List Char) : Inputs :=
-  let sites := preds.map fun site => (classifySite site).map fun kind => (kind, site.2.1)
-  { rules, terms, input := source
-    classes := GhcPredicates.classes
-    sites := fun id => sites[id]?.join
-    actions := fun id => actions[id]?.map (·.2.2)
-    predicateEnv := fun id env => match sites[id]?.join with
-      | some (kind, _) => PredicateBindings.predicateEnv kind env
-      | none => { captured := [], depth := env.depth }
-    hooks := EnvironmentDepth.hooks (fun id => calls[id]?) (fun _ _ _ => none) }
-
-private def peg := inputs MetaTerminal1.environmentBody MetaTerminal1.termById
-  MetaTerminal1.predicateSites MetaTerminal1.depthActions MetaTerminal1.callSites
-private def syntaxPeg := inputs MetaTerminal2.environmentBody MetaTerminal2.termById
-  MetaTerminal2.predicateSites MetaTerminal2.depthActions MetaTerminal2.callSites
+open PegHs.EnvironmentEval PegHs.MetaExecution
 
 private def check (source : String) (expected : String) : IO Unit := do
   let chars := source.toList

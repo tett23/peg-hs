@@ -17,7 +17,9 @@ scratch=${1:?pass the verification scratch directory}
   lean -DwarningAsError=true -o "$scratch/LabeledConcreteBody.olean" LabeledConcreteBody.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentEval.olean" EnvironmentEval.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentFuel.olean" EnvironmentFuel.lean &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentDerivation.olean" EnvironmentDerivation.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentDepth.olean" EnvironmentDepth.lean &&
-  lean -DwarningAsError=true -R "$scratch" -o "$scratch/ConcreteTables.olean" "$scratch/ConcreteTables.lean")
+  lean -DwarningAsError=true -R "$scratch" -o "$scratch/ConcreteTables.olean" "$scratch/ConcreteTables.lean" &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentActual.olean" EnvironmentActual.lean)
 
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-runtime verification/CheckUtf8Runtime.hs
