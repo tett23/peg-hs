@@ -46,6 +46,14 @@ theorem invariant2_directive_captures (c : Char) (cs : List Char) :
       PegVerification.isInlineSpace) = '%' :: c :: cs := by simp [pre, List.append_assoc]
   rw [← split, directiveRawCapture]
 
+private theorem filteredDirectiveDiagnostic (tops : List Top) (name arg : String)
+    (kind : Kind) (test : String × String → Bool)
+    (member : Top.directive name arg ∈ tops) (accepted : test (name, arg) = true) :
+    ⟨kind, name⟩ ∈ emit kind (((directives tops).filter test).map (·.1)) := by
+  apply List.mem_map.mpr
+  refine ⟨name, List.mem_map.mpr ⟨(name, arg), List.mem_filter.mpr ⟨?_, accepted⟩, rfl⟩, rfl⟩
+  exact List.mem_filterMap.mpr ⟨.directive name arg, member, rfl⟩
+
 theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String) (p : Predicates)
     (member : Top.directive name arg ∈ tops)
     (unknown : known.contains name = false) :
@@ -55,9 +63,34 @@ theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String) (p : Pr
   unfold otherViolations
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat apply List.mem_append_left
+  exact filteredDirectiveDiagnostic tops name arg .unknownDirective _ member
+    (by change (!known.contains name) = true; rw [unknown]; rfl)
+
+theorem invariant2_missing_argument (tops : List Top) (name : String) (p : Predicates)
+    (member : Top.directive name "" ∈ tops) (recognized : known.contains name = true)
+    (required : ["syntax", "deriving", "library"].contains name = false) :
+    diagnostic ⟨.missingArgument, name⟩ ∈ errors tops p := by
+  have emitted := filteredDirectiveDiagnostic tops name "" .missingArgument
+    (fun d => known.contains d.1 && !["syntax", "deriving", "library"].contains d.1 && d.2.isEmpty)
+    member (by simp only [recognized, required]; rfl)
   apply List.mem_map.mpr
-  refine ⟨name, List.mem_map.mpr ⟨(name, arg), List.mem_filter.mpr ⟨?_, by change (!known.contains name) = true; rw [unknown]; rfl⟩, rfl⟩, rfl⟩
-  exact List.mem_filterMap.mpr ⟨.directive name arg, member, rfl⟩
+  refine ⟨_, List.mem_append_left _ ?_, rfl⟩
+  unfold otherViolations
+  dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
+  repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
+
+theorem invariant2_unexpected_argument (tops : List Top) (name arg : String) (p : Predicates)
+    (member : Top.directive name arg ∈ tops) (flag : ["syntax", "library"].contains name = true)
+    (nonempty : arg.isEmpty = false) :
+    diagnostic ⟨.unexpectedArgument, name⟩ ∈ errors tops p := by
+  have emitted := filteredDirectiveDiagnostic tops name arg .unexpectedArgument
+    (fun d => ["syntax", "library"].contains d.1 && !d.2.isEmpty)
+    member (by simp only [flag, nonempty]; rfl)
+  apply List.mem_map.mpr
+  refine ⟨_, List.mem_append_left _ ?_, rfl⟩
+  unfold otherViolations
+  dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
+  repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
 theorem unknownDirectiveRejected (tops : List Top) (name arg : String) (p : Predicates)
     (member : Top.directive name arg ∈ tops) (unknown : known.contains name = false) :
