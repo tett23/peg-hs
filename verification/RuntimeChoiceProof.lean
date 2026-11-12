@@ -124,4 +124,12 @@ theorem invariant1_runtime_label {ctx : Inputs} {a : Body} {n : Nat} {env : Env}
     Derives ctx (.label name message a) n env (translatedLabel n name message r) := by
   cases r <;> exact .label child
 
+theorem invariant1_runtime_capture_bytes (before captured after : List Char) :
+    translatedCaptureBytes (before ++ captured ++ after).utf8Encode before.utf8Encode.size
+      (before.utf8Encode.size + captured.utf8Encode.size) = captured.utf8Encode := by
+  have bound : before.utf8Encode.size + captured.utf8Encode.size ≤
+      (before ++ captured ++ after).utf8Encode.size := by simp [List.utf8Encode_append]
+  simpa [translatedCaptureBytes, ByteArray.extract_extract, Nat.min_eq_left bound] using
+    Utf8Terminals.invariant1_capture_bytes before captured after
+
 end PegHs.EnvironmentEval

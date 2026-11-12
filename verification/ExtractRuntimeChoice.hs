@@ -116,6 +116,16 @@ main = do
         putStrLn "  | other => other"
       _ -> die "unsupported strict label result"
     _ -> die "unsupported recovery guard in label"
+  case (body "capture p =", body "slice t from to =") of
+    (["capture p = P $ \\c i ->", "  unP p c i >>= \\case",
+      "    Ok j _ -> pure (Ok j (slice (ctxInput c) i j))", "    bad -> pure (failed bad)"], [slice]) -> do
+        count <- case slice of
+          "slice t from to = TU.takeWord8 (to - from) (TU.dropWord8 from t)" -> pure "(stop - start)"
+          "slice t from to = TU.takeWord8 to (TU.dropWord8 from t)" -> pure "stop"
+          _ -> die "unsupported capture byte slice"
+        putStrLn "def translatedCaptureBytes (input : ByteArray) (start stop : Nat) : ByteArray :="
+        putStrLn ("  (input.extract start input.size).extract 0 " ++ count)
+    _ -> die "unsupported capture"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of
