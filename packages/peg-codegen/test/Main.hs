@@ -1022,7 +1022,44 @@ compileTests :: TestTree
 compileTests =
   testGroup
     "compiling generated code"
-    [ skippedWithout "../peg-runtime/src" "type errors in actions point at the grammar" $ do
+    [ skippedWithout "../peg-runtime/src" "invariant 3: a user restore marker in a quasiquote is preserved" $ do
+        tmp <- getTemporaryDirectory
+        let dir = tmp </> "peg-codegen-test-marker"
+            output = dir </> "Marker|].hs"
+            opts = Options {optSourceName = "Marker.hpeg", optOutputName = output, optDebugEntry = False, optExports = Nothing}
+            src = T.unlines
+              [ "%module Marker"
+              , "%{"
+              , "import QQ (qq)"
+              , "value :: String"
+              , "value = [qq|"
+              , "{-# PEG'RESTORE #-}"
+              , "{-# PEG'RESTORE_ #-}"
+              , "{-# PEG'RESTORE_x #-}"
+              , "|]"
+              , "}%"
+              , "S :: ()"
+              , "S <- 'a' { () }"
+              ]
+        createDirectoryIfMissing True dir
+        writeFile (dir </> "QQ.hs") $ unlines
+          [ "module QQ (qq) where"
+          , "import Language.Haskell.TH.Quote (QuasiQuoter(..))"
+          , "import Language.Haskell.TH (stringE)"
+          , "qq :: QuasiQuoter"
+          , "qq = QuasiQuoter { quoteExp = stringE, quotePat = undefined, quoteType = undefined, quoteDec = undefined }"
+          ]
+        case generateFromSource opts src of
+          Left ds -> assertFailure (show ds)
+          Right code -> do
+            assertBool "the user's marker line is unchanged" ("\n{-# PEG'RESTORE #-}\n" `T.isInfixOf` code)
+            assertBool "the first generated marker candidate in user text is unchanged" ("\n{-# PEG'RESTORE_ #-}\n" `T.isInfixOf` code)
+            assertBool "the second generated marker candidate in user text is unchanged" ("\n{-# PEG'RESTORE_x #-}\n" `T.isInfixOf` code)
+            TIO.writeFile output code
+            (ex, _, err) <- readProcessWithExitCode ghc
+              ["-fno-code", "-fforce-recomp", "-XQuasiQuotes", "-XTemplateHaskell", "-i" <> dir, "-i../peg-runtime/src", "-outputdir", dir, output] ""
+            assertEqual err ExitSuccess ex
+    , skippedWithout "../peg-runtime/src" "type errors in actions point at the grammar" $ do
         (ex, err) <-
           typecheck "Bad" $
             T.unlines
