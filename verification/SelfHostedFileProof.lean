@@ -105,6 +105,11 @@ theorem invariant1_strict_haskell_brackets (input : List Char) :
     translatedStrictHsNested = (context false input).rules 54 ∧
     translatedStrictHsInner = (context false input).rules 55 := ⟨rfl, rfl, rfl, rfl⟩
 
+theorem invariant1_strict_haskell_quotes (input : List Char) :
+    translatedStrictHsString = (context false input).rules 56 ∧
+    translatedStrictHsChar = (context false input).rules 57 ∧
+    translatedStrictHsIdent = (context false input).rules 58 := ⟨rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim

@@ -451,6 +451,64 @@ ignoredCallBranch site = do
   mapM_ token [";", "PegPrelude.pure", "()", "}"]
   pure child
 
+quotedClosing :: String -> String -> ReadP String
+quotedClosing delimiter terminal = do
+  mapM_ token [";", "PegRt.choice", "[", "do", "{"]
+  closing <- labelled (literal delimiter >> pure terminal)
+  mapM_ token [";", "PegPrelude.pure", "()", "}", "]", ";", "PegPrelude.pure", "()", "}"]
+  pure closing
+
+hsStringRule :: ReadP String
+hsStringRule = do
+  header "HsString"
+  mapM_ token ["do", "{"]
+  literal "\""
+  mapM_ token [";", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{"]
+  literal "\\"
+  mapM_ token [";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", ",", "do", "{", "PegRt.notP", "("]
+  literal "\""
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  closing <- quotedClosing "\"" "(.terminal 110)"
+  mapM_ token ["]", ")"]
+  let chars = "(.star (.alt (.seq (.terminal 106) (.terminal 107)) (.seq (.notAhead (.terminal 108)) (.terminal 109))))"
+  pure (sequenceBody ["(.terminal 105)", chars, closing])
+
+hsCharRule :: ReadP String
+hsCharRule = do
+  header "HsChar"
+  mapM_ token ["do", "{"]
+  literal "'"
+  token ";" >> literal "\\"
+  mapM_ token [";", "PegRt.anyChar", ";", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+  literal "'"
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  closing <- quotedClosing "'" "(.terminal 116)"
+  mapM_ token [",", "do", "{"]
+  literal "'"
+  mapM_ token [";", "PegRt.anyChar", ";"]
+  literal "'"
+  mapM_ token [";", "PegPrelude.pure", "()", "}", ",", "do", "{"]
+  literal "'"
+  mapM_ token [";", "PegRt.notP", "("]
+  literal "\\"
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  let escaped = sequenceBody ["(.terminal 111)", "(.terminal 112)", "(.terminal 113)",
+        "(.star (.seq (.notAhead (.terminal 114)) (.terminal 115)))", closing]
+      single = sequenceBody ["(.terminal 117)", "(.terminal 118)", "(.terminal 119)"]
+  pure (".alt " ++ escaped ++ " (.alt " ++ single ++ " (.seq (.terminal 120) (.notAhead (.terminal 121))))")
+
+hsIdentRule :: ReadP String
+hsIdentRule = do
+  header "HsIdent"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "c", "<-", "PegRt.capture", "(", "PegRt.anyChar", ")",
+    ";", "PegRt.predicate", "(", "\\_col", "->"]
+  embedded ["isIdentChar", "(", "firstChar", "c", ")", "&&", "firstChar", "c", "/=", show '\'']
+  mapM_ token [")", ";", "_", "<-", "PegRt.skipMany", "("]
+  more <- call 167
+  token ")"
+  returnAction ["()"]
+  pure (sequenceBody ["(.bind 85 \"c\" (.capture (.terminal 122)))", "(.predicate 17)", "(.star " ++ more ++ ")"])
+
 hsPartRule :: String -> Int -> Int -> ReadP String
 hsPartRule name firstSite firstTerm = do
   header name
@@ -935,7 +993,8 @@ main = do
          ("Escape", escapeRule), ("EscapeBody", escapeBodyRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule),
          ("Action", embeddedCodeRule "Action" 143 76 89), ("PredCode", embeddedCodeRule "PredCode" 145 78 90),
          ("ActionCode", actionCodeRule), ("ArgCode", argCodeRule), ("HsPart", hsPartRule "HsPart" 155 95),
-         ("HsParen", hsParenRule), ("HsNested", hsNestedRule), ("HsInner", hsPartRule "HsInner" 163 103)] $
+         ("HsParen", hsParenRule), ("HsNested", hsNestedRule), ("HsInner", hsPartRule "HsInner" 163 103),
+         ("HsString", hsStringRule), ("HsChar", hsCharRule), ("HsIdent", hsIdentRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
