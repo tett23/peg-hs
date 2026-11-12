@@ -5,21 +5,24 @@ namespace PegHs.MetaExecution
 open EnvironmentEval ConcreteTerminal
 set_option maxRecDepth 8192
 
-private def nonNewline : Body := .seq (.notAhead (.terminal 3)) (.terminal 4)
+private def nonNewline (newline anyChar : Nat) : Body := .seq (.notAhead (.terminal newline)) (.terminal anyChar)
 
-private theorem comment_step (input pre suffix : List Char) (env : Env)
+private theorem line_step (input pre suffix : List Char) (env : Env)
+    {newline anyChar : Nat}
+    (nl : (context false input).terms newline = some (.lit ['\n']))
+    (any : (context false input).terms anyChar = some .any)
     (cursor : input = pre ++ suffix) :
-    runFuel (context false input) 4 nonNewline suffix.length env = some
+    runFuel (context false input) 4 (nonNewline newline anyChar) suffix.length env = some
       (match suffix with
        | [] => .fail
        | c :: tail => if c = '\n' then .fail else .ok tail.length {env with resultDepth := 0}) := by
   let ctx := context false input
-  have nl : ctx.terms 3 = some (.lit ['\n']) := rfl
-  have any : ctx.terms 4 = some .any := rfl
+  change ctx.terms newline = _ at nl
+  change ctx.terms anyChar = _ at any
   have src : ctx.input = pre ++ suffix := cursor
   have oracle (term : Terminal) := invariant1_oracle_at_cursor (term := term) src
     (remaining := suffix.length) rfl
-  change runFuel ctx 4 nonNewline suffix.length env = _
+  change runFuel ctx 4 (nonNewline newline anyChar) suffix.length env = _
   cases suffix with
   | nil =>
     simp only [List.length_nil] at oracle
@@ -32,15 +35,18 @@ private theorem comment_step (input pre suffix : List Char) (env : Env)
     · have ne := Ne.symm h
       simp [nonNewline, runFuel, nl, any, oracle, matchTerm, matchLiteral, h, ne]
 
-private theorem comment_loop (input suffix pre : List Char) (env : Env)
+private theorem line_loop (input suffix pre : List Char) (env : Env)
+    {newline anyChar : Nat}
+    (nl : (context false input).terms newline = some (.lit ['\n']))
+    (any : (context false input).terms anyChar = some .any)
     (cursor : input = pre ++ suffix) (zero : env.resultDepth = 0) :
-    Derives (context false input) (.starLoop nonNewline) suffix.length env
+    Derives (context false input) (.starLoop (nonNewline newline anyChar)) suffix.length env
       (.ok (suffix.dropWhile (· != '\n')).length env) := by
   induction suffix generalizing pre with
   | nil =>
-    exact .loopStop (invariant1_runFuel_sound (comment_step input pre [] env cursor))
+    exact .loopStop (invariant1_runFuel_sound (line_step input pre [] env nl any cursor))
   | cons c tail ih =>
-    have step := comment_step input pre (c :: tail) env cursor
+    have step := line_step input pre (c :: tail) env nl any cursor
     by_cases same : c = '\n'
     · subst c
       simp only [ite_true] at step
@@ -52,6 +58,11 @@ private theorem comment_loop (input suffix pre : List Char) (env : Env)
       rw [List.dropWhile_cons_of_pos (p := (· != '\n')) (show (c != '\n') = true by simp [same])]
       apply Derives.loopMore (invariant1_runFuel_sound step) (Nat.lt_succ_self _)
       simpa using next
+
+theorem invariant1_directive_argument_scan (pre xs : List Char) (env : Env) :
+    Derives (context false (pre ++ xs)) (.capture (.star (.seq (.notAhead (.terminal 13)) (.terminal 14))))
+      xs.length env (.ok (xs.dropWhile (· != '\n')).length {env with resultDepth := 0}) :=
+  .capture (.star (line_loop _ xs pre _ (newline := 13) (anyChar := 14) rfl rfl rfl rfl))
 
 theorem invariant1_strict_comment (pre text : List Char) (env : Env) :
     let input := pre ++ '#' :: text
@@ -67,7 +78,7 @@ theorem invariant1_strict_comment (pre text : List Char) (env : Env) :
     simp [matchTerm, matchLiteral] at step
     simp [runFuel, hash, src, step]
   exact .seqOk (invariant1_runFuel_sound term) (.star
-    (comment_loop _ text (pre ++ ['#']) {env with resultDepth := 0} (by simp) rfl))
+    (line_loop _ text (pre ++ ['#']) {env with resultDepth := 0} (newline := 3) (anyChar := 4) rfl rfl (by simp) rfl))
 
 theorem invariant1_strict_comment_missing_hash (pre suffix : List Char) (env : Env)
     (missing : suffix.head? ≠ some '#') :
