@@ -21,4 +21,9 @@ theorem invariant1_strict_child_bodies (input : List Char) :
     translatedStrictSpaceChar = (context false input).rules 5 ∧
     translatedStrictComment = (context false input).rules 6 := ⟨rfl, rfl, rfl, rfl, rfl⟩
 
+theorem invariant1_strict_identifier_bodies (input : List Char) :
+    translatedStrictIdent = (context false input).rules 8 ∧
+    translatedStrictIdentStart = (context false input).rules 9 ∧
+    translatedStrictIdentChar = (context false input).rules 10 := ⟨rfl, rfl, rfl⟩
+
 end PegHs.MetaExecution

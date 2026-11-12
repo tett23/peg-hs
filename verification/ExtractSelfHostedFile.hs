@@ -25,7 +25,7 @@ call site = do
   token "peg'rule'"
   target <- choice [string name >> pure number | (name, number) <-
     [("TopItem","1"), ("TopOne","2"), ("Ws","4"), ("SpaceChar","5"),
-     ("Comment","6"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
+     ("Comment","6"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -101,16 +101,28 @@ pragma name = do
 embedded :: [String] -> ReadP ()
 embedded expr = pragma "LINE" >> pragma "COLUMN" >> mapM_ token expr >> pragma "LINE"
 
-spaceChar :: ReadP String
-spaceChar = do
-  header "SpaceChar"
+filteredChar :: String -> String -> Int -> Int -> ReadP String
+filteredChar name predicate site terminal = do
+  header name
   mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "c", "<-",
     "PegRt.capture", "(", "PegRt.anyChar", ")", ";", "PegRt.predicate", "(", "\\_col", "->"]
-  embedded ["isSpace", "(", "firstChar", "c", ")"]
+  embedded [predicate, "(", "firstChar", "c", ")"]
   mapM_ token [")", ";", "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
   embedded ["()"]
   mapM_ token [")", "}", "]", ")"]
-  pure ".seq (.bind 0 \"c\" (.capture (.terminal 1))) (.predicate 0)"
+  pure (".seq (.bind " ++ show site ++ " \"c\" (.capture (.terminal " ++ show terminal ++
+    "))) (.predicate " ++ show site ++ ")")
+
+identifier :: ReadP String
+identifier = do
+  header "Ident"
+  mapM_ token ["do", "{", "peg'v0", "<-", "PegRt.capture", "(", "PegRt.choice", "[",
+    "do", "{", "_", "<-"]
+  initial <- call 9
+  mapM_ token [";", "_", "<-", "PegRt.skipMany", "("]
+  following <- call 10
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")", ";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
+  pure (".capture (.seq " ++ initial ++ " (.star " ++ following ++ "))")
 
 commentRule :: ReadP String
 commentRule = do
@@ -135,7 +147,9 @@ main = do
   source <- lines <$> readFile path
   putStrLn "import MetaExecution\nnamespace PegHs.MetaExecution"
   forM_ [("File", production), ("TopItem", topItem), ("TopOne", topOne), ("Ws", whitespace),
-         ("SpaceChar", spaceChar), ("Comment", commentRule)] $
+         ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
+         ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
+         ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->

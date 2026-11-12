@@ -41,3 +41,10 @@ if lean -DwarningAsError=true "$work/ChangedTopOne.lean" > "$work/changed-top-on
   exit 1
 fi
 grep -Fq 'Tactic `rfl` failed' "$work/changed-top-one.log" || { cat "$work/changed-top-one.log" >&2; exit 1; }
+sed "/^peg'rule'IdentStart =$/,/^$/s/isIdentStart (firstChar c)/isIdentChar (firstChar c)/" \
+  "$source" > "$work/ChangedIdentStart.hs"
+if runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$work/ChangedIdentStart.hs" > /dev/null 2>"$work/changed-ident-start.log"; then
+  echo 'accepted the continuation predicate for the initial identifier character' >&2
+  exit 1
+fi
+grep -Fq 'unsupported or missing generated rule IdentStart' "$work/changed-ident-start.log"
