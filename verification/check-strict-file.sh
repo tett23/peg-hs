@@ -15,6 +15,7 @@ lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.le
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
+lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
 
 # A different but supported call still translates; it must lose the File derivation.
 sed "/^peg'rule'File =$/,/^$/s/PegRt.many (peg'rule'TopItem)/PegRt.many (peg'rule'Ws)/" \
