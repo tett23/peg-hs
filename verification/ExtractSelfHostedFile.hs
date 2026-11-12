@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -443,6 +443,50 @@ depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
 
+suffixRule :: ReadP String
+suffixRule = do
+  depthHeader "SuffixE"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "p", "<-"]
+  atom <- depthCall 99 ["d"]
+  mapM_ token [";", "ops", "<-"]
+  ops <- depthCall 100 ["d", "+", "snd", "p"]
+  returnAction ["(", "foldl", "applyOp", "(", "fst", "p", ")", "ops", ",", "snd", "p", "+", "length", "ops", ")"]
+  pure (".action 8 (.seq (.bind 51 \"p\" " ++ atom ++ ") (.bind 52 \"ops\" " ++ ops ++ "))")
+
+postOpsRule :: ReadP String
+postOpsRule = do
+  depthHeader "PostOps"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "c", "<-"]
+  op <- depthCall 101 ["d"]
+  mapM_ token [";", "cs", "<-"]
+  rest <- depthCall 102 ["d", "+", "1"]
+  endAction ["c", ":", "cs"]
+  mapM_ token [",", "do", "{", "peg'start", "<-", "PegRt.getOffset"]
+  returnAction ["[]"]
+  pure (".alt (.action 9 (.seq (.bind 53 \"c\" " ++ op ++ ") (.bind 54 \"cs\" " ++ rest ++ "))) (.action 10 .eps)")
+
+postOpRule :: ReadP String
+postOpRule = do
+  depthHeader "PostOp"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"]
+  ws <- call 103
+  mapM_ token [";", "PegRt.andP", "("]
+  operators
+  mapM_ token [")", ";"]
+  limit <- depthCheck 11
+  mapM_ token [";", "c", "<-", "PegRt.capture", "("]
+  operators
+  token ")"
+  returnAction ["firstChar", "c"]
+  pure (".action 11 " ++ sequenceBody [ws, "(.ahead (.terminal 52))", limit,
+    "(.bind 55 \"c\" (.capture (.terminal 53)))"])
+  where
+    operators = do
+      token "PegRt.cls"
+      ranges <- skipSpaces >> readS_to_P reads
+      guard (ranges == [('*', '*'), ('+', '+'), ('?', '?')])
+      quoted >> pure ()
+
 labeledRule :: ReadP String
 labeledRule = do
   depthHeader "Labeled"
@@ -686,9 +730,10 @@ main = do
          ("ParamChunk", paramChunkRule),
          ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
          ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule),
-         ("Labeled", labeledRule), ("LabelPart", labelPartRule)] $
+         ("Labeled", labeledRule), ("LabelPart", labelPartRule), ("SuffixE", suffixRule),
+         ("PostOps", postOpsRule), ("PostOp", postOpRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
-        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart"] then " d =" else " =")] of
+        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)

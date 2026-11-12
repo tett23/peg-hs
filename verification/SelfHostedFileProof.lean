@@ -75,6 +75,11 @@ theorem invariant1_strict_label_suffix (input : List Char) :
     translatedStrictLabeled = (context false input).rules 28 ∧
     translatedStrictLabelPart = (context false input).rules 29 := ⟨rfl, rfl⟩
 
+theorem invariant1_strict_postfix (input : List Char) :
+    translatedStrictSuffixE = (context false input).rules 30 ∧
+    translatedStrictPostOps = (context false input).rules 31 ∧
+    translatedStrictPostOp = (context false input).rules 32 := ⟨rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
