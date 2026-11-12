@@ -92,17 +92,27 @@ emitRules :: Grammar -> Either String [String]
 emitRules grammar = flip evalStateT 0 $ sequence
   [ case filter ((== name) . ruleName) (grammarRules grammar) of
       [r] | null (ruleParams r), null (ruleTemplateParams r) -> do
-        alternatives <- traverse (traverse (recognition earlier . itemExpr) . altItems) (ruleAlts r)
-        let body = combine ".choice" "(.predicate false)" (map (combine ".seq" "(.predicate true)") alternatives)
+        body <- if name == "SpaceChar" then spaceRule r else do
+          alternatives <- traverse (traverse (recognition earlier . itemExpr) . altItems) (ruleAlts r)
+          pure (combine ".choice" "(.predicate false)" (map (combine ".seq" "(.predicate true)") alternatives))
         pure ("def rule" ++ T.unpack name ++ " (rest : Nat → Expr) : Expr := " ++ body)
       _ -> lift (Left ("expected one parameterless rule " ++ T.unpack name))
   | (earlier, name) <- zip (inits rules) rules ]
+
+-- Fuse the capture of one character and the predicate that inspects it.
+-- check-whitespace.sh checks the firstChar helper and GHC's full scalar table.
+spaceRule :: Rule -> Emit String
+spaceRule r = case ruleAlts r of
+  [Alt _ [Item _ (Just "c") (ECapture EAny), Item _ Nothing (EPred True code)] _ Nothing]
+    | T.strip (unLoc code) == "isSpace (firstChar c)" -> pure "(oneOfChars ghcSpaceChars)"
+  _ -> lift (Left "unsupported SpaceChar recognition predicate")
 
 main :: IO ()
 main = do
   paths <- getArgs
   when (null paths) (die "pass the metagrammar files")
   putStrLn "import Consumption"
+  putStrLn "import Whitespace"
   putStrLn "open PegVerification PegVerification.File"
   putStrLn "set_option linter.unusedVariables false"
   forM_ (zip [1 :: Int ..] paths) $ \(index, path) -> do
@@ -129,4 +139,10 @@ main = do
     putStrLn "    ∃ xs, Eval (ruleWs rest) src (.ok xs) ∧ PrefixItems (ruleTopItem rest) xs := by"
     putStrLn "  simp only [← invariant1_file_items_prefix]"
     putStrLn "  exact invariant1_file_derivation _ _ src (invariant1_topItem_empty rest)"
+    putStrLn "theorem invariant1_file_whitespace (rest : Nat → Expr) (src : List Char) :"
+    putStrLn "  run (start (ruleWs rest) (ruleTopItem rest)) src = .ok [] ↔"
+    putStrLn "    PrefixItems (ruleTopItem rest) (wsDrop ghcIsSpace (src.length+1) src) := by"
+    putStrLn "  rw [invariant1_file]"
+    putStrLn "  simp only [invariant1_core_iff, show ruleWs rest = whitespaceExpr from rfl, invariant1_ws_expr, Except.ok.injEq]"
+    putStrLn "  simp"
     putStrLn ("end " ++ namespaceName)
