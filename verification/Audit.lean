@@ -1,4 +1,6 @@
 import Lean
+import CallOrder
+import CallTables
 import Guard
 import Parsing
 import Header
@@ -18,7 +20,7 @@ import Pragmas
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
+  for moduleName in [`CallOrder, `CallTables, `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0

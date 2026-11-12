@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue Pipeline Pragmas; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder Whitespace TemplateQueue Pipeline Pragmas; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -34,7 +34,9 @@ extract_file() {
 }
 extract_file packages/peg-grammar/grammar/Peg.hpeg packages/peg-grammar/grammar/PegSyntax.hpeg > "$work/FileTrees.lean"
 (cd verification && lean -DwarningAsError=true -R "$work" -o "$work/FileTrees.olean" "$work/FileTrees.lean" &&
-  lean -DwarningAsError=true CheckEmpty.lean && lean -DwarningAsError=true Audit.lean)
+  lean -DwarningAsError=true CheckEmpty.lean)
+verification/check-call-order.sh "$work"
+(cd verification && lean -DwarningAsError=true Audit.lean)
 
 # Each edited hpeg must still parse and translate. Only the Lean certificate fails.
 reject_mutation() {
