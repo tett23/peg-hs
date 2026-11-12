@@ -63,4 +63,31 @@ theorem invariant1_oracle_window (term : Terminal) (before window extra : List C
   rw [localStep]
   cases matchTerm term window <;> simp
 
+theorem invariant1_oracle_append_at (term : Terminal) (input extra : List Char) (n : Nat)
+    (within : n ≤ input.length) (enough : readWidth term ≤ n) :
+    terminalOracle term (input ++ extra) (n + extra.length) =
+      (terminalOracle term input n).map (· + extra.length) := by
+  let k := input.length - n
+  let before := input.take k
+  let window := input.drop k
+  have splitInput : before ++ window = input := List.take_append_drop k input
+  have len : window.length = n := by simp [window, k]; omega
+  have localStep := invariant1_oracle_suffix term before window
+  have fullStep := invariant1_oracle_window term before window extra (len ▸ enough)
+  have localWindow := invariant1_oracle_suffix term [] window
+  rw [List.nil_append] at localWindow
+  rw [localWindow, ← localStep, ← List.append_assoc, splitInput, List.length_append, len] at fullStep
+  exact fullStep
+
+-- A successful literal always remains successful, even without a bound on
+-- its read width. A failure may instead have been caused by the window EOF.
+theorem invariant1_match_success_extends {term input tail} (extra : List Char)
+    (ok : matchTerm term input = some tail) :
+    matchTerm term (input ++ extra) = some (tail ++ extra) := by
+  apply (invariant1_matchTerm_iff ..).mpr
+  cases (invariant1_matchTerm_iff ..).mp ok with
+  | lit chars _ => simpa [List.append_assoc] using Matches.lit chars (tail ++ extra)
+  | cls member => exact .cls member
+  | any c _ => exact .any c (tail ++ extra)
+
 end PegHs.ConcreteTerminal

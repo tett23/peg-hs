@@ -56,6 +56,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean ../packages/peg-grammar/grammar/Peg.hpeg ../packages/peg-grammar/grammar/PegSyntax.hpeg &&
+  ./check-file-certificates.sh "$work" &&
   lean -DwarningAsError=true Audit.lean)
 
 # Each edited hpeg must still parse and translate. Only the Lean certificate fails.
