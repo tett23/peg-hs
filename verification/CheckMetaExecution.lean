@@ -1,19 +1,17 @@
-import MetaExecution
+import TotalFile
 
 open PegHs.EnvironmentEval PegHs.MetaExecution
 
 private def check (source : String) (expected : String) : IO Unit := do
   let chars := source.toList
-  for (make, start) in [(peg, MetaTerminal1.startRule), (syntaxPeg, MetaTerminal2.startRule)] do
-    let ctx := make chars
-    let actual := match runFuel ctx 12000 (ctx.rules start) chars.length {} with
-      | some (.ok 0 _) => "ok"
-      | some (.ok rest _) => s!"remaining {rest}"
-      | some (.throwLabel _ name _) => name
-      | some .fail => "fail"
-      | none => "fuel exhausted"
+  for mode in [false, true] do
+    let actual := match (recognizeFile mode chars).val with
+      | .ok 0 _ => "ok"
+      | .ok rest _ => s!"remaining {rest}"
+      | .throwLabel _ name _ => name
+      | .fail => "fail"
     let agrees := if expected == "error" then
-      actual != "ok" && actual != "fuel exhausted" && !actual.startsWith "remaining "
+      actual != "ok" && !actual.startsWith "remaining "
       else actual == expected
     unless agrees do
       throw (IO.userError s!"input length {chars.length}: expected {expected}, got {actual}")
