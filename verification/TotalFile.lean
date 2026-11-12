@@ -52,6 +52,21 @@ theorem invariant1_parseFile_entry (mode : Bool) (source : String)
   rw [bytes]
   congr 1
 
+theorem invariant2_parseFile_rejects_iff (mode : Bool) (source : String)
+    (diagnostic : PublicParsing.Failure → String) :
+    (∃ msg, parseFile mode source diagnostic = .error [msg]) ↔
+      ¬ ∃ env, FileResult mode source.toList (.ok 0 env) := by
+  rw [invariant1_parseFile_entry]
+  have accepted := FileEntry.invariant1_public_entry
+    (recognizeFile mode source.toList).property diagnostic
+  rw [← accepted]
+  cases h : PublicParsing.entry source.toList.utf8Encode.size
+      (FileEntry.start source.toList (recognizeFile mode source.toList).val) diagnostic with
+  | ok u => simp
+  | error ds =>
+    obtain ⟨msg, rfl⟩ := PublicParsing.invariant2_parseTops_singleton _ _ _ _ h
+    simp
+
 theorem invariant1_total_public_entry (mode : Bool) (input : List Char)
     (diagnostic : PublicParsing.Failure → String) :
     PublicParsing.translatedPublic diagnostic (PublicParsing.translatedRuntime input.utf8Encode.size

@@ -5,6 +5,7 @@ import Control.Monad (forM_)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Peg.Grammar.Highlight (highlights)
 import Peg.Grammar.Parser (parseTops)
 import System.Environment (getArgs)
 import System.FilePath ((</>))
@@ -29,7 +30,9 @@ main = do
   forM_ (zip [0 :: Int ..] cases) $ \(i, source) -> do
     let file = directory </> show i
     T.writeFile file source
-    case parseTops source of
-      Right _ -> putStrLn ("ok " ++ file)
-      Left [] -> fail ("empty parse diagnostic for " ++ file)
-      Left _ -> putStrLn ("error " ++ file)
+    strict <- case parseTops source of
+      Right _ -> pure "ok"
+      Left [_] -> pure "error"
+      Left ds -> fail ("expected one parse diagnostic, got " ++ show (length ds) ++ " for " ++ file)
+    let syntax = maybe "error" (const "ok") (highlights source)
+    putStrLn (unwords [strict, syntax, file])
