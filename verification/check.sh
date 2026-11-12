@@ -45,6 +45,7 @@ extract_file packages/peg-grammar/grammar/Peg.hpeg packages/peg-grammar/grammar/
 verification/check-call-order.sh "$work"
 verification/check-concrete-terminals.sh "$work"
 (cd verification && lean -DwarningAsError=true -o "$work/MetagrammarPredicates.olean" MetagrammarPredicates.lean &&
+  lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
   lean -DwarningAsError=true Audit.lean)
 
 # Each edited hpeg must still parse and translate. Only the Lean certificate fails.
