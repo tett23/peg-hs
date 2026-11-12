@@ -61,20 +61,22 @@ def eval (cls : Classes) (kind : Kind) (env : Env) : Bool :=
   | .unicodeEscape => validHex env.captured
   | .classItem => nonEmptyRanges (decodeTokens env.captured)
 
-def kindOf (source : String) : Option Kind :=
-  match source with
-  | "isSpace (firstChar c)" => some .space
-  | "isIdentStart (firstChar c)" => some .identStart
-  | "isIdentChar (firstChar c)" => some .identChar
-  | "isIdentChar (firstChar c) && firstChar c /= '\\''" => some .hsIdent
-  | "not (T.null (T.stripEnd ty))" => some .typeText
-  | "not (T.null (T.strip c))" => some .argument
-  | "paramError l c /= Just paramFormMessage" => some .paramForm
-  | "paramError l c == Nothing" => some .paramType
-  | "d < maxDepth" => some .depth
-  | "validHex h" => some .unicodeEscape
-  | "nonEmptyRanges s" => some .classItem
-  | _ => none
+def spelling : Kind → String
+  | .space => "isSpace (firstChar c)"
+  | .identStart => "isIdentStart (firstChar c)"
+  | .identChar => "isIdentChar (firstChar c)"
+  | .hsIdent => "isIdentChar (firstChar c) && firstChar c /= '\\''"
+  | .typeText => "not (T.null (T.stripEnd ty))"
+  | .argument => "not (T.null (T.strip c))"
+  | .paramForm => "paramError l c /= Just paramFormMessage"
+  | .paramType => "paramError l c == Nothing"
+  | .depth => "d < maxDepth"
+  | .unicodeEscape => "validHex h"
+  | .classItem => "nonEmptyRanges s"
+
+def kinds : List Kind := [.space, .identStart, .identChar, .hsIdent, .typeText, .argument, .paramForm, .paramType, .depth, .unicodeEscape, .classItem]
+
+def kindOf (source : String) := kinds.find? (fun k => spelling k == source)
 
 def Holds (cls : Classes) (env : Env) : Kind → Prop
   | .space => cls.space (env.captured.headD ' ') = true

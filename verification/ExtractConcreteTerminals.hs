@@ -55,7 +55,11 @@ renderChar :: Char -> String
 renderChar c = "Char.ofNat " ++ show (ord c)
 
 renderString :: T.Text -> String
-renderString value = "String.ofList [" ++ intercalate ", " (map renderChar (T.unpack value)) ++ "]"
+renderString value
+  -- A literal avoids reducing a fresh UTF-8 encoding of every ASCII byte
+  -- when the kernel checks the fixed metagrammar predicate sources.
+  | T.all (\c -> c >= ' ' && c <= '~') value = show (T.unpack value)
+  | otherwise = "String.ofList [" ++ intercalate ", " (map renderChar (T.unpack value)) ++ "]"
 
 renderTerminal :: Terminal -> String
 renderTerminal = \case
