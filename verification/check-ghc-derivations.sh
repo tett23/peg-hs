@@ -12,6 +12,7 @@ compile() {
   lean -DwarningAsError=true -R "$work" -o "$work/$1.olean" "$work/$1.lean"
 }
 compile GHCGrammar
+./check-render-expression-ghc.sh "$work"
 for name in Peg PegSyntax; do
   awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.ids" "$work/$name.trace" > "$work/Derivation$name.lean"
   compile "Derivation$name"
