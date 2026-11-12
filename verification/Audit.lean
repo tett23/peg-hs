@@ -22,6 +22,11 @@ import Consumption
 import FileTrees
 import Pipeline
 import RenderExpression
+import ImportResolution
+import PublicParsing
+import LabelPropagation
+import InnerGeneration
+import InnerUnicode
 import Pragmas
 import RuleRejection
 import RuleRejectionRefs
@@ -86,7 +91,8 @@ run_cmd do
       `Nullable, `Reachable, `Literal, `Signatures, `File, `Consumption,
       `FileTrees, `Pipeline, `RenderExpression, `Pragmas, `RuleRejection, `RuleRejectionRefs,
       `RuleRejectionRepeat, `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals,
-      `ConcreteTerminal, `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables] do
+      `ConcreteTerminal, `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration,
+      `InnerUnicode, `PublicParsing, `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
