@@ -31,6 +31,12 @@ theorem invariant1_strict_verbatim_bodies (input : List Char) :
     translatedStrictHere = (context false input).rules 3 ∧
     translatedStrictVerbatim = (context false input).rules 11 := ⟨rfl, rfl⟩
 
+theorem invariant1_strict_type_text (input : List Char) :
+    translatedStrictTypeText = (context false input).rules 16 := rfl
+
+theorem invariant1_strict_param_list (input : List Char) :
+    translatedStrictParamList = (context false input).rules 17 := rfl
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim

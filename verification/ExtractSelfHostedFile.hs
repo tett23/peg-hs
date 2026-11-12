@@ -25,7 +25,8 @@ call site = do
   token "peg'rule'"
   target <- choice [string name >> pure number | (name, number) <-
     [("TopItem","1"), ("TopOne","2"), ("Here","3"), ("Ws","4"), ("SpaceChar","5"),
-     ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
+     ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
+     ("ParamChunks","18")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -203,6 +204,30 @@ directiveRule = do
   pure (".seq (.bind 5 \"l\" " ++ loc ++ ") (.seq (.terminal 12) (.seq (.bind 6 \"n\" " ++ labelled ++
     ") (.seq " ++ space ++ " (.seq (.bind 7 \"al\" " ++ argLoc ++ ") (" ++ body ++ ")))))")
 
+paramListRule :: ReadP String
+paramListRule = do
+  header "ParamList"
+  mapM_ token ["do", "{"]
+  literal "("
+  mapM_ token [";", "peg'v0", "<-"]
+  chunks <- call 43
+  mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
+  pure (".seq (.terminal 26) " ++ chunks)
+
+typeTextRule :: ReadP String
+typeTextRule = do
+  header "TypeText"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "ty", "<-",
+    "PegRt.capture", "(", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+  literal "\n"
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")", ")",
+    ";", "PegRt.predicate", "(", "\\_col", "->"]
+  embedded ["not", "(", "T.null", "(", "T.stripEnd", "ty", ")", ")"]
+  mapM_ token [")", ";", "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+  embedded ["T.stripEnd", "ty"]
+  mapM_ token [")", "}", "]", ")"]
+  pure ".seq (.bind 23 \"ty\" (.capture (.star (.seq (.notAhead (.terminal 24)) (.terminal 25))))) (.predicate 3)"
+
 commentRule :: ReadP String
 commentRule = do
   header "Comment"
@@ -223,7 +248,8 @@ main = do
          ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
-         ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule)] $
+         ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule),
+         ("TypeText", typeTextRule), ("ParamList", paramListRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
