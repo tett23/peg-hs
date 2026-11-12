@@ -91,6 +91,39 @@ theorem export_qvarid :
   have r769 : productions 769 = some (304, [.nonterminal 306]) := by decide
   exact export_name (oneRule r769 (applyRule r774 (.refl _)))
 
+private theorem export_parenthesized_operator {inner : List Symbol}
+    (inner_ok : Derives productions [.nonterminal 311] inner) :
+    Derives productions [.nonterminal 47]
+      ([.terminal 107] ++ inner ++ [.terminal 108]) := by
+  have r770 : productions 770 = some
+      (304, [.terminal 107, .nonterminal 311, .terminal 108]) := by decide
+  have framed := beside (.refl [.terminal 107])
+    (beside inner_ok (.refl [.terminal 108]))
+  exact export_name (applyRule r770 (by simpa [List.append_assoc] using framed))
+
+theorem export_varsym :
+    Derives productions [.nonterminal 47]
+      [.terminal 107, .terminal 119, .terminal 108] := by
+  have r787 : productions 787 = some (311, [.nonterminal 312]) := by decide
+  have r789 : productions 789 = some (312, [.terminal 119]) := by decide
+  exact export_parenthesized_operator
+    (oneRule r787 (applyRule r789 (.refl _)))
+
+theorem export_minus :
+    Derives productions [.nonterminal 47]
+      [.terminal 107, .terminal 87, .terminal 108] := by
+  have r788 : productions 788 = some (311, [.terminal 87]) := by decide
+  exact export_parenthesized_operator (applyRule r788 (.refl _))
+
+theorem export_dot :
+    Derives productions [.nonterminal 47]
+      [.terminal 107, .terminal 96, .terminal 108] := by
+  have r787 : productions 787 = some (311, [.nonterminal 312]) := by decide
+  have r790 : productions 790 = some (312, [.nonterminal 314]) := by decide
+  have r809 : productions 809 = some (314, [.terminal 96]) := by decide
+  exact export_parenthesized_operator
+    (oneRule r787 (oneRule r790 (applyRule r809 (.refl _))))
+
 private theorem export_type {word subspec : List Symbol}
     (type_ok : Derives productions [.nonterminal 286] word)
     (subspec_ok : Derives productions [.nonterminal 49] subspec) :
@@ -104,6 +137,14 @@ private theorem export_type {word subspec : List Symbol}
   have children := beside (emptyRule r322)
     (beside (oneRule r103 (oneRule r106 type_ok)) subspec_ok)
   exact oneRule r91 (applyRule r92 (by simpa using children))
+
+theorem export_colon :
+    Derives productions [.nonterminal 47]
+      [.terminal 107, .terminal 75, .terminal 108] := by
+  have r728 : productions 728 = some
+      (286, [.terminal 107, .terminal 75, .terminal 108]) := by decide
+  have r95 : productions 95 = some (49, []) := by decide
+  simpa using export_type (applyRule r728 (.refl _)) (emptyRule r95)
 
 theorem export_constructor_all :
     Derives productions [.nonterminal 47]
@@ -416,6 +457,10 @@ theorem parse_module {tokens : List Symbol}
 #print axioms exports_nonempty
 #print axioms export_varid
 #print axioms export_qvarid
+#print axioms export_varsym
+#print axioms export_minus
+#print axioms export_dot
+#print axioms export_colon
 #print axioms export_constructor_all
 #print axioms import_plain
 #print axioms import_qualified_as

@@ -4,7 +4,37 @@ set -eu
 cd "$(dirname "$0")/.."
 scratch=${1:?pass a temporary verification directory}
 peg=${PEG_HS:-$("${CABAL:-cabal}" list-bin exe:peg-hs)}
+: "${LEAN_PATH:?set LEAN_PATH to the shared Lean object directory}"
+for module in Header RenderExpression RenderModuleGHC; do
+  [ -f "$LEAN_PATH/$module.olean" ] || {
+    echo "$module.olean is missing" >&2
+    exit 1
+  }
+done
 mkdir -p "$scratch"
+
+(cd verification && lean -DwarningAsError=true \
+  -o "$scratch/RenderModuleNames.olean" RenderModuleNames.lean) \
+  > "$scratch/RenderModuleNames.log"
+if grep -q 'sorryAx' "$scratch/RenderModuleNames.log"; then
+  cat "$scratch/RenderModuleNames.log" >&2
+  exit 1
+fi
+
+cat > "$scratch/RenderModuleNames.expected" <<'SOURCE'
+entryName :: Maybe Text -> Text
+entryName = ("parse" <>) . maybe "" id
+SOURCE
+sed -n '/^entryName ::/,/^entryName =/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderModuleNames.actual"
+diff -u "$scratch/RenderModuleNames.expected" "$scratch/RenderModuleNames.actual"
+cat > "$scratch/RenderModuleNames.expected" <<'SOURCE'
+ruleVar :: Text -> Text
+ruleVar n = "peg'rule'" <> n
+SOURCE
+sed -n '/^ruleVar ::/,/^ruleVar n =/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderModuleNames.actual"
+diff -u "$scratch/RenderModuleNames.expected" "$scratch/RenderModuleNames.actual"
 
 cat > "$scratch/InvalidQdo.hpeg" <<'SOURCE'
 %module Probe.InvalidQdo
@@ -68,4 +98,4 @@ for name in QualifiedMdo UnicodeNames UnicodeModule; do
     "$scratch/$name.hs" > "$scratch/$name.ghc.log" 2>&1
 done
 
-printf 'Module names and exports: 2 invalid inputs rejected, 3 generated modules compiled.\n'
+printf 'Module names and exports: 4 Lean theorems, 2 invalid inputs rejected, 3 generated modules compiled.\n'

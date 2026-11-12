@@ -96,6 +96,23 @@ exportTests =
               errorsAt ("%module M\n%language DoRec\n%export Q.mdo\n" <> rule)
                 @?= [(3, 9, "%export expects export items, but got Q.mdo")]
            ]
+        ++ [ testCase ("0097 rejects reserved export operator " <> show op) $
+              errorsAt ("%module M\n%export (" <> op <> ")\n" <> rule)
+                @?= [(2, 9, "%export expects export items, but got (" <> op <> ")")]
+           | op <- ["->", "=", "::", "<-", "..", "|", "=>", "\\"]
+           ]
+        ++ [ testCase ("0097 rejects Arrows export operator " <> show op) $
+              errorsAt ("%module M\n%language Arrows\n%export (" <> op <> ")\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got (" <> op <> ")")]
+           | op <- ["-<", ">-", "-<<", ">>-"]
+           ]
+        ++ [ testCase ("0097 accepts ordinary export operator " <> show op) $
+              errorsAt ("%module M\n%export (" <> op <> ")\n" <> rule) @?= []
+           | op <- ["-<", ">-", "-<<", ">>-", "*", "-", ":", ".", "++"]
+           ]
+        ++ [ testCase "0097 NoArrows restores operator lexing" $
+              errorsAt ("%module M\n%language Arrows, NoArrows\n%export (-<)\n" <> rule) @?= []
+           ]
     )
 
 -- A grammar whose rule S has the expression on line 2.

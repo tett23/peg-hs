@@ -67,4 +67,4 @@ grep -Eq 'error: Tactic `decide` failed|error: Tactic `decide` proved that' \
   cat "$scratch/RenderModuleGHCInvalid.log" >&2
   exit 1
 }
-printf 'Module frame: 14 Lean theorems, 2 real module traces, 1 rejected production mutation.\n'
+printf 'Module frame: 18 Lean theorems, 2 real module traces, 1 rejected production mutation.\n'

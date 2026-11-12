@@ -236,13 +236,16 @@ assemble items =
     -- GHC lexes qualified do as ITdo regardless of QualifiedDo, and
     -- qualified mdo as ITmdo when RecursiveDo is enabled. LANGUAGE flags
     -- take effect in source order, including the deprecated DoRec alias.
-    recursiveDoEnabled = foldl stepRecursiveDo False
+    languageOptions =
       [unLoc x | TDirective _ "language" al a <- items, x <- splitExports al a]
-    stepRecursiveDo _ "RecursiveDo" = True
-    stepRecursiveDo _ "DoRec" = True
-    stepRecursiveDo _ "NoRecursiveDo" = False
-    stepRecursiveDo _ "NoDoRec" = False
-    stepRecursiveDo enabled _ = enabled
+    extensionEnabled names = foldl step False languageOptions
+      where
+        step enabled option
+          | option `elem` names = True
+          | option `elem` map ("No" <>) names = False
+          | otherwise = enabled
+    recursiveDoEnabled = extensionEnabled ["RecursiveDo", "DoRec"]
+    arrowsEnabled = extensionEnabled ["Arrows"]
     known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
     -- ADR 0092
     libraryLoc = case [l | (l, "library", _) <- directives] of
@@ -325,7 +328,7 @@ assemble items =
         ++ [ Diagnostic l ("%export expects export items, but got " <> x)
            | ("export", al, a) <- argLocs
            , Located l x <- splitExports al a
-           , not (isExportItem recursiveDoEnabled x)
+           , not (isExportItem recursiveDoEnabled arrowsEnabled x)
            ]
         -- ADR 0075
         ++ [ Diagnostic l ("%deriving expects class names, but got " <> x)
@@ -422,8 +425,8 @@ isModuleName = isClassName
 -- after @type@ or @pattern@, and @module@ with a module name. Spaces and
 -- tabs may separate the parts. A comment, a newline or @where@ fits none
 -- of these forms.
-isExportItem :: Bool -> Text -> Bool
-isExportItem recursiveDoEnabled t = not (any (`T.isInfixOf` t) ["--", "{-", "-}"]) && maybe False null (item (tokens (T.unpack t)))
+isExportItem :: Bool -> Bool -> Text -> Bool
+isExportItem recursiveDoEnabled arrowsEnabled t = not (any (`T.isInfixOf` t) ["--", "{-", "-}"]) && maybe False null (item (tokens (T.unpack t)))
   where
     item = \case
       "module" : m : rest | isModuleName (T.pack m) -> Just rest
@@ -453,7 +456,12 @@ isExportItem recursiveDoEnabled t = not (any (`T.isInfixOf` t) ["--", "{-", "-}"
       ("", name) -> isValidIdent name && name `notElem` reservedWords
       (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
         && name /= "do" && (not recursiveDoEnabled || name /= "mdo")
+    -- GHC 9.10.3's reservedSymsFM gives these their own tokens, which the
+    -- export-name productions do not accept. The arrow tokens are enabled
+    -- only by Arrows; otherwise the same spelling is a normal VARSYM.
     isOperator op = not (null op) && all isSymbolChar op
+      && op `notElem` ["..", "::", "=", "\\", "|", "<-", "->", "=>"]
+      && (not arrowsEnabled || op `notElem` ["-<", ">-", "-<<", ">>-"])
     isSymbolChar c = c `elem` ("!#$%&*+./<=>?@\\^|-~:" :: String)
     -- Parentheses and commas are tokens of their own, as is "..".
     tokens = \case

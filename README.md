@@ -442,6 +442,7 @@ A grammar is code: the Haskell of its blocks, actions and predicates runs with y
 Values outside those blocks go into the module too: the value of `%module`, the items of `%export` and the names of the grammar file and of the output.
 peg-hs checks them and rejects values that would read as Haskell declarations ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 `%module` takes a module name (`A.B.C`), and `%export` takes items of an export list: a name that may be qualified (`evalExpr`, `Expr`, `M.f`), a type name with `(..)` or with names and operators in parentheses (`Expr(..)`, `Expr(Add, Mul)`), an operator in parentheses (`(+++)`), any of these after `type` or `pattern` (`type (:+)`, `pattern P`), and `module` with a module name (`module Data.Text`).
+The export check rejects qualified `do` and reserved symbols such as `(->)`. It reads the grammar’s `%language` directives in order to decide whether qualified `mdo` (`RecursiveDo` or `DoRec`) and arrow operators such as `(-<)` (`Arrows`) are reserved. Compiler flags supplied after generation can change how GHC parses these exports.
 An item outside these forms, such as one with `--`, `{-` or `where`, is an error at the item.
 The replacement module name passed to `--strip-labels` must also be a valid Haskell module name, such as `Test.NoLabels`.
 A file name with a control character (U+0000 to U+001F, or U+007F), such as a newline, is an error at line 1, column 1, and nothing is written.
