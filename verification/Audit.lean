@@ -2,6 +2,9 @@ import Lean
 import CallOrder
 import CallTables
 import RecursiveEval
+import ConcreteTerminal
+import ConcreteTerminalBody
+import ConcreteTables
 import Guard
 import Parsing
 import Header
@@ -45,7 +48,8 @@ end PegHs.RecursiveEval
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
+  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `ConcreteTerminal, `ConcreteTerminalBody, `ConcreteTables,
+      `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0

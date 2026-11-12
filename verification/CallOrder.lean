@@ -9,7 +9,7 @@ inductive Body where
   | eps | token | call (rule : Nat)
   | seq (a b : Body) | alt (a b : Body)
   | look (a : Body) | star (a : Body)
-  deriving Repr
+  deriving Repr, DecidableEq
 
 def mayBeEmpty (known : Nat → Bool) : Body → Bool
   | .eps | .look _ | .star _ => true
