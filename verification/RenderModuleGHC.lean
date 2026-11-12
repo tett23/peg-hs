@@ -448,12 +448,48 @@ theorem generated_lists (name : List Symbol)
   exact module_frame_source name_ok (exports_many exports exports_ok)
     (imports_many imports imports_ok) (declarations_many decls decls_ok)
 
+-- The three imports emitted by Codegen.render, in their source order.
+-- Imports inside a supplied verbatim block enter separately.
+def generatedImports (usesPegPrelude importsPrelude : Bool) : List (List Symbol) :=
+  (if usesPegPrelude then [[.terminal 12, .terminal 22, .terminal 118,
+    .terminal 3, .terminal 118]] else []) ++
+  [[.terminal 12, .terminal 22, .terminal 122, .terminal 3, .terminal 118]] ++
+  (if importsPrelude then [] else [[.terminal 12, .terminal 118]])
+
+theorem generated_imports_valid (usesPegPrelude importsPrelude : Bool) :
+    ∀ item ∈ generatedImports usesPegPrelude importsPrelude,
+      Derives productions [.nonterminal 59] item := by
+  have plain := import_plain module_name_simple
+  have prelude := import_qualified_as module_name_simple module_name_simple
+  have runtime := import_qualified_as module_name_qualified module_name_simple
+  cases usesPegPrelude <;> cases importsPrelude <;>
+    simp_all [generatedImports]
+
+theorem generated_with_imports (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
+    (exports verbatimImports decls : List (List Symbol))
+    (name_ok : Derives productions [.nonterminal 321] name)
+    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (verbatim_ok : ∀ item ∈ verbatimImports, Derives productions [.nonterminal 59] item)
+    (decls_ok : ∀ item ∈ decls, Derives productions [.nonterminal 78] item) :
+    Derives (layoutGrammar productions) [.nonterminal 32]
+      (sourceSymbols ([.terminal 19] ++ name ++ exportWord exports ++
+        [.terminal 25, .terminal 103] ++
+        (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl semiAppend [] ++
+        decls.foldl semiAppend [])) := by
+  apply generated_lists _ _ _ _ name_ok exports_ok _ decls_ok
+  intro item h
+  obtain generated | supplied := List.mem_append.mp h
+  · exact generated_imports_valid _ _ _ generated
+  · exact verbatim_ok _ supplied
+
 theorem parse_module {tokens : List Symbol}
     (frame : Derives productions [.nonterminal 32] tokens) :
     Derives productions [.nonterminal 0] tokens := by
   have rule : productions 0 = some (0, [.nonterminal 32]) := by decide
   exact oneRule rule frame
 
+#print axioms generated_imports_valid
+#print axioms generated_with_imports
 #print axioms exports_nonempty
 #print axioms export_varid
 #print axioms export_qvarid
