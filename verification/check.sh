@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue Pipeline Pragmas; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Whitespace TemplateQueue TemplateSubstitution Pipeline Pragmas; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -22,6 +22,7 @@ verification/check-guard.sh
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
+verification/check-template-substitution.sh
 verification/check-template-queue.sh "$work"
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
