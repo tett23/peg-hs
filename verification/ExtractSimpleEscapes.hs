@@ -26,6 +26,18 @@ main = do
                , "        Just d -> go (next l c) (d : acc) rest"
                , "        Nothing -> Left (Diagnostic l (\"unknown escape \\\\\" <> T.singleton c))" ]
   unless (branch `isInfixOf` source) (die "unsupported escape branch")
+  let unicode = ["    unicode back l acc = \\case",
+                 "      '{' : rest ->",
+                 "        let (h, rest') = span isHexDigit rest",
+                 "            l' = advanceLoc (next l '{') (T.pack h)",
+                 "            n = foldl (\\m d -> m * 16 + toInteger (digitToInt d)) 0 h",
+                 "         in case rest' of",
+                 "              '}' : more",
+                 "                | not (null h) && n <= 0x10FFFF -> go (next l' '}') (chr (fromInteger n) : acc) more",
+                 "                | otherwise -> Left (Diagnostic back \"invalid \\\\u escape\")",
+                 "              _ -> Left (Diagnostic l' \"expected '}'\")",
+                 "      _ -> Left (Diagnostic l \"expected '{'\")"]
+  unless (unicode `isInfixOf` source) (die "unsupported unicode branch")
   case [entries | line <- source, Just raw <- [stripPrefix "    simple = " line],
                   Just entries <- [readMaybe raw :: Maybe [(Char, Char)]]] of
     [entries] -> do
@@ -61,6 +73,16 @@ main = do
       putStrLn "  | '\"' :: rest => .ok (acc.reverse, rest)"
       putStrLn "  | '\\\\' :: rest => escaped acc rest"
       putStrLn "  | c :: rest => go (c :: acc) rest"
+      putStrLn "def unicode (go : List Char → List Char → Except String α) (acc : List Char) :"
+      putStrLn "    List Char → Except String α"
+      putStrLn "  | '{' :: rest =>"
+      putStrLn "    let h := rest.takeWhile (fun c => (hexDigit c).isSome)"
+      putStrLn "    let n := h.foldl (fun m d => m * 16 + (hexDigit d).getD 0) 0"
+      putStrLn "    match rest.dropWhile (fun c => (hexDigit c).isSome) with"
+      putStrLn "    | '}' :: more => if !h.isEmpty && n ≤ 0x10FFFF then go (packedChr n :: acc) more"
+      putStrLn "      else .error \"invalid \\\\u escape\""
+      putStrLn "    | _ => .error \"expected '}'\""
+      putStrLn "  | _ => .error \"expected '{'\""
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where

@@ -89,6 +89,38 @@ theorem invariant2_plain_branch (acc input : List Char) :
       · subst c; rfl
       · simp [plain, quote, slash, List.foldl_cons, decodeStep]
 
+private theorem finishFailed (msg : String) (rest : List Char) :
+    finishDecode (rest.foldl decodeStep (.failed msg)) = .error msg := by
+  induction rest with
+  | nil => rfl
+  | cons _ _ ih => exact ih
+
+theorem invariant2_unicode_branch (acc input : List Char) :
+    unicode (fun rev rest => finishDecode (rest.foldl decodeStep (.plain rev.reverse))) acc input =
+      finishDecode (input.foldl decodeStep (.brace acc.reverse)) := by
+  cases input with
+  | nil => rfl
+  | cons c rest =>
+    by_cases openBrace : c = '{'
+    · subst c
+      simp only [unicode, invariant2_hex_lookup, List.foldl_cons, decodeStep, beq_self_eq_true, ite_true]
+      rw [invariant2_hex_prefix]
+      have stop := List.head?_dropWhile_not (fun c => (hexValue c).isSome) rest
+      cases h : rest.dropWhile (fun c => (hexValue c).isSome) with
+      | nil => rfl
+      | cons last more =>
+        rw [h] at stop
+        have noDigit : hexValue last = none := by simpa using stop
+        by_cases close : last = '}'
+        · subst last
+          by_cases empty : rest.takeWhile (fun c => (hexValue c).isSome) = []
+          all_goals by_cases ok : (rest.takeWhile (fun c => (hexValue c).isSome)).foldl (fun m d => m * 16 + (hexValue d).getD 0) 0 ≤ 0x10FFFF
+          all_goals simp_all [List.foldl_cons, decodeStep, packedChr, finishFailed,
+            Nat.not_lt_of_ge] <;> intro impossible <;> exact False.elim ((Nat.not_le_of_gt ok) (of_decide_eq_true impossible))
+        · simp [close, List.foldl_cons, decodeStep, noDigit, finishFailed]
+    · simp [unicode, openBrace, List.foldl_cons, decodeStep, finishFailed]
+
+#print axioms invariant2_unicode_branch
 #print axioms invariant2_plain_branch
 #print axioms invariant2_escape_branch
 #print axioms invariant2_simple_lookup
