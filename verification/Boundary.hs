@@ -31,6 +31,10 @@ main = do
     let result = parseTops ("%module M\nS <- " <> expr <> "\n")
     unless (if accepted then isRight result else anyDiagnostic "deeper than 256" result) $
       die ("invariant1: incorrect mixed nesting result for " ++ show expr)
+  forM_ [("'\\u{10FfFf}'", True), ("'\\u{110000}'", False), ("'\\u{}'", False),
+         ("'\\u{D800}'", True), ("[z-a]", False), ("[a-a]", True), ("[\\-]", True)] $
+    \(expr, accepted) -> unless (isRight (parseTops ("%module M\nS <- " <> expr <> "\n")) == accepted) $
+      die ("invariant1: unexpected escape or character-class result for " ++ show expr)
   unless (parseTops "" == Right []) $ die "invariant1: empty file"
   let valid = "%module M\nS <- 'a'\n"
       trailing = valid <> "]"
