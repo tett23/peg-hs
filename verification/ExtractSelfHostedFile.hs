@@ -113,6 +113,16 @@ filteredChar name predicate site terminal = do
   pure (".seq (.bind " ++ show site ++ " \"c\" (.capture (.terminal " ++ show terminal ++
     "))) (.predicate " ++ show site ++ ")")
 
+inlineSpace :: ReadP String
+inlineSpace = do
+  header "InlineSp"
+  mapM_ token ["do", "{", "PegRt.skipMany", "(", "PegRt.cls"]
+  ranges <- skipSpaces >> readS_to_P reads
+  guard (ranges == [(' ', ' '), ('\t', '\t')])
+  _ <- quoted
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  pure ".star (.terminal 5)"
+
 identifier :: ReadP String
 identifier = do
   header "Ident"
@@ -185,7 +195,7 @@ main = do
          ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
-         ("Here", positionRule), ("Verbatim", verbatimRule)] $
+         ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
