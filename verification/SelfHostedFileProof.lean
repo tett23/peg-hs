@@ -85,6 +85,9 @@ theorem invariant1_strict_quoted_literals (input : List Char) :
     translatedStrictLit2 = (context false input).rules 40 ∧
     translatedStrictEscape = (context false input).rules 41 := ⟨rfl, rfl, rfl⟩
 
+theorem invariant1_strict_escape_body (input : List Char) :
+    translatedStrictEscapeBody = (context false input).rules 42 := rfl
+
 theorem invariant1_strict_character_classes (input : List Char) :
     translatedStrictClassLit = (context false input).rules 43 ∧
     translatedStrictClassItem = (context false input).rules 44 ∧

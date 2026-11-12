@@ -443,6 +443,41 @@ depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
 
+characterClass :: [(Char, Char)] -> ReadP ()
+characterClass expected = do
+  token "PegRt.cls"
+  ranges <- skipSpaces >> readS_to_P reads
+  guard (ranges == expected)
+  quoted >> pure ()
+
+escapeBodyRule :: ReadP String
+escapeBodyRule = do
+  header "EscapeBody"
+  mapM_ token ["do", "{"]
+  characterClass [(c, c) | c <- "ntr\\'\"][-"]
+  mapM_ token [";", "PegPrelude.pure", "()", "}", ",", "do", "{", "peg'start", "<-", "PegRt.getOffset", ";"]
+  literal "u"
+  opening <- brace "{" "(.terminal 78)"
+  mapM_ token [";", "h", "<-", "PegRt.capture", "(", "PegRt.skipMany", "("]
+  characterClass [('0','9'), ('a','f'), ('A','F')]
+  mapM_ token [")", ")"]
+  closing <- brace "}" "(.terminal 80)"
+  token ";"
+  valid <- labelled $ do
+    mapM_ token ["PegRt.choice", "[", "do", "{", "PegRt.predicate", "(", "\\_col", "->"]
+    embedded ["validHex", "h"]
+    mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
+    pure "(.predicate 14)"
+  returnAction ["()"]
+  pure (".alt (.terminal 76) " ++ sequenceBody ["(.terminal 77)", opening,
+    "(.bind 74 \"h\" (.capture (.star (.terminal 79))))", closing, valid])
+  where
+    brace c body = do
+      mapM_ token [";", "PegRt.choice", "[", "do", "{"]
+      result <- labelled (literal c >> pure body)
+      mapM_ token [";", "PegPrelude.pure", "()", "}", "]"]
+      pure result
+
 classLitRule :: ReadP String
 classLitRule = do
   header "ClassLit"
@@ -816,7 +851,7 @@ main = do
          ("Labeled", labeledRule), ("LabelPart", labelPartRule), ("SuffixE", suffixRule),
          ("PostOps", postOpsRule), ("PostOp", postOpRule),
          ("Lit1", quotedLiteralRule "Lit1" '\'' 136 67), ("Lit2", quotedLiteralRule "Lit2" '"' 137 71),
-         ("Escape", escapeRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule)] $
+         ("Escape", escapeRule), ("EscapeBody", escapeBodyRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
