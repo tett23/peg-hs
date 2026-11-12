@@ -103,4 +103,5 @@ fi
 grep -q 'parse error' "$work/ghc-error" || { cat "$work/ghc-error" >&2; exit 1; }
 
 verification/check-ghc-parser-trace.sh "$work"
+verification/check-render-expression-lexer.sh "$work"
 verification/check-ghc-derivations.sh "$work"

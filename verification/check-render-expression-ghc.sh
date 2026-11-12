@@ -27,4 +27,4 @@ grep -Eq 'error: Tactic `decide` failed|error: Tactic `decide` proved that' \
   cat "$scratch/RenderExpressionGHCInvalid.log" >&2
   exit 1
 }
-printf 'GHC CFG expression composition: 11 theorems, 1 rejected production mutation.\n'
+printf 'GHC CFG expression composition: 14 theorems, 1 rejected production mutation.\n'

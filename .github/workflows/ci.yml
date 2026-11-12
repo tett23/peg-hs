@@ -117,6 +117,9 @@ jobs:
           curl --fail --location --retry 3 -o "$RUNNER_TEMP/Parser.y" \
             https://raw.githubusercontent.com/ghc/ghc/3f4d7d38b9661435bdde981451ac50c4335ed090/compiler/GHC/Parser.y
           echo "HAPPY=$RUNNER_TEMP/happy" >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/Lexer.x" \
+            https://raw.githubusercontent.com/ghc/ghc/3f4d7d38b9661435bdde981451ac50c4335ed090/compiler/GHC/Parser/Lexer.x
+          echo "GHC_LEXER_X=$RUNNER_TEMP/Lexer.x" >> "$GITHUB_ENV"
           echo "GHC_PARSER_Y=$RUNNER_TEMP/Parser.y" >> "$GITHUB_ENV"
       - name: Check Lean proofs and compare the Haskell entry points
         run: verification/check.sh

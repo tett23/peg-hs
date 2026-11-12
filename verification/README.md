@@ -28,7 +28,7 @@
 GHC と Cabal はプロジェクト指定の版を使う。
 生成 Haskell の構文導出には Happy 2.1.7 が必要である。
 `happy` が PATH 上にない場合は実行ファイルを `HAPPY` に指定する。
-GHC 9.10.3 の `compiler/GHC/Parser.y` を `GHC_PARSER_Y` に指定するか、
+GHC 9.10.3 の `compiler/GHC/Parser.y` を `GHC_PARSER_Y` に、`compiler/GHC/Parser/Lexer.x` を `GHC_LEXER_X` に指定するか、
 `ghc-9.10.3-release` タグを持つ GHC チェックアウトを `GHC_SOURCE` に指定する。
 検査スクリプトは文法ファイルの SHA-256 を照合する。
 elan が [lean-toolchain](lean-toolchain) の Lean を選ぶ。

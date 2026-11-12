@@ -125,6 +125,38 @@ theorem statement_one {statement : List Symbol}
   have rule : productions 653 = some (254, [.nonterminal 257]) := by decide
   exact one rule statement_ok
 
+def semicolonAppend (acc item : List Symbol) : List Symbol :=
+  acc ++ [.terminal 113] ++ item
+
+theorem statement_fold (first : List Symbol) (rest : List (List Symbol))
+    (first_ok : Derives productions [.nonterminal 257] first)
+    (rest_ok : ∀ item ∈ rest, Derives productions [.nonterminal 257] item) :
+    Derives productions [.nonterminal 254]
+      (rest.foldl semicolonAppend first) := by
+  have general (acc : List Symbol) (tail : List (List Symbol))
+      (acc_ok : Derives productions [.nonterminal 254] acc)
+      (tail_ok : ∀ item ∈ tail, Derives productions [.nonterminal 257] item) :
+      Derives productions [.nonterminal 254]
+        (tail.foldl semicolonAppend acc) := by
+    induction tail generalizing acc with
+    | nil => simpa using acc_ok
+    | cons item more ih =>
+      have item_ok := tail_ok item (by simp)
+      have more_ok : ∀ x ∈ more, Derives productions [.nonterminal 257] x := by
+        intro x hx
+        exact tail_ok x (by simp [hx])
+      simpa [List.foldl, semicolonAppend] using
+        ih (semicolonAppend acc item) (statement_cons acc_ok item_ok) more_ok
+  exact general first rest (statement_one first_ok) rest_ok
+
+theorem do_many (first : List Symbol) (rest : List (List Symbol))
+    (first_ok : Derives productions [.nonterminal 257] first)
+    (rest_ok : ∀ item ∈ rest, Derives productions [.nonterminal 257] item) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 125, .terminal 101] ++
+        rest.foldl semicolonAppend first ++ [.terminal 102]) := by
+  exact do_block (statement_fold first rest first_ok rest_ok)
+
 -- A qualified rule/function name is a QVARID token. These six rules lift it
 -- through qvarid, qvar, aexp2, aexp1, aexp, and fexp.
 theorem qualified_function :
@@ -196,6 +228,114 @@ theorem choice_pair {left right : List Symbol}
     exact one r609 lexps
   simpa [List.append_assoc] using choice list
 
+def commaAppend (acc item : List Symbol) : List Symbol :=
+  acc ++ [.terminal 114] ++ item
+
+theorem lexps_extend {initial item : List Symbol}
+    (initial_ok : Derives productions [.nonterminal 234] initial)
+    (item_ok : Derives productions [.nonterminal 229] item) :
+    Derives productions [.nonterminal 234] (commaAppend initial item) := by
+  have rule : productions 615 = some
+      (234, [.nonterminal 234, .terminal 114, .nonterminal 229]) := by decide
+  have first := derives_post [.terminal 114, .nonterminal 229] initial_ok
+  have second := derives_pre (initial ++ [.terminal 114]) item_ok
+  have assembled : Derives productions
+      [.nonterminal 234, .terminal 114, .nonterminal 229]
+      (commaAppend initial item) := by
+    have first' : Derives productions
+        [.nonterminal 234, .terminal 114, .nonterminal 229]
+        (initial ++ [.terminal 114] ++ [.nonterminal 229]) := by
+      simpa [List.append_assoc] using first
+    exact trans first' second
+  simpa using (Derives.production (pre := []) (post := []) rule assembled)
+
+theorem choice_many (first second : List Symbol) (rest : List (List Symbol))
+    (first_ok : Derives productions [.nonterminal 229] first)
+    (second_ok : Derives productions [.nonterminal 229] second)
+    (rest_ok : ∀ item ∈ rest, Derives productions [.nonterminal 229] item) :
+    Derives productions [.nonterminal 217]
+      ([.terminal 121, .terminal 105] ++
+        rest.foldl commaAppend (commaAppend first second) ++ [.terminal 106]) := by
+  have r616 : productions 616 = some
+      (234, [.nonterminal 229, .terminal 114, .nonterminal 229]) := by decide
+  have r609 : productions 609 = some (233, [.nonterminal 234]) := by decide
+  have pair : Derives productions [.nonterminal 234] (commaAppend first second) := by
+    have first' := derives_post [.terminal 114, .nonterminal 229] first_ok
+    have second' := derives_pre (first ++ [.terminal 114]) second_ok
+    have assembled : Derives productions
+        [.nonterminal 229, .terminal 114, .nonterminal 229]
+        (commaAppend first second) := by
+      have h : Derives productions
+          [.nonterminal 229, .terminal 114, .nonterminal 229]
+          (first ++ [.terminal 114] ++ [.nonterminal 229]) := by
+        simpa [List.append_assoc] using first'
+      exact trans h second'
+    simpa using (Derives.production (pre := []) (post := []) r616 assembled)
+  have general (acc : List Symbol) (tail : List (List Symbol))
+      (acc_ok : Derives productions [.nonterminal 234] acc)
+      (tail_ok : ∀ item ∈ tail, Derives productions [.nonterminal 229] item) :
+      Derives productions [.nonterminal 234] (tail.foldl commaAppend acc) := by
+    induction tail generalizing acc with
+    | nil => simpa using acc_ok
+    | cons item more ih =>
+      have item_ok := tail_ok item (by simp)
+      have more_ok : ∀ x ∈ more, Derives productions [.nonterminal 229] x := by
+        intro x hx
+        exact tail_ok x (by simp [hx])
+      simpa [List.foldl] using
+        ih (commaAppend acc item) (lexps_extend acc_ok item_ok) more_ok
+  exact choice (one r609 (general _ rest pair rest_ok))
+
+theorem aexp_to_texp {body : List Symbol}
+    (body_ok : Derives productions [.nonterminal 218] body) :
+    Derives productions [.nonterminal 229] body := by
+  have r536 : productions 536 = some (217, [.nonterminal 218]) := by decide
+  have r528 : productions 528 = some (214, [.nonterminal 217]) := by decide
+  have r523 : productions 523 = some (212, [.nonterminal 214]) := by decide
+  have r520 : productions 520 = some (211, [.nonterminal 212]) := by decide
+  have r596 : productions 596 = some (229, [.nonterminal 211]) := by decide
+  exact one r596 (one r520 (one r523 (one r528 (one r536 body_ok))))
+
+def blockTokens : List (List Symbol) → List Symbol
+  | [] => []
+  | head :: tail => [.terminal 125, .terminal 101] ++
+      tail.foldl semicolonAppend head ++ [.terminal 102]
+
+theorem group_many (first second : List (List Symbol))
+    (rest : List (List (List Symbol)))
+    (first_ok : ∃ head tail, first = head :: tail ∧
+      Derives productions [.nonterminal 257] head ∧
+      ∀ item ∈ tail, Derives productions [.nonterminal 257] item)
+    (second_ok : ∃ head tail, second = head :: tail ∧
+      Derives productions [.nonterminal 257] head ∧
+      ∀ item ∈ tail, Derives productions [.nonterminal 257] item)
+    (rest_ok : ∀ block ∈ rest, ∃ head tail, block = head :: tail ∧
+      Derives productions [.nonterminal 257] head ∧
+      ∀ item ∈ tail, Derives productions [.nonterminal 257] item) :
+    Derives productions [.nonterminal 217]
+      ([.terminal 121, .terminal 105] ++
+        (rest.map blockTokens).foldl commaAppend
+          (commaAppend (blockTokens first) (blockTokens second)) ++
+        [.terminal 106]) := by
+  obtain ⟨head1, tail1, shape1, h1, t1⟩ := first_ok
+  obtain ⟨head2, tail2, shape2, h2, t2⟩ := second_ok
+  have f1 : Derives productions [.nonterminal 229] (blockTokens first) := by
+    rw [shape1]
+    exact aexp_to_texp (do_many head1 tail1 h1 t1)
+  have f2 : Derives productions [.nonterminal 229] (blockTokens second) := by
+    rw [shape2]
+    exact aexp_to_texp (do_many head2 tail2 h2 t2)
+  have restDerives : ∀ item ∈ rest.map blockTokens,
+      Derives productions [.nonterminal 229] item := by
+    intro item member
+    obtain ⟨block, inRest, eq⟩ := List.mem_map.mp member
+    obtain ⟨head, tail, shape, headOk, tailOk⟩ := rest_ok block inRest
+    rw [shape] at eq
+    subst item
+    exact aexp_to_texp (do_many head tail headOk tailOk)
+  exact choice_many (blockTokens first) (blockTokens second)
+    (rest.map blockTokens) f1 f2 restDerives
+
 -- The syntax predicates describe printer output. The explicit lexer equation
 -- is the boundary between character strings and GHC terminal IDs.
 theorem bridge_wrap (tailChar : Char → Prop) (lex : String → List Symbol)
@@ -260,5 +400,8 @@ theorem bridge_do (statementSyntax : String → Prop) (lex : String → List Sym
 #print axioms bridge_wrap
 #print axioms bridge_choice
 #print axioms bridge_do
+#print axioms statement_fold
+#print axioms choice_many
+#print axioms group_many
 
 end PegHs.RenderExpressionGHC
