@@ -76,5 +76,33 @@ theorem invariant2_unicode_wrong_close (ds : List Char) (bad : Char) (rest : Lis
   rw [fold_hex_digits ds [] 0 0 allHex]
   simp [List.foldl_cons, decodeStep, notHex, notClose, failed_stays]
 
+theorem invariant2_string_argument_decode_error (validIdent : String → Bool)
+    (directive : String) (name gap body : List Char) (message : String)
+    (valid : validIdent (String.ofList name) = true)
+    (noSpace : ∀ c ∈ name, PegVerification.ghcIsSpace c = false)
+    (separator : gap ≠ []) (spaces : ∀ c ∈ gap, PegVerification.ghcIsSpace c = true)
+    (failed : decodeString body = .error message) :
+    stringArg validIdent directive (String.ofList (name ++ gap ++ '"' :: body)) = .error message := by
+  have quote : PegVerification.ghcIsSpace '"' = false := by decide
+  have dropSep : (gap ++ '"' :: body).dropWhile PegVerification.ghcIsSpace = '"' :: body := by
+    induction gap with
+    | nil => simp [quote]
+    | cons c cs ih =>
+      simp only [List.cons_append, List.dropWhile_cons, spaces c (.head _), ite_true]
+      cases cs with
+      | nil => simp [quote]
+      | cons x xs => exact ih (by simp) (fun k hk => spaces k (.tail _ hk))
+  have takeName : (name ++ (gap ++ '"' :: body)).takeWhile
+      (fun c => !PegVerification.ghcIsSpace c) = name := by
+    clear valid
+    induction name with
+    | nil =>
+      cases gap with
+      | nil => contradiction
+      | cons c cs => simp [spaces c (.head _)]
+    | cons c cs ih =>
+      simp [noSpace c (.head _), ih (fun k hk => noSpace k (.tail _ hk))]
+  simp [stringArg, List.append_assoc, takeName, valid, dropSep, failed]
+
 #print axioms invariant2_hex_prefix
 end PegHs.AssembleValidationHelpers
