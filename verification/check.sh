@@ -13,12 +13,16 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
 cd ..
 verification/check-guard.sh
+verification/check-expression-depth.sh
+verification/check-escape-predicates.sh
+verification/check-parameter-predicates.sh
+verification/check-semantic-predicates.sh "$work"
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
