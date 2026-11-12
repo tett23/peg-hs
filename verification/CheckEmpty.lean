@@ -20,3 +20,6 @@ example : run (Grammar1.start (Grammar1.ruleWs throwing) (Grammar1.ruleTopItem t
   Grammar1.invariant1_file_empty throwing
 example : run (Grammar2.start (Grammar2.ruleWs throwing) (Grammar2.ruleTopItem throwing)) [] = .ok [] :=
   Grammar2.invariant1_file_empty throwing
+
+#check Grammar1.invariant1_file_whitespace
+#check Grammar2.invariant1_file_whitespace
