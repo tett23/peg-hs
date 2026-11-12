@@ -18,12 +18,24 @@ production (expected, line) = case words line of
     Right (lhs, init rest)
   _ -> Left ("unexpected production " ++ show expected ++ ": " ++ line)
 
+-- Kernel reduction of an Array literal traverses its construction. A balanced
+-- lookup keeps every concrete rule lookup logarithmic during proof checking.
+lookupTree :: Int -> [String] -> String
+lookupTree _ [] = "none"
+lookupTree _ [row] = "some " ++ row
+lookupTree offset rows =
+  let half = length rows `div` 2
+      pivot = offset + half
+      (left, right) = splitAt half rows
+   in "(if id < " ++ show pivot ++ " then " ++ lookupTree offset left
+        ++ " else " ++ lookupTree pivot right ++ ")"
+
 main :: IO ()
 main = do
   args <- getArgs
-  (info, parser) <- case args of
-    [i, p] -> (,) <$> readFile i <*> readFile p
-    _ -> die "usage: ExtractHappyGrammar INFO DEBUG-PARSER"
+  (info, parser, table) <- case args of
+    [i, p, t] -> (,,) <$> readFile i <*> readFile p <*> pure t
+    _ -> die "usage: ExtractHappyGrammar INFO DEBUG-PARSER STACK-TABLE"
   let grammarLines = takeWhile (not . null) (drop 2 (dropWhile (/= "Grammar") (lines info)))
   rows <- either die pure (traverse production (zip [0..] grammarLines))
   names <- case [xs | l <- lines parser, Just raw <- [stripPrefix "happyTokenStrings = " l],
@@ -48,6 +60,10 @@ main = do
         pure ("(" ++ show (nonterms M.! lhs) ++ ", [" ++ intercalate ", " symbols ++ "])")
   unless (take 1 rows == [("%start_parseModuleNoHaddock", ["module"])]) (die "changed start production")
   output <- either die pure (traverse render rows)
+  arities <- either die pure (traverse (fmap length . resolve . snd) rows)
+  writeFile table (unlines [unwords (map show [i, nonterms M.! lhs, arity])
+    | (i, ((lhs, _), arity)) <- zip [0..] (zip rows arities)])
   putStrLn "import HaskellDerivation\nnamespace PegHs.GHCGrammar\nopen CFG"
   putStrLn ("def moduleStart : Nat := " ++ show (nonterms M.! "module"))
-  putStrLn ("def productions : Grammar := #[\n" ++ intercalate ",\n" output ++ "\n]\nend PegHs.GHCGrammar")
+  putStrLn ("def productions (id : Nat) : Option Production := if id < " ++ show (length rows)
+    ++ " then " ++ lookupTree 0 output ++ " else none\nend PegHs.GHCGrammar")

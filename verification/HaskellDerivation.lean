@@ -8,12 +8,12 @@ inductive Symbol where
   deriving DecidableEq, Repr
 
 abbrev Production := Nat × List Symbol
-abbrev Grammar := Array Production
+abbrev Grammar := Nat → Option Production
 
 -- An ordinary context-free derivation, independent of the trace checker.
 inductive Derives (g : Grammar) : List Symbol → List Symbol → Prop where
   | refl (xs) : Derives g xs xs
-  | production {id : Nat} {lhs rhs pre post result} (rule : g[id]? = some (lhs, rhs))
+  | production {id : Nat} {lhs rhs pre post result} (rule : g id = some (lhs, rhs))
       (next : Derives g (pre ++ rhs ++ post) result) :
       Derives g (pre ++ [.nonterminal lhs] ++ post) result
 
@@ -50,7 +50,7 @@ def step (g : Grammar) (s : State) : Action → Option State
     | [] => none
     | t :: ts => some ⟨.terminal t :: s.stack, ts⟩
   | .reduce id => do
-    let (lhs, rhs) ← g[id]?
+    let (lhs, rhs) ← g id
     let tail ← pop rhs.reverse s.stack
     return ⟨.nonterminal lhs :: tail, s.unread⟩
 
@@ -68,7 +68,7 @@ private theorem step_sound (g : Grammar) (s : State) (action : Action) (t : Stat
         subst t
         simpa [State.word, List.append_assoc] using old
     | reduce id =>
-      cases entry : g[id]? with
+      cases entry : g id with
       | none => simp [step, entry] at ok
       | some row =>
         obtain ⟨lhs, rhs⟩ := row
@@ -119,8 +119,8 @@ theorem invariant3_certificate_sound (g : Grammar) (start : Nat) (tokens : List 
     simpa [State.word] using replay_sound h
   next => contradiction
 
-example : accepts #[(0, [.terminal 1])] 0 [1] [.shift, .reduce 0] = true := by decide
-example : accepts #[(0, [.terminal 1])] 0 [2] [.shift, .reduce 0] = false := by decide
-example : accepts #[(0, [])] 0 [1] [.reduce 0] = false := by decide
+example : accepts (fun i => if i = 0 then some (0, [.terminal 1]) else none) 0 [1] [.shift, .reduce 0] = true := by decide
+example : accepts (fun i => if i = 0 then some (0, [.terminal 1]) else none) 0 [2] [.shift, .reduce 0] = false := by decide
+example : accepts (fun i => if i = 0 then some (0, []) else none) 0 [1] [.reduce 0] = false := by decide
 
 end PegHs.CFG

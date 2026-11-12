@@ -44,7 +44,7 @@ theorem invariant3_segments {g start tokens}
     Derives g [.nonterminal start] (tokens.map Symbol.terminal) := by
   simpa using cert.sound
 
-example : Segments #[(0, [.terminal 2])] [] [2] [.nonterminal 0] := by
+example : Segments (fun i => if i = 0 then some (0, [.terminal 2]) else none) [] [2] [.nonterminal 0] := by
   exact .next (consumed := [2]) (suffix := []) [0] rfl
     (.next (consumed := []) (suffix := []) [1] rfl (.done _))
 
