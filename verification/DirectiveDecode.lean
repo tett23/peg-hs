@@ -76,6 +76,33 @@ theorem invariant2_decode_string (input : List Char) :
     run (input.length + 1) .plain [] input = decodeString input :=
   invariant2_decode_run _ _ _ _ (by omega)
 
+private theorem drop_name (p : Char → Bool) (xs : List Char) :
+    xs.drop (xs.takeWhile p).length = xs.dropWhile p := by
+  have eq := List.drop_left (l₁ := xs.takeWhile p) (l₂ := xs.dropWhile p)
+  rwa [List.takeWhile_append_dropWhile] at eq
+
+theorem invariant2_source_string_argument (valid : String → Bool) (directive arg : String) :
+    (argument valid (fun body => run (body.length + 1) .plain [] body) directive arg).map Prod.fst =
+      stringArg valid directive arg := by
+  simp only [argument, stringArg, invariant2_decode_string, drop_name]
+  generalize String.ofList _ = name
+  generalize (arg.toList.dropWhile _).dropWhile _ = quoted
+  cases valid name <;> cases quoted with
+  | nil => simp [Except.map]
+  | cons c body =>
+    by_cases q : c = '"'
+    · subst c
+      cases decoded : decodeString body with
+      | error e => simp [decoded, Except.map, Bind.bind, Except.bind]
+      | ok pair =>
+        rcases pair with ⟨value, tail⟩
+        cases directive == "expect" <;>
+          by_cases extra : stripSpace tail = [] <;> by_cases empty : value = [] <;>
+          by_cases control : ∃ c ∈ value, c.toNat < 32 ∨ c.toNat = 127 <;>
+          simp [decoded, Except.map, Bind.bind, Except.bind, extra, empty, control]
+    · simp [q, Except.map]
+
+
 open AssembleValidation
 
 theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)

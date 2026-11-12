@@ -13,6 +13,27 @@ main :: IO ()
 main = do
   [file] <- getArgs
   source <- lines <$> readFile file
+  let argument = ["stringArg :: Text -> Loc -> Located Text -> Either Diagnostic (Located Text, Located Text)",
+                  "stringArg directive l (Located al a) =",
+                  "  case (isValidIdent name, T.uncons quoted) of",
+                  "    (True, Just ('\"', body)) -> do",
+                  "      (decoded, after) <- decodeString strLoc (T.unpack body)",
+                  "      if not (T.null (T.strip (T.pack after)))",
+                  "        then Left formError",
+                  "        else check decoded",
+                  "    _ -> Left formError",
+                  "  where",
+                  "    (name, rest) = T.break isSpace a",
+                  "    gap = T.takeWhile isSpace rest",
+                  "    quoted = T.drop (T.length gap) rest",
+                  "    strLoc = advanceLoc al (name <> gap)",
+                  "    formError = Diagnostic l (\"%\" <> directive <> (if directive == \"expect\" then \" expects a rule name and a string\" else \" expects a label and a string\"))",
+                  "    what = if directive == \"expect\" then \"the description\" else \"the message\"",
+                  "    check v",
+                  "      | T.null v = Left (Diagnostic strLoc (what <> \" is empty\"))",
+                  "      | T.any (\\c -> c < ' ' || c == '\\DEL') v = Left (Diagnostic strLoc (what <> \" contains a control character\"))",
+                  "      | otherwise = Right (Located al name, Located strLoc v)"]
+  unless (argument `isInfixOf` source) (die "unsupported string argument definition")
   let entry = ["decodeString :: Loc -> String -> Either Diagnostic (Text, String)",
                "decodeString start = go (next start '\"') []",
                "  where", "    next l c = advanceLoc l (T.singleton c)"]
@@ -87,6 +108,21 @@ main = do
       putStrLn "      else .error \"invalid \\\\u escape\""
       putStrLn "    | _ => .error \"expected '}'\""
       putStrLn "  | _ => .error \"expected '{'\""
+      putStrLn "def argument (valid : String → Bool) (decode : List Char → Except String (List Char × List Char))"
+      putStrLn "    (directive arg : String) : Except String (String × List Char) := do"
+      putStrLn "  let name := arg.toList.takeWhile (fun c => !PegVerification.ghcIsSpace c)"
+      putStrLn "  let rest := arg.toList.dropWhile (fun c => !PegVerification.ghcIsSpace c)"
+      putStrLn "  let quoted := rest.drop (rest.takeWhile PegVerification.ghcIsSpace).length"
+      putStrLn "  let form := PegHs.AssembleValidationHelpers.formError directive"
+      putStrLn "  let what := if directive == \"expect\" then \"the description\" else \"the message\""
+      putStrLn "  match valid (String.ofList name), quoted with"
+      putStrLn "  | true, '\"' :: body =>"
+      putStrLn "    let (v, tail) ← decode body"
+      putStrLn "    if !(PegHs.AssembleValidationHelpers.stripSpace tail).isEmpty then .error form"
+      putStrLn "    else if v.isEmpty then .error (what ++ \" is empty\")"
+      putStrLn "    else if v.any (fun c => c.toNat < 32 || c.toNat == 127) then .error (what ++ \" contains a control character\")"
+      putStrLn "    else .ok (String.ofList name, v)"
+      putStrLn "  | _, _ => .error form"
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where
