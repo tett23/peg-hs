@@ -119,4 +119,9 @@ theorem invariant1_runtime_repeat {ctx : Inputs} {a : Body}
     Derives ctx (.star a) n env (runtimeRepeat step n {env with resultDepth := 0} bound).val :=
   .star (runtimeRepeat step n _ bound).property
 
+theorem invariant1_runtime_label {ctx : Inputs} {a : Body} {n : Nat} {env : Env} {r : Reply}
+    (name : String) (message : Option String) (child : Derives ctx a n env r) :
+    Derives ctx (.label name message a) n env (translatedLabel n name message r) := by
+  cases r <;> exact .label child
+
 end PegHs.EnvironmentEval

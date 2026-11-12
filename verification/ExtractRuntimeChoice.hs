@@ -95,6 +95,27 @@ main = do
     "          Ok k x | " " -> go k (x : acc)" "(reverse acc)"
   repeatBody "skipMany" "  let go j = do" "   in go i" "translatedSkipManyProgress"
     "          Ok k _ | " " -> go k" "()"
+  case (body "labeled rawLabel =", body "labeledMessage rawLabel msg =") of
+    (["labeled rawLabel = labeledWith plainRecovery rawLabel Nothing"],
+     ["labeledMessage rawLabel msg = labeledWith plainRecovery rawLabel (Just (T.pack msg))"]) -> pure ()
+    _ -> die "unsupported label wrappers"
+  let labelSetup = ["labeledWith wrap rawLabel msg recovery p = P $ \\c i -> do",
+        "  savedFail <- readSTRef (ctxFail c)", "  writeSTRef (ctxFail c) NoFailure",
+        "  savedErrors <- saveErrors c", "  r <- unP p c i", "  local <- readSTRef (ctxFail c)",
+        "  writeSTRef (ctxFail c) (mergeFailure savedFail local)", "  case r of", "    Fail -> do",
+        "      restoreErrors c savedErrors", "      case recovery of", "        Just q | cfgRecover (ctxConfig c) ->"]
+  case stripPrefix labelSetup (body "labeledWith wrap ") of
+    Just rest -> case dropWhile (isPrefixOf "          ") rest of
+      [onFail, "    _ -> pure r", "  where", "    l = T.pack rawLabel"] -> do
+        failure <- case onFail of
+          "        _ -> pure (Throw i l msg)" -> pure ".throwLabel n name msg"
+          "        _ -> pure Fail" -> pure ".fail"
+          _ -> die "unsupported strict label failure"
+        putStrLn "def translatedLabel (n : Nat) (name : String) (msg : Option String) : Reply → Reply"
+        putStrLn ("  | .fail => " ++ failure)
+        putStrLn "  | other => other"
+      _ -> die "unsupported strict label result"
+    _ -> die "unsupported recovery guard in label"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of
