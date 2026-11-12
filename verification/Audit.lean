@@ -16,6 +16,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import AssembleValidation
 import Pragmas
 import RuleRejection
 import RuleRejectionRefs
@@ -27,7 +28,7 @@ run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
       `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal, `Signatures, `File,
-      `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs,
+      `Consumption, `FileTrees, `Pipeline, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs,
       `RuleRejectionRepeat, `RuleRejectionNullable] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
