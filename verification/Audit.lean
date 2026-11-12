@@ -50,6 +50,22 @@ theorem invariant1_actual_meta_total (syntaxMode : Bool) (token : Nat → Option
 
 end PegHs.RecursiveEval
 
+namespace PegHs.ConcreteTerminalBody
+
+-- Both extracted metagrammars terminate on every concrete character input.
+theorem invariant1_actual_concrete_total (syntaxMode : Bool)
+    (input : List Char) (rule : Nat) :
+    ∃ fuel result,
+      (if syntaxMode then MetaTerminal2.runConcrete input fuel rule
+       else MetaTerminal1.runConcrete input fuel rule) = some result := by
+  cases syntaxMode with
+  | false => simpa using MetaTerminal1.invariant1_runConcrete_total input rule
+  | true => simpa using MetaTerminal2.invariant1_runConcrete_total input rule
+
+#print axioms invariant1_actual_concrete_total
+
+end PegHs.ConcreteTerminalBody
+
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv

@@ -71,4 +71,17 @@ theorem invariant1_byte_literal_prefix (pattern source : List Char) :
     cases step
     exact ⟨tail.utf8Encode, (List.utf8Encode_append ..).symm⟩
 
+-- Byte slicing at the two parser positions recovers exactly the bound text
+-- used by semantic predicates, including empty captures and multibyte scalars.
+theorem invariant1_capture_bytes (before captured after : List Char) :
+    (before ++ captured ++ after).utf8Encode.extract before.utf8Encode.size
+      (before.utf8Encode.size + captured.utf8Encode.size) = captured.utf8Encode := by
+  rw [List.append_assoc, List.utf8Encode_append, List.utf8Encode_append]
+  simpa only [Nat.add_zero] using (ByteArray.extract_append_size_add (a := before.utf8Encode) (b := captured.utf8Encode ++ after.utf8Encode) (i := 0) (j := captured.utf8Encode.size)).trans (ByteArray.extract_append_eq_left rfl)
+
+theorem invariant1_capture_value (before captured after : List Char) :
+    ((before ++ captured ++ after).utf8Encode.extract before.utf8Encode.size
+      (before.utf8Encode.size + captured.utf8Encode.size)).utf8Decode? = some captured.toArray := by
+  rw [invariant1_capture_bytes, List.utf8Decode?_utf8Encode]
+
 end PegHs.Utf8Terminals
