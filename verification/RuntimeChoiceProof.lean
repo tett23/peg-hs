@@ -1,6 +1,6 @@
 import TranslatedRuntimeChoice
 import EnvironmentDerivation
-import Utf8Terminals
+import MetaExecution
 
 namespace PegHs.EnvironmentEval
 
@@ -131,5 +131,25 @@ theorem invariant1_runtime_capture_bytes (before captured after : List Char) :
       (before ++ captured ++ after).utf8Encode.size := by simp [List.utf8Encode_append]
   simpa [translatedCaptureBytes, ByteArray.extract_extract, Nat.min_eq_left bound] using
     Utf8Terminals.invariant1_capture_bytes before captured after
+
+theorem invariant1_runtime_capture_binding (mode : Bool) (before captured after : List Char)
+    (site : Nat) (name : String) (inner : Env) :
+    let input := before ++ captured ++ after
+    ∃ bound, bindResult (MetaExecution.context mode input) site name (captured.length + after.length)
+        (.ok after.length inner) = .ok after.length bound ∧
+      (bound.lookup name).utf8Encode = translatedCaptureBytes input.utf8Encode
+        before.utf8Encode.size (before.utf8Encode.size + captured.utf8Encode.size) := by
+  dsimp only
+  rw [invariant1_runtime_capture_bytes]
+  have text : matchedText (before ++ captured ++ after) (captured.length + after.length)
+      after.length = captured := by
+    simp [matchedText, List.append_assoc]
+  cases mode <;>
+    refine ⟨(inner.put name captured).putDepth name inner.resultDepth, ?_, ?_⟩
+  all_goals first
+    | change Reply.ok _ ((inner.put name (matchedText (before ++ captured ++ after)
+        (captured.length + after.length) after.length)).putDepth name inner.resultDepth) = _
+      rw [text]
+    | simp [Env.lookup, Env.putDepth, Env.put]
 
 end PegHs.EnvironmentEval
