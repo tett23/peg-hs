@@ -13,10 +13,9 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Pipeline Pragmas; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Pipeline Pragmas; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
-lean -DwarningAsError=true Audit.lean
 lean --run Boundary.lean > "$work/boundary-expected"
 cd ..
 verification/check-guard.sh
@@ -32,16 +31,26 @@ extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
 }
 extract_file packages/peg-grammar/grammar/Peg.hpeg packages/peg-grammar/grammar/PegSyntax.hpeg > "$work/FileTrees.lean"
-(cd verification && lean -DwarningAsError=true "$work/FileTrees.lean")
-# Removing the EOF check still gives valid hpeg, but changes its operator tree.
-sed 's/^File <- Ws TopItem\* (!\.) \^top$/File <- Ws TopItem*/' \
-  packages/peg-grammar/grammar/Peg.hpeg > "$work/NoEOF.hpeg"
-extract_file "$work/NoEOF.hpeg" > "$work/NoEOF.lean"
-if (cd verification && lean "$work/NoEOF.lean") > "$work/no-eof.log" 2>&1; then
-  echo 'invariant1: Lean unexpectedly accepted a File production without EOF' >&2
-  exit 1
-fi
-grep -q 'rfl' "$work/no-eof.log" || { cat "$work/no-eof.log" >&2; exit 1; }
+(cd verification && lean -DwarningAsError=true -R "$work" -o "$work/FileTrees.olean" "$work/FileTrees.lean" &&
+  lean -DwarningAsError=true CheckEmpty.lean && lean -DwarningAsError=true Audit.lean)
+
+# Each edited hpeg must still parse and translate. Only the Lean certificate fails.
+reject_mutation() {
+  grammar=$1
+  edit=$2
+  expected=$3
+  sed "$edit" "packages/peg-grammar/grammar/$grammar.hpeg" > "$work/Mutant.hpeg"
+  extract_file "$work/Mutant.hpeg" > "$work/Mutant.lean"
+  if (cd verification && lean "$work/Mutant.lean") > "$work/mutant.log" 2>&1; then
+    echo "invariant1: Lean accepted the mutation $edit" >&2
+    exit 1
+  fi
+  grep -Fq "$expected" "$work/mutant.log" || { cat "$work/mutant.log" >&2; exit 1; }
+}
+reject_mutation Peg 's/^File <- Ws TopItem\* (!\.) \^top$/File <- Ws TopItem*/' 'fileExpr ws item'
+reject_mutation Peg 's/^Verbatim <-.*/Verbatim <- Here/' 'run (ruleTopItem rest) []'
+reject_mutation PegSyntax 's/^TopItem <- \&\. /TopItem <- /' 'run (ruleTopItem rest) []'
+reject_mutation Peg 's/^Ws <-.*/Ws <- ./' 'run (ruleWs rest) []'
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar \
   verification/ExtractSignatures.hs \
   packages/peg-grammar/grammar/Peg.hpeg \
