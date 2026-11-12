@@ -1,4 +1,5 @@
 import Pipeline
+import DirectiveNames
 
 namespace PegHs.AssembleValidation
 
@@ -37,8 +38,6 @@ def modulePresent (tops : List Top) : Bool :=
 structure Predicates where
   validIdent : String → Bool
   validModule : String → Bool
-  validImportPath : String → Bool
-  validExtension : String → Bool
   validExport : String → Bool
   validClass : String → Bool
   isDigit : Char → Bool
@@ -103,14 +102,14 @@ def otherViolations (tops : List Top) (p : Predicates) : List Violation := Id.ru
       !["library", "module"].contains d.1)).map (·.1)) else []) ++
     (if library && tops.any (fun t => match t with | .verbatim => true | _ => false)
       then [⟨.libraryVerbatim, ""⟩] else []) ++
-    emit .invalidImportPath (imports.filter (fun x => !x.isEmpty && !p.validImportPath x)) ++
-    emit .duplicateImport (repeated (imports.filter p.validImportPath)) ++
+    emit .invalidImportPath (imports.filter (fun x => !x.isEmpty && !DirectiveNames.validImportPath x)) ++
+    emit .duplicateImport (repeated (imports.filter DirectiveNames.validImportPath)) ++
     emit .invalidRecover ((args ds "recover").filter fun a =>
       !a.isEmpty && match p.words a with
         | [lab, rule] => !(p.validIdent lab && p.validIdent rule)
         | _ => true) ++
     emit .invalidLanguage (((args ds "language").flatMap p.splitExports).filter
-      (fun x => !p.validExtension x)) ++
+      (fun x => !DirectiveNames.validExtension x)) ++
     emit .invalidModule ((args ds "module").filter
       (fun x => !x.isEmpty && !p.validModule x)) ++
     emit .invalidExport (((args ds "export").flatMap p.splitExports).filter
