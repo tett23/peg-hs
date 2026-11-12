@@ -1,4 +1,5 @@
 import Pipeline
+import AssembleValidationHelpers
 import DirectiveNames
 
 namespace PegHs.AssembleValidation
@@ -42,8 +43,6 @@ structure Predicates where
   validClass : String → Bool
   isDigit : Char → Bool
   words : String → List String
-  splitExports : String → List String
-  stringArg : String → String → Except String String
 
 -- The second and later occurrences are the rejection witnesses. Assemble.hs
 -- may report only one duplicate directive per name; multiplicity is erased
@@ -74,7 +73,8 @@ def emit (kind : Kind) (names : List String) : List Violation :=
 
 def stringResults (p : Predicates) (ds : List (String × String)) (n : String) :
     List (Except String String) :=
-  (args ds n).filterMap fun a => if a.isEmpty then none else some (p.stringArg n a)
+  (args ds n).filterMap fun a => if a.isEmpty then none else
+    some (AssembleValidationHelpers.stringArg p.validIdent n a)
 
 def parseFailures (rs : List (Except String String)) : List String := rs.filterMap fun
   | .error e => some e
@@ -108,13 +108,13 @@ def otherViolations (tops : List Top) (p : Predicates) : List Violation := Id.ru
       !a.isEmpty && match p.words a with
         | [lab, rule] => !(p.validIdent lab && p.validIdent rule)
         | _ => true) ++
-    emit .invalidLanguage (((args ds "language").flatMap p.splitExports).filter
+    emit .invalidLanguage (((args ds "language").flatMap AssembleValidationHelpers.splitExports).filter
       (fun x => !DirectiveNames.validExtension x)) ++
     emit .invalidModule ((args ds "module").filter
       (fun x => !x.isEmpty && !p.validModule x)) ++
-    emit .invalidExport (((args ds "export").flatMap p.splitExports).filter
+    emit .invalidExport (((args ds "export").flatMap AssembleValidationHelpers.splitExports).filter
       (fun x => !p.validExport x)) ++
-    emit .invalidDeriving (((args ds "deriving").flatMap p.splitExports).filter
+    emit .invalidDeriving (((args ds "deriving").flatMap AssembleValidationHelpers.splitExports).filter
       (fun x => !p.validClass x)) ++
     emit .invalidString (parseFailures strings) ++
     emit .duplicateString (repeated (parsedNames (stringResults p ds "expect")) ++

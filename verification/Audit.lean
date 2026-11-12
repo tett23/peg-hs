@@ -28,7 +28,7 @@ run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
       `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal, `Signatures, `File,
-      `Consumption, `FileTrees, `Pipeline, `DirectiveNames, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs,
+      `Consumption, `FileTrees, `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs,
       `RuleRejectionRepeat, `RuleRejectionNullable] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
