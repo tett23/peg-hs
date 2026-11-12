@@ -16,6 +16,7 @@ lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespac
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
+lean -DwarningAsError=true -o "$work/DirectiveSourceDiagnostic.olean" DirectiveSourceDiagnostic.lean
 sh check-directive-arity.sh "$work"
 
 # A different but supported call still translates; it must lose the File derivation.
