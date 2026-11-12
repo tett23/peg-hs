@@ -126,6 +126,15 @@ main = do
         putStrLn "def translatedCaptureBytes (input : ByteArray) (start stop : Nat) : ByteArray :="
         putStrLn ("  (input.extract start input.size).extract 0 " ++ count)
     _ -> die "unsupported capture"
+  case body "predicate f =" of
+    ["predicate f = P $ \\c i ->", condition] -> do
+      test <- case condition of
+        "  pure (if f (colAt c i) then Ok i () else Fail)" -> pure "test column"
+        "  pure (if f (colAt c i) then Fail else Ok i ())" -> pure "!(test column)"
+        _ -> die "unsupported semantic predicate branches"
+      putStrLn "def translatedPredicate (test : Nat → Bool) (column n : Nat) (unitValue : Env) : Reply :="
+      putStrLn ("  if " ++ test ++ " then .ok n unitValue else .fail")
+    _ -> die "unsupported semantic predicate"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of

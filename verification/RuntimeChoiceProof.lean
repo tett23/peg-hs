@@ -152,4 +152,22 @@ theorem invariant1_runtime_capture_binding (mode : Bool) (before captured after 
       rw [text]
     | simp [Env.lookup, Env.putDepth, Env.put]
 
+theorem invariant1_runtime_predicate (ctx : Inputs) (site n column : Nat) (env : Env)
+    (test : Nat → Bool) (value : predicateTest ctx site env = some (test column)) :
+    Derives ctx (.predicate site) n env (translatedPredicate test column n {env with resultDepth := 0}) := by
+  cases h : test column with
+  | false =>
+    simpa [translatedPredicate, h] using Derives.predicateFail (n := n) (Or.inr (value.trans (congrArg some h)))
+  | true =>
+    simpa [translatedPredicate, h] using Derives.predicateOk (n := n) (value.trans (congrArg some h))
+
+theorem invariant1_runtime_site_predicate (mode : Bool) (input : List Char)
+    (site n column : Nat) (env : Env) {kind polarity}
+    (found : (MetaExecution.context mode input).sites site = some (kind, polarity)) :
+    let ctx := MetaExecution.context mode input
+    let test := fun _ : Nat => SemanticPredicates.eval ctx.classes kind (ctx.predicateEnv site env) == polarity
+    Derives ctx (.predicate site) n env (translatedPredicate test column n {env with resultDepth := 0}) := by
+  apply invariant1_runtime_predicate
+  simp [predicateTest, found]
+
 end PegHs.EnvironmentEval
