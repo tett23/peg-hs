@@ -8,6 +8,12 @@ import ConcreteTerminalBody
 import LabeledConcreteBody
 import ConcreteTables
 import Guard
+import SemanticPredicates
+import CapturedPredicates
+import GhcPredicates
+import ParameterPredicates
+import EscapePredicates
+import ExpressionDepth
 import Parsing
 import Header
 import Whitespace
@@ -91,7 +97,8 @@ end PegHs.ConcreteTerminalBody
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
+  for moduleName in [`CapturedPredicates, `SemanticPredicates, `GhcPredicates, `ParameterPredicates, `EscapePredicates, `ExpressionDepth,
+      `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
       `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal,
       `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `RenderExpression, `DirectiveNames,
       `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
