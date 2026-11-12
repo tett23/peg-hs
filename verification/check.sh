@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue Pipeline Pragmas RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -36,6 +36,8 @@ verification/check-pipeline.sh
 verification/check-public-parsing.sh
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
+verification/check-inner-generation.sh
+verification/check-inner-unicode.sh
 
 extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
@@ -54,7 +56,6 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/WindowReplay.olean" WindowReplay.lean &&
   lean -DwarningAsError=true -o "$work/WindowReads.olean" WindowReads.lean &&
   lean -DwarningAsError=true -o "$work/FileTopItems.olean" FileTopItems.lean &&
-  lean -DwarningAsError=true -o "$work/PublicParsing.olean" PublicParsing.lean &&
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
