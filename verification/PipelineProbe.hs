@@ -40,6 +40,18 @@ main = do
       resolved src = parseGrammar src >>= \g -> resolveImports g []
       expanded src = resolved src >>= expandTemplates
       failsAt stage result = isRight result && isLeft (result >>= stage)
+  let mixedImports = "%module M\n%import missing.hpeg\n%import module.hpeg\nS <- 'a'\n"
+  case parseGrammar mixedImports >>= \g -> resolveImports g [("module.hpeg", good)] of
+    Left ds | [missing, notLibrary] <- map diagMessage ds
+            , "no such file" `T.isInfixOf` missing
+            , "no %library directive" `T.isInfixOf` notLibrary -> pure ()
+    other -> die ("invariant2: expected both library errors in import order: " ++ show other)
+  let root = "%module M\n%import one.hpeg\n%import two.hpeg\nS <- 'x'\n"
+      libs = [("one.hpeg", "%library\nUnused <- 'a'\n"),
+              ("two.hpeg", "%library\nUnused <- 'b'\n")]
+  case parseGrammar root >>= \g -> resolveImports g libs of
+    Left [d] | "duplicate definition of Unused" == diagMessage d -> pure ()
+    other -> die ("invariant2: duplicate imported name escaped the merge check: " ++ show other)
   unless (failsAt (\g -> resolveImports g []) (parseGrammar importSource)) $
     die "invariant2: import case did not reach and fail import resolution"
   unless (failsAt expandTemplates (resolved expandSource)) $
