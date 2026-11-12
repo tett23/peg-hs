@@ -127,6 +127,26 @@ set_option maxRecDepth 8192 in
 theorem invariant1_strict_primary (input : List Char) :
     translatedStrictPrimary = (context false input).rules 33 := rfl
 
+set_option maxRecDepth 16384 in
+theorem invariant1_strict_rule_table :
+    translatedStrictTable = MetaTerminal1.environmentBodyTable := rfl
+
+def strictContext (input : List Char) : Inputs :=
+  { context false input with rules := fun i => translatedStrictTable[i]?.getD (.terminal 0) }
+
+set_option maxRecDepth 16384 in
+theorem invariant1_strict_context (input : List Char) :
+    strictContext input = context false input := by
+  unfold strictContext
+  rw [invariant1_strict_rule_table]
+  rfl
+
+set_option maxRecDepth 16384 in
+theorem invariant1_strict_recursive_file (input : List Char) (reply : Reply) :
+    (∃ fuel, runFuel (strictContext input) fuel translatedStrictFile input.length {} = some reply) ↔
+      FileResult false input reply := by
+  rw [invariant1_strict_context, invariant1_translated_strict_run]
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim

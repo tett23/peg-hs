@@ -1,10 +1,9 @@
--- Recognition projection of the generated strict File rule. Child calls, memo
--- hits, and runtime combinators retain their separate semantic obligations.
+-- Extract the recognition bodies of the generated strict parser in source order.
 module Main (main) where
 
-import Control.Monad (forM_, guard)
+import Control.Monad (forM_, guard, unless)
 import Data.Char (isDigit, isSpace, ord)
-import Data.List (intercalate, tails)
+import Data.List (intercalate, sort, stripPrefix, tails)
 import System.Environment (getArgs)
 import System.Exit (die)
 import Text.ParserCombinators.ReadP
@@ -1121,7 +1120,7 @@ main = do
   [path] <- getArgs
   source <- lines <$> readFile path
   putStrLn "import MetaExecution\nnamespace PegHs.MetaExecution"
-  forM_ [("File", production), ("TopItem", topItem), ("TopOne", topOne), ("Ws", whitespace),
+  let parsers = [("File", production), ("TopItem", topItem), ("TopOne", topOne), ("Ws", whitespace),
          ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
@@ -1141,10 +1140,16 @@ main = do
          ("HsString", hsStringRule), ("HsChar", hsCharRule), ("HsIdent", hsIdentRule),
          ("CallArgs", listRule "CallArgs" 65 131), ("ArgChunks", chunksRule "ArgChunks" "c" 147 80 91),
          ("ArgChunk", chunkRule False), ("GroupAlts", groupAltsRule), ("MoreGroup", moreGroupRule),
-         ("TemplateArgs", templateArgsRule), ("TemplateArg", templateArgRule), ("Primary", primaryRule)] $
+         ("TemplateArgs", templateArgsRule), ("TemplateArg", templateArgRule), ("Primary", primaryRule)]
+      names = [name | line <- source, Just lhs <- [stripPrefix "peg'rule'" line],
+               name : args <- [words lhs], args == ["="] || args == ["d", "="]]
+  unless (sort names == sort (map fst parsers)) (die "generated rule inventory differs from supported rules")
+  forM_ parsers $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp", "GroupAlts", "MoreGroup", "TemplateArgs", "TemplateArg", "Primary"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)
+  putStrLn ("def translatedStrictTable : Array EnvironmentEval.Body := #[" ++
+    intercalate ", " (map ("translatedStrict" ++) names) ++ "]")
   putStrLn "end PegHs.MetaExecution"
