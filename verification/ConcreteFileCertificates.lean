@@ -4,8 +4,8 @@ open PegHs.EnvironmentEval PegHs.MetaExecution
 
 namespace PegHs.ConcreteFileCertificates
 
--- The first TopItem of Peg.hpeg, including its trailing whitespace.
--- This local certificate does not establish FileResult for the entire file.
+-- The first TopItem of Peg.hpeg consumes 193 characters; the next directive
+-- remains as a 15-character lookahead window. This does not establish FileResult.
 def firstTopItem : List Char := "%module Peg.Grammar.SelfHosted\n\n# 次のラベルは、ラベルの安全性の検査（ADR 0028）が危険と判定するが、安全である。\n# 識別子と空白の文字は意味述語で判定しており、検査は意味述語がどの文字でも成功\n# しうるとみなすため、空白や識別子で始まる別の選択肢と区別できない。安全なことは、\n# ラベルを外した文法との受理の一致のテストで確かめている。\n%safe verbatim\n".toList
 
 set_option maxRecDepth 20000 in
@@ -21,5 +21,21 @@ theorem invariant1_peg_first_top_item_derives :
   invariant1_runFuel_sound invariant1_peg_first_top_item_window
 
 #print axioms invariant1_peg_first_top_item_derives
+
+def syntaxFirstTopItem : List Char := "%module Peg.Grammar.SelfHostedSyntax\n\n# 次のラベルは、ラベルの安全性の検査（ADR 0028）が危険と判定するが、安全である。\n# 識別子と空白の文字は意味述語で判定しており、検査は意味述語がどの文字でも成功\n# しうるとみなすため、空白や識別子で始まる別の選択肢と区別できない。安全なことは、\n# ラベルを外した文法との受理の一致のテストで確かめている。\n%safe verbatim\n".toList
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 0 in
+theorem invariant1_syntax_first_top_item_window :
+    runFuel (context true syntaxFirstTopItem) 12000
+      ((context true syntaxFirstTopItem).rules 1) syntaxFirstTopItem.length {} = some (.ok 15 {}) := by
+  decide +kernel
+
+theorem invariant1_syntax_first_top_item_derives :
+    Derives (context true syntaxFirstTopItem)
+      ((context true syntaxFirstTopItem).rules 1) syntaxFirstTopItem.length {} (.ok 15 {}) :=
+  invariant1_runFuel_sound invariant1_syntax_first_top_item_window
+
+#print axioms invariant1_syntax_first_top_item_derives
 
 end PegHs.ConcreteFileCertificates

@@ -10,4 +10,9 @@ LEAN_PATH=$work${LEAN_PATH:+:$LEAN_PATH} lean --run CheckConcreteFileCertificate
 sed -n '9,15p' ../packages/peg-grammar/grammar/Peg.hpeg \
   > "$work/first-top-item.source"
 cmp "$work/first-top-item.source" "$work/first-top-item.actual"
-printf '1 kernel certificate and 1 source window checked\n'
+LEAN_PATH=$work${LEAN_PATH:+:$LEAN_PATH} lean --run CheckConcreteFileCertificates.lean syntax \
+  > "$work/syntax-first-top-item.actual"
+sed -n '9,15p' ../packages/peg-grammar/grammar/PegSyntax.hpeg \
+  > "$work/syntax-first-top-item.source"
+cmp "$work/syntax-first-top-item.source" "$work/syntax-first-top-item.actual"
+printf '2 kernel certificates and 2 source windows checked\n'
