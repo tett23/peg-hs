@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53"), ("HsNested","54"), ("HsInner","55"),
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgChunks","48"), ("ArgChunk","49"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53"), ("HsNested","54"), ("HsInner","55"),
      ("HsString","56"), ("HsChar","57"), ("HsIdent","58")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
@@ -344,19 +344,21 @@ templateParamRule = do
   returnAction ["TemplateParam", "n", "ty"]
   pure (".seq (.bind 21 \"n\" " ++ name ++ ") (.alt (.bind 22 \"ty\" " ++ annotation ++ ") .eps)")
 
-paramChunkRule :: ReadP String
-paramChunkRule = do
-  header "ParamChunk"
+chunkRule :: Bool -> ReadP String
+chunkRule parameter = do
+  let (name, site, predId, bindId, termId) = if parameter then ("ParamChunk", 47, 4, 27 :: Int, 29 :: Int)
+        else ("ArgChunk", 150, 16, 83, 93)
+  header name
   mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"]
-  ws <- call 47
+  ws <- call site
   mapM_ token [";", "l", "<-"]
-  loc <- call 48
+  loc <- call (site+1)
   mapM_ token [";", "c", "<-", "PegRt.capture", "("]
-  code <- call 49
+  code <- call (site+2)
   token ")"
-  nonempty <- predicate 4 ["not", "(", "T.null", "(", "T.strip", "c", ")", ")"]
-  form <- predicate 5 ["paramError", "l", "c", "/=", "Just", "paramFormMessage"]
-  ty <- predicate 6 ["paramError", "l", "c", "==", "Nothing"]
+  nonempty <- predicate predId ["not", "(", "T.null", "(", "T.strip", "c", ")", ")"]
+  checks <- if parameter then sequence [predicate 5 ["paramError", "l", "c", "/=", "Just", "paramFormMessage"],
+    predicate 6 ["paramError", "l", "c", "==", "Nothing"]] else pure []
   mapM_ token [";", "PegRt.labeled"]
   delimiterLabel <- quoted
   mapM_ token ["PegPrelude.Nothing", "(", "PegRt.choice", "[", "do", "{", "PegRt.andP", "(", "PegRt.cls"]
@@ -364,10 +366,10 @@ paramChunkRule = do
   guard (ranges == [(',', ','), (')', ')')])
   _ <- quoted
   mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")"]
-  returnAction ["param", "l", "c"]
-  let delimiter = "(.label " ++ leanString delimiterLabel ++ " none (.ahead (.terminal 29)))"
-  pure (sequenceBody [ws, "(.bind 27 \"l\" " ++ loc ++ ")", "(.bind 28 \"c\" (.capture " ++ code ++ "))",
-    nonempty, form, ty, delimiter])
+  returnAction [if parameter then "param" else "Located", "l", "c"]
+  let delimiter = "(.label " ++ leanString delimiterLabel ++ " none (.ahead (.terminal " ++ show termId ++ ")))"
+  pure (sequenceBody ([ws, "(.bind " ++ show bindId ++ " \"l\" " ++ loc ++ ")", "(.bind " ++ show (bindId+1) ++ " \"c\" (.capture " ++ code ++ "))",
+    nonempty] ++ checks ++ [delimiter]))
   where
     predicate :: Int -> [String] -> ReadP String
     predicate site expr = token ";" >> labelled (do
@@ -376,25 +378,28 @@ paramChunkRule = do
       mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
       pure ("(.predicate " ++ show site ++ ")"))
 
-paramChunksRule :: ReadP String
-paramChunksRule = do
-  header "ParamChunks"
-  let chunk site = do
-        mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "p", "<-"]
-        call site
-  first <- chunk 44
+chunksRule :: String -> String -> Int -> Int -> Int -> ReadP String
+chunksRule name var site binding term = do
+  header name
+  let chunk callSite = do
+        mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", var, "<-"]
+        call callSite
+  first <- chunk site
   token ";"
   literal ","
   mapM_ token [";", "rest", "<-"]
-  rest <- call 45
-  endAction ["p", ":", "rest"]
+  rest <- call (site+1)
+  endAction [var, ":", "rest"]
   token ","
-  lastChunk <- chunk 46
+  lastChunk <- chunk (site+2)
   token ";"
   literal ")"
-  returnAction ["[", "p", "]"]
-  pure (".alt (.seq (.bind 24 \"p\" " ++ first ++ ") (.seq (.terminal 27) (.bind 25 \"rest\" " ++
-    rest ++ "))) (.seq (.bind 26 \"p\" " ++ lastChunk ++ ") (.terminal 28))")
+  returnAction ["[", var, "]"]
+  let bind i n child = "(.bind " ++ show i ++ " " ++ show n ++ " " ++ child ++ ")"
+      terminal i = "(.terminal " ++ show i ++ ")"
+      cons = sequenceBody [bind binding var first, terminal term, bind (binding+1) "rest" rest]
+      single = sequenceBody [bind (binding+2) var lastChunk, terminal (term+1)]
+  pure (".alt " ++ cons ++ " " ++ single)
 
 declStartRule :: ReadP String
 declStartRule = do
@@ -937,15 +942,15 @@ moreAltRule = do
   mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
   pure (".seq " ++ ws ++ " (.seq (.terminal 30) " ++ alt ++ ")")
 
-paramListRule :: ReadP String
-paramListRule = do
-  header "ParamList"
+listRule :: String -> Int -> Int -> ReadP String
+listRule name term site = do
+  header name
   mapM_ token ["do", "{"]
   literal "("
   mapM_ token [";", "peg'v0", "<-"]
-  chunks <- call 43
+  chunks <- call site
   mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
-  pure (".seq (.terminal 26) " ++ chunks)
+  pure (".seq (.terminal " ++ show term ++ ") " ++ chunks)
 
 typeTextRule :: ReadP String
 typeTextRule = do
@@ -983,8 +988,8 @@ main = do
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
          ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule),
          ("Declaration", declarationRule), ("TemplateParams", templateParamsRule), ("TemplateParam", templateParamRule),
-         ("TypeText", typeTextRule), ("ParamList", paramListRule), ("ParamChunks", paramChunksRule),
-         ("ParamChunk", paramChunkRule),
+         ("TypeText", typeTextRule), ("ParamList", listRule "ParamList" 26 43), ("ParamChunks", chunksRule "ParamChunks" "p" 44 24 27),
+         ("ParamChunk", chunkRule True),
          ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
          ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule),
          ("Labeled", labeledRule), ("LabelPart", labelPartRule), ("SuffixE", suffixRule),
@@ -994,7 +999,9 @@ main = do
          ("Action", embeddedCodeRule "Action" 143 76 89), ("PredCode", embeddedCodeRule "PredCode" 145 78 90),
          ("ActionCode", actionCodeRule), ("ArgCode", argCodeRule), ("HsPart", hsPartRule "HsPart" 155 95),
          ("HsParen", hsParenRule), ("HsNested", hsNestedRule), ("HsInner", hsPartRule "HsInner" 163 103),
-         ("HsString", hsStringRule), ("HsChar", hsCharRule), ("HsIdent", hsIdentRule)] $
+         ("HsString", hsStringRule), ("HsChar", hsCharRule), ("HsIdent", hsIdentRule),
+         ("CallArgs", listRule "CallArgs" 65 131), ("ArgChunks", chunksRule "ArgChunks" "c" 147 80 91),
+         ("ArgChunk", chunkRule False)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->

@@ -110,6 +110,11 @@ theorem invariant1_strict_haskell_quotes (input : List Char) :
     translatedStrictHsChar = (context false input).rules 57 ∧
     translatedStrictHsIdent = (context false input).rules 58 := ⟨rfl, rfl, rfl⟩
 
+theorem invariant1_strict_call_arguments (input : List Char) :
+    translatedStrictCallArgs = (context false input).rules 36 ∧
+    translatedStrictArgChunks = (context false input).rules 48 ∧
+    translatedStrictArgChunk = (context false input).rules 49 := ⟨rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
