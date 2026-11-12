@@ -12,6 +12,7 @@ import Consumption
 import FileTrees
 import Pipeline
 import PublicParsing
+import LabelPropagation
 import InnerGeneration
 import InnerUnicode
 import Pragmas
@@ -26,7 +27,7 @@ run_cmd do
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas,
       `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
-      `InnerGeneration, `InnerUnicode, `PublicParsing] do
+      `InnerGeneration, `InnerUnicode, `PublicParsing, `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
