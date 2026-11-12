@@ -9,6 +9,7 @@ lean -DwarningAsError=true -o "$work/SelfHostedFileProof.olean" SelfHostedFilePr
 lean -DwarningAsError=true -o "$work/StrictSpaceChar.olean" StrictSpaceChar.lean
 lean -DwarningAsError=true -o "$work/StrictInlineSpace.olean" StrictInlineSpace.lean
 lean -DwarningAsError=true -o "$work/StrictIdentifier.olean" StrictIdentifier.lean
+lean -DwarningAsError=true -o "$work/StrictDirective.olean" StrictDirective.lean
 lean -DwarningAsError=true -o "$work/StrictComment.olean" StrictComment.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean

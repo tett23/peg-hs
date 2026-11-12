@@ -25,7 +25,7 @@ call site = do
   token "peg'rule'"
   target <- choice [string name >> pure number | (name, number) <-
     [("TopItem","1"), ("TopOne","2"), ("Here","3"), ("Ws","4"), ("SpaceChar","5"),
-     ("Comment","6"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
+     ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -175,6 +175,34 @@ verbatimRule = do
     ") (.seq (.bind 4 \"b\" (.capture (.star (.seq (.notAhead (.terminal 9)) (.terminal 10))))) " ++
     "(.label " ++ leanString name ++ " (some " ++ leanString message ++ ") (.terminal 11))))")
 
+directiveRule :: ReadP String
+directiveRule = do
+  header "Directive"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "l", "<-"]
+  loc <- call 12
+  token ";"
+  literal "%"
+  mapM_ token [";", "n", "<-", "PegRt.choice", "[", "do", "{", "peg'v0", "<-", "PegRt.labeledMessage"]
+  label <- quoted
+  message <- quoted
+  mapM_ token ["PegPrelude.Nothing", "("]
+  name <- call 13
+  mapM_ token [")", ";", "PegPrelude.pure", "peg'v0", "}", "]", ";", "_", "<-"]
+  space <- call 14
+  mapM_ token [";", "al", "<-"]
+  argLoc <- call 15
+  mapM_ token [";", "raw", "<-", "PegRt.capture", "(", "PegRt.skipMany", "(",
+    "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+  literal "\n"
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")", ")",
+    ";", "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+  embedded ["TDirective", "l", "n", "al", "(", "directiveArg", "n", "raw", ")"]
+  mapM_ token [")", "}", "]", ")"]
+  let body = ".bind 8 \"raw\" (.capture (.star (.seq (.notAhead (.terminal 13)) (.terminal 14))))"
+      labelled = "(.label " ++ leanString label ++ " (some " ++ leanString message ++ ") " ++ name ++ ")"
+  pure (".seq (.bind 5 \"l\" " ++ loc ++ ") (.seq (.terminal 12) (.seq (.bind 6 \"n\" " ++ labelled ++
+    ") (.seq " ++ space ++ " (.seq (.bind 7 \"al\" " ++ argLoc ++ ") (" ++ body ++ ")))))")
+
 commentRule :: ReadP String
 commentRule = do
   header "Comment"
@@ -195,7 +223,7 @@ main = do
          ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
-         ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule)] $
+         ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
