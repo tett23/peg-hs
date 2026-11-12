@@ -13,16 +13,45 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean -DwarningAsError=true Audit.lean
-lean --run Boundary.lean > "$work/expected"
+lean --run Boundary.lean > "$work/boundary-expected"
 cd ..
 verification/check-guard.sh
 verification/check-header.sh
-"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-codegen -package=peg-grammar verification/Boundary.hs > "$work/actual"
-diff -u "$work/expected" "$work/actual"
+verification/check-lexical.sh
+verification/check-nullable.sh "$work"
+verification/check-reachable.sh
+verification/check-literal.sh "$work"
+"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar \
+  verification/ExtractSignatures.hs \
+  packages/peg-grammar/grammar/Peg.hpeg \
+  packages/peg-grammar/grammar/PegSyntax.hpeg \
+  packages/peg-codegen/test/fixtures/Templates.hpeg > "$work/ExtractedSignatures.lean"
+(cd verification && lean -DwarningAsError=true "$work/ExtractedSignatures.lean")
+cp "$work/ExtractedSignatures.lean" "$work/InvalidSignatures.lean"
+cat >> "$work/InvalidSignatures.lean" <<'SOURCE'
+namespace Grammar1
+theorem invariant2_missing_reference_must_fail :
+    WellFormed definitions (references ++ [(0, 0)]) := by
+  exact (invariant2_signatures _ _).mp (by decide)
+end Grammar1
+SOURCE
+if (cd verification && lean -DwarningAsError=true "$work/InvalidSignatures.lean") > "$work/invalid-signatures.log" 2>&1; then
+  echo 'invariant2: Lean unexpectedly accepted an undefined rule reference' >&2
+  exit 1
+fi
+[ "$(grep -c 'error:' "$work/invalid-signatures.log")" -eq 1 ] &&
+grep -Fq 'Tactic `decide` proved that the proposition' "$work/invalid-signatures.log" &&
+grep -Fq 'accepts definitions (references ++ [(0, 0)]) = true' "$work/invalid-signatures.log" &&
+grep -Fq 'is false' "$work/invalid-signatures.log" || {
+  cat "$work/invalid-signatures.log" >&2
+  exit 1
+}
+"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-codegen -package=peg-grammar verification/Boundary.hs > "$work/boundary-actual"
+diff -u "$work/boundary-expected" "$work/boundary-actual"
 verification/check-core.sh "$work"
 
 # Regenerate both parsers from the actual grammar files, then ask GHC to read

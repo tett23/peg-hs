@@ -1,11 +1,12 @@
 import Lean.Elab.Tactic.Omega
 -- PEG control operators used by the self-hosted grammar.
 -- Predicate results are supplied as Bool values. This model omits rule calls,
--- repetition, recovery, lexical categories, actions, and input positions.
+-- recovery, lexical categories, actions, and input positions.
 -- Theorems below do not establish equivalence with parseTops.
 namespace PegVerification
 
 inductive Expr where
+  | any : Expr
   | char : Char → Expr
   | seq : Expr → Expr → Expr
   | choice : Expr → Expr → Expr
@@ -14,11 +15,23 @@ inductive Expr where
   | eof : Expr
   | predicate : Bool → Expr
   | label : String → Expr → Expr
+  | many : Expr → Expr
   deriving DecidableEq
 
 abbrev Result := Except (Option String) (List Char)
 
+-- Fuel includes the final attempt that observes failure or zero-width success.
+def repeatRun (step : List Char → Result) : Nat → List Char → Result
+  | 0, _ => .error none
+  | fuel + 1, xs =>
+      match step xs with
+      | .ok ys => if ys.length < xs.length then repeatRun step fuel ys else .ok xs
+      | .error none => .ok xs
+      | .error (some name) => .error (some name)
+
 def run : Expr → List Char → Result
+  | .any, [] => .error none
+  | .any, _ :: xs => .ok xs
   | .char _, [] => .error none
   | .char c, x :: xs => if x = c then .ok xs else .error none
   | .seq a b, xs => (run a xs).bind (run b)
@@ -36,13 +49,42 @@ def run : Expr → List Char → Result
   | .eof, _ :: _ => .error none
   | .predicate true, xs => .ok xs
   | .predicate false, _ => .error none
+  | .many a, xs => repeatRun (run a) (xs.length + 1) xs
   | .label name a, xs => match run a xs with
       | .ok ys => .ok ys
       | .error none => .error (some name)
       | .error (some old) => .error (some old)
 
+-- A positive decrease leaves enough fuel for the final stopping attempt.
+theorem repeat_no_exhaust (step : List Char → Result) :
+    ∀ fuel xs, xs.length < fuel → repeatRun step fuel xs ≠ .error none := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro xs impossible
+      omega
+  | succ fuel ih =>
+      intro xs enough
+      cases h : step xs with
+      | ok ys =>
+          by_cases progress : ys.length < xs.length
+          · have remaining : ys.length < fuel := by omega
+            simpa [repeatRun, h, progress] using ih ys remaining
+          · simp [repeatRun, h, progress]
+      | error err =>
+          cases err with
+          | none => simp [repeatRun, h]
+          | some name => simp [repeatRun, h]
+
+theorem invariant1_many_stops (step : List Char → Result) (xs : List Char) :
+    repeatRun step (xs.length + 1) xs ≠ .error none := by
+  exact repeat_no_exhaust step (xs.length + 1) xs (by omega)
+
 -- A relation independent of the evaluator, with failure as a first-class result.
+mutual
 inductive Eval : Expr → List Char → Result → Prop where
+  | anyOk {c xs} : Eval .any (c :: xs) (.ok xs)
+  | anyEmpty : Eval .any [] (.error none)
   | charOk {c xs} : Eval (.char c) (c :: xs) (.ok xs)
   | charEmpty {c} : Eval (.char c) [] (.error none)
   | charDifferent {c d xs} : d ≠ c → Eval (.char c) (d :: xs) (.error none)
@@ -62,9 +104,24 @@ inductive Eval : Expr → List Char → Result → Prop where
   | labelOk {name a xs ys} : Eval a xs (.ok ys) → Eval (.label name a) xs (.ok ys)
   | labelFail {name a xs} : Eval a xs (.error none) → Eval (.label name a) xs (.error (some name))
   | labelThrow {name a xs old} : Eval a xs (.error (some old)) → Eval (.label name a) xs (.error (some old))
+  | manyResult {a xs r} : RepeatEval a (xs.length + 1) xs r → Eval (.many a) xs r
+
+inductive RepeatEval : Expr → Nat → List Char → Result → Prop where
+  | exhausted {a xs} : RepeatEval a 0 xs (.error none)
+  | stopZero {a fuel xs ys} : Eval a xs (.ok ys) → ¬ ys.length < xs.length →
+      RepeatEval a (fuel + 1) xs (.ok xs)
+  | stopFail {a fuel xs} : Eval a xs (.error none) → RepeatEval a (fuel + 1) xs (.ok xs)
+  | thrown {a fuel xs name} : Eval a xs (.error (some name)) →
+      RepeatEval a (fuel + 1) xs (.error (some name))
+  | step {a fuel xs ys r} : Eval a xs (.ok ys) → ys.length < xs.length →
+      RepeatEval a fuel ys r → RepeatEval a (fuel + 1) xs r
+end
 
 theorem run_sound {e xs r} (h : Eval e xs r) : run e xs = r := by
-  induction h with
+  induction h using Eval.rec
+    (motive_2 := fun e fuel xs r _ => repeatRun (run e) fuel xs = r) with
+  | anyOk => simp [run]
+  | anyEmpty => simp [run]
   | charOk => simp [run]
   | charEmpty => simp [run]
   | charDifferent neq => simp [run, neq]
@@ -84,9 +141,19 @@ theorem run_sound {e xs r} (h : Eval e xs r) : run e xs = r := by
   | labelOk _ ih => simp [run, ih]
   | labelFail _ ih => simp [run, ih]
   | labelThrow _ ih => simp [run, ih]
+  | manyResult _ ih => simpa [run] using ih
+  | exhausted => simp [repeatRun]
+  | stopZero _ notLess ih => simp [repeatRun, ih, notLess]
+  | stopFail _ ih => simp [repeatRun, ih]
+  | thrown _ ih => simp [repeatRun, ih]
+  | step _ less _ ih1 ih2 => simp [repeatRun, ih1, less, ih2]
 
 theorem run_complete (e : Expr) (xs : List Char) : Eval e xs (run e xs) := by
   induction e generalizing xs with
+  | any =>
+      cases xs with
+      | nil => exact .anyEmpty
+      | cons c cs => exact .anyOk
   | char c =>
       cases xs with
       | nil => exact .charEmpty
@@ -139,6 +206,30 @@ theorem run_complete (e : Expr) (xs : List Char) : Eval e xs (run e xs) := by
       cases b with
       | true => exact .predicateOk
       | false => exact .predicateFail
+  | many a iha =>
+      have repeat_complete : ∀ fuel xs, RepeatEval a fuel xs (repeatRun (run a) fuel xs) := by
+        intro fuel
+        induction fuel with
+        | zero =>
+            intro xs
+            exact .exhausted
+        | succ fuel ih =>
+            intro xs
+            cases h : run a xs with
+            | ok ys =>
+                have ha : Eval a xs (.ok ys) := by simpa [h] using iha xs
+                by_cases progress : ys.length < xs.length
+                · simpa [repeatRun, h, progress] using (RepeatEval.step ha progress (ih ys))
+                · simpa [repeatRun, h, progress] using (RepeatEval.stopZero ha progress)
+            | error err =>
+                cases err with
+                | none =>
+                    have ha : Eval a xs (.error none) := by simpa [h] using iha xs
+                    simpa [repeatRun, h] using (RepeatEval.stopFail ha)
+                | some name =>
+                    have ha : Eval a xs (.error (some name)) := by simpa [h] using iha xs
+                    simpa [repeatRun, h] using (RepeatEval.thrown ha)
+      simpa [run] using (Eval.manyResult (repeat_complete (xs.length + 1) xs))
   | label name a iha =>
       cases h : run a xs with
       | ok ys =>
@@ -193,6 +284,8 @@ theorem invariant1_depth_exact (d : Nat) : withinDepth d = true ↔ d < 256 := b
 
 end PegVerification
 
+#print axioms PegVerification.repeat_no_exhaust
+#print axioms PegVerification.invariant1_many_stops
 #print axioms PegVerification.run_sound
 #print axioms PegVerification.run_complete
 #print axioms PegVerification.invariant1_core_iff

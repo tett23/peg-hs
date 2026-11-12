@@ -4,7 +4,7 @@ import qualified Data.Text as T
 import Data.Functor.Const (Const (..))
 import Peg.Runtime.Internal
   ( ST, P, ParseError (parseErrorLabel), defaultConfig, runParser
-  , andP, choice, labeled, lit, notP, predicate
+  , andP, anyChar, choice, labeled, lit, many, skipMany, notP, predicate
   )
 
 mkStore :: forall s. ST s (Const () s)
@@ -24,3 +24,14 @@ main = do
   probe "normalChoice" (choice [lit "a" "a", lit "b" "b"]) "b"
   probe "notLabel" (notP (labeled "inner" Nothing (lit "a" "a")) *> lit "b" "b") "b"
   probe "predicate" (predicate (\_ -> True)) ""
+  probe "anyChar" anyChar "x"
+  probe "manyZero" (many (pure ()) *> lit "b" "b") "b"
+  probe "skipManyZero" (skipMany (pure ()) *> lit "b" "b") "b"
+  probe "manyFail" (many (lit "a" "a") *> lit "b" "b") "aaab"
+  probe "skipManyFail" (skipMany (lit "a" "a") *> lit "b" "b") "aaab"
+  probe "manyThrow" (many (labeled "inner" Nothing (lit "a" "a")) *> pure ()) "b"
+  probe "skipManyThrow" (skipMany (labeled "inner" Nothing (lit "a" "a"))) "b"
+  probe "manyLateZero" (many (choice [lit "a" "a", pure ()]) *> lit "b" "b") "aaab"
+  probe "manyLateThrow" (many (choice [lit "a" "a", labeled "stop" Nothing (lit "c" "c")]) *> pure ()) "aaab"
+
+-- Invariant 1: repetition stops at zero width, ordinary failure, and Throw.
