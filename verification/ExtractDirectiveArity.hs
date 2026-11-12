@@ -1,9 +1,9 @@
--- Extract the three name lists used by assemble's argument diagnostics.
+-- Translate the name and occurrence guards used by assemble's directive diagnostics.
 module Main (main) where
 
 import Control.Monad (unless)
 import Data.Char (isAsciiLower)
-import Data.List (stripPrefix)
+import Data.List (stripPrefix, tails)
 import System.Environment (getArgs)
 import System.Exit (die)
 
@@ -27,9 +27,20 @@ main = do
   flags <- names source
     "        ++ [Diagnostic l (\"%\" <> n <> \" takes no argument\") | (l, n, a) <- directives, n `elem` "
     ", not (T.null a)]"
+  let duplicateStart = "        ++ [ Diagnostic l (\"duplicate %\" <> n <> \" directive\")"
+      duplicateGuard = "           , (l, _, _) : _ : _ <- [reverse [d | d@(_, n', _) <- directives, n' == n]]"
+  unique <- case [clause | first : clause <- tails source, first == duplicateStart] of
+    [listLine : guardLine : "           ]" : _] | guardLine == duplicateGuard ->
+      names [listLine] "           | n <- " ""
+    _ -> die "unsupported duplicate directive clause"
   putStrLn "import DirectiveAssembly"
   putStrLn "namespace PegHs.TranslatedArity"
   putStrLn ("def known : List String := " ++ known)
   putStrLn ("def optional : List String := " ++ optional)
   putStrLn ("def flags : List String := " ++ flags)
+  putStrLn ("def uniqueNames : List String := " ++ unique)
+  putStrLn "def duplicateLocation (n : String) (ds : List (α × String × String)) : Option α :="
+  putStrLn "  match (ds.filter (fun d => d.2.1 == n)).reverse with"
+  putStrLn "  | (l, _, _) :: _ :: _ => some l"
+  putStrLn "  | _ => none"
   putStrLn "end PegHs.TranslatedArity"
