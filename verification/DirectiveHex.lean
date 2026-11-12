@@ -59,7 +59,7 @@ private theorem failed_stays (rest : List Char) (msg : String) :
 theorem invariant2_unicode_missing_close (ds : List Char)
     (allHex : ∀ c ∈ ds, (hexValue c).isSome = true) :
     decodeString (['\\', 'u', '{'] ++ ds) = .error "expected '}'" := by
-  unfold decodeString
+  unfold decodeString finishDecode
   rw [List.foldl_append]
   have initial : ['\\', 'u', '{'].foldl decodeStep (.plain []) = .hex [] 0 0 := rfl
   rw [initial]
@@ -69,7 +69,7 @@ theorem invariant2_unicode_wrong_close (ds : List Char) (bad : Char) (rest : Lis
     (allHex : ∀ c ∈ ds, (hexValue c).isSome = true)
     (notHex : hexValue bad = none) (notClose : bad ≠ '}') :
     decodeString (['\\', 'u', '{'] ++ ds ++ bad :: rest) = .error "expected '}'" := by
-  unfold decodeString
+  unfold decodeString finishDecode
   rw [List.foldl_append, List.foldl_append]
   have initial : ['\\', 'u', '{'].foldl decodeStep (.plain []) = .hex [] 0 0 := rfl
   rw [initial]
