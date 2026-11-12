@@ -1,5 +1,6 @@
 import Lean
 import Guard
+import ExpressionDepth
 import Parsing
 import Header
 import Lexical
@@ -16,7 +17,7 @@ import Pragmas
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
+  for moduleName in [`ExpressionDepth, `Guard, `Parsing, `Header, `Lexical, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0

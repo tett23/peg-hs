@@ -20,6 +20,17 @@ main = do
     putStrLn (show n ++ " " ++ if isRight result then "accept" else "reject")
     unless (isRight result || anyDiagnostic "deeper than 256" result) $
       die ("invariant1: unexpected rejection at depth " ++ show n)
+  -- A group adds one layer; siblings contribute their maximum. A suffix
+  -- outside a group starts counting at the depth returned by that group.
+  let post n = "'a'" <> T.replicate n "?"
+      grouped n = "(" <> post n <> " / " <> post n <> ")"
+      wrapped n = "T<" <> post n <> ">"
+  forM_ [(grouped 255, True), (grouped 256, False), (grouped 255 <> "?", False),
+         (wrapped 255, True), (wrapped 256, False), ("&" <> post 254 <> "^label", True),
+         ("&" <> post 255 <> "^label", False)] $ \(expr, accepted) -> do
+    let result = parseTops ("%module M\nS <- " <> expr <> "\n")
+    unless (if accepted then isRight result else anyDiagnostic "deeper than 256" result) $
+      die ("invariant1: incorrect mixed nesting result for " ++ show expr)
   unless (parseTops "" == Right []) $ die "invariant1: empty file"
   let valid = "%module M\nS <- 'a'\n"
       trailing = valid <> "]"
