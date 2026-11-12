@@ -48,9 +48,17 @@ theorem invariant1_strict_param_list (input : List Char) :
 theorem invariant1_strict_param_chunks (input : List Char) :
     translatedStrictParamChunks = (context false input).rules 18 := rfl
 
+set_option maxRecDepth 4096 in
+theorem invariant1_strict_param_chunk (input : List Char) :
+    translatedStrictParamChunk = (context false input).rules 19 := rfl
+
 theorem invariant1_strict_alternatives (input : List Char) :
     translatedStrictAlts = (context false input).rules 20 ∧
     translatedStrictMoreAlt = (context false input).rules 21 := ⟨rfl, rfl⟩
+
+theorem invariant1_strict_alt_constructor (input : List Char) :
+    translatedStrictAlt = (context false input).rules 22 ∧
+    translatedStrictConstructor = (context false input).rules 23 := ⟨rfl, rfl⟩
 
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
