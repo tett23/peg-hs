@@ -37,7 +37,18 @@ digest=$(shasum -a 256 "$scratch/Parser.y" | cut -d ' ' -f 1)
   echo 'the generated parser module declaration changed' >&2
   exit 1
 }
-sed 's/^module GHC.Parser$/module PegTraceParser/' "$scratch/Parser.generated.hs" > "$scratch/PegTraceParser.hs"
+[ "$(grep -c 'happyLex kend kmore = (lexer True)' "$scratch/Parser.generated.hs")" -eq 1 ] || {
+  echo 'the Happy lexer hook changed' >&2
+  exit 1
+}
+[ "$(grep -F -c '_ -> kmore (happyTerminalToTok tk) tk })' "$scratch/Parser.generated.hs")" -eq 1 ] || {
+  echo 'the Happy terminal callback changed' >&2
+  exit 1
+}
+sed -e 's/^module GHC.Parser$/module PegTraceParser/' \
+  -e 's/happyLex kend kmore = (lexer True)/happyLex kend kmore = (lexerDbg True)/' \
+  -e 's@_ -> kmore (happyTerminalToTok tk) tk })@_ -> let i = happyTerminalToTok tk in Happy_Debug_Trace.trace ("LEXID " Happy_Prelude.++ Happy_Prelude.show (Happy_GHC_Exts.I# i)) (kmore i tk) })@' \
+  "$scratch/Parser.generated.hs" > "$scratch/PegTraceParser.hs"
 "$ghc" -package ghc -c -fforce-recomp -outputdir "$scratch" "$scratch/PegTraceParser.hs"
 "$ghc" -package ghc -i"$scratch" -c -fforce-recomp -o "$scratch/TraceGeneratedModule.o" \
   verification/TraceGeneratedModule.hs
@@ -47,8 +58,12 @@ libdir=$("$ghc" --print-libdir)
 
 for grammar in Peg PegSyntax; do
   "$peg" gen "packages/peg-grammar/grammar/$grammar.hpeg" -o "$scratch/$grammar.hs"
-  "$scratch/trace-generated-module" "$libdir" "$scratch/$grammar.hs" 2> "$scratch/$grammar.trace" \
+  "$scratch/trace-generated-module" "$libdir" "$scratch/$grammar.hs" 2> "$scratch/$grammar.raw-trace" \
     > "$scratch/$grammar.result"
+  awk -v callbacks="$scratch/$grammar.ids" -v shifts="$scratch/$grammar.shift.ids" \
+    -f verification/check-lexer-trace.awk "$scratch/$grammar.raw-trace"
+  grep '^token: ' "$scratch/$grammar.raw-trace" > "$scratch/$grammar.tokens"
+  grep -v -e '^token: ' -e '^LEXID ' "$scratch/$grammar.raw-trace" > "$scratch/$grammar.trace"
   [ "$(cat "$scratch/$grammar.result")" = parsed-no-diagnostics ] || {
     echo "$grammar: GHC parser did not finish cleanly" >&2
     exit 1
@@ -69,6 +84,8 @@ for grammar in Peg PegSyntax; do
     echo "$grammar: the generated module has no LINE pragma" >&2
     exit 1
   }
-  printf '%s: %s trace lines, accepted without diagnostics\n' "$grammar" "$(wc -l < "$scratch/$grammar.trace" | tr -d ' ')"
+  printf '%s: %s lexer tokens, %s trace lines, accepted without diagnostics\n' \
+    "$grammar" "$(wc -l < "$scratch/$grammar.tokens" | tr -d ' ')" \
+    "$(wc -l < "$scratch/$grammar.trace" | tr -d ' ')"
 done
 printf 'GHC 9.10.3, Happy 2.1.7, Parser.y SHA-256 %s\n' "$digest"

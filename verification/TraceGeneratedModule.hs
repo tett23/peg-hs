@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Control.Monad.IO.Class (liftIO)
 import GHC (getSessionDynFlags, runGhc)
 import GHC.Data.FastString (mkFastString)
 import GHC.Data.StringBuffer (stringToStringBuffer)

@@ -27,4 +27,11 @@ theorem invariant3_layout_tokens {g start tokens}
       (sourceSymbols (tokens.map Symbol.terminal)) := by
   simpa [sourceSymbols] using (invariant3_segments cert).eraseLayout
 
+theorem source_append {a b x y : List Nat}
+    (ha : sourceSymbols (a.map Symbol.terminal) = x.map Symbol.terminal)
+    (hb : sourceSymbols (b.map Symbol.terminal) = y.map Symbol.terminal) :
+    sourceSymbols ((a ++ b).map Symbol.terminal) = (x ++ y).map Symbol.terminal := by
+  simp only [List.map_append, sourceSymbols, List.filter_append] at *
+  rw [ha, hb]
+
 end PegHs.CFG

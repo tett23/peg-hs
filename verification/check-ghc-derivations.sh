@@ -13,7 +13,7 @@ compile() {
 }
 compile GHCGrammar
 for name in Peg PegSyntax; do
-  awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.trace" > "$work/Derivation$name.lean"
+  awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.ids" "$work/$name.trace" > "$work/Derivation$name.lean"
   compile "Derivation$name"
 done
 lean -DwarningAsError=true AuditGHC.lean
@@ -23,7 +23,7 @@ lean -DwarningAsError=true AuditGHC.lean
 awk '
   /^def input0 / { if (!sub(/:= \[19,/, ":= [20,")) exit 1 }
   { print }
-  /^theorem checked0 / { print "end Peg"; found=1; exit }
+  /^theorem lexerChecked0 / { print "end Peg"; found=1; exit }
   END { if (!found) exit 1 }
 ' "$work/DerivationPeg.lean" > "$work/InvalidTerminal.lean"
 if compile InvalidTerminal > "$work/InvalidTerminal.log" 2>&1; then
