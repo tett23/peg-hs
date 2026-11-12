@@ -92,13 +92,17 @@ theorem invariant2_unexpected_argument (tops : List Top) (name arg : String) (p 
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
-theorem unknownDirectiveRejected (tops : List Top) (name arg : String) (p : Predicates)
-    (member : Top.directive name arg ∈ tops) (unknown : known.contains name = false) :
-    ∃ ds, assemble tops p = .error ds ∧ diagnostic ⟨.unknownDirective, name⟩ ∈ ds := by
-  have reported := unknownDirectiveDiagnostic tops name arg p member unknown
+private theorem reportedRejection (tops : List Top) (p : Predicates) (v : Violation)
+    (reported : diagnostic v ∈ errors tops p) :
+    ∃ ds, assemble tops p = .error ds ∧ diagnostic v ∈ ds := by
   cases he : errors tops p with
   | nil => simp [he] at reported
   | cons d ds => exact ⟨_, by simp only [assemble, he], he ▸ reported⟩
+
+theorem unknownDirectiveRejected (tops : List Top) (name arg : String) (p : Predicates)
+    (member : Top.directive name arg ∈ tops) (unknown : known.contains name = false) :
+    ∃ ds, assemble tops p = .error ds ∧ diagnostic ⟨.unknownDirective, name⟩ ∈ ds := by
+  exact reportedRejection _ _ _ (unknownDirectiveDiagnostic tops name arg p member unknown)
 
 -- The successful File derivation and the assembly error refer to the same input slices.
 theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Predicates)
@@ -117,5 +121,48 @@ theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Pre
   rw [invariant2_directive_captures]
   exact unknownDirectiveRejected _ _ _ p (.head _) unknown
 
+-- The downstream stages are arbitrary. A diagnostic from the captured declaration
+-- survives to the public result, including when the declaration also lacks a module.
+theorem invariant2_single_directive_public_error (c : Char) (cs : List Char)
+    (p : Predicates) (v : Violation) (start : CharRule.identStart.accepts c = true)
+    (endOfArg : ((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
+      |>.dropWhile (· != '\n')) = [])
+    (reported :
+      let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
+      let raw := (cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
+      diagnostic v ∈ errors [.directive name
+        (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n'))))] p)
+    (resolve expand check : Unit → Except (List String) Unit)
+    (notes : Unit → List String → List String)
+    (strip : Option (Unit → Unit)) (warningFor : Unit → Unit → List String)
+    (generate : Unit → Except (List String) String) :
+    let tail := cs.dropWhile CharRule.identChar.accepts
+    let raw := tail.dropWhile PegVerification.isInlineSpace
+    let top := capturedDirective ('%' :: c :: cs) (c :: cs).length tail.length raw.length
+      (raw.dropWhile (· != '\n')).length
+    FileResult false ('%' :: c :: cs) (.ok 0 {}) ∧
+      ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok [top]) p)
+        resolve expand check notes strip warningFor generate) = .error ds ∧ diagnostic v ∈ ds := by
+  refine ⟨invariant1_single_directive_file c cs start endOfArg, ?_⟩
+  rw [invariant2_directive_captures]
+  dsimp only at reported
+  obtain ⟨ds, failed, member⟩ := reportedRejection _ p v reported
+  exact ⟨ds, (public_assemble_failure _ p ds failed resolve expand check notes strip warningFor
+    generate).1, member⟩
+
+-- A trailing comment can remove the entire argument or leave a nonempty value.
+example (p : Predicates) :
+    diagnostic ⟨.missingArgument, "module"⟩ ∈
+      errors [capturedDirective "%module  # ignored".toList 17 11 9 0] p := by
+  apply invariant2_missing_argument _ _ _ _ (by decide +kernel) (by decide +kernel)
+  exact .head _
+
+example (p : Predicates) :
+    diagnostic ⟨.unexpectedArgument, "syntax"⟩ ∈
+      errors [capturedDirective "%syntax  yes # ignored".toList 21 15 13 0] p := by
+  apply invariant2_unexpected_argument _ _ "yes" _ _ (by decide +kernel) (by decide +kernel)
+  exact .head _
+
+#print axioms invariant2_single_directive_public_error
 #print axioms invariant2_single_unknown_directive
 end PegHs.MetaExecution
