@@ -76,6 +76,26 @@ exportTests =
            , testCase "the second item is reported at its location" $
               errorsAt ("%module M\n%export f, g) where\n" <> rule) @?= [(2, 12, "%export expects export items, but got g) where")]
            ]
+        ++ [ testCase "0097 rejects qualified do, which GHC lexes as a keyword" $
+              errorsAt ("%module M\n%export Q.do\n" <> rule)
+                @?= [(2, 9, "%export expects export items, but got Q.do")]
+           , testCase "0097 rejects qualified mdo with RecursiveDo" $
+              errorsAt ("%module M\n%language RecursiveDo\n%export Q.mdo\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got Q.mdo")]
+           , testCase "0097 accepts qualified mdo without RecursiveDo" $
+              errorsAt ("%module M\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 accepts qualified mdo with QualifiedDo alone" $
+              errorsAt ("%module M\n%language QualifiedDo\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 accepts other qualified reserved words as GHC qvarid" $
+              errorsAt ("%module M\n%export Q.where, Q.type, Q.if, Q.case, Q.module\n" <> rule) @?= []
+           , testCase "0097 follows the last RecursiveDo setting" $
+              errorsAt ("%module M\n%language RecursiveDo, NoRecursiveDo\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 follows deprecated NoDoRec alias" $
+              errorsAt ("%module M\n%language RecursiveDo, NoDoRec\n%export Q.mdo\n" <> rule) @?= []
+           , testCase "0097 follows deprecated DoRec alias" $
+              errorsAt ("%module M\n%language DoRec\n%export Q.mdo\n" <> rule)
+                @?= [(3, 9, "%export expects export items, but got Q.mdo")]
+           ]
     )
 
 -- A grammar whose rule S has the expression on line 2.
