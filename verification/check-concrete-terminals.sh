@@ -12,6 +12,7 @@ scratch=${1:?pass the verification scratch directory}
 [ "$(grep -c '^-- counts ' "$scratch/ConcreteTables.lean")" -eq 2 ]
 (cd verification &&
   lean -DwarningAsError=true -o "$scratch/ConcreteTerminal.olean" ConcreteTerminal.lean &&
+  lean -DwarningAsError=true -o "$scratch/TerminalCursor.olean" TerminalCursor.lean &&
   lean -DwarningAsError=true -o "$scratch/Utf8Terminals.olean" Utf8Terminals.lean &&
   lean -DwarningAsError=true -o "$scratch/ConcreteTerminalBody.olean" ConcreteTerminalBody.lean &&
   lean -DwarningAsError=true -o "$scratch/LabeledConcreteBody.olean" LabeledConcreteBody.lean &&

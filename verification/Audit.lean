@@ -3,6 +3,7 @@ import CallOrder
 import CallTables
 import RecursiveEval
 import ConcreteTerminal
+import TerminalCursor
 import Utf8Terminals
 import ConcreteTerminalBody
 import LabeledConcreteBody
@@ -98,7 +99,7 @@ end PegHs.ConcreteTerminalBody
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `ConcreteTerminalBody,
+  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor, `ConcreteTerminalBody,
       `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `Parsing, `Header, `Lexical,
       `Whitespace, `TemplateQueue, `Nullable, `Reachable, `Literal, `Signatures,
       `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection,
