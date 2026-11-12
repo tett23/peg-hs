@@ -1,7 +1,23 @@
 import TranslatedEscapes
+import EscapePredicates
 
 namespace PegHs.TranslatedEscapes
 open AssembleValidationHelpers
+
+theorem invariant2_hex_lookup (c : Char) : hexDigit c = hexValue c := rfl
+
+theorem hexDigit_parser (c : Char) : hexDigit c = EscapePredicates.digit c := by
+  simp [hexDigit, EscapePredicates.digit]
+
+theorem invariant2_hex_positional {cs : List Char} {n : Nat}
+    (digits : EscapePredicates.HexValue cs n) (acc : Nat) :
+    cs.foldl (fun a c => a * 16 + (hexDigit c).getD 0) acc = acc * 16 ^ cs.length + n := by
+  induction digits generalizing acc with
+  | empty => simp
+  | cons digit _ ih =>
+    simp only [List.foldl_cons, hexDigit_parser, digit, Option.getD_some]
+    simpa [hexDigit_parser, Nat.pow_succ, Nat.add_mul, Nat.mul_assoc, Nat.mul_comm,
+      Nat.mul_left_comm, Nat.add_assoc] using ih (acc * 16 + _)
 
 theorem invariant2_simple_lookup (c : Char) : table.lookup c = simpleEscape c := by
   unfold simpleEscape

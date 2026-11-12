@@ -1,8 +1,9 @@
 module Main (main) where
 
 import Control.Monad (unless)
-import Data.Char (ord)
-import Data.List (intercalate, isInfixOf, stripPrefix)
+import Data.Char (digitToInt, isHexDigit, ord)
+import Data.Function (on)
+import Data.List (groupBy, intercalate, isInfixOf, stripPrefix)
 import System.Environment (getArgs)
 import System.Exit (die)
 import Text.Read (readMaybe)
@@ -29,6 +30,11 @@ main = do
     [entries] -> do
       putStrLn "import AssembleValidationHelpers"
       putStrLn "namespace PegHs.TranslatedEscapes"
+      let digits = [(ord c, ord c - digitToInt c) | c <- [minBound .. maxBound], isHexDigit c]
+          groups = groupBy ((==) `on` snd) digits
+      putStrLn "def hexDigit (c : Char) : Option Nat :="
+      mapM_ emitRange groups
+      putStrLn "  none"
       putStrLn "def table : List (Char × Char) :="
       putStrLn ("  [" ++ intercalate ", " (map pair entries) ++ "]")
       putStrLn "def escape (go unicode : List Char → List Char → Except String α)"
@@ -47,4 +53,10 @@ main = do
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where
+    emitRange [] = die "empty hexadecimal range"
+    emitRange xs@((lo, offset):_) = do
+      let hi = fst (last xs)
+      unless (map fst xs == [lo .. hi]) (die "non-contiguous hexadecimal range")
+      putStrLn ("  if " ++ show lo ++ " ≤ c.toNat && c.toNat ≤ " ++ show hi
+        ++ " then some (c.toNat - " ++ show offset ++ ") else")
     pair (a,b) = "(Char.ofNat " ++ show (ord a) ++ ", Char.ofNat " ++ show (ord b) ++ ")"
