@@ -97,3 +97,6 @@ if "$cabal" exec -- ghc-9.10.3 -fno-code -package peg-runtime -outputdir "$work"
   exit 1
 fi
 grep -q 'parse error' "$work/ghc-error" || { cat "$work/ghc-error" >&2; exit 1; }
+
+verification/check-ghc-parser-trace.sh "$work"
+verification/check-ghc-derivations.sh "$work"

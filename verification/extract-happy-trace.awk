@@ -14,8 +14,9 @@ function emitChunk() {
   part++; codes=""; tokens=""; count=0
 }
 BEGIN {
+  if (module !~ /^[A-Z][A-Za-z0-9]*$/) fail()
   part=0
-  print "import GHCGrammar\nimport TraceChunks\nopen PegHs.CFG PegHs.GHCGrammar"
+  print "import GHCGrammar\nimport LayoutDerivation\nopen PegHs.CFG PegHs.GHCGrammar\nnamespace " module
   print "set_option maxRecDepth 16384\nset_option maxHeartbeats 5000000"
   print "def stack0 : List Symbol := []"
 }
@@ -58,4 +59,6 @@ END {
     print "theorem segment" i " : Segments productions stack" i " rest" i " [.nonterminal moduleStart] := .next _ checked" i " segment" (i+1)
   }
   print "theorem invariant3_module_trace : Derives productions [.nonterminal moduleStart] (rest0.map Symbol.terminal) := invariant3_segments segment0"
+  print "theorem invariant3_source_tokens : Derives (layoutGrammar productions) [.nonterminal moduleStart] (sourceSymbols (rest0.map Symbol.terminal)) := invariant3_layout_tokens segment0"
+  print "end " module
 }
