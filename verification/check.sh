@@ -66,6 +66,7 @@ mkdir "$work/meta-cases"
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/MetaExecutionCases.hs "$work/meta-cases" > "$work/meta-results"
 (cd verification && lean -DwarningAsError=true -o "$work/MetagrammarPredicates.olean" MetagrammarPredicates.lean &&
   lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
+  ./check-env-projection.sh "$work" &&
   lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimScan.olean" VerbatimScan.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimRule.olean" VerbatimRule.lean &&
