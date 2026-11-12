@@ -1,4 +1,12 @@
 import Lean
+import CallOrder
+import CallTables
+import RecursiveEval
+import ConcreteTerminal
+import Utf8Terminals
+import ConcreteTerminalBody
+import LabeledConcreteBody
+import ConcreteTables
 import Guard
 import Parsing
 import Header
@@ -24,13 +32,66 @@ import RuleRejectionRefs
 import RuleRejectionRepeat
 import RuleRejectionNullable
 
+namespace PegHs.RecursiveEval
+
+-- The two tables are extracted from Peg.hpeg and PegSyntax.hpeg by
+-- ExtractCallOrder.hs during verification/check.sh.
+def actualMetaRules (syntaxMode : Bool) : Nat → CallOrder.Body :=
+  if syntaxMode then Meta2.rules else Meta1.rules
+
+theorem invariant1_actual_meta_total (syntaxMode : Bool) (token : Nat → Option Nat)
+    (rule remaining : Nat) :
+    ∃ fuel result,
+      runFuel (actualMetaRules syntaxMode) token fuel
+        (actualMetaRules syntaxMode rule) remaining = some result := by
+  cases syntaxMode with
+  | false =>
+      simpa [actualMetaRules] using
+        (invariant1_rule_executable (token := token) Meta1.invariant1_checked (remaining, rule))
+  | true =>
+      simpa [actualMetaRules] using
+        (invariant1_rule_executable (token := token) Meta2.invariant1_checked (remaining, rule))
+
+#print axioms invariant1_actual_meta_total
+
+end PegHs.RecursiveEval
+
+namespace PegHs.ConcreteTerminalBody
+
+-- Both extracted metagrammars terminate on every concrete character input.
+theorem invariant1_actual_concrete_total (syntaxMode : Bool)
+    (input : List Char) (rule : Nat) :
+    ∃ fuel result,
+      (if syntaxMode then MetaTerminal2.runConcrete input fuel rule
+       else MetaTerminal1.runConcrete input fuel rule) = some result := by
+  cases syntaxMode with
+  | false => simpa using MetaTerminal1.invariant1_runConcrete_total input rule
+  | true => simpa using MetaTerminal2.invariant1_runConcrete_total input rule
+
+#print axioms invariant1_actual_concrete_total
+
+theorem invariant1_actual_labeled_total (syntaxMode : Bool)
+    (oracle : Nat → Nat → Bool) (input : List Char) (rule : Nat) :
+    ∃ fuel result,
+      (if syntaxMode then MetaTerminal2.runLabeled oracle input fuel rule
+       else MetaTerminal1.runLabeled oracle input fuel rule) = some result := by
+  cases syntaxMode with
+  | false => simpa using MetaTerminal1.invariant1_runLabeled_total oracle input rule
+  | true => simpa using MetaTerminal2.invariant1_runLabeled_total oracle input rule
+
+#print axioms invariant1_actual_labeled_total
+
+end PegHs.ConcreteTerminalBody
+
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable, `Reachable,
-      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `ImportResolution,
-      `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `InnerGeneration,
-      `InnerUnicode, `PublicParsing, `LabelPropagation, `Whitespace, `TemplateQueue] do
+      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline,
+      `ImportResolution, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
+      `InnerGeneration, `InnerUnicode, `PublicParsing, `LabelPropagation, `Whitespace, `TemplateQueue,
+      `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `ConcreteTerminalBody,
+      `LabeledConcreteBody, `ConcreteTables] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
