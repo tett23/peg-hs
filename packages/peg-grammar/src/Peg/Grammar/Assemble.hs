@@ -246,6 +246,10 @@ assemble items =
           | otherwise = enabled
     recursiveDoEnabled = extensionEnabled ["RecursiveDo", "DoRec"]
     arrowsEnabled = extensionEnabled ["Arrows"]
+    binderKeyword name =
+      (name /= "_" && name `elem` reservedWords)
+        || (recursiveDoEnabled && name `elem` ["mdo", "rec"])
+        || (arrowsEnabled && name `elem` ["proc", "rec"])
     known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
     -- ADR 0092
     libraryLoc = case [l | (l, "library", _) <- directives] of
@@ -374,6 +378,19 @@ assemble items =
            , c > 1
            , (l, _, _) : _ <- [drop 1 [d | d@(_, n', _) <- defs, n' == n]]
            ]
+        ++ [ Diagnostic (itemLoc i) ("binding name " <> name <> " is a Haskell reserved word")
+           | (_, _, alts) <- defs
+           , alt <- alts
+           , i <- concatMap nestedItems (altItems alt)
+           , Just name <- [itemBind i]
+           , binderKeyword name
+           ]
+        ++ [ Diagnostic al ("parameter name " <> paramName p <> " is a Haskell reserved word")
+           | annotations <- M.elems annots
+           , (al, ps, _, _) <- annotations
+           , p <- ps
+           , binderKeyword (paramName p)
+           ]
         ++ [Diagnostic (Loc 0 1 1) "the grammar has no rules" | null defs, isJust moduleName]
         -- ADR 0031
         ++ [ Diagnostic dl ("the template parameters of the definition of " <> n <> " do not match its type annotation")
@@ -381,6 +398,19 @@ assemble items =
            , Just ((_, _, tps, _) : _) <- [M.lookup n annots]
            , tns /= map templateParamName tps
            ]
+    nestedItems i = i : nestedExpr (itemExpr i)
+    nestedExpr = \case
+      EGroup groups -> concatMap (concatMap nestedItems) groups
+      EStar e -> nestedExpr e
+      EPlus e -> nestedExpr e
+      EOpt e -> nestedExpr e
+      EAnd e -> nestedExpr e
+      ENot e -> nestedExpr e
+      ECapture e -> nestedExpr e
+      ELabel _ e _ -> nestedExpr e
+      ETemplate _ _ args _ -> concatMap nestedExpr args
+      EDiscard e -> nestedExpr e
+      _ -> []
 
 -- | Whether a text is a path that @%import@ accepts (ADR 0092): one or more
 -- parts separated by @/@, not starting with @/@, each part a non-empty run

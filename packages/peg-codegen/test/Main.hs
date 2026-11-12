@@ -159,6 +159,7 @@ main =
       , readmeTests
       , fileNameTests
       , stripModuleNameTests
+      , wildcardArgumentTests
       ]
 
 -- The names of the files with a control character (ADR 0080, SEC-05).
@@ -193,6 +194,40 @@ stripModuleNameTests =
     ]
   where
     src = "%module M\nS :: ()\nS <- 'a' { () }\n"
+
+wildcardArgumentTests :: TestTree
+wildcardArgumentTests =
+  testGroup "0097 wildcard rule parameter in generated declarations"
+    [ testCase "memoised wildcard uses a constant key" $
+        case generateFromSource defaultOptions memoised of
+          Left ds -> assertFailure (show ds)
+          Right output -> do
+            assertBool "declaration retains a wildcard binder"
+              ("peg'rule'P _ =" `T.isInfixOf` output)
+            assertBool "memoArg uses a constant key"
+              ("PegRt.memoArg peg'memo'P \"P\" ()" `T.isInfixOf` output)
+            assertBool "store uses the same key type"
+              ("PegRt.ArgTable peg's (())" `T.isInfixOf` output)
+    , testCase "nomemo wildcard remains a wildcard" $
+        case generateFromSource defaultOptions nomemo of
+          Left ds -> assertFailure (show ds)
+          Right output -> assertBool "declaration retains wildcard"
+            ("peg'rule'P _ =" `T.isInfixOf` output)
+    , testCase "tuple memo key omits only wildcard arguments" $
+        case generateFromSource defaultOptions tupleMemo of
+          Left ds -> assertFailure (show ds)
+          Right output -> do
+            assertBool "declaration retains both binders"
+              ("peg'rule'P _ x =" `T.isInfixOf` output)
+            assertBool "memo key keeps the named argument"
+              ("PegRt.memoArg peg'memo'P \"P\" ((), x)" `T.isInfixOf` output)
+    ]
+  where
+    body = "%module M\nS :: ()\nS <- P(1)\nP(_ :: Int) :: ()\nP <- 'a' { () }\n"
+    memoised = body
+    nomemo = T.replace "%module M\n" "%module M\n%nomemo P\n" body
+    tupleMemo = T.replace "P(_ :: Int)" "P(_ :: Int, x :: Int)"
+      (T.replace "P(1)" "P(undefined, 1)" body)
 
 fixtures :: [String]
 fixtures = ["Arith", "Calc", "Expect", "ExpectSyntax", "Discard", "DiscardSyntax", "Extensions", "Indent", "Link", "Located", "Misc", "NoMemo", "Recover", "RecoverInsert", "RecoverVoid", "RecoverVoidSyntax", "Runs", "RunsSyntax", "Sum", "Syntax", "Templates", "TemplatesSyntax", "Unicode", "UnicodeSyntax", "Units", "UnitsSyntax", "UnitActions", "UnitActionsExplicit", "UnitActionsSyntax", "UnitActionsExplicitSyntax", "UnitRepeats", "UnitRepeatsExplicit", "UnitRepeatsSyntax", "UnitRepeatsExplicitSyntax", "IdentityActions", "IdentityActionsExplicit", "UnitAnnotations", "UnitAnnotationsExplicit", "UntypedSyntax", "Generated", "GeneratedNames", "GeneratedPlain", "Differential", "Imports"]

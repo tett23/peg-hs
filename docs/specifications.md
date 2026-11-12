@@ -89,6 +89,7 @@ CommonMark のように、字下げの幅や開いた括弧の数といった文
 - `%language` で、生成モジュールの言語拡張を有効にできる。生成コードの意味を変える `RebindableSyntax` は拒否する（[ADR 0016](adr/0016-language-extensions.md)）
 - `%nomemo` で、規則ごとにメモ化を外せる。左再帰に関与する規則には指定できない（[ADR 0006](adr/0006-memoization-control.md)、[ADR 0017](adr/0017-nomemo-implementation.md)）
 - `--strip-labels MODULE` で指定する生成先にも `%module` と同じモジュール名の字句規則を適用する。不正な名前を渡すと生成を拒否する（[ADR 0097](adr/0097-verify-hpeg-and-generated-haskell-in-lean.md)）。
+- 規則の引数名と列の束縛名が Haskell の予約語なら、宣言の組み立て時に診断を返し、生成しない。`mdo` と `rec` は `RecursiveDo`、`proc` と `rec` は `Arrows` が有効なときに予約語として扱い、無効になれば通常の名前として扱う。引数名の `_` はワイルドカードとして受理し、メモ化キーの対応する値と型を `()` にする。列の束縛名の `_` は生成器用の名前として既存の規則検査で拒否する（[ADR 0097](adr/0097-verify-hpeg-and-generated-haskell-in-lean.md)）。
 - `peg-hs gen --export NAME` で、入口と `%syntax` の名前のうち公開するものを選べる。`%export` の名前は常に公開する。選ばなかった名前からしか参照されない宣言（規則、メモ表の欄、種類の定数など）は出力しない。生成器が定義しない名前は誤りとする（[ADR 0061](adr/0061-select-generated-exports.md)）
 - `--export` で宣言を削った生成モジュールは、使われない import とトップレベルの束縛の警告を出さない。削った規則のアクションだけが使っていた verbatim ブロックの部分が使われなくなり、生成器は Haskell を解析しないので、どれがそうかを知れないためである（[ADR 0062](adr/0062-warnings-of-pruned-generated-modules.md)）
 - `%syntax` の文法では、型注釈のない規則の、アクションを省略した選択肢の値は、要素の値によらず `()` になる。要素は値を捨てて生成し、束縛した要素は意味述語と引数のためにこれまでどおり束縛する。`%syntax` のない文法と、型注釈（`:: ()` を含む）のある規則は、この規則の対象にならない（[ADR 0068](adr/0068-untyped-rules-in-syntax-grammars.md)）

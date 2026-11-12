@@ -20,6 +20,7 @@ securityTests =
     "security fixes (ADR 0080)"
     [ moduleTests
     , exportTests
+    , generatedBindingTests
     , nestingTests
     ]
 
@@ -31,6 +32,36 @@ errorsAt src = case parseGrammar src of
 
 rule :: Text
 rule = "S :: ()\nS <- 'a' { () }\n"
+
+generatedBindingTests :: TestTree
+generatedBindingTests =
+  testGroup "0097 generated Haskell binders are identifiers"
+    [ testCase "0097 parser alone accepts a reserved rule parameter" $
+        assertBool "parseTops should only check hpeg syntax"
+          (case parseTops "%module Probe\nS :: ()\nS <- P(1)\nP(case :: Int) :: ()\nP <- 'a' { () }\n" of
+            Right _ -> True
+            Left _ -> False)
+    , testCase "0097 rejects a reserved rule parameter" $
+        assertBool "case parameter reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(case :: Int) :: ()\nP <- 'a' { () }\n")))
+    , testCase "0097 rejects a reserved sequence binding" $
+        assertBool "case item binding reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- case:'a' { case }\n")))
+    , testCase "0097 rejects a reserved nested binding" $
+        assertBool "case nested binding reached generated Haskell"
+          (not (null (errorsAt "%module Probe\nS :: ()\nS <- (case:'a') { () }\n")))
+    , testCase "0097 keeps ordinary parameter and binding names" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(value :: Int) :: ()\nP <- item:$'a' { () }\n" @?= []
+    , testCase "0097 keeps wildcard parameter for the generator" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(_ :: Int) :: ()\nP <- 'a' { () }\n" @?= []
+    , testCase "0097 keeps mdo without RecursiveDo" $
+        errorsAt "%module Probe\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n" @?= []
+    , testCase "0097 rejects mdo with RecursiveDo" $
+        assertBool "mdo became a keyword under RecursiveDo"
+          (length (errorsAt "%module Probe\n%language RecursiveDo\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n") >= 2)
+    , testCase "0097 restores mdo with NoRecursiveDo" $
+        errorsAt "%module Probe\n%language RecursiveDo, NoRecursiveDo\nS :: ()\nS <- P(1)\nP(mdo :: Int) :: ()\nP <- mdo:$'a' { () }\n" @?= []
+    ]
 
 moduleTests :: TestTree
 moduleTests =

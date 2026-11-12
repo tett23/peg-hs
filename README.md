@@ -92,6 +92,7 @@ Between `%{` and `}%` (a verbatim block) is Haskell that goes into the generated
 `Expr :: Expr` is the result type of the rule `Expr`, and `Expr <- ...` defines the rule.
 A rule without a type annotation and without values, such as `Sp`, has type `()`; rules with parameters and templates need one ([ADR 0066](docs/adr/0066-omit-unit-type-annotations.md)).
 `l:Expr` names a result (a binding), and `{ Add l r }` is an action.
+Rule parameters and bindings cannot use Haskell reserved words such as `case`. The check follows `%language` for extension keywords such as `mdo` under `RecursiveDo`. A parameter named `_` remains a wildcard; its memoization key uses `()` for that component ([ADR 0097](docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md)).
 `$[0-9]+` takes the text it read (a `Text`) as its value.
 [docs/syntax.en.md](docs/syntax.en.md) explains the notation in detail.
 

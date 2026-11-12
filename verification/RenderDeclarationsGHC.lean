@@ -140,6 +140,13 @@ theorem apply_argument {function argument : List Symbol}
       (217, [.nonterminal 217, .nonterminal 218]) := by decide
   exact applyRule r533 (beside function_ok argument_ok)
 
+theorem wildcard_argument :
+    Derives productions [.nonterminal 218] [.terminal 2] := by
+  have r568 : productions 568 = some (220, [.terminal 2]) := by decide
+  have r554 : productions 554 = some (219, [.nonterminal 220]) := by decide
+  have r551 : productions 551 = some (218, [.nonterminal 219]) := by decide
+  exact oneRule r551 (oneRule r554 (applyRule r568 (.refl _)))
+
 def argumentsWord (args : List (List Symbol)) : List Symbol :=
   args.foldl (· ++ ·) [.terminal 117]
 
@@ -254,6 +261,7 @@ theorem generated_rule_signature (params : List (List Symbol)) (result : List Sy
 #print axioms signature
 #print axioms binding
 #print axioms name_with_arguments
+#print axioms wildcard_argument
 #print axioms binding_named_arguments
 #print axioms declarations_named
 #print axioms generated_pair
