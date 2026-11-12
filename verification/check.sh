@@ -16,6 +16,9 @@ export LEAN_PATH="$work"
 for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
+runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedEscapes.olean" "$work/TranslatedEscapes.lean"
+lean -DwarningAsError=true -o "$work/SimpleEscapeProof.olean" SimpleEscapeProof.lean
 runghc-9.10.3 -Werror ExtractTabstop.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedTabstop.olean" "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -o "$work/TabstopProof.olean" TabstopProof.lean
