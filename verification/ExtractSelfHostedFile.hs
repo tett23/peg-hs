@@ -26,7 +26,7 @@ call site = do
   target <- choice [string name >> pure number | (name, number) <-
     [("TopItem","1"), ("TopOne","2"), ("Here","3"), ("Ws","4"), ("SpaceChar","5"),
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
-     ("ParamChunks","18")]]
+     ("TemplateParam","15"), ("ParamChunks","18")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -204,6 +204,55 @@ directiveRule = do
   pure (".seq (.bind 5 \"l\" " ++ loc ++ ") (.seq (.terminal 12) (.seq (.bind 6 \"n\" " ++ labelled ++
     ") (.seq " ++ space ++ " (.seq (.bind 7 \"al\" " ++ argLoc ++ ") (" ++ body ++ ")))))")
 
+-- Both argument forms put whitespace on either side of a literal separator.
+separatedArgument :: Int -> String -> Int -> ReadP String
+separatedArgument firstSite separator terminal = do
+  mapM_ token ["(", "PegRt.choice", "[", "do", "{", "_", "<-"]
+  before <- call firstSite
+  token ";"
+  literal separator
+  mapM_ token [";", "_", "<-"]
+  after <- call (firstSite + 1)
+  mapM_ token [";", "peg'v0", "<-"]
+  value <- call (firstSite + 2)
+  mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
+  pure ("(.seq " ++ before ++ " (.seq (.terminal " ++ show terminal ++ ") (.seq " ++ after ++ " " ++ value ++ ")))")
+
+returnAction :: [String] -> ReadP ()
+returnAction expr = do
+  mapM_ token [";", "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+  embedded expr
+  mapM_ token [")", "}", "]", ")"]
+
+templateParamsRule :: ReadP String
+templateParamsRule = do
+  header "TemplateParams"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";"]
+  literal "<"
+  mapM_ token [";", "_", "<-"]
+  ws <- call 33
+  mapM_ token [";", "p", "<-"]
+  first <- call 34
+  mapM_ token [";", "ps", "<-", "PegRt.many"]
+  rest <- separatedArgument 35 "," 21
+  mapM_ token [";", "_", "<-"]
+  endWs <- call 38
+  token ";"
+  literal ">"
+  returnAction ["p", ":", "ps"]
+  pure (".seq (.terminal 20) (.seq " ++ ws ++ " (.seq (.bind 19 \"p\" " ++ first ++
+    ") (.seq (.bind 20 \"ps\" (.star " ++ rest ++ ")) (.seq " ++ endWs ++ " (.terminal 22)))))")
+
+templateParamRule :: ReadP String
+templateParamRule = do
+  header "TemplateParam"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "n", "<-"]
+  name <- call 39
+  mapM_ token [";", "ty", "<-", "PegRt.optional"]
+  annotation <- separatedArgument 40 "::" 23
+  returnAction ["TemplateParam", "n", "ty"]
+  pure (".seq (.bind 21 \"n\" " ++ name ++ ") (.alt (.bind 22 \"ty\" " ++ annotation ++ ") .eps)")
+
 paramListRule :: ReadP String
 paramListRule = do
   header "ParamList"
@@ -249,6 +298,7 @@ main = do
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
          ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule),
+         ("TemplateParams", templateParamsRule), ("TemplateParam", templateParamRule),
          ("TypeText", typeTextRule), ("ParamList", paramListRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
