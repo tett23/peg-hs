@@ -29,6 +29,7 @@ import FileEnd
 import FileItemChain
 import FileEntry
 import StrictSpaceChar
+import StrictIdentifier
 import StrictWhitespaceScan
 import PublicParsing
 import PublicEntryProof
@@ -127,7 +128,7 @@ run_cmd do
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution,
-      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
+      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictIdentifier, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do

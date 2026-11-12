@@ -7,6 +7,7 @@ runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$source" > "$work/TranslatedStri
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedStrictFile.olean" "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -o "$work/SelfHostedFileProof.olean" SelfHostedFileProof.lean
 lean -DwarningAsError=true -o "$work/StrictSpaceChar.olean" StrictSpaceChar.lean
+lean -DwarningAsError=true -o "$work/StrictIdentifier.olean" StrictIdentifier.lean
 lean -DwarningAsError=true -o "$work/StrictComment.olean" StrictComment.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
