@@ -1,6 +1,7 @@
 import PredicateBindings
 import EnvironmentDepth
 import EnvironmentActual
+import Utf8Terminals
 
 open PegHs PegHs.EnvironmentEval PegHs.MetagrammarPredicates
 
@@ -48,5 +49,30 @@ theorem invariant1_file_result (syntaxMode : Bool) (input : List Char) :
   exact invariant1_result_unique ctx observed h
 
 #print axioms invariant1_file_result
+
+
+private theorem prefix_bytes_full (xs : List Char) (n : Nat) :
+    (xs.take n).utf8Encode.size = xs.utf8Encode.size ↔ xs.length ≤ n := by
+  induction xs generalizing n with
+  | nil => simp
+  | cons c cs ih =>
+    cases n with
+    | zero =>
+      have h := c.utf8Size_pos
+      rw [List.utf8Encode_cons]
+      simp [List.utf8Encode_singleton]
+      omega
+    | succ n =>
+      rw [List.take_succ_cons, List.utf8Encode_cons, List.utf8Encode_cons (l := cs)]
+      simp [ih]
+
+theorem invariant1_file_end_bytes {mode input rest env} (result : FileResult mode input (.ok rest env)) :
+    Utf8Terminals.byteOffset input (input.length - rest) = input.utf8Encode.size ↔ rest = 0 := by
+  have bounded := EnvironmentEval.invariant1_success_remaining_le result rest env rfl
+  change rest ≤ input.length at bounded
+  rw [Utf8Terminals.byteOffset, prefix_bytes_full]
+  omega
+
+#print axioms invariant1_file_end_bytes
 
 end PegHs.MetaExecution
