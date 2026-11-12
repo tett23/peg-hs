@@ -25,6 +25,7 @@ verification/check-nullable.sh "$work"
 verification/check-reachable.sh
 verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
+verification/check-no-record.sh
 verification/check-pipeline.sh
 
 extract_file() {
