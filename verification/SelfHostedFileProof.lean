@@ -123,6 +123,10 @@ theorem invariant1_strict_template_arguments (input : List Char) :
     translatedStrictTemplateArgs = (context false input).rules 34 ∧
     translatedStrictTemplateArg = (context false input).rules 35 := ⟨rfl, rfl⟩
 
+set_option maxRecDepth 8192 in
+theorem invariant1_strict_primary (input : List Char) :
+    translatedStrictPrimary = (context false input).rules 33 := rfl
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
