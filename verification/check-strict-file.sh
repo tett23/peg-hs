@@ -8,6 +8,7 @@ lean -DwarningAsError=true -R "$work" -o "$work/TranslatedStrictFile.olean" "$wo
 lean -DwarningAsError=true -o "$work/SelfHostedFileProof.olean" SelfHostedFileProof.lean
 lean -DwarningAsError=true -o "$work/StrictSpaceChar.olean" StrictSpaceChar.lean
 lean -DwarningAsError=true -o "$work/StrictComment.olean" StrictComment.lean
+lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.lean
 
 # A different but supported call still translates; it must lose the File derivation.
 sed "/^peg'rule'File =$/,/^$/s/PegRt.many (peg'rule'TopItem)/PegRt.many (peg'rule'Ws)/" \
