@@ -11,6 +11,9 @@ import Guard
 import Parsing
 import Header
 import Whitespace
+import TemplateExpansion
+import TemplateExpansionFresh
+import TemplateSubstitution
 import TemplateQueue
 import Lexical
 import Nullable
@@ -22,6 +25,7 @@ import Consumption
 import FileTrees
 import Pipeline
 import RenderExpression
+import AssembleValidation
 import ImportResolution
 import PublicParsing
 import LabelPropagation
@@ -87,12 +91,13 @@ end PegHs.ConcreteTerminalBody
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`Guard, `Parsing, `Header, `Whitespace, `TemplateQueue, `Lexical,
-      `Nullable, `Reachable, `Literal, `Signatures, `File, `Consumption,
-      `FileTrees, `Pipeline, `RenderExpression, `Pragmas, `RuleRejection, `RuleRejectionRefs,
-      `RuleRejectionRepeat, `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals,
-      `ConcreteTerminal, `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration,
-      `InnerUnicode, `PublicParsing, `LabelPropagation] do
+  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
+      `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal,
+      `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `RenderExpression, `DirectiveNames,
+      `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
+      `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal,
+      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration, `InnerUnicode,
+      `PublicParsing, `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do

@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Pipeline Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable Whitespace TemplateQueue CallOrder RecursiveEval ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption Pipeline Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh DirectiveNames AssembleValidationHelpers AssembleValidation CallOrder RecursiveEval ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean --run Boundary.lean > "$work/boundary-expected"
@@ -22,6 +22,8 @@ verification/check-guard.sh
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
+verification/check-template-substitution.sh
+verification/check-template-expansion-fresh.sh
 verification/check-template-queue.sh "$work"
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
@@ -30,6 +32,8 @@ verification/check-pragmas.sh "$work"
 verification/check-render-expression.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
+verification/check-assemble-validation.sh
+verification/check-assemble-validation-helpers.sh
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh

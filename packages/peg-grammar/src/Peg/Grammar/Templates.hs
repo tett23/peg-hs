@@ -225,7 +225,8 @@ expandOnce known0 g
         Just name -> pure name
         Nothing -> do
           n <- gets' stCount
-          let name = freshName (ruleName t) n
+          generated <- gets' stInstanceNames
+          let name = freshName (ruleName t) n generated
           modify' $ \st ->
             st
               { stInstances = M.insert key name (stInstances st)
@@ -236,7 +237,7 @@ expandOnce known0 g
               }
           pure name
 
-    freshName base n = case [c | k <- [n ..], let c = base <> "'" <> T.pack (show (k :: Int)), not (S.member c usedNames)] of
+    freshName base n generated = case [c | k <- [n ..], let c = base <> "'" <> T.pack (show (k :: Integer)), not (S.member c usedNames), not (S.member c generated)] of
       c : _ -> c
       [] -> base
 
@@ -319,7 +320,7 @@ substituteAlt sub a = a {altItems = map item (altItems a)}
       e -> expr e
 
 -- The number of nodes of an expression.
-exprSize :: Expr -> Int
+exprSize :: Expr -> Integer
 exprSize = \case
   EGroup alts -> 1 + sum (map (sum . map (exprSize . itemExpr)) alts)
   EStar x -> 1 + exprSize x
@@ -441,7 +442,7 @@ data St = St
   { stInstances :: M.Map (Text, String) Text
   , stPending :: [(Text, Rule, [Expr], [(Text, Located Text)], Int, Loc)]
   , stErrors :: [Diagnostic]
-  , stCount :: Int
+  , stCount :: Integer
   , stInstanceTypes :: M.Map Text Text
   , stInstanceNames :: S.Set Text
   }

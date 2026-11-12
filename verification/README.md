@@ -25,7 +25,7 @@
 
 [Pragmas.lean](Pragmas.lean) は、元ファイルの位置を表す `LINE` と `COLUMN`、生成先の位置を復元する行の形式を証明する。位置は自然数で、ファイル名の文字集合は文字列リテラルの定理と同じである。埋め込み本文は任意の文字列として扱う。生成器はユーザーが書いた行と衝突しない復元用マーカーを選ぶ。これにより、ユーザーの quasiquote 内に同じ形式の行があっても、その行を復元対象から除外できる。本文に含まれるコメントやレイアウトが周囲の Haskell の構文に及ぼす影響はこの定理の範囲外である。[check-pragmas.sh](check-pragmas.sh) は引用符を含むファイル名で実際に生成したアクションの位置と復元行を Lean の出力と照合し、モジュールを GHC で検査する。[check-no-record.sh](check-no-record.sh) は `NoTraditionalRecordSyntax` を指定した文法でメモ用ストアと設定のアクセスを含むモジュールを生成し、GHC と実行結果で検査する。
 
-[RenderDeclarationsGHC.lean](RenderDeclarationsGHC.lean) は GHC 9.10.3 の型シグネチャと関数束縛の規則から、任意の子の導出と引数列を合成する。[RenderDeclarationBinders.lean](RenderDeclarationBinders.lean) は予約語の拒否、`_` の保持、メモ化キーの値と型の置換を扱う。[check-render-declaration-binders.sh](check-render-declaration-binders.sh) は組み立て時の二つの検査箇所と生成時の二つのキー箇所を実ソースで照合する。子の型・式の導出、文字列から GHC トークンへの対応、Haskell の遅延評価はこの定理の前提に残る。
+[RenderDeclarationsGHC.lean](RenderDeclarationsGHC.lean) は GHC 9.10.3 の型シグネチャと関数束縛の規則から、任意の子の導出と引数列を合成する。[RenderDeclarationBinders.lean](RenderDeclarationBinders.lean) は予約語の拒否、`_` の保持、メモ化キーの値と型の置換を扱う。[check-render-declaration-binders.sh](check-render-declaration-binders.sh) は組み立て時の二つの検査箇所と生成時の二つのキー箇所を実ソースで照合する。子の型・式の導出、文字列から GHC トークンへの対応、Haskell の遅延評価、任意の hpeg 構文木から名前の一覧を取り出す処理はこの定理の前提に残る。
 
 ソースの抽出・照合スクリプトと、そこで使う Haskell の構文の読み取り方は信頼する前提である。
 [Audit.lean](Audit.lean) は各証明モジュールの定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
