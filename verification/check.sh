@@ -55,6 +55,8 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/PrefixReplay.olean" PrefixReplay.lean &&
   lean -DwarningAsError=true -o "$work/WindowReplay.olean" WindowReplay.lean &&
   lean -DwarningAsError=true -o "$work/WindowReads.olean" WindowReads.lean &&
+  lean -DwarningAsError=true -o "$work/InitialWhitespace.olean" InitialWhitespace.lean &&
+  lean -DwarningAsError=true -o "$work/InitialWhitespaceCall.olean" InitialWhitespaceCall.lean &&
   lean -DwarningAsError=true -o "$work/FileTopItems.olean" FileTopItems.lean &&
   lean -DwarningAsError=true -o "$work/FileEnd.olean" FileEnd.lean &&
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
