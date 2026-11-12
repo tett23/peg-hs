@@ -11,6 +11,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import InnerUnicode
 import InnerGeneration
 import Pragmas
 
@@ -18,7 +19,7 @@ open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
-      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `InnerGeneration] do
+      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `InnerGeneration, `InnerUnicode] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
