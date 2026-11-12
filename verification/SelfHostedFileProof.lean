@@ -31,6 +31,10 @@ theorem invariant1_strict_verbatim_bodies (input : List Char) :
     translatedStrictHere = (context false input).rules 3 ∧
     translatedStrictVerbatim = (context false input).rules 11 := ⟨rfl, rfl⟩
 
+set_option maxRecDepth 4096 in
+theorem invariant1_strict_declaration (input : List Char) :
+    translatedStrictDeclaration = (context false input).rules 13 := rfl
+
 theorem invariant1_strict_template_parameters (input : List Char) :
     translatedStrictTemplateParams = (context false input).rules 14 ∧
     translatedStrictTemplateParam = (context false input).rules 15 := ⟨rfl, rfl⟩

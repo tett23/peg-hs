@@ -26,7 +26,8 @@ call site = do
   target <- choice [string name >> pure number | (name, number) <-
     [("TopItem","1"), ("TopOne","2"), ("Here","3"), ("Ws","4"), ("SpaceChar","5"),
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
-     ("TemplateParam","15"), ("ParamChunks","18")]]
+     ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
+     ("ParamList","17"), ("ParamChunks","18"), ("Alts","20")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -204,6 +205,90 @@ directiveRule = do
   pure (".seq (.bind 5 \"l\" " ++ loc ++ ") (.seq (.terminal 12) (.seq (.bind 6 \"n\" " ++ labelled ++
     ") (.seq " ++ space ++ " (.seq (.bind 7 \"al\" " ++ argLoc ++ ") (" ++ body ++ ")))))")
 
+declarationRule :: ReadP String
+declarationRule = do
+  header "Declaration"
+  annotation <- do
+    start
+    loc <- named 9 "l" 16
+    name <- named 10 "n" 17
+    templates <- opt 11 "tps" 18
+    params <- opt 12 "ps" 19
+    ws <- ignored 20
+    token ";"
+    literal "::"
+    spaces <- ignored 21
+    typeLoc <- named 13 "tl" 22
+    mapM_ token [";", "ty", "<-", "PegRt.choice", "[", "do", "{", "peg'v0", "<-"]
+    ty <- labelled (call 23)
+    mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]"]
+    end ["TAnnot", "l", "n", "(", "maybe", "[]", "id", "ps", ")", "(", "maybe", "[]", "id", "tps", ")", "(", "Located", "tl", "ty", ")"]
+    pure (sequenceBody [loc, name, templates, params, ws, "(.terminal 15)", spaces, typeLoc, bind 14 "ty" ty])
+  token ","
+  definition <- do
+    start
+    loc <- named 15 "l" 24
+    name <- named 16 "n" 25
+    templates <- opt 17 "tps" 26
+    ws <- ignored 27
+    token ";"
+    literal "<-"
+    alts <- named 18 "as" 28
+    end ["TDef", "l", "n", "(", "maybe", "[]", "(", "map", "templateParamName", ")", "tps", ")", "as"]
+    pure (sequenceBody [loc, name, templates, ws, "(.terminal 16)", alts])
+  token ","
+  start
+  name <- ignored 29
+  templates <- skipOpt 30
+  params <- skipOpt 31
+  ws <- ignored 32
+  token ";"
+  paramGuard <- labelled $ do
+    mapM_ token ["PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+    literal "<-"
+    mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
+    pure "(.notAhead (.terminal 17))"
+  mapM_ token [";", "PegRt.choice", "[", "do", "{"]
+  delim <- labelled $ do
+    mapM_ token ["PegRt.choice", "[", "do", "{"]
+    literal "::"
+    mapM_ token [";", "PegPrelude.pure", "()", "}", ",", "do", "{"]
+    literal "<-"
+    mapM_ token [";", "PegPrelude.pure", "()", "}", "]"]
+    pure "(.alt (.terminal 18) (.terminal 19))"
+  mapM_ token [";", "PegPrelude.pure", "()", "}", "]"]
+  end ["TVerbatim", "(", "Loc", "0", "0", "0", ")", "T.empty"]
+  mapM_ token ["]", ")"]
+  let fallback = sequenceBody [name, templates, params, ws, paramGuard, delim]
+  pure (".alt " ++ annotation ++ " (.alt " ++ definition ++ " " ++ fallback ++ ")")
+  where
+    start = mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset"]
+    end expr = do
+      mapM_ token [";", "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+      embedded expr
+      mapM_ token [")", "}"]
+    bind :: Int -> String -> String -> String
+    bind i n body = "(.bind " ++ show i ++ " " ++ show n ++ " " ++ body ++ ")"
+    named i n site = mapM_ token [";", n, "<-"] >> bind i n <$> call site
+    ignored site = mapM_ token [";", "_", "<-"] >> call site
+    optionalCall site = token "(" *> call site <* token ")"
+    opt i n site = do
+      mapM_ token [";", n, "<-", "PegRt.optional"]
+      body <- optionalCall site
+      pure ("(.alt " ++ bind i n body ++ " .eps)")
+    skipOpt site = do
+      mapM_ token [";", "_", "<-", "PegRt.skipOptional"]
+      body <- optionalCall site
+      pure ("(.alt " ++ body ++ " .eps)")
+    labelled body = do
+      token "PegRt.labeledMessage"
+      name <- quoted
+      message <- quoted
+      token "PegPrelude.Nothing"
+      child <- token "(" *> body <* token ")"
+      pure ("(.label " ++ leanString name ++ " (some " ++ leanString message ++ ") " ++ child ++ ")")
+    sequenceBody = foldr1 (\x y -> "(.seq " ++ x ++ " " ++ y ++ ")")
+
 -- Both argument forms put whitespace on either side of a literal separator.
 separatedArgument :: Int -> String -> Int -> ReadP String
 separatedArgument firstSite separator terminal = do
@@ -298,7 +383,7 @@ main = do
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
          ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
          ("InlineSp", inlineSpace), ("Here", positionRule), ("Verbatim", verbatimRule), ("Directive", directiveRule),
-         ("TemplateParams", templateParamsRule), ("TemplateParam", templateParamRule),
+         ("Declaration", declarationRule), ("TemplateParams", templateParamsRule), ("TemplateParam", templateParamRule),
          ("TypeText", typeTextRule), ("ParamList", paramListRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
