@@ -22,6 +22,8 @@ extract_wrappers() {
         gsub(/"/, "", name)
         quote = sprintf("%c", 39)
         if ($2 != "peg" quote "memo" quote name) exit 1
+        if (kind == "memoArg" && ($4 != "d" || NF != 4)) exit 1
+        if ((kind == "memo" || kind == "memoLR") && NF != 3) exit 1
       }
       gsub(/"/, "", name)
       if (name !~ /^[A-Za-z_][A-Za-z_0-9]*$/) exit 1

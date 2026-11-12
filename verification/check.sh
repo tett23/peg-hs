@@ -68,6 +68,12 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
   ./check-env-projection.sh "$work" &&
   lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
+  lean -DwarningAsError=true -o "$work/EnvRunCongruence.olean" EnvRunCongruence.lean &&
+  lean -DwarningAsError=true EnvRunCongruenceTests.lean &&
+  lean -DwarningAsError=true -o "$work/MetaEnvCompatible.olean" MetaEnvCompatible.lean &&
+  lean -DwarningAsError=true MetaEnvCompatibleTests.lean &&
+  lean -DwarningAsError=true -o "$work/MemoKeyEnvironment.olean" MemoKeyEnvironment.lean &&
+  lean -DwarningAsError=true MemoKeyEnvironmentTests.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimScan.olean" VerbatimScan.lean &&
   lean -DwarningAsError=true -o "$work/VerbatimRule.olean" VerbatimRule.lean &&
   lean -DwarningAsError=true -o "$work/PrefixReplay.olean" PrefixReplay.lean &&
