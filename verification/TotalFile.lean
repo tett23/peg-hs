@@ -31,6 +31,27 @@ def recognizeFile (mode : Bool) (input : List Char) : {r // FileResult mode inpu
   let result := searchFuel trial future 0
   exact ⟨result.val, by obtain ⟨k, ok⟩ := result.property; exact invariant1_runFuel_sound ok⟩
 
+private def executableStart (input : List Char) : Reply → PublicParsing.StartResult Unit
+  | .ok rest _ => .ok (String.ofList (input.take (input.length - rest))).utf8ByteSize ()
+  | .fail => .fail
+  | .throwLabel rest label msg =>
+    .throwLabel (String.ofList (input.take (input.length - rest))).utf8ByteSize label msg
+
+def parseFile (mode : Bool) (source : String) (diagnostic : PublicParsing.Failure → String) :=
+  PublicParsing.translatedPublic diagnostic (PublicParsing.translatedRuntime source.utf8ByteSize
+    (executableStart source.toList (recognizeFile mode source.toList).val))
+
+theorem invariant1_parseFile_entry (mode : Bool) (source : String)
+    (diagnostic : PublicParsing.Failure → String) :
+    parseFile mode source diagnostic =
+      PublicParsing.entry source.toList.utf8Encode.size
+        (FileEntry.start source.toList (recognizeFile mode source.toList).val) diagnostic := by
+  unfold parseFile
+  rw [PublicParsing.invariant1_translated_entry]
+  have bytes : source.utf8ByteSize = source.toList.utf8Encode.size := by simp
+  rw [bytes]
+  congr 1
+
 theorem invariant1_total_public_entry (mode : Bool) (input : List Char)
     (diagnostic : PublicParsing.Failure → String) :
     PublicParsing.translatedPublic diagnostic (PublicParsing.translatedRuntime input.utf8Encode.size
