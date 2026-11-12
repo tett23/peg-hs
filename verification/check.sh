@@ -42,6 +42,7 @@ verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh
 verification/check-inner-unicode.sh
+verification/check-memo-recognition.sh
 
 extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
