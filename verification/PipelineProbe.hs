@@ -3,10 +3,15 @@
 module Main (main) where
 
 import Control.Monad (unless)
+import Data.Either (isLeft, isRight)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Peg.Codegen (Generation (..), Options (..), defaultOptions, generateWithWarnings)
 import Peg.Grammar (Diagnostic (..))
+import Peg.Grammar.Check (check)
+import Peg.Grammar.Import (resolveImports)
+import Peg.Grammar.Parser (parseGrammar)
+import Peg.Grammar.Templates (expandTemplates)
 import System.Exit (die)
 
 good :: Text
@@ -29,13 +34,25 @@ checkCase label expected needle opts strip source = do
 
 main :: IO ()
 main = do
+  let importSource = "%module M\n%import missing.hpeg\nS <- 'a'\n"
+      expandSource = "%module M\nS <- Missing<'a'>\n"
+      checkSource = "%module M\nS <- Absent\n"
+      resolved src = parseGrammar src >>= \g -> resolveImports g []
+      expanded src = resolved src >>= expandTemplates
+      failsAt stage result = isRight result && isLeft (result >>= stage)
+  unless (failsAt (\g -> resolveImports g []) (parseGrammar importSource)) $
+    die "invariant2: import case did not reach and fail import resolution"
+  unless (failsAt expandTemplates (resolved expandSource)) $
+    die "invariant2: expansion case did not reach and fail template expansion"
+  unless (failsAt check (expanded checkSource)) $
+    die "invariant2: check case did not reach and fail rule checking"
   checkCase "invariant2_parse" "outer" "" defaultOptions Nothing "%module M\n]"
   checkCase "invariant2_import" "outer" "cannot import" defaultOptions Nothing
-    "%module M\n%import missing.hpeg\nS <- 'a'\n"
+    importSource
   checkCase "invariant2_expand" "outer" "template" defaultOptions Nothing
-    "%module M\nS <- Missing<'a'>\n"
+    expandSource
   checkCase "invariant2_check" "outer" "undefined rule" defaultOptions Nothing
-    "%module M\nS <- Absent\n"
+    checkSource
   checkCase "invariant2_generate_module" "inner" "generated module name is invalid"
     defaultOptions (Just "invalid") good
   checkCase "invariant2_generate_filename" "inner" "file name contains a control character"
