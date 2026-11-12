@@ -115,6 +115,10 @@ theorem invariant1_strict_call_arguments (input : List Char) :
     translatedStrictArgChunks = (context false input).rules 48 ∧
     translatedStrictArgChunk = (context false input).rules 49 := ⟨rfl, rfl, rfl⟩
 
+theorem invariant1_strict_group_alternatives (input : List Char) :
+    translatedStrictGroupAlts = (context false input).rules 37 ∧
+    translatedStrictMoreGroup = (context false input).rules 38 := ⟨rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim

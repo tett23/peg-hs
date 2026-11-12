@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgChunks","48"), ("ArgChunk","49"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53"), ("HsNested","54"), ("HsInner","55"),
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("MoreGroup","38"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgChunks","48"), ("ArgChunk","49"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53"), ("HsNested","54"), ("HsInner","55"),
      ("HsString","56"), ("HsChar","57"), ("HsIdent","58")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
@@ -705,6 +705,34 @@ escapeRule = do
   mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ";", "PegPrelude.pure", "()", "}", "]", ")"]
   pure (".seq (.terminal 75) (.label " ++ leanString name ++ " none " ++ body ++ ")")
 
+manyAtDepth :: Int -> ReadP String
+manyAtDepth site = do
+  mapM_ token ["PegRt.many", "("]
+  child <- depthCall site ["d"]
+  token ")"
+  pure ("(.star " ++ child ++ ")")
+
+groupAltsRule :: ReadP String
+groupAltsRule = do
+  depthHeader "GroupAlts"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "s", "<-"]
+  first <- manyAtDepth 132
+  mapM_ token [";", "ss", "<-"]
+  rest <- manyAtDepth 133
+  returnAction ["withDepth", "(", "s", ":", "ss", ")"]
+  pure (".action 22 (.seq (.bind 72 \"s\" " ++ first ++ ") (.bind 73 \"ss\" " ++ rest ++ "))")
+
+moreGroupRule :: ReadP String
+moreGroupRule = do
+  depthHeader "MoreGroup"
+  mapM_ token ["do", "{", "_", "<-"]
+  ws <- call 134
+  token ";" >> literal "/"
+  mapM_ token [";", "peg'v0", "<-"]
+  items <- manyAtDepth 135
+  mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
+  pure (sequenceBody [ws, "(.terminal 66)", items])
+
 suffixRule :: ReadP String
 suffixRule = do
   depthHeader "SuffixE"
@@ -1001,9 +1029,9 @@ main = do
          ("HsParen", hsParenRule), ("HsNested", hsNestedRule), ("HsInner", hsPartRule "HsInner" 163 103),
          ("HsString", hsStringRule), ("HsChar", hsCharRule), ("HsIdent", hsIdentRule),
          ("CallArgs", listRule "CallArgs" 65 131), ("ArgChunks", chunksRule "ArgChunks" "c" 147 80 91),
-         ("ArgChunk", chunkRule False)] $
+         ("ArgChunk", chunkRule False), ("GroupAlts", groupAltsRule), ("MoreGroup", moreGroupRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
-        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
+        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp", "GroupAlts", "MoreGroup"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)
