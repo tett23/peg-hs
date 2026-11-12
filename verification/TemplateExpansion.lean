@@ -28,7 +28,7 @@ structure Context where
   bodyUses : String → String → Bool
   ruleTypes : String → Option String
   key : Template → List Expr → List (String × String) → String
-  freshName : String → Nat → String
+  freshName : String → Nat → List String → String
   instanceType : Template → List (Option String) → String
 
 structure State where
@@ -36,6 +36,7 @@ structure State where
   pending : List Job := []
   instances : String → Option String := fun _ => none
   count : Nat := 0
+  generated : List String := []
   instanceTypes : String → Option String := fun _ => none
 
 def addErrors (ds : List Diagnostic) : StateM State Unit :=
@@ -100,11 +101,12 @@ def instanceOf (ctx : Context) (location depth : Nat) (template : Template)
   match st.instances key with
   | some name => (name, st)
   | none =>
-    let name := ctx.freshName template.name st.count
+    let name := ctx.freshName template.name st.count st.generated
     (name, { st with
       instances := fun queried => if queried == key then some name else st.instances queried
       pending := st.pending ++ [Job.mk name template args captured (depth + 1) location]
       count := st.count + 1
+      generated := name :: st.generated
       instanceTypes := fun queried =>
         if queried == name then some (ctx.instanceType template types)
         else st.instanceTypes queried })
@@ -121,7 +123,7 @@ theorem instanceOf_fresh_pending (ctx : Context) (location depth : Nat)
     (types : List (Option String)) (st : State)
     (fresh : st.instances (ctx.key template args captured) = none) :
     (instanceOf ctx location depth template args captured types st).2.pending =
-      st.pending ++ [Job.mk (ctx.freshName template.name st.count) template args captured
+      st.pending ++ [Job.mk (ctx.freshName template.name st.count st.generated) template args captured
         (depth + 1) location] := by
   simp [instanceOf, fresh]
 
@@ -130,6 +132,14 @@ theorem instanceOf_fresh_count (ctx : Context) (location depth : Nat)
     (types : List (Option String)) (st : State)
     (fresh : st.instances (ctx.key template args captured) = none) :
     (instanceOf ctx location depth template args captured types st).2.count = st.count + 1 := by
+  simp [instanceOf, fresh]
+
+theorem instanceOf_fresh_generated (ctx : Context) (location depth : Nat)
+    (template : Template) (args : List Expr) (captured : List (String × String))
+    (types : List (Option String)) (st : State)
+    (fresh : st.instances (ctx.key template args captured) = none) :
+    (instanceOf ctx location depth template args captured types st).2.generated =
+      ctx.freshName template.name st.count st.generated :: st.generated := by
   simp [instanceOf, fresh]
 
 -- `expandExpr` itself follows only strict subexpressions. Calling instanceOf
@@ -209,15 +219,27 @@ def substitutionFor (template : Template) (args : List Expr) : Substitution :=
       if queried == pair.1.1 then some (pair.1.2, pair.2) else lookup queried)
     (fun _ => none)
 
--- The finite body is substituted before recursive expansion. The new jobs
--- are exactly the suffix appended by instanceOf if pending never shrinks.
+-- Only drain reads the existing pending queue. The body starts with a local
+-- empty child queue, then its finite new suffix is appended to the old queue.
 def expandBody (ctx : Context) (job : Job) (st : State) : State × List Job :=
   let sub := substitutionFor job.template job.args
   let action : StateM State (List (List Expr)) :=
     job.template.body.mapM fun items =>
       (substituteAlt sub items).mapM (expandExpr ctx job.depth [])
-  let (_, after) := action.run st
-  (after, after.pending.drop st.pending.length)
+  let startState := { st with pending := [] }
+  let (_, after) := action.run startState
+  let children := after.pending
+  ({ after with pending := st.pending ++ children }, children)
+
+theorem expandBody_pending_prefix (ctx : Context) (job : Job) (st : State) :
+    (expandBody ctx job st).1.pending = st.pending ++ (expandBody ctx job st).2 := by
+  let sub := substitutionFor job.template job.args
+  let action : StateM State (List (List Expr)) :=
+    job.template.body.mapM fun items =>
+      (substituteAlt sub items).mapM (expandExpr ctx job.depth [])
+  let startState := { st with pending := [] }
+  cases h : action.run startState with
+  | mk result after => simp [expandBody, sub, action, startState, h]
 
 def worker (ctx : Context) : TemplateQueue.Worker Job State where
   size := fun job => (job.args.map exprSize).sum

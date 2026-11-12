@@ -7,7 +7,40 @@ grammar_file=${2:-packages/peg-grammar/src/Peg/Grammar.hs}
 expected=$(mktemp)
 trap 'rm -f "$expected"' EXIT HUP INT TERM
 
+grep -Fqx '  , stCount :: Integer' "$source_file"
+grep -Fqx 'exprSize :: Expr -> Integer' "$source_file"
+grep -Fqx '  | otherwise = case runExpand (mapM expandRule ordinary >>= \rs -> (rs ++) <$> drain) (St M.empty [] [] 0 M.empty S.empty) of' "$source_file"
+grep -Fqx '    usedNames = S.fromList (map ruleName (grammarRules g))' "$source_file"
+grep -Fqx '    maxDepth = 64' "$source_file"
+grep -Fqx '    maxSize = 10000' "$source_file"
+
+# A fresh instance is the only counter increment and generated-name insertion.
+cat > "$expected" <<'SOURCE'
+          n <- gets' stCount
+              , stCount = stCount st + 1
+  , stCount :: Integer
+SOURCE
+grep -F 'stCount' "$source_file" | diff -u "$expected" -
+
+cat > "$expected" <<'SOURCE'
+                  ++ [Located (ruleLoc r) (ruleName r) | isJust (grammarSyntax g), r <- rules, S.member (ruleName r) (stInstanceNames st)]
+          generated <- gets' stInstanceNames
+              , stInstanceNames = S.insert name (stInstanceNames st)
+  , stInstanceNames :: S.Set Text
+SOURCE
+grep -F 'stInstanceNames' "$source_file" | diff -u "$expected" -
+
 verification/check-template-substitution.sh "$source_file" "$grammar_file"
+
+# During one body expansion, pending is only appended to by instanceOf.
+# drain reads and removes the head outside that body.
+cat > "$expected" <<'SOURCE'
+              , stPending = stPending st ++ [(name, t, args, captured, depth + 1, l)]
+      gets' stPending >>= \case
+          modify' $ \st -> st {stPending = drop 1 (stPending st)}
+  , stPending :: [(Text, Rule, [Expr], [(Text, Located Text)], Int, Loc)]
+SOURCE
+grep -F 'stPending' "$source_file" | diff -u "$expected" -
 
 cat > "$expected" <<'SOURCE'
     expandAlt caller depth scope a = do
@@ -76,7 +109,8 @@ cat > "$expected" <<'SOURCE'
         Just name -> pure name
         Nothing -> do
           n <- gets' stCount
-          let name = freshName (ruleName t) n
+          generated <- gets' stInstanceNames
+          let name = freshName (ruleName t) n generated
           modify' $ \st ->
             st
               { stInstances = M.insert key name (stInstances st)
@@ -87,7 +121,7 @@ cat > "$expected" <<'SOURCE'
               }
           pure name
 
-    freshName base n = case [c | k <- [n ..], let c = base <> "'" <> T.pack (show (k :: Int)), not (S.member c usedNames)] of
+    freshName base n generated = case [c | k <- [n ..], let c = base <> "'" <> T.pack (show (k :: Integer)), not (S.member c usedNames), not (S.member c generated)] of
       c : _ -> c
       [] -> base
 SOURCE
@@ -95,7 +129,7 @@ sed -n '/^    instanceOf l depth t args tys captured =/,/^      \[\] -> base$/p'
   diff -u "$expected" -
 
 cat > "$expected" <<'SOURCE'
-exprSize :: Expr -> Int
+exprSize :: Expr -> Integer
 exprSize = \case
   EGroup alts -> 1 + sum (map (sum . map (exprSize . itemExpr)) alts)
   EStar x -> 1 + exprSize x
