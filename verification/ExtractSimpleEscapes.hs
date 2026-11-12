@@ -13,6 +13,10 @@ main :: IO ()
 main = do
   [file] <- getArgs
   source <- lines <$> readFile file
+  let entry = ["decodeString :: Loc -> String -> Either Diagnostic (Text, String)",
+               "decodeString start = go (next start '\"') []",
+               "  where", "    next l c = advanceLoc l (T.singleton c)"]
+  unless (entry `isInfixOf` source) (die "unsupported decoder entry")
   let plain = ["    go l acc = \\case",
                "      [] -> Left (Diagnostic l \"unterminated literal\")",
                "      '\"' : rest -> Right (T.pack (reverse acc), rest)",
