@@ -37,6 +37,18 @@ sed -n '/^itemStmt ::/,/^      else e$/p' \
 diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
   "$scratch/RenderPrimitiveStatementItem.actual"
 
+cat > "$scratch/RenderPrimitivePureSites.expected" <<'SOURCE'
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> parenthesise (T.unwords (maybe (dataName d) conName (listToMaybe con) : vs))]))
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
+          pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> result]))
+SOURCE
+sed -n '/^altCode ::/,/^-- Statements for a sequence/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs |
+  grep -F 'pure (doBlock' > "$scratch/RenderPrimitivePureSites.actual"
+diff -u "$scratch/RenderPrimitivePureSites.expected" \
+  "$scratch/RenderPrimitivePureSites.actual"
+
 [ -x "$scratch/trace-generated-module" ] || {
   echo 'GHC parser trace driver is missing' >&2
   exit 1
@@ -126,4 +138,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 5 Lean theorems, 2 exact source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 6 Lean theorems, 3 source checks, 36 GHC tokens, 1 rejected mutation.\n'

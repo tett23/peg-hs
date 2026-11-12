@@ -48,6 +48,18 @@ theorem pure_name_lexeme :
     RenderExpressionLexer.qualifiedVarId "PegPrelude" "pure" = true := by
   decide
 
+theorem pure_value_statement {value : List Symbol}
+    (value_ok : Derives productions [.nonterminal 218] value) :
+    Derives productions [.nonterminal 257] ([.terminal 121] ++ value) := by
+  have r528 : productions 528 = some (214, [.nonterminal 217]) := by decide
+  have r523 : productions 523 = some (212, [.nonterminal 214]) := by decide
+  have r520 : productions 520 = some (211, [.nonterminal 212]) := by decide
+  have r661 : productions 661 = some (258, [.nonterminal 211]) := by decide
+  have r658 : productions 658 = some (257, [.nonterminal 258]) := by decide
+  have applied := RenderExpressionGHC.application
+    RenderExpressionGHC.qualified_function value_ok
+  exact one r658 (one r661 (one r520 (one r523 (one r528 applied))))
+
 -- Codegen.altCode emits this exact final statement when a unit rule has no
 -- action. The source checker pins that branch, and the GHC lexer probe checks
 -- QVARID LPAREN RPAREN independently of this CFG derivation.
@@ -126,6 +138,7 @@ theorem wildcard_binding_statement {body : List Symbol}
   simpa using binding_statement wildcard body_ok
 
 #print axioms pure_name_lexeme
+#print axioms pure_value_statement
 #print axioms pure_unit_statement
 #print axioms binding_statement
 #print axioms named_binding_statement
