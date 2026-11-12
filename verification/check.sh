@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Pipeline Pragmas; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 lean -DwarningAsError=true Audit.lean
@@ -25,6 +25,23 @@ verification/check-lexical.sh
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
 verification/check-literal.sh "$work"
+verification/check-pragmas.sh "$work"
+verification/check-pipeline.sh
+
+extract_file() {
+  "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
+}
+extract_file packages/peg-grammar/grammar/Peg.hpeg packages/peg-grammar/grammar/PegSyntax.hpeg > "$work/FileTrees.lean"
+(cd verification && lean -DwarningAsError=true "$work/FileTrees.lean")
+# Removing the EOF check still gives valid hpeg, but changes its operator tree.
+sed 's/^File <- Ws TopItem\* (!\.) \^top$/File <- Ws TopItem*/' \
+  packages/peg-grammar/grammar/Peg.hpeg > "$work/NoEOF.hpeg"
+extract_file "$work/NoEOF.hpeg" > "$work/NoEOF.lean"
+if (cd verification && lean "$work/NoEOF.lean") > "$work/no-eof.log" 2>&1; then
+  echo 'invariant1: Lean unexpectedly accepted a File production without EOF' >&2
+  exit 1
+fi
+grep -q 'rfl' "$work/no-eof.log" || { cat "$work/no-eof.log" >&2; exit 1; }
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar \
   verification/ExtractSignatures.hs \
   packages/peg-grammar/grammar/Peg.hpeg \

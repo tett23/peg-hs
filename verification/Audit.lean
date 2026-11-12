@@ -7,12 +7,15 @@ import Nullable
 import Reachable
 import Literal
 import Signatures
+import File
+import Pipeline
+import Pragmas
 
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
-      `Reachable, `Literal, `Signatures] do
+      `Reachable, `Literal, `Signatures, `File, `Pipeline, `Pragmas] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
