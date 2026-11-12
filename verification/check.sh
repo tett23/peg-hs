@@ -33,6 +33,7 @@ verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
+verification/check-public-parsing.sh
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 
@@ -49,6 +50,8 @@ mkdir "$work/meta-cases"
 (cd verification && lean -DwarningAsError=true -o "$work/MetagrammarPredicates.olean" MetagrammarPredicates.lean &&
   lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
   lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
+  lean -DwarningAsError=true -o "$work/PublicParsing.olean" PublicParsing.lean &&
+  lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean ../packages/peg-grammar/grammar/Peg.hpeg ../packages/peg-grammar/grammar/PegSyntax.hpeg &&
