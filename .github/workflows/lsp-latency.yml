@@ -1,0 +1,108 @@
+name: LSP median latency
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GHC_VERSION: '9.10.3'
+  CABAL_VERSION: '3.16.1.0'
+  GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
+  GOLEM: 89ae4b4142c58cb8937e10c18c0e664280397547
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      measure: ${{ steps.diff.outputs.measure }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          measure=$(node scripts/lsp-monitor-changes.mjs "$BEFORE" "$HEAD")
+          echo "measure=$measure" >> "$GITHUB_OUTPUT"
+
+  benchmark:
+    needs: changes
+    if: needs.changes.outputs.measure == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      exceeded: ${{ steps.median.outputs.exceeded }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - uses: actions/cache@v6
+        with:
+          path: /home/runner/toolchain/.ghcup
+          key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
+      - name: Prepare toolchain and pinned grammar inputs
+        run: |
+          mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
+          ghcup install ghc "$GHC_VERSION" --set
+          ghcup install cabal "$CABAL_VERSION" --set
+          echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
+          cp conformance/bench/Memo.hpeg "$RUNNER_TEMP/Memo.hpeg"
+          curl --fail --location --retry 3 "https://raw.githubusercontent.com/tett23/golem/$GOLEM/modules/golem-parser/grammar/Golem.hpeg" -o "$RUNNER_TEMP/Golem.hpeg"
+          echo "e27f6daf94af567afbf0712eae8f2ec4e9d45801571b61b90af04929020d1a2c  $RUNNER_TEMP/Golem.hpeg" | sha256sum --check
+      - name: Build and measure the pushed commit
+        run: |
+          {
+            echo "## LSP median latency"
+            echo
+            echo "Commit: $GITHUB_SHA. Memo: conformance/bench/Memo.hpeg at $GITHUB_SHA. Golem: $GOLEM."
+            echo "Runner: $ImageOS $ImageVersion ($(uname -m)); GHC $(ghc --numeric-version); Cabal $(cabal --numeric-version)."
+            echo 'Options: -O1, Criterion --match pattern range, RTS -A64m.'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          cabal update
+          cabal build bench:peg-bench --enable-optimization=1
+          bench=$(cabal list-bin bench:peg-bench --enable-optimization=1)
+          cd conformance
+          for grammar in Memo Golem; do
+            PEG_BENCH_LSP_GRAMMAR="$RUNNER_TEMP/$grammar.hpeg" "$bench" \
+              --match pattern range --json "$RUNNER_TEMP/$grammar.json" +RTS -A64m -RTS
+          done
+      - name: Record all twelve medians
+        id: median
+        run: node scripts/lsp-median.mjs "$RUNNER_TEMP/Memo.json" "$RUNNER_TEMP/Golem.json" | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+  notify:
+    needs: benchmark
+    if: needs.benchmark.outputs.exceeded != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: lsp-median-issue
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Create or update the monitoring issue
+        env:
+          EXCEEDED: ${{ needs.benchmark.outputs.exceeded }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/lsp-median-issue.mjs

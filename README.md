@@ -574,6 +574,8 @@ A message whose JSON nests arrays and objects deeper than 256 levels is answered
 An editor gets four tools for grammars: the language server, lint, formatting and syntax highlighting.
 The settings below set up all four, and format a grammar on every save by default, since `fmt` has only one style ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
 
+CI measures language-server edit latency for the Memo and Golem grammars when benchmark inputs change on main. If any of the twelve cases has a median above 16 ms, CI records the case and the run in a tracking issue ([ADR 0099](docs/adr/0099-open-an-issue-for-lsp-median-latency.md)).
+
 `editors/` has grammars for syntax highlighting and a VS Code extension ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
 The TextMate and tree-sitter grammars are also in the releases: `peg-hs-editors-<version>.tar.gz` on [Releases](https://github.com/tett23/peg-hs/releases), and `editors/` in the archive of the executable. The tree-sitter grammar there has its generated parser, so Neovim and Helix build it without the tree-sitter CLI. In the settings below, `/path/to/peg-hs/editors/tree-sitter-hpeg` can be the `tree-sitter-hpeg/` of an extracted archive ([ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)).
 Besides rules, literals and operators, they color brackets, the braces of actions, the delimiters of bindings and template arguments, and the arguments of directives by what they name: a rule, a label, the module or an extension ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
