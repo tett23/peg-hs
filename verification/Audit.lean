@@ -28,6 +28,7 @@ import FileEnd
 import FileItemChain
 import FileEntry
 import PublicParsing
+import PublicEntryProof
 import FileExamples
 import ConcreteFileCertificates
 import EnvironmentDepth
@@ -50,7 +51,6 @@ import Consumption
 import FileTrees
 import Pipeline
 import ImportResolution
-import PublicParsing
 import LabelPropagation
 import InnerGeneration
 import InnerUnicode
@@ -120,7 +120,7 @@ run_cmd do
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution,
-      `PrefixReplay, `WindowReplay, `WindowReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `PublicParsing,
+      `PrefixReplay, `WindowReplay, `WindowReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do

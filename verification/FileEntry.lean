@@ -1,5 +1,5 @@
 import MetaExecution
-import PublicParsing
+import PublicEntryProof
 
 namespace PegHs.FileEntry
 open EnvironmentEval MetaExecution PublicParsing
@@ -29,6 +29,13 @@ theorem invariant1_public_entry {mode input reply} (result : FileResult mode inp
     have same := (unique _ result).trans (unique _ accepted).symm
     subst reply
     simp [start, Utf8Terminals.byteOffset]
+
+theorem invariant1_translated_public_entry {mode input reply} (result : FileResult mode input reply)
+    (diagnostic : Failure → String) :
+    translatedPublic diagnostic (translatedRuntime input.utf8Encode.size (start input reply)) = .ok () ↔
+      ∃ env, FileResult mode input (.ok 0 env) := by
+  rw [invariant1_translated_entry]
+  exact invariant1_public_entry result diagnostic
 
 theorem invariant2_invalid_file_no_module {mode input reply} (result : FileResult mode input reply)
     (invalid : ¬ ∃ env, FileResult mode input (.ok 0 env))

@@ -33,7 +33,7 @@ verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
-verification/check-public-parsing.sh
+verification/check-public-parsing.sh "$work"
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh
