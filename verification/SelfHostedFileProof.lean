@@ -80,6 +80,11 @@ theorem invariant1_strict_postfix (input : List Char) :
     translatedStrictPostOps = (context false input).rules 31 ∧
     translatedStrictPostOp = (context false input).rules 32 := ⟨rfl, rfl, rfl⟩
 
+theorem invariant1_strict_quoted_literals (input : List Char) :
+    translatedStrictLit1 = (context false input).rules 39 ∧
+    translatedStrictLit2 = (context false input).rules 40 ∧
+    translatedStrictEscape = (context false input).rules 41 := ⟨rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim

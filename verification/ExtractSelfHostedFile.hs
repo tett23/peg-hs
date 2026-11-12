@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ArgCode","51"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -443,6 +443,37 @@ depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
 
+quotedLiteralRule :: String -> Char -> Int -> Int -> ReadP String
+quotedLiteralRule name delimiter site firstTerminal = do
+  header name
+  mapM_ token ["do", "{"]
+  literal [delimiter]
+  mapM_ token [";", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{", "_", "<-"]
+  escape <- call site
+  mapM_ token [";", "PegPrelude.pure", "()", "}", ",", "do", "{", "PegRt.notP", "(", "PegRt.cls"]
+  ranges <- skipSpaces >> readS_to_P reads
+  guard (ranges == [(delimiter, delimiter), ('\\', '\\'), ('\n', '\n')])
+  _ <- quoted
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")",
+    ";", "PegRt.choice", "[", "do", "{"]
+  closing <- labelled (literal [delimiter] >> pure (term 3))
+  mapM_ token [";", "PegPrelude.pure", "()", "}", "]", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  let plain = sequenceBody ["(.notAhead " ++ term 1 ++ ")", term 2]
+  pure (sequenceBody [term 0, "(.star (.alt " ++ escape ++ " " ++ plain ++ "))", closing])
+  where term offset = "(.terminal " ++ show (firstTerminal + offset) ++ ")"
+
+escapeRule :: ReadP String
+escapeRule = do
+  header "Escape"
+  mapM_ token ["do", "{"]
+  literal "\\"
+  mapM_ token [";", "_", "<-", "PegRt.choice", "[", "do", "{", "_", "<-", "PegRt.labeled"]
+  name <- quoted
+  mapM_ token ["PegPrelude.Nothing", "("]
+  body <- call 138
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  pure (".seq (.terminal 75) (.label " ++ leanString name ++ " none " ++ body ++ ")")
+
 suffixRule :: ReadP String
 suffixRule = do
   depthHeader "SuffixE"
@@ -731,7 +762,9 @@ main = do
          ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
          ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule),
          ("Labeled", labeledRule), ("LabelPart", labelPartRule), ("SuffixE", suffixRule),
-         ("PostOps", postOpsRule), ("PostOp", postOpRule)] $
+         ("PostOps", postOpsRule), ("PostOp", postOpRule),
+         ("Lit1", quotedLiteralRule "Lit1" '\'' 136 67), ("Lit2", quotedLiteralRule "Lit2" '"' 137 71),
+         ("Escape", escapeRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
