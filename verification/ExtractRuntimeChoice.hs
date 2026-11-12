@@ -79,6 +79,22 @@ main = do
       putStrLn ("  | .fail => " ++ onFail)
       putStrLn ("  | .throwLabel pos label msg => " ++ thrown)
     _ -> die "unsupported optional"
+  let repeatGuard prefix suffix line = case stripPrefix prefix line of
+        Just guard | guard == "k > j" ++ suffix -> pure "j < k"
+                   | guard == "k >= j" ++ suffix -> pure "j ≤ k"
+        _ -> die ("unsupported repetition guard: " ++ line)
+      repeatBody name loop start finish okPrefix okSuffix stop = case body (name ++ " p =") of
+        [header, definition, "        saved <- saveErrors c", dispatch, ok, thrownCase, stopped, entry]
+          | header == name ++ " p = P $ \\c i ->", definition == loop, dispatch == "        unP p c j >>= \\case",
+            thrownCase == "          Throw t l m -> restoreErrors c saved >> pure (Throw t l m)",
+            stopped == "          _ -> restoreErrors c saved >> pure (Ok j " ++ stop ++ ")", entry == start -> do
+              test <- repeatGuard okPrefix okSuffix ok
+              putStrLn ("def " ++ finish ++ " (j k : Nat) : Prop := " ++ test)
+        _ -> die ("unsupported repetition body: " ++ name)
+  repeatBody "many" "  let go j acc = do" "   in go i []" "translatedManyProgress"
+    "          Ok k x | " " -> go k (x : acc)" "(reverse acc)"
+  repeatBody "skipMany" "  let go j = do" "   in go i" "translatedSkipManyProgress"
+    "          Ok k _ | " " -> go k" "()"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of

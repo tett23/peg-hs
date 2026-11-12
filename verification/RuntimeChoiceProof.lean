@@ -1,5 +1,6 @@
 import TranslatedRuntimeChoice
 import EnvironmentDerivation
+import Utf8Terminals
 
 namespace PegHs.EnvironmentEval
 
@@ -55,5 +56,34 @@ theorem invariant1_runtime_optional {ctx : Inputs} {a : Body} {n : Nat} {env : E
   | ok => exact .altLeft child (by simp [translatedOptional])
   | fail => exact .altRetry child .eps
   | throwLabel => exact .altLeft child (by simp [translatedOptional])
+
+private theorem prefix_bytes_lt (input : List Char) (i j : Nat) (hi : i ≤ input.length)
+    (hj : j ≤ input.length) :
+    (input.take i).utf8Encode.size < (input.take j).utf8Encode.size ↔ i < j := by
+  induction input generalizing i j with
+  | nil => simp_all
+  | cons c cs ih =>
+    have bytes (xs : List Char) : (c :: xs).utf8Encode.size = c.utf8Size + xs.utf8Encode.size := by
+      rw [List.utf8Encode_cons, ByteArray.size_append]
+      simp [List.utf8Encode_singleton]
+    cases i <;> cases j <;> simp_all
+    all_goals have positive := c.utf8Size_pos; omega
+
+theorem invariant1_runtime_repeat_progress (input : List Char) (before after : Nat)
+    (beginBound : before ≤ input.length) (endBound : after ≤ input.length) :
+    Utf8Terminals.byteOffset input (input.length - before) <
+      Utf8Terminals.byteOffset input (input.length - after) ↔ after < before := by
+  unfold Utf8Terminals.byteOffset
+  rw [prefix_bytes_lt input _ _ (Nat.sub_le ..) (Nat.sub_le ..)]
+  omega
+
+theorem invariant1_both_repeat_guards (input : List Char) (before after : Nat)
+    (beginBound : before ≤ input.length) (endBound : after ≤ input.length) :
+    let j := Utf8Terminals.byteOffset input (input.length - before)
+    let k := Utf8Terminals.byteOffset input (input.length - after)
+    (translatedManyProgress j k ↔ after < before) ∧
+      (translatedSkipManyProgress j k ↔ after < before) := by
+  have h := invariant1_runtime_repeat_progress input before after beginBound endBound
+  exact ⟨h, h⟩
 
 end PegHs.EnvironmentEval
