@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("Action","46"), ("ArgCode","51")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -395,6 +395,78 @@ paramChunksRule = do
   pure (".alt (.seq (.bind 24 \"p\" " ++ first ++ ") (.seq (.terminal 27) (.bind 25 \"rest\" " ++
     rest ++ "))) (.seq (.bind 26 \"p\" " ++ lastChunk ++ ") (.terminal 28))")
 
+declStartRule :: ReadP String
+declStartRule = do
+  header "DeclStart"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"]
+  name <- call 72
+  templates <- optional 73
+  params <- optional 74
+  mapM_ token [";", "_", "<-"]
+  ws <- call 75
+  mapM_ token [";", "PegRt.choice", "[", "do", "{"]
+  literal "::"
+  mapM_ token [";", "PegPrelude.pure", "()", "}", ",", "do", "{"]
+  literal "<-"
+  mapM_ token [";", "PegPrelude.pure", "()", "}", "]"]
+  returnAction ["()"]
+  pure (sequenceBody [name, templates, params, ws, "(.alt (.terminal 32) (.terminal 33))"])
+  where
+    optional site = do
+      mapM_ token [";", "_", "<-", "PegRt.skipOptional", "("]
+      child <- call site
+      token ")"
+      pure ("(.alt " ++ child ++ " .eps)")
+
+bindingRule :: ReadP String
+bindingRule = do
+  header "Binding"
+  mapM_ token ["do", "{", "peg'v0", "<-"]
+  name <- call 76
+  token ";"
+  literal ":"
+  mapM_ token [";", "PegRt.notP", "("]
+  literal ":"
+  mapM_ token [")", ";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
+  pure (sequenceBody [name, "(.terminal 34)", "(.notAhead (.terminal 35))"])
+
+itemRule :: ReadP String
+itemRule = do
+  mapM_ token ["peg'rule'Item", "d", "=", "PegRt.memoArg", "peg'memo'Item", "\"Item\"", "d",
+    "(", "PegRt.choice", "["]
+  first <- start 63 37
+  mapM_ token [";", "b", "<-"]
+  binder <- call 66
+  mapM_ token [";", "e", "<-", "PegRt.choice", "[", "do", "{", "peg'v0", "<-"]
+  expr <- labelled (withDepth 67)
+  mapM_ token [";", "PegPrelude.pure", "peg'v0", "}", "]"]
+  endAction ["(", "Item", "l", "(", "Just", "b", ")", "(", "fst", "e", ")", ",", "snd", "e", ")"]
+  token ","
+  second <- start 68 40
+  mapM_ token [";", "e", "<-"]
+  plain <- withDepth 71
+  returnAction ["(", "Item", "l", "Nothing", "(", "fst", "e", ")", ",", "snd", "e", ")"]
+  let bound = sequenceBody (first ++ ["(.bind 38 \"b\" " ++ binder ++ ")", "(.bind 39 \"e\" " ++ expr ++ ")"])
+      unbound = sequenceBody (second ++ ["(.bind 41 \"e\" " ++ plain ++ ")"])
+  pure (".alt (.action 0 " ++ bound ++ ") (.action 1 " ++ unbound ++ ")")
+  where
+    start :: Int -> Int -> ReadP [String]
+    start site locId = do
+      mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"]
+      ws <- call site
+      mapM_ token [";", "PegRt.notP", "("]
+      decl <- call (site + 1)
+      mapM_ token [")", ";", "l", "<-"]
+      loc <- call (site + 2)
+      pure [ws, "(.notAhead " ++ decl ++ ")", "(.bind " ++ show locId ++ " \"l\" " ++ loc ++ ")"]
+    withDepth site = do
+      mapM_ token ["PegRt.withCol", "(", "\\_col", "->"]
+      child <- call site
+      token "("
+      embedded ["d"]
+      mapM_ token [")", ")"]
+      pure child
+
 altRule :: ReadP String
 altRule = do
   header "Alt"
@@ -502,9 +574,10 @@ main = do
          ("Declaration", declarationRule), ("TemplateParams", templateParamsRule), ("TemplateParam", templateParamRule),
          ("TypeText", typeTextRule), ("ParamList", paramListRule), ("ParamChunks", paramChunksRule),
          ("ParamChunk", paramChunkRule),
-         ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule)] $
+         ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
+         ("DeclStart", declStartRule), ("Binding", bindingRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
-        l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
+        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name == "Item" then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)

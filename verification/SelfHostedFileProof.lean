@@ -60,6 +60,13 @@ theorem invariant1_strict_alt_constructor (input : List Char) :
     translatedStrictAlt = (context false input).rules 22 ∧
     translatedStrictConstructor = (context false input).rules 23 := ⟨rfl, rfl⟩
 
+theorem invariant1_strict_item (input : List Char) :
+    translatedStrictItem = (context false input).rules 24 := rfl
+
+theorem invariant1_strict_item_boundaries (input : List Char) :
+    translatedStrictDeclStart = (context false input).rules 25 ∧
+    translatedStrictBinding = (context false input).rules 26 := ⟨rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
