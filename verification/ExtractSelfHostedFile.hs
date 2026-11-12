@@ -24,7 +24,7 @@ call :: Int -> ReadP String
 call site = do
   token "peg'rule'"
   target <- choice [string name >> pure number | (name, number) <-
-    [("TopItem","1"), ("TopOne","2"), ("Ws","4"), ("SpaceChar","5"),
+    [("TopItem","1"), ("TopOne","2"), ("Here","3"), ("Ws","4"), ("SpaceChar","5"),
      ("Comment","6"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
@@ -124,19 +124,54 @@ identifier = do
   mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")", ";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
   pure (".capture (.seq " ++ initial ++ " (.star " ++ following ++ "))")
 
+literal :: String -> ReadP ()
+literal expected = do
+  token "PegRt.lit"
+  value <- quoted
+  guard (value == expected)
+  _ <- quoted -- expected-token text does not affect recognition
+  pure ()
+
+positionRule :: ReadP String
+positionRule = do
+  header "Here"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";",
+    "_span", "<-", "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+  embedded ["here", "_span"]
+  mapM_ token [")", "}", "]", ")"]
+  pure ".eps"
+
+verbatimRule :: ReadP String
+verbatimRule = do
+  header "Verbatim"
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";"]
+  literal "%{"
+  mapM_ token [";", "l", "<-"]
+  here <- call 11
+  mapM_ token [";", "b", "<-", "PegRt.capture", "(", "PegRt.skipMany", "(",
+    "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+  literal "}%"
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")", ")",
+    ";", "PegRt.choice", "[", "do", "{", "PegRt.labeledMessage"]
+  name <- quoted
+  message <- quoted
+  mapM_ token ["PegPrelude.Nothing", "("]
+  literal "}%"
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ";", "_span", "<-",
+    "PegRt.spanFrom", "peg'start", ";", "PegPrelude.pure", "("]
+  embedded ["uncurry", "TVerbatim", "(", "verbatimBody", "l", "b", ")"]
+  mapM_ token [")", "}", "]", ")"]
+  pure (".seq (.terminal 8) (.seq (.bind 3 \"l\" " ++ here ++
+    ") (.seq (.bind 4 \"b\" (.capture (.star (.seq (.notAhead (.terminal 9)) (.terminal 10))))) " ++
+    "(.label " ++ leanString name ++ " (some " ++ leanString message ++ ") (.terminal 11))))")
+
 commentRule :: ReadP String
 commentRule = do
   header "Comment"
-  let literal c = do
-        token "PegRt.lit"
-        value <- quoted
-        guard (value == [c])
-        _ <- quoted -- expected-token text does not affect recognition
-        pure ()
   mapM_ token ["do", "{"]
-  literal '#'
+  literal "#"
   mapM_ token [";", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
-  literal '\n'
+  literal "\n"
   mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")",
     ";", "PegPrelude.pure", "()", "}", "]", ")"]
   pure ".seq (.terminal 2) (.star (.seq (.notAhead (.terminal 3)) (.terminal 4)))"
@@ -149,7 +184,8 @@ main = do
   forM_ [("File", production), ("TopItem", topItem), ("TopOne", topOne), ("Ws", whitespace),
          ("SpaceChar", filteredChar "SpaceChar" "isSpace" 0 1), ("Comment", commentRule), ("Ident", identifier),
          ("IdentStart", filteredChar "IdentStart" "isIdentStart" 1 6),
-         ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7)] $
+         ("IdentChar", filteredChar "IdentChar" "isIdentChar" 2 7),
+         ("Here", positionRule), ("Verbatim", verbatimRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ " ="] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->

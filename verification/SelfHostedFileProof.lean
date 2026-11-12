@@ -1,5 +1,6 @@
 import TranslatedStrictFile
 import FileEntry
+import VerbatimRule
 
 namespace PegHs.MetaExecution
 open EnvironmentEval
@@ -25,5 +26,15 @@ theorem invariant1_strict_identifier_bodies (input : List Char) :
     translatedStrictIdent = (context false input).rules 8 ∧
     translatedStrictIdentStart = (context false input).rules 9 ∧
     translatedStrictIdentChar = (context false input).rules 10 := ⟨rfl, rfl, rfl⟩
+
+theorem invariant1_strict_verbatim_bodies (input : List Char) :
+    translatedStrictHere = (context false input).rules 3 ∧
+    translatedStrictVerbatim = (context false input).rules 11 := ⟨rfl, rfl⟩
+
+theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
+    (missing : verbatimRest xs = []) :
+    Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
+      (xs.length + 2) env (.throwLabel 0 "verbatim" (some "unterminated %{ block")) :=
+  invariant2_unterminated_verbatim false pre xs env missing
 
 end PegHs.MetaExecution

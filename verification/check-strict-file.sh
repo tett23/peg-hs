@@ -49,3 +49,16 @@ if runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$work/ChangedIdentStart.hs" >
   exit 1
 fi
 grep -Fq 'unsupported or missing generated rule IdentStart' "$work/changed-ident-start.log"
+# The generated label message must also be preserved by the translation.
+sed "/^peg'rule'Verbatim =$/,/^$/s/unterminated %{ block/incorrect diagnostic/" \
+  "$source" > "$work/ChangedVerbatim.hs"
+runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$work/ChangedVerbatim.hs" > "$work/ChangedVerbatim.lean"
+cat >> "$work/ChangedVerbatim.lean" <<'LEAN'
+open PegHs.MetaExecution in
+example : translatedStrictVerbatim = (context false []).rules 11 := by rfl
+LEAN
+if lean -DwarningAsError=true "$work/ChangedVerbatim.lean" > "$work/changed-verbatim.log" 2>&1; then
+  echo 'accepted a changed unterminated block diagnostic' >&2
+  exit 1
+fi
+grep -Fq 'Tactic `rfl` failed' "$work/changed-verbatim.log" || { cat "$work/changed-verbatim.log" >&2; exit 1; }
