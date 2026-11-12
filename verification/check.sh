@@ -38,6 +38,7 @@ verification/check-pipeline.sh
 verification/check-public-parsing.sh "$work"
 verification/check-assemble-validation.sh
 verification/check-assemble-validation-helpers.sh
+verification/check-directive-comment.sh "$work"
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh

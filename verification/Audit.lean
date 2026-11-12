@@ -32,6 +32,7 @@ import FileItemChain
 import FileEntry
 import StrictSpaceChar
 import StrictInlineSpace
+import DirectiveCommentProof
 import DirectiveSuccess
 import DirectiveFailure
 import StrictWhitespaceScan
@@ -132,7 +133,7 @@ run_cmd do
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
-      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
+      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `SelfHostedFileProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `LabelPropagation] do
