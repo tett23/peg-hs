@@ -28,7 +28,8 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53"), ("HsNested","54"), ("HsInner","55"),
+     ("HsString","56"), ("HsChar","57"), ("HsIdent","58")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -442,6 +443,49 @@ depthCall site argument = do
 depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
+
+ignoredCallBranch :: Int -> ReadP String
+ignoredCallBranch site = do
+  mapM_ token ["do", "{", "_", "<-"]
+  child <- call site
+  mapM_ token [";", "PegPrelude.pure", "()", "}"]
+  pure child
+
+hsPartRule :: String -> Int -> Int -> ReadP String
+hsPartRule name firstSite firstTerm = do
+  header name
+  choices <- mapM (\site -> ignoredCallBranch site <* token ",") [firstSite .. firstSite + 3]
+  mapM_ token ["do", "{", "PegRt.notP", "("]
+  characterClass [(c,c) | c <- "()[]{}\"'"]
+  mapM_ token [")", ";", "PegRt.anyChar", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  let fallback = "(.seq (.notAhead (.terminal " ++ show firstTerm ++ ")) (.terminal " ++ show (firstTerm+1) ++ "))"
+  pure (foldr (\child rest -> "(.alt " ++ child ++ " " ++ rest ++ ")") fallback choices)
+
+hsBracketBranch :: String -> String -> Int -> Int -> ReadP String
+hsBracketBranch opening closing site firstTerm = do
+  mapM_ token ["do", "{"]
+  literal opening
+  mapM_ token [";", "_", "<-", "PegRt.skipMany", "("]
+  child <- call site
+  mapM_ token [")", ";"]
+  literal closing
+  mapM_ token [";", "PegPrelude.pure", "()", "}"]
+  pure (sequenceBody ["(.terminal " ++ show firstTerm ++ ")", "(.star " ++ child ++ ")",
+    "(.terminal " ++ show (firstTerm+1) ++ ")"])
+
+hsParenRule :: ReadP String
+hsParenRule = header "HsParen" *> hsBracketBranch "(" ")" 159 97 <* mapM_ token ["]", ")"]
+
+hsNestedRule :: ReadP String
+hsNestedRule = do
+  header "HsNested"
+  paren <- ignoredCallBranch 160
+  token ","
+  square <- hsBracketBranch "[" "]" 161 99
+  token ","
+  brace <- hsBracketBranch "{" "}" 162 101
+  mapM_ token ["]", ")"]
+  pure (".alt " ++ paren ++ " (.alt " ++ square ++ " " ++ brace ++ ")")
 
 embeddedCodeRule :: String -> Int -> Int -> Int -> ReadP String
 embeddedCodeRule name site binding closingTerminal = do
@@ -890,7 +934,8 @@ main = do
          ("Lit1", quotedLiteralRule "Lit1" '\'' 136 67), ("Lit2", quotedLiteralRule "Lit2" '"' 137 71),
          ("Escape", escapeRule), ("EscapeBody", escapeBodyRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule),
          ("Action", embeddedCodeRule "Action" 143 76 89), ("PredCode", embeddedCodeRule "PredCode" 145 78 90),
-         ("ActionCode", actionCodeRule), ("ArgCode", argCodeRule)] $
+         ("ActionCode", actionCodeRule), ("ArgCode", argCodeRule), ("HsPart", hsPartRule "HsPart" 155 95),
+         ("HsParen", hsParenRule), ("HsNested", hsNestedRule), ("HsInner", hsPartRule "HsInner" 163 103)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->

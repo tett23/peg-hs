@@ -99,6 +99,12 @@ theorem invariant1_strict_embedded_code (input : List Char) :
     translatedStrictActionCode = (context false input).rules 50 ∧
     translatedStrictArgCode = (context false input).rules 51 := ⟨rfl, rfl, rfl, rfl⟩
 
+theorem invariant1_strict_haskell_brackets (input : List Char) :
+    translatedStrictHsPart = (context false input).rules 52 ∧
+    translatedStrictHsParen = (context false input).rules 53 ∧
+    translatedStrictHsNested = (context false input).rules 54 ∧
+    translatedStrictHsInner = (context false input).rules 55 := ⟨rfl, rfl, rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
