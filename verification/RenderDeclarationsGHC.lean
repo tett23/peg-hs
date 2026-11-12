@@ -86,20 +86,23 @@ theorem binding {lhs body : List Symbol}
 
 -- A generated unqualified declaration name is a VARID token. This is a
 -- token-level theorem; validation of the concrete characters is separate.
-theorem name_infixexp :
-    Derives productions [.nonterminal 212] [.terminal 117] := by
+theorem varid_argument :
+    Derives productions [.nonterminal 218] [.terminal 117] := by
   have r775 : productions 775 = some (307, [.terminal 117]) := by decide
   have r773 : productions 773 = some (306, [.nonterminal 307]) := by decide
   have r769 : productions 769 = some (304, [.nonterminal 306]) := by decide
   have r555 : productions 555 = some (220, [.nonterminal 304]) := by decide
   have r554 : productions 554 = some (219, [.nonterminal 220]) := by decide
   have r551 : productions 551 = some (218, [.nonterminal 219]) := by decide
+  exact oneRule r551 (oneRule r554 (oneRule r555
+    (oneRule r769 (oneRule r773 (applyRule r775 (.refl _))))))
+
+theorem name_infixexp :
+    Derives productions [.nonterminal 212] [.terminal 117] := by
   have r536 : productions 536 = some (217, [.nonterminal 218]) := by decide
   have r528 : productions 528 = some (214, [.nonterminal 217]) := by decide
   have r523 : productions 523 = some (212, [.nonterminal 214]) := by decide
-  exact oneRule r523 (oneRule r528 (oneRule r536
-    (oneRule r551 (oneRule r554 (oneRule r555
-      (oneRule r769 (oneRule r773 (applyRule r775 (.refl _)))))))))
+  exact oneRule r523 (oneRule r528 (oneRule r536 varid_argument))
 
 theorem signature_named {ty : List Symbol}
     (type_ok : Derives productions [.nonterminal 157] ty) :
@@ -144,18 +147,11 @@ theorem name_with_arguments (args : List (List Symbol))
     (args_ok : ∀ arg ∈ args,
       Derives productions [.nonterminal 218] arg) :
     Derives productions [.nonterminal 212] (argumentsWord args) := by
-  have r775 : productions 775 = some (307, [.terminal 117]) := by decide
-  have r773 : productions 773 = some (306, [.nonterminal 307]) := by decide
-  have r769 : productions 769 = some (304, [.nonterminal 306]) := by decide
-  have r555 : productions 555 = some (220, [.nonterminal 304]) := by decide
-  have r554 : productions 554 = some (219, [.nonterminal 220]) := by decide
-  have r551 : productions 551 = some (218, [.nonterminal 219]) := by decide
   have r536 : productions 536 = some (217, [.nonterminal 218]) := by decide
   have r528 : productions 528 = some (214, [.nonterminal 217]) := by decide
   have r523 : productions 523 = some (212, [.nonterminal 214]) := by decide
   have name_ok : Derives productions [.nonterminal 217] [.terminal 117] :=
-    oneRule r536 (oneRule r551 (oneRule r554 (oneRule r555
-      (oneRule r769 (oneRule r773 (applyRule r775 (.refl _)))))))
+    oneRule r536 varid_argument
   have fold (acc : List Symbol) (remaining : List (List Symbol))
       (acc_ok : Derives productions [.nonterminal 217] acc)
       (remaining_ok : ∀ arg ∈ remaining,
@@ -212,6 +208,18 @@ theorem generated_pair (ty : List Symbol) (args : List (List Symbol))
   · rw [h]
     exact binding_named_arguments args args_ok body_ok
 
+theorem generated_pair_varid_arguments (ty body : List Symbol) (arity : Nat)
+    (type_ok : Derives productions [.nonterminal 163] ty)
+    (body_ok : Derives productions [.nonterminal 211] body) :
+    Derives productions [.nonterminal 76]
+      ((generatedPair ty (List.replicate arity [.terminal 117]) body).foldl
+        RenderModuleGHC.semiAppend []) := by
+  apply generated_pair _ _ _ type_ok _ body_ok
+  intro arg member
+  have eq := List.eq_of_mem_replicate member
+  exact eq ▸ varid_argument
+
+#print axioms generated_pair_varid_arguments
 #print axioms signature
 #print axioms binding
 #print axioms name_with_arguments
