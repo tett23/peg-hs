@@ -35,6 +35,11 @@ main = do
          ("'\\u{D800}'", True), ("[z-a]", False), ("[a-a]", True), ("[\\-]", True)] $
     \(expr, accepted) -> unless (isRight (parseTops ("%module M\nS <- " <> expr <> "\n")) == accepted) $
       die ("invariant1: unexpected escape or character-class result for " ++ show expr)
+  let parameter raw = parseTops ("%module M\nS(" <> raw <> ") :: ()\nS <- 'a'\n")
+  forM_ [("name", "expected a parameter of the form"), ("1name :: T", "expected a parameter of the form"),
+         ("name ::  ", "expected a parameter type")] $ \(raw, message) ->
+    unless (anyDiagnostic message (parameter raw)) $ die ("invariant1: parameter diagnostic for " ++ show raw)
+  unless (isRight (parameter "  name' :: Foo :: Bar  ")) $ die "invariant1: split only the first parameter separator"
   unless (parseTops "" == Right []) $ die "invariant1: empty file"
   let valid = "%module M\nS <- 'a'\n"
       trailing = valid <> "]"
