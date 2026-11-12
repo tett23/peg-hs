@@ -41,4 +41,11 @@ theorem invariant1_runtime_lookahead {ctx : Inputs} {a : Body} {n : Nat} {env : 
     Derives ctx (.notAhead a) n env (translatedNotAhead n env r) := by
   cases r <;> exact ⟨.ahead child, .notAhead child⟩
 
+theorem invariant1_runtime_sequence (ctx : Inputs) (fuel n : Nat) (env : Env) (a b : Body) :
+    translatedBind n (runFuel ctx fuel a n env) (runFuel ctx fuel b) =
+      runFuel ctx (fuel + 1) (.seq a b) n env := by
+  cases h : runFuel ctx fuel a n env with
+  | none => simp [runFuel, translatedBind, h]
+  | some r => cases r <;> simp [runFuel, translatedBind, h]
+
 end PegHs.EnvironmentEval

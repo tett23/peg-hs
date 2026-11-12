@@ -49,6 +49,24 @@ main = do
   emitLook "notP" "translatedNotAhead" ["notP p = P $ \\c i -> do", "  saved <- readSTRef (ctxFail c)",
     "  savedErrors <- saveErrors c", "  r <- unP p c i", "  writeSTRef (ctxFail c) saved",
     "  restoreErrors c savedErrors"]
+  thrown <- case body "failed (Throw " of
+    ["failed (Throw i l m) = Throw i l m", "failed _ = Fail"] -> pure ".throwLabel pos label msg"
+    ["failed (Throw i l m) = Fail", "failed _ = Fail"] -> pure ".fail"
+    _ -> die "unsupported failed result projection"
+  case body "instance Monad (P " of
+    ["instance Monad (P r s) where", "  {-# INLINE (>>=) #-}", "  P p >>= k =",
+     "    P $ \\c i ->", "      p c i >>= \\case", success, "        bad -> pure (failed bad)"] -> do
+      next <- case success of
+        "        Ok j x -> unP (k x) c j" -> pure "next rest value"
+        "        Ok j x -> unP (k x) c i" -> pure "next _origin value"
+        _ -> die "unsupported continuation in parser bind"
+      putStrLn "def translatedBind (_origin : Nat) (first : Option Reply) (next : Nat → Env → Option Reply) : Option Reply :="
+      putStrLn "  match first with"
+      putStrLn ("  | some (.ok rest value) => " ++ next)
+      putStrLn "  | some .fail => some .fail"
+      putStrLn ("  | some (.throwLabel pos label msg) => some (" ++ thrown ++ ")")
+      putStrLn "  | none => none"
+    _ -> die "unsupported parser bind"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of
