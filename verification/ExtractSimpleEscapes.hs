@@ -34,6 +34,9 @@ main = do
                   "      | T.any (\\c -> c < ' ' || c == '\\DEL') v = Left (Diagnostic strLoc (what <> \" contains a control character\"))",
                   "      | otherwise = Right (Located al name, Located strLoc v)"]
   unless (argument `isInfixOf` source) (die "unsupported string argument definition")
+  let collect = ["    stringArgs d = [(l, stringArg d l (Located al a)) | TDirective l d' al a <- items, d' == d, not (T.null a)]",
+                 "    expects = stringArgs \"expect\"", "    messages = stringArgs \"message\""]
+  unless (collect `isInfixOf` source) (die "unsupported stringArgs collection")
   let entry = ["decodeString :: Loc -> String -> Either Diagnostic (Text, String)",
                "decodeString start = go (next start '\"') []",
                "  where", "    next l c = advanceLoc l (T.singleton c)"]
@@ -66,7 +69,7 @@ main = do
   case [entries | line <- source, Just raw <- [stripPrefix "    simple = " line],
                   Just entries <- [readMaybe raw :: Maybe [(Char, Char)]]] of
     [entries] -> do
-      putStrLn "import AssembleValidationHelpers"
+      putStrLn "import AssembleValidation"
       putStrLn "namespace PegHs.TranslatedEscapes"
       let digits = [(ord c, ord c - digitToInt c) | c <- [minBound .. maxBound], isHexDigit c]
           groups = groupBy ((==) `on` snd) digits
@@ -123,6 +126,11 @@ main = do
       putStrLn "    else if v.any (fun c => c.toNat < 32 || c.toNat == 127) then .error (what ++ \" contains a control character\")"
       putStrLn "    else .ok (String.ofList name, v)"
       putStrLn "  | _, _ => .error form"
+      putStrLn "def collect (parse : String → String → β) (directive : String)"
+      putStrLn "    (items : List (α × PegHs.AssembleValidation.Top)) : List (α × β) :="
+      putStrLn "  items.filterMap fun (loc, top) => match top with"
+      putStrLn "    | .directive d a => if d == directive && !a.isEmpty then some (loc, parse directive a) else none"
+      putStrLn "    | _ => none"
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where

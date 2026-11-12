@@ -105,6 +105,22 @@ theorem invariant2_source_string_argument (valid : String → Bool) (directive a
 
 open AssembleValidation
 
+theorem invariant2_source_string_results (items : List (α × Top)) (p : Predicates) (d : String) :
+    (collect (argument p.validIdent (fun body => run (body.length + 1) .plain [] body)) d items).map
+        (fun result => result.2.map Prod.fst) = stringResults p (directives (items.map Prod.snd)) d := by
+  induction items with
+  | nil => rfl
+  | cons item rest ih =>
+    obtain ⟨loc, top⟩ := item
+    cases top with
+    | directive name arg =>
+      cases same : name == d <;> cases empty : arg.isEmpty <;>
+        simpa only [collect, directives, stringResults, args, List.map_cons, List.filterMap_cons,
+          List.filter_cons, same, empty, Bool.not_true, Bool.not_false, Bool.and_false,
+          Bool.and_true, Bool.false_and, Bool.true_and, Bool.false_eq_true, ite_false,
+          ite_true, invariant2_source_string_argument, List.cons.injEq, true_and] using ih
+    | _ => exact ih
+
 theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)
     (directive : String) (name gap body : List Char) (msg : String)
     (supported : directive = "expect" ∨ directive = "message")
