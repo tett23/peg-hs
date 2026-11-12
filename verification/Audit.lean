@@ -2,6 +2,8 @@ import Lean
 import Guard
 import Parsing
 import Header
+import Whitespace
+import TemplateQueue
 import Lexical
 import Nullable
 import Reachable
@@ -24,10 +26,10 @@ import RuleRejectionNullable
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable,
-      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `Pragmas,
-      `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
-      `InnerGeneration, `InnerUnicode, `PublicParsing, `LabelPropagation] do
+  for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable, `Reachable,
+      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline,
+      `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `InnerGeneration,
+      `InnerUnicode, `PublicParsing, `LabelPropagation, `Whitespace, `TemplateQueue] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
     for (name, info) in env.constants.toList do
