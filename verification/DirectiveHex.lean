@@ -50,5 +50,31 @@ theorem invariant2_closed_unicode_escape (ds value rest : List Char)
   have brace : hexValue '}' = none := by decide
   cases ds <;> simp [List.foldl_cons, decodeStep, brace]
 
+private theorem failed_stays (rest : List Char) (msg : String) :
+    rest.foldl decodeStep (.failed msg) = .failed msg := by
+  induction rest with
+  | nil => rfl
+  | cons c cs ih => exact ih
+
+theorem invariant2_unicode_missing_close (ds : List Char)
+    (allHex : ∀ c ∈ ds, (hexValue c).isSome = true) :
+    decodeString (['\\', 'u', '{'] ++ ds) = .error "expected '}'" := by
+  unfold decodeString
+  rw [List.foldl_append]
+  have initial : ['\\', 'u', '{'].foldl decodeStep (.plain []) = .hex [] 0 0 := rfl
+  rw [initial]
+  rw [fold_hex_digits ds [] 0 0 allHex]
+
+theorem invariant2_unicode_wrong_close (ds : List Char) (bad : Char) (rest : List Char)
+    (allHex : ∀ c ∈ ds, (hexValue c).isSome = true)
+    (notHex : hexValue bad = none) (notClose : bad ≠ '}') :
+    decodeString (['\\', 'u', '{'] ++ ds ++ bad :: rest) = .error "expected '}'" := by
+  unfold decodeString
+  rw [List.foldl_append, List.foldl_append]
+  have initial : ['\\', 'u', '{'].foldl decodeStep (.plain []) = .hex [] 0 0 := rfl
+  rw [initial]
+  rw [fold_hex_digits ds [] 0 0 allHex]
+  simp [List.foldl_cons, decodeStep, notHex, notClose, failed_stays]
+
 #print axioms invariant2_hex_prefix
 end PegHs.AssembleValidationHelpers
