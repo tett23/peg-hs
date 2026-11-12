@@ -1,5 +1,6 @@
 import SimpleEscapeProof
 import DirectiveStringDiagnostic
+import DirectiveDuplicates
 
 namespace PegHs.TranslatedEscapes
 open AssembleValidationHelpers
@@ -120,6 +121,36 @@ theorem invariant2_source_string_results (items : List (α × Top)) (p : Predica
           Bool.and_true, Bool.false_and, Bool.true_and, Bool.false_eq_true, ite_false,
           ite_true, invariant2_source_string_argument, List.cons.injEq, true_and] using ih
     | _ => exact ih
+
+theorem invariant2_duplicate_string_result (items : List (α × Top)) (p : Predicates)
+    (directive target : String) (supported : directive = "expect" ∨ directive = "message")
+    (before after : List (Except String String))
+    (results :
+      (collect (argument p.validIdent (fun body => run (body.length + 1) .plain [] body))
+        directive items).map (fun result => result.2.map Prod.fst) =
+        before ++ .ok target :: after)
+    (earlier : target ∈ parsedNames before) :
+    diagnostic ⟨.duplicateString, target⟩ ∈ errors (items.map Prod.snd) p := by
+  rw [invariant2_source_string_results] at results
+  have twice : 2 ≤ ((parsedNames (stringResults p (directives (items.map Prod.snd)) directive)).count target) := by
+    rw [results]
+    have positive := List.count_pos_iff.mpr earlier
+    simp only [parsedNames, List.filterMap_append, List.filterMap_cons, List.count_append,
+      List.count_cons_self] at positive ⊢
+    omega
+  have witness := (invariant2_repeated_iff target _).2 twice
+  have combined : target ∈ repeated (parsedNames (stringResults p (directives (items.map Prod.snd)) "expect")) ++
+      repeated (parsedNames (stringResults p (directives (items.map Prod.snd)) "message")) := by
+    rcases supported with rfl | rfl
+    · exact List.mem_append_left _ witness
+    · exact List.mem_append_right _ witness
+  have emitted : Violation.mk .duplicateString target ∈ emit .duplicateString _ :=
+    List.mem_map.mpr ⟨_, combined, rfl⟩
+  apply List.mem_map.mpr
+  refine ⟨_, List.mem_append_left _ ?_, rfl⟩
+  unfold otherViolations
+  dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
+  repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
 theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)
     (directive : String) (name gap body : List Char) (msg : String)
