@@ -32,11 +32,63 @@ theorem invariant2_bounded_decimal (limit acc : Nat) (ds : List Nat) :
       have bound := grows (acc * 10 + d) ds
       simp [show ¬ ds.foldl (fun n d => n * 10 + d) (acc * 10 + d) ≤ limit by omega]
 
+private def digitValue (c : Char) := c.toNat - '0'.toNat
+
+private def decode (c : Char) : Option Nat :=
+  if c.isDigit then some (digitValue c) else none
+
+private theorem decode_all (cs : List Char) :
+    cs.mapM decode = if cs.all Char.isDigit then some (cs.map digitValue) else none := by
+  induction cs with
+  | nil => rfl
+  | cons c cs ih =>
+    cases h : c.isDigit <;> cases rest : cs.all Char.isDigit <;>
+      simp [List.mapM_cons, decode, h, ih, rest]
+
 def positive (limit : Nat) (text : String) : Option Nat := do
-  let ds ← text.toList.mapM fun c =>
-    if c.isDigit then some (c.toNat - '0'.toNat) else none
+  let ds ← text.toList.mapM decode
   let n ← parse limit 0 ds
   if n > 0 then some n else none
 
+theorem invariant2_positive_text (limit : Nat) (text : String) :
+    let value := text.toList.foldl (fun n c => n * 10 + (c.toNat - '0'.toNat)) 0
+    positive limit text =
+      if text.toList.all Char.isDigit && 0 < value && value ≤ limit then some value else none := by
+  unfold positive
+  rw [decode_all]
+  cases text.toList.all Char.isDigit <;>
+    simp [invariant2_bounded_decimal, List.foldl_map, digitValue] <;> split <;> simp_all
+
+-- The assembler decodes one character at a time and can stop before the end.
+def checkedChar (limit acc : Nat) (c : Char) : Option Nat :=
+  (decode c).bind (step limit acc)
+
+theorem invariant2_foldM_decode (limit acc : Nat) (within : acc ≤ limit) (cs : List Char) :
+    cs.foldlM (checkedChar limit) acc =
+      (cs.mapM decode).bind (parse limit acc) := by
+  induction cs generalizing acc with
+  | nil => simp [parse, within]
+  | cons c cs ih =>
+    simp only [List.foldlM_cons, List.mapM_cons, checkedChar]
+    cases h : decode c with
+    | none => simp
+    | some d =>
+      cases hs : step limit acc d with
+      | none =>
+        cases cs.mapM decode <;> simp [parse, hs]
+      | some n =>
+        have bound : n ≤ limit := by
+          rw [step_eq] at hs
+          split at hs <;> simp_all
+        cases tailEq : cs.mapM decode <;> simp [parse, hs, ih n bound, tailEq]
+
+theorem invariant2_streaming_positive (limit : Nat) (text : String) :
+    ((text.toList.foldlM (checkedChar limit) 0).bind fun n =>
+      if n > 0 then some n else none) = positive limit text := by
+  rw [invariant2_foldM_decode limit 0 (Nat.zero_le _)]
+  unfold positive
+  cases text.toList.mapM decode <;> rfl
+
+#print axioms invariant2_positive_text
 #print axioms invariant2_bounded_decimal
 end PegHs.BoundedDecimal
