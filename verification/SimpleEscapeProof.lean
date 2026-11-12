@@ -1,5 +1,6 @@
 import TranslatedEscapes
 import EscapePredicates
+import DirectiveHex
 
 namespace PegHs.TranslatedEscapes
 open AssembleValidationHelpers
@@ -18,6 +19,27 @@ theorem invariant2_hex_positional {cs : List Char} {n : Nat}
     simp only [List.foldl_cons, hexDigit_parser, digit, Option.getD_some]
     simpa [hexDigit_parser, Nat.pow_succ, Nat.add_mul, Nat.mul_assoc, Nat.mul_comm,
       Nat.mul_left_comm, Nat.add_assoc] using ih (acc * 16 + _)
+
+theorem invariant2_unicode_packed_value {ds : List Char} {n : Nat}
+    (digits : EscapePredicates.HexValue ds n) (nonempty : ds ≠ []) (within : n ≤ maximumCode)
+    (value rest : List Char) :
+    (ds ++ '}' :: rest).foldl decodeStep (.hex value 0 0) =
+      rest.foldl decodeStep (.plain (value ++ [packedChr n])) := by
+  have allHex : ∀ c ∈ ds, (hexValue c).isSome = true := by
+    clear nonempty within
+    induction digits with
+    | empty => simp
+    | cons hd _ ih =>
+      intro c h
+      rcases List.mem_cons.mp h with rfl | h
+      · rw [← invariant2_hex_lookup, hexDigit_parser, hd]; rfl
+      · exact ih c h
+  have num := invariant2_hex_positional digits 0
+  simp only [Nat.zero_mul, Nat.zero_add] at num
+  simp only [invariant2_hex_lookup] at num
+  have close := invariant2_closed_unicode_escape ds value rest allHex
+  change n ≤ 0x10FFFF at within
+  simpa [num, nonempty, Nat.not_lt_of_ge within, packedChr] using close
 
 theorem invariant2_simple_lookup (c : Char) : table.lookup c = simpleEscape c := by
   unfold simpleEscape

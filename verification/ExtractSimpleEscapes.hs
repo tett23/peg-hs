@@ -1,9 +1,10 @@
 module Main (main) where
 
 import Control.Monad (unless)
-import Data.Char (digitToInt, isHexDigit, ord)
+import Data.Char (chr, digitToInt, isHexDigit, ord)
 import Data.Function (on)
 import Data.List (groupBy, intercalate, isInfixOf, stripPrefix)
+import qualified Data.Text as T
 import System.Environment (getArgs)
 import System.Exit (die)
 import Text.Read (readMaybe)
@@ -32,6 +33,16 @@ main = do
       putStrLn "namespace PegHs.TranslatedEscapes"
       let digits = [(ord c, ord c - digitToInt c) | c <- [minBound .. maxBound], isHexDigit c]
           groups = groupBy ((==) `on` snd) digits
+      -- Observe Text.pack's treatment of every value that the unicode branch
+      -- can pass to chr. Only surrogates may change during packing.
+      let packed n = T.unpack (T.pack [chr n])
+          scalar n = if 0xD800 <= n && n <= 0xDFFF then 0xFFFD else n
+          maximumCode = ord (maxBound :: Char)
+      unless (all (\n -> packed n == [chr (scalar n)]) [0 .. maximumCode])
+        (die "unsupported Text.pack scalar mapping")
+      putStrLn ("def maximumCode : Nat := " ++ show maximumCode)
+      putStrLn "def packedChr (n : Nat) : Char :="
+      putStrLn "  Char.ofNat (if 0xD800 ≤ n && n ≤ 0xDFFF then 0xFFFD else n)"
       putStrLn "def hexDigit (c : Char) : Option Nat :="
       mapM_ emitRange groups
       putStrLn "  none"
