@@ -8,6 +8,10 @@ scratch=${1:?pass the shared temporary verification directory}
 (cd verification && lean -DwarningAsError=true \
   -o "$scratch/RenderDeclarationsGHC.olean" RenderDeclarationsGHC.lean) \
   > "$scratch/RenderDeclarationsGHC.log"
+if grep -q 'sorryAx' "$scratch/RenderDeclarationsGHC.log"; then
+  cat "$scratch/RenderDeclarationsGHC.log" >&2
+  exit 1
+fi
 
 cat > "$scratch/RenderDeclarationsSource.expected" <<'SOURCE'
           , entryName k <> " :: " <> envParamType <> "PegRt.Text -> PegPrelude.Either PegRt.ParseError (" <> resultType n <> ")"
