@@ -10,6 +10,8 @@ import ConcreteTables
 import MetagrammarPredicates
 import Guard
 import SemanticPredicates
+import EnvironmentEval
+import EnvironmentDepth
 import CapturedPredicates
 import GhcPredicates
 import ParameterPredicates
@@ -92,7 +94,7 @@ run_cmd do
       `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `Guard, `Parsing, `Header, `Lexical,
       `Whitespace, `TemplateQueue, `Nullable, `Reachable, `Literal, `Signatures,
       `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection,
-      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
+      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `EnvironmentEval, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
