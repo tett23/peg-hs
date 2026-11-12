@@ -23,6 +23,7 @@ module Peg.Grammar.Assemble
   , isModuleName
   ) where
 
+import Control.Monad (foldM)
 import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
@@ -260,7 +261,7 @@ assemble items =
       Just l -> Just (Located l "")
       Nothing -> single "module"
     tabstop = case single "tabstop" of
-      Just (Located l a) | T.all isDigit a, not (T.null a) -> Just (Located l (read (T.unpack a)))
+      Just (Located l a) -> Located l <$> positiveTabstop a
       _ -> Nothing
     annots = M.fromListWith (flip (++)) [(n, [(l, ps, tps, ty)]) | TAnnot l n ps tps ty <- items]
     defs = [(l, n, alts) | TDef l n _ alts <- items]
@@ -341,8 +342,8 @@ assemble items =
            , not (isValidIdent a)
            ]
         ++ [ Diagnostic l "%tabstop expects a positive integer"
-           | Just (Located l a) <- [single "tabstop"]
-           , not (T.all isDigit a) || T.null a || T.all (== '0') a
+           | Just (Located l _) <- [single "tabstop"]
+           , Nothing <- [tabstop]
            ]
         ++ [ Diagnostic l ("rule " <> n <> " has parameters, so it needs a type annotation")
            | (l, n, _) <- defs
@@ -368,6 +369,18 @@ assemble items =
            , Just ((_, _, tps, _) : _) <- [M.lookup n annots]
            , tns /= map templateParamName tps
            ]
+
+-- Accumulate only representable positive tab widths, including leading zeros.
+positiveTabstop :: Text -> Maybe Int
+positiveTabstop text = do
+  width <- foldM step 0 (T.unpack text)
+  if width > 0 then Just width else Nothing
+  where
+    step acc c
+      | isDigit c
+      , let digit = digitToInt c
+      , acc <= (maxBound - digit) `div` 10 = Just (acc * 10 + digit)
+      | otherwise = Nothing
 
 -- | Whether a text is a path that @%import@ accepts (ADR 0092): one or more
 -- parts separated by @/@, not starting with @/@, each part a non-empty run

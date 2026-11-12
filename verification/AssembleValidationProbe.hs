@@ -71,6 +71,8 @@ main = do
     (assemble [modM, TDirective l "start" l "bad-name", defS])
   assertFailure "invariant2_invalid_tabstop" "%tabstop expects a positive integer"
     (assemble [modM, TDirective l "tabstop" l "0", defS])
+  assertFailure "invariant2_overflow_tabstop" "%tabstop expects a positive integer"
+    (assemble [modM, TDirective l "tabstop" l (T.pack (show (toInteger (maxBound :: Int) + 1))), defS])
   assertFailure "invariant2_missing_template_type" "has parameters, so it needs a type annotation"
     (assemble [modM, TDef l "S" ["x"] [Alt l [] Nothing Nothing]])
   assertFailure "invariant2_template_mismatch" "template parameters of the definition"

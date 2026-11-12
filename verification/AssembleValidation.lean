@@ -1,3 +1,4 @@
+import BoundedDecimal
 import Pipeline
 import AssembleValidationHelpers
 import DirectiveNames
@@ -41,7 +42,7 @@ structure Predicates where
   validModule : String → Bool
   validExport : String → Bool
   validClass : String → Bool
-  isDigit : Char → Bool
+  intMax : Nat
   words : String → List String
 
 -- The second and later occurrences are the rejection witnesses. Assemble.hs
@@ -126,8 +127,7 @@ def otherViolations (tops : List Top) (p : Predicates) : List Violation := Id.ru
       !d.2.isEmpty && !p.validIdent d.2)).map (·.1)) ++
     emit .invalidTabstop (match (args ds "tabstop").head? with
       | none => []
-      | some x => if x.isEmpty || !(x.toList.all p.isDigit) ||
-          x.toList.all (· == '0') then [x] else []) ++
+      | some x => if (BoundedDecimal.positive p.intMax x).isNone then [x] else []) ++
     emit .missingTemplateType ((definitions tops).filterMap fun d =>
       if !d.2.isEmpty && !(annotations tops).any (fun a => a.1 == d.1)
       then some d.1 else none) ++
