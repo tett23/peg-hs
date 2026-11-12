@@ -16,6 +16,10 @@ lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespac
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
+runghc-9.10.3 -Werror ExtractDirectiveArity.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedArity.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedArity.olean" "$work/TranslatedArity.lean"
+lean -DwarningAsError=true -o "$work/DirectiveArityProof.olean" DirectiveArityProof.lean
+
 
 # A different but supported call still translates; it must lose the File derivation.
 sed "/^peg'rule'File =$/,/^$/s/PegRt.many (peg'rule'TopItem)/PegRt.many (peg'rule'Ws)/" \
