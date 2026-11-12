@@ -3,6 +3,7 @@ import Guard
 import Parsing
 import Header
 import Whitespace
+import TemplateExpansion
 import TemplateSubstitution
 import TemplateQueue
 import Lexical
@@ -24,7 +25,7 @@ open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
-      `TemplateSubstitution, `Nullable, `Reachable, `Literal, `Signatures, `File,
+      `TemplateSubstitution, `TemplateExpansion, `Nullable, `Reachable, `Literal, `Signatures, `File,
       `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs,
       `RuleRejectionRepeat, `RuleRejectionNullable] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
