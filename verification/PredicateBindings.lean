@@ -31,11 +31,11 @@ def scope (sites : Array Site) (bound : List String) : Body → Option (List Str
   | .ahead a | .notAhead a => do
       let _ ← scope sites bound a
       return bound
-  | .star a => do
+  | .star a | .starLoop a => do
       let after ← scope sites bound a
       guard (bound.all after.contains)
       return bound
-  | .capture a | .label _ _ a => scope sites bound a
+  | .capture a | .action _ a | .label _ _ a => scope sites bound a
   | .bind _ name a => do
       let after ← scope sites bound a
       match a with
