@@ -48,6 +48,40 @@ theorem split_complete {cs name ty} (found : FirstSeparator cs name ty) :
 def strip (space : Char → Bool) (cs : List Char) :=
   ((cs.dropWhile space).reverse.dropWhile space).reverse
 
+def stripEnd (space : Char → Bool) (cs : List Char) :=
+  (cs.reverse.dropWhile space).reverse
+
+private theorem dropWhile_nonspace {space : Char → Bool} {c : Char} (notSpace : space c = false)
+    (cs : List Char) : c ∈ cs.dropWhile space ↔ c ∈ cs := by
+  induction cs with
+  | nil => simp
+  | cons d ds ih =>
+    cases hd : space d with
+    | false => simp [List.dropWhile, hd]
+    | true =>
+      have ne : c ≠ d := fun eq => by simp [eq, hd] at notSpace
+      simp [List.dropWhile, hd, ih, ne]
+
+private theorem nonspace_iff_drop_nonempty {space : Char → Bool} (cs : List Char) :
+    cs.dropWhile space ≠ [] ↔ ∃ c ∈ cs, space c = false := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih =>
+    cases hc : space c with
+    | false => simp [List.dropWhile, hc]
+    | true => simp [List.dropWhile, hc, ih]
+
+theorem invariant1_typeText (space : Char → Bool) (text : List Char) :
+    stripEnd space text ≠ [] ↔ ∃ c ∈ text, space c = false := by
+  simpa [stripEnd] using nonspace_iff_drop_nonempty (space := space) text.reverse
+
+theorem invariant1_argumentChunk (space : Char → Bool) (text : List Char) :
+    strip space text ≠ [] ↔ ∃ c ∈ text, space c = false := by
+  change stripEnd space (text.dropWhile space) ≠ [] ↔ _
+  rw [invariant1_typeText]
+  exact exists_congr fun c => ⟨fun ⟨mem, hc⟩ => ⟨(dropWhile_nonspace hc text).mp mem, hc⟩,
+    fun ⟨mem, hc⟩ => ⟨(dropWhile_nonspace hc text).mpr mem, hc⟩⟩
+
 def identifier (alpha alnum : Char → Bool) : List Char → Bool
   | [] => false
   | c :: cs => (alpha c || c == '_') && cs.all fun d => alnum d || d == '_' || d == '\''

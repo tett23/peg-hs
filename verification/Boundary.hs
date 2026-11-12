@@ -40,6 +40,13 @@ main = do
          ("name ::  ", "expected a parameter type")] $ \(raw, message) ->
     unless (anyDiagnostic message (parameter raw)) $ die ("invariant1: parameter diagnostic for " ++ show raw)
   unless (isRight (parameter "  name' :: Foo :: Bar  ")) $ die "invariant1: split only the first parameter separator"
+  forM_ [" ", "\t", "\xA0", "\x2003"] $ \space -> do
+    let header ty = parseTops ("%module M\nS :: " <> ty <> "\nS <- 'a'\n")
+        argument arg = parseTops ("%module M\nS <- F(" <> arg <> ")\n")
+    unless (anyDiagnostic "expected a type" (header space) && isRight (header ("T" <> space))) $
+      die "invariant1: blank or trailing whitespace in type"
+    unless (anyDiagnostic "expected an argument" (argument space) && isRight (argument (space <> "x" <> space))) $
+      die "invariant1: blank or nonblank argument"
   unless (parseTops "" == Right []) $ die "invariant1: empty file"
   let valid = "%module M\nS <- 'a'\n"
       trailing = valid <> "]"
