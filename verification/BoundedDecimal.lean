@@ -63,6 +63,20 @@ theorem invariant2_positive_text (limit : Nat) (text : String) :
 def checkedChar (limit acc : Nat) (c : Char) : Option Nat :=
   (decode c).bind (step limit acc)
 
+theorem checkedChar_eq (limit acc : Nat) (c : Char) (wide : 9 ≤ limit) :
+    let d := c.toNat - '0'.toNat
+    checkedChar limit acc c =
+      if c.isDigit && acc ≤ (limit - d) / 10 then some (acc * 10 + d) else none := by
+  cases valid : c.isDigit with
+  | false => simp [checkedChar, decode, valid]
+  | true =>
+    have upper : c.toNat ≤ '9'.toNat := by
+      have h := valid
+      simp [Char.isDigit] at h
+      exact h.2
+    change c.toNat ≤ 57 at upper
+    simp [checkedChar, decode, valid, step, digitValue, show c.toNat ≤ limit + 48 by omega]
+
 theorem invariant2_foldM_decode (limit acc : Nat) (within : acc ≤ limit) (cs : List Char) :
     cs.foldlM (checkedChar limit) acc =
       (cs.mapM decode).bind (parse limit acc) := by
