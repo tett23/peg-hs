@@ -17,6 +17,7 @@ scratch=${1:?pass the verification scratch directory}
   lean -DwarningAsError=true -o "$scratch/ConcreteTerminalBody.olean" ConcreteTerminalBody.lean &&
   lean -DwarningAsError=true -o "$scratch/LabeledConcreteBody.olean" LabeledConcreteBody.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentEval.olean" EnvironmentEval.lean &&
+  lean -DwarningAsError=true -o "$scratch/CaptureWindow.olean" CaptureWindow.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentFuel.olean" EnvironmentFuel.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentDerivation.olean" EnvironmentDerivation.lean &&
   lean -DwarningAsError=true -o "$scratch/EnvironmentDepth.olean" EnvironmentDepth.lean &&
