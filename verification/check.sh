@@ -55,6 +55,8 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/PrefixReplay.olean" PrefixReplay.lean &&
   lean -DwarningAsError=true -o "$work/WindowReplay.olean" WindowReplay.lean &&
   lean -DwarningAsError=true -o "$work/WindowReads.olean" WindowReads.lean &&
+  lean -DwarningAsError=true -o "$work/FastWindow.olean" FastWindow.lean &&
+  lean -DwarningAsError=true FastWindowTests.lean &&
   lean -DwarningAsError=true -o "$work/ItemWindow.olean" ItemWindow.lean &&
   lean -DwarningAsError=true -o "$work/InitialWhitespace.olean" InitialWhitespace.lean &&
   lean -DwarningAsError=true -o "$work/InitialWhitespaceCall.olean" InitialWhitespaceCall.lean &&
@@ -62,6 +64,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/FileEnd.olean" FileEnd.lean &&
   lean -DwarningAsError=true -o "$work/FileItemChain.olean" FileItemChain.lean &&
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
+  ./check-strict-file.sh "$work" &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean ../packages/peg-grammar/grammar/Peg.hpeg ../packages/peg-grammar/grammar/PegSyntax.hpeg &&
