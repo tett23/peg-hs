@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ArgCode","51"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("LabelPart","29"), ("SuffixE","30"), ("PostOps","31"), ("PostOp","32"), ("Primary","33"), ("PredCode","47"), ("Action","46"), ("Escape","41"), ("EscapeBody","42"), ("ClassItem","44"), ("ClassChar","45"), ("ActionCode","50"), ("ArgCode","51"), ("HsPart","52"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -443,6 +443,43 @@ depthHeader :: String -> ReadP ()
 depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
   "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
 
+embeddedCodeRule :: String -> Int -> Int -> Int -> ReadP String
+embeddedCodeRule name site binding closingTerminal = do
+  header name
+  mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset"]
+  opening <- if name == "Action" then token ";" >> literal "{" >> pure ["(.terminal 88)"] else pure []
+  mapM_ token [";", "l", "<-"]
+  loc <- call site
+  mapM_ token [";", "c", "<-", "PegRt.capture", "("]
+  code <- call (site + 1)
+  mapM_ token [")", ";", "PegRt.choice", "[", "do", "{", "PegRt.labeled"]
+  labelName <- quoted
+  mapM_ token ["PegPrelude.Nothing", "("]
+  literal "}"
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
+  returnAction ["Located", "l", "c"]
+  pure (sequenceBody (opening ++ ["(.bind " ++ show binding ++ " \"l\" " ++ loc ++ ")",
+    "(.bind " ++ show (binding+1) ++ " \"c\" (.capture " ++ code ++ "))",
+    "(.label " ++ leanString labelName ++ " none (.terminal " ++ show closingTerminal ++ "))"]))
+
+actionCodeRule :: ReadP String
+actionCodeRule = do
+  header "ActionCode"
+  mapM_ token ["do", "{", "_", "<-", "PegRt.skipMany", "("]
+  part <- call 153
+  mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  pure (".star " ++ part)
+
+argCodeRule :: ReadP String
+argCodeRule = do
+  header "ArgCode"
+  mapM_ token ["do", "{", "_", "<-", "PegRt.skipMany", "(", "PegRt.choice", "[", "do", "{", "PegRt.notP", "("]
+  literal ","
+  mapM_ token [")", ";", "_", "<-"]
+  part <- call 154
+  mapM_ token [";", "PegPrelude.pure", "()", "}", "]", ")", ";", "PegPrelude.pure", "()", "}", "]", ")"]
+  pure (".star (.seq (.notAhead (.terminal 94)) " ++ part ++ ")")
+
 characterClass :: [(Char, Char)] -> ReadP ()
 characterClass expected = do
   token "PegRt.cls"
@@ -851,7 +888,9 @@ main = do
          ("Labeled", labeledRule), ("LabelPart", labelPartRule), ("SuffixE", suffixRule),
          ("PostOps", postOpsRule), ("PostOp", postOpRule),
          ("Lit1", quotedLiteralRule "Lit1" '\'' 136 67), ("Lit2", quotedLiteralRule "Lit2" '"' 137 71),
-         ("Escape", escapeRule), ("EscapeBody", escapeBodyRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule)] $
+         ("Escape", escapeRule), ("EscapeBody", escapeBodyRule), ("ClassLit", classLitRule), ("ClassItem", classItemRule), ("ClassChar", classCharRule),
+         ("Action", embeddedCodeRule "Action" 143 76 89), ("PredCode", embeddedCodeRule "PredCode" 145 78 90),
+         ("ActionCode", actionCodeRule), ("ArgCode", argCodeRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
         l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE", "Labeled", "LabelPart", "SuffixE", "PostOps", "PostOp"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
