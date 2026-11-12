@@ -28,7 +28,7 @@ call site = do
      ("Comment","6"), ("InlineSp","7"), ("Ident","8"), ("IdentStart","9"), ("IdentChar","10"), ("Verbatim","11"), ("Directive","12"), ("Declaration","13"),
      ("TemplateParams","14"), ("TemplateParam","15"), ("TypeText","16"),
      ("ParamList","17"), ("ParamChunks","18"), ("ParamChunk","19"), ("Alts","20"),
-     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
+     ("MoreAlt","21"), ("Alt","22"), ("Constructor","23"), ("Item","24"), ("DeclStart","25"), ("Binding","26"), ("PrefixE","27"), ("Labeled","28"), ("PredCode","47"), ("Action","46"), ("ArgCode","51"), ("HsParen","53")]]
   pure ("(.call " ++ show site ++ " " ++ target ++ ")")
 
 production :: ReadP String
@@ -430,6 +430,83 @@ bindingRule = do
   mapM_ token [")", ";", "PegPrelude.pure", "peg'v0", "}", "]", ")"]
   pure (sequenceBody [name, "(.terminal 34)", "(.notAhead (.terminal 35))"])
 
+depthCall :: Int -> [String] -> ReadP String
+depthCall site argument = do
+  mapM_ token ["PegRt.withCol", "(", "\\_col", "->"]
+  child <- call site
+  token "("
+  embedded argument
+  mapM_ token [")", ")"]
+  pure child
+
+depthHeader :: String -> ReadP ()
+depthHeader name = mapM_ token ["peg'rule'" ++ name, "d", "=", "PegRt.memoArg",
+  "peg'memo'" ++ name, show name, "d", "(", "PegRt.choice", "["]
+
+prefixRule :: ReadP String
+prefixRule = do
+  depthHeader "PrefixE"
+  positive <- operator "&" "EAnd" 0 77 36
+  token ","
+  positivePred <- semantic "&" "True" 3 81 40 43
+  token ","
+  negative <- operator "!" "ENot" 1 84 42
+  token ","
+  negativePred <- semantic "!" "False" 5 88 46 45
+  token ","
+  capture <- operator "$" "ECapture" 2 91 48
+  mapM_ token [",", "do", "{", "peg'v3", "<-"]
+  child <- depthCall 93 ["d"]
+  mapM_ token [";", "PegPrelude.pure", "peg'v3", "}", "]", ")"]
+  pure (foldr1 (\x y -> "(.alt " ++ x ++ " " ++ y ++ ")")
+    [positive, positivePred, negative, negativePred, capture, child])
+  where
+    begin site = mapM_ token ["do", "{", "peg'start", "<-", "PegRt.getOffset", ";", "_", "<-"] *> call site
+    term i = "(.terminal " ++ show (i :: Int) ++ ")"
+    action i xs = "(.action " ++ show (i :: Int) ++ " " ++ sequenceBody xs ++ ")"
+    bound i name body = "(.bind " ++ show (i :: Int) ++ " " ++ show name ++ " " ++ body ++ ")"
+    semantic op truth act site t binder = do
+      ws <- begin site
+      token ";" >> literal op
+      mapM_ token [";", "_", "<-"]
+      inner <- call (site + 1)
+      token ";" >> literal "{"
+      mapM_ token [";", "c", "<-"]
+      code <- call (site + 2)
+      endAction ["(", "EPred", truth, "c", ",", "0", ")"]
+      pure (action act [ws, term t, inner, term (t+1), bound binder "c" code])
+    operator op con index site t = do
+      ws <- begin site
+      mapM_ token [";", "PegRt.andP", "("]
+      literal op
+      token ")"
+      (guardParts, nextSite, nextTerm) <- if op == "$" then pure ([], site+1, t+1) else do
+        mapM_ token [";", "PegRt.notP", "(", "PegRt.choice", "[", "do", "{"]
+        literal op
+        mapM_ token [";", "_", "<-"]
+        inner <- call (site+1)
+        token ";" >> literal "{"
+        mapM_ token [";", "PegPrelude.pure", "()", "}", "]", ")"]
+        pure (["(.notAhead " ++ sequenceBody [term (t+1), inner, term (t+2)] ++ ")"], site+2, t+3)
+      token ";"
+      limit <- labelled $ do
+        mapM_ token ["PegRt.choice", "[", "do", "{", "PegRt.predicate", "(", "\\_col", "->"]
+        embedded ["d", "<", "maxDepth"]
+        mapM_ token [")", ";", "PegPrelude.pure", "()", "}", "]"]
+        pure ("(.predicate " ++ show (7+index) ++ ")")
+      token ";" >> literal op
+      (spaces, childSite) <- if op == "$" then pure ([], nextSite) else do
+        mapM_ token [";", "_", "<-"]
+        space <- call nextSite
+        pure ([space], nextSite+1)
+      let variable = "peg'v" ++ show index
+      mapM_ token [";", "e", "<-", "PegRt.choice", "[", "do", "{", variable, "<-"]
+      child <- labelled (depthCall childSite ["d", "+", "1"])
+      mapM_ token [";", "PegPrelude.pure", variable, "}", "]"]
+      endAction ["deeper", con, "e"]
+      pure (action (2+2*index) ([ws, "(.ahead " ++ term t ++ ")"] ++ guardParts ++
+        [limit, term nextTerm] ++ spaces ++ [bound (42+2*index) "e" child]))
+
 itemRule :: ReadP String
 itemRule = do
   mapM_ token ["peg'rule'Item", "d", "=", "PegRt.memoArg", "peg'memo'Item", "\"Item\"", "d",
@@ -575,9 +652,9 @@ main = do
          ("TypeText", typeTextRule), ("ParamList", paramListRule), ("ParamChunks", paramChunksRule),
          ("ParamChunk", paramChunkRule),
          ("Alts", altsRule), ("MoreAlt", moreAltRule), ("Alt", altRule), ("Constructor", constructorRule), ("Item", itemRule),
-         ("DeclStart", declStartRule), ("Binding", bindingRule)] $
+         ("DeclStart", declStartRule), ("Binding", bindingRule), ("PrefixE", prefixRule)] $
     \(name, parser) -> case [unlines (l : takeWhile (not . all isSpace) rest) |
-        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name == "Item" then " d =" else " =")] of
+        l : rest <- tails source, l == "peg'rule'" ++ name ++ (if name `elem` ["Item", "PrefixE"] then " d =" else " =")] of
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)
