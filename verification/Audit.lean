@@ -13,6 +13,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import ImportResolution
 import PublicParsing
 import LabelPropagation
 import InnerGeneration
@@ -27,7 +28,7 @@ open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`Guard, `Parsing, `Header, `Lexical, `Nullable, `Reachable,
-      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline,
+      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `ImportResolution,
       `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `InnerGeneration,
       `InnerUnicode, `PublicParsing, `LabelPropagation, `Whitespace, `TemplateQueue] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
