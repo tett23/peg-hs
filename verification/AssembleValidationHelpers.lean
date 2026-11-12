@@ -116,13 +116,16 @@ def decodeStep (state : DecodeState) (c : Char) : DecodeState :=
   | .done value tail => .done value (tail ++ [c])
   | .failed message => .failed message
 
-def decodeString (input : List Char) : Except String (List Char × List Char) :=
-  match input.foldl decodeStep (.plain []) with
+def finishDecode (state : DecodeState) : Except String (List Char × List Char) :=
+  match state with
   | .done value tail => .ok (value, tail)
   | .failed message => .error message
   | .brace _ => .error "expected '{'"
   | .hex _ _ _ => .error "expected '}'"
   | .plain _ | .escaped _ => .error "unterminated literal"
+
+def decodeString (input : List Char) : Except String (List Char × List Char) :=
+  finishDecode (input.foldl decodeStep (.plain []))
 
 def formError (directive : String) : String :=
   "%" ++ directive ++ if directive == "expect" then

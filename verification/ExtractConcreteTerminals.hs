@@ -8,6 +8,7 @@ import Control.Monad.State.Strict (StateT, get, put, runStateT)
 import Control.Monad.Trans.Class (lift)
 import Data.Char (ord)
 import Data.List (intercalate)
+import Data.Maybe (listToMaybe)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Data.Text as T
@@ -55,7 +56,11 @@ renderChar :: Char -> String
 renderChar c = "Char.ofNat " ++ show (ord c)
 
 renderString :: T.Text -> String
-renderString value = "String.ofList [" ++ intercalate ", " (map renderChar (T.unpack value)) ++ "]"
+renderString value
+  -- A literal avoids reducing a fresh UTF-8 encoding of every ASCII byte
+  -- when the kernel checks the fixed metagrammar predicate sources.
+  | T.all (\c -> c >= ' ' && c <= '~') value = show (T.unpack value)
+  | otherwise = "String.ofList [" ++ intercalate ", " (map renderChar (T.unpack value)) ++ "]"
 
 renderTerminal :: Terminal -> String
 renderTerminal = \case
@@ -153,6 +158,137 @@ labeledAlternatives names messages alts = do
   parts <- traverse (fmap (chain "seq" ".eps") . traverse (labeledProject names messages . itemExpr)) alts
   pure (chain "alt" ".eps" parts)
 
+data EnvAcc = EnvAcc
+  { envTerm :: Int
+  , envPred :: Int
+  , envCalls :: [(T.Text, T.Text, [T.Text])]
+  , envBindings :: [(T.Text, T.Text, Bool)]
+  , envActions :: [(T.Text, T.Text, String)]
+  }
+
+type EnvBuild = StateT EnvAcc (Either String)
+
+envProject :: M.Map T.Text Int -> M.Map T.Text T.Text -> T.Text -> Expr -> EnvBuild String
+envProject names messages currentRule = \case
+  ELit value _ -> do
+    s <- get
+    put s { envTerm = envTerm s + 1 }
+    pure $ if T.null value then ".eps" else "(.terminal " ++ show (envTerm s) ++ ")"
+  EClass {} -> terminal
+  EAny -> terminal
+  ERef _ name args -> case M.lookup name names of
+    Just rule -> do
+      s <- get
+      let site = length (envCalls s)
+      put s { envCalls = (currentRule, name, map unLoc args) : envCalls s }
+      pure ("(.call " ++ show site ++ " " ++ show rule ++ ")")
+    Nothing -> lift (Left ("undefined reference in metagrammar: " ++ show name))
+  EGroup alts -> envGroup names messages currentRule alts
+  EStar e -> wrap "star" e
+  EPlus e -> do
+    a <- envProject names messages currentRule e
+    pure ("(.seq " ++ a ++ " (.star " ++ a ++ "))")
+  EOpt e -> do
+    a <- envProject names messages currentRule e
+    pure ("(.alt " ++ a ++ " .eps)")
+  EAnd e -> wrap "ahead" e
+  ENot e -> wrap "notAhead" e
+  ECapture e -> wrap "capture" e
+  ELabel _ e label -> do
+    a <- envProject names messages currentRule e
+    let rendered = case M.lookup label messages of
+          Nothing -> "none"
+          Just value -> "(some (" ++ renderString value ++ "))"
+    pure ("(.label (" ++ renderString label ++ ") " ++ rendered ++ " " ++ a ++ ")")
+  EDiscard e -> envProject names messages currentRule e
+  EPred _ _ -> do
+    s <- get
+    put s { envPred = envPred s + 1 }
+    pure ("(.predicate " ++ show (envPred s) ++ ")")
+  ETemplate {} -> lift (Left "unexpanded template in metagrammar")
+  where
+    terminal = do
+      s <- get
+      put s { envTerm = envTerm s + 1 }
+      pure ("(.terminal " ++ show (envTerm s) ++ ")")
+    wrap constructor e = do
+      a <- envProject names messages currentRule e
+      pure ("(." ++ constructor ++ " " ++ a ++ ")")
+
+envItem :: M.Map T.Text Int -> M.Map T.Text T.Text -> T.Text -> Item -> EnvBuild String
+envItem names messages currentRule item = do
+  site <- case itemBind item of
+    Nothing -> pure Nothing
+    Just name -> do
+      s <- get
+      let index = length (envBindings s)
+      put s { envBindings = (currentRule, name, isCapture (itemExpr item)) : envBindings s }
+      pure (Just (index, name))
+  case (site, itemExpr item) of
+    -- `x:E?` has no binding on the empty alternative. The Haskell value is
+    -- Nothing there, even though the optional parser succeeds at zero width.
+    (Just (index, name), EOpt inner) -> do
+      body <- envProject names messages currentRule inner
+      pure ("(.alt (.bind " ++ show index ++ " (" ++ renderString name ++ ") " ++ body ++ ") .eps)")
+    _ -> do
+      body <- envProject names messages currentRule (itemExpr item)
+      pure $ case site of
+        Nothing -> body
+        Just (index, name) -> "(.bind " ++ show index ++ " (" ++ renderString name ++ ") " ++ body ++ ")"
+  where
+    isCapture (ECapture _) = True
+    isCapture _ = False
+
+envGroup :: M.Map T.Text Int -> M.Map T.Text T.Text -> T.Text -> [[Item]] -> EnvBuild String
+envGroup names messages currentRule alts = do
+  parts <- traverse (fmap (chain "seq" ".eps") . traverse (envItem names messages currentRule)) alts
+  pure (chain "alt" ".eps" parts)
+
+depthAction :: T.Text -> Maybe (Located T.Text) -> Either String (Maybe String)
+depthAction rule action
+  | rule `notElem` ["Item", "PrefixE", "Labeled", "SuffixE", "PostOps", "PostOp",
+      "Primary", "TemplateArgs", "TemplateArg", "GroupAlts", "MoreGroup"] = pure Nothing
+  | rule == "MoreGroup" = pure Nothing
+  | rule == "PrefixE" && action == Nothing = pure Nothing
+  | otherwise = case T.strip . unLoc <$> action of
+      Just src
+        | rule == "Item", "snd e" `T.isInfixOf` src -> found "(.copy \"e\")"
+        | rule == "PrefixE", "deeper" `T.isPrefixOf` src -> found "(.successor \"e\")"
+        | rule == "PrefixE", ", 0)" `T.isSuffixOf` src -> found ".zero"
+        | rule == "Labeled", "maybe e" `T.isPrefixOf` src -> found "(.plusIfBound \"e\" \"lab\")"
+        | rule == "SuffixE", "snd p + length ops" `T.isInfixOf` src -> found "(.add \"p\" \"ops\")"
+        | rule == "PostOps", src == "c : cs" -> found "(.successor \"cs\")"
+        | rule == "PostOps", src == "[]" -> found ".zero"
+        | rule == "PostOp" -> found ".zero"
+        | rule == "Primary", "deeper EGroup g" == src -> found "(.successor \"g\")"
+        | rule == "Primary", "deeper" `T.isPrefixOf` src -> found "(.successor \"as\")"
+        | rule == "Primary", ", 0)" `T.isSuffixOf` src -> found ".zero"
+        | rule == "TemplateArgs", "maximum (map snd (a : as))" `T.isInfixOf` src ->
+            found "(.maximum \"a\" \"as\")"
+        | rule == "TemplateArg", "snd g" `T.isInfixOf` src -> found "(.copy \"g\")"
+        | rule == "GroupAlts", src == "withDepth (s : ss)" ->
+            found "(.maximum \"s\" \"ss\")"
+        | otherwise -> Left ("unclassified depth action in " ++ T.unpack rule ++ ": " ++ T.unpack src)
+      Nothing -> Left ("missing depth action in " ++ T.unpack rule)
+  where found = pure . Just
+
+envAlternatives :: M.Map T.Text Int -> M.Map T.Text T.Text -> T.Text -> [Alt] -> EnvBuild String
+envAlternatives names messages currentRule alts = do
+  parts <- traverse one alts
+  pure (chain "alt" ".eps" parts)
+  where
+    one alt = do
+      body <- fmap (chain "seq" ".eps")
+        (traverse (envItem names messages currentRule) (altItems alt))
+      kind <- lift (depthAction currentRule (altAction alt))
+      case kind of
+        Nothing -> pure body
+        Just action -> do
+          s <- get
+          let site = length (envActions s)
+          put s { envActions = (currentRule, maybe "" unLoc (altAction alt), action) : envActions s }
+          pure ("(.action " ++ show site ++ " " ++ body ++ ")")
+
 alternatives :: M.Map T.Text Int -> [[Item]] -> Build String
 alternatives names alts = do
   parts <- traverse (fmap (chain "seq" ".eps") . traverse (project names . itemExpr)) alts
@@ -167,11 +303,17 @@ emit index g = do
   when (null rs || length rs /= S.size (S.fromList names) || not (null (grammarImports g)) ||
         any (not . null . ruleTemplateParams) rs)
     (Left "duplicate/empty rules, imports, or unexpanded templates in metagrammar")
+  let start = maybe (listToMaybe names) (Just . unLoc) (grammarStart g)
+  when (start /= Just "File") (Left "expected File as the metagrammar start rule")
+  startId <- maybe (Left "missing start rule") Right (start >>= (`M.lookup` nameToIndex))
   rows <- traverse (traverse (terminals . itemExpr) . concatMap altItems . ruleAlts) rs
   (bodies, assigned) <- runStateT (traverse (alternatives nameToIndex . map altItems . ruleAlts) rs) 0
   let messages = M.fromList [(unLoc name, unLoc msg) | (name, msg) <- grammarMessages g]
   (labeledBodies, (labeledTerms, labeledPredicates)) <-
     runStateT (traverse (labeledAlternatives nameToIndex messages . map altItems . ruleAlts) rs) (0, 0)
+  (environmentBodies, envState) <-
+    runStateT (traverse (\r -> envAlternatives nameToIndex messages (ruleName r)
+      (ruleAlts r)) rs) (EnvAcc 0 0 [] [] [])
   let numbered = [(rule, term) | (rule, groups) <- zip [0 :: Int ..] rows, term <- concat groups]
       predicateRows =
         [(ruleName r, polarity, source) | r <- rs,
@@ -182,9 +324,11 @@ emit index g = do
       anys = length [() | (_, Any) <- numbered]
       ns = "MetaTerminal" ++ show index
       table = ["(" ++ show rule ++ ", " ++ renderTerminal term ++ ")" | (rule, term) <- numbered]
-  when (assigned /= length numbered || labeledTerms /= assigned || labeledPredicates /= length predicateRows)
+  when (assigned /= length numbered || labeledTerms /= assigned || labeledPredicates /= length predicateRows ||
+        envTerm envState /= assigned || envPred envState /= labeledPredicates)
     (Left "site numbering differs from source extraction")
   pure ["namespace " ++ ns,
+        "def startRule : Nat := " ++ show startId,
         "def table : Array (Nat × Terminal) := #[\n" ++ intercalate ",\n" table ++ "]",
         "theorem invariant1_terminal_count : table.size = " ++ show (length numbered) ++ " := by decide",
         "theorem invariant1_all_match (i : Fin table.size) (xs ys : List Char) :",
@@ -299,6 +443,37 @@ emit index g = do
         "#print axioms invariant1_labeled_erasure_all",
         "#print axioms invariant1_labeled_checked",
         "#print axioms invariant1_runLabeled_total",
+        "def callSites : Array (String × String × List String) := #[" ++
+          intercalate ", " ["(" ++ renderString caller ++ ", " ++ renderString target ++
+            ", [" ++ intercalate ", " (map renderString args) ++ "])"
+            | (caller, target, args) <- reverse (envCalls envState)] ++ "]",
+        "def bindingSites : Array (String × String × Bool) := #[" ++
+          intercalate ", " ["(" ++ renderString rule ++ ", " ++ renderString name ++
+            ", " ++ (if capture then "true" else "false") ++ ")"
+            | (rule, name, capture) <- reverse (envBindings envState)] ++ "]",
+        "def depthActions : Array (String × String × PegHs.EnvironmentEval.DepthAction) := #[" ++
+          intercalate ", " ["(" ++ renderString rule ++ ", " ++ renderString source ++ ", " ++ kind ++ ")"
+            | (rule, source, kind) <- reverse (envActions envState)] ++ "]",
+        "def ruleParameters : Array (List String) := #[" ++
+          intercalate ", " ["[" ++ intercalate ", " (map (renderString . paramName) (ruleParams r)) ++ "]"
+            | r <- rs] ++ "]",
+        "def environmentBodyTable : Array PegHs.EnvironmentEval.Body := #[\n" ++
+          intercalate ",\n" environmentBodies ++ "]",
+        "def environmentBody (n : Nat) := environmentBodyTable[n]?.getD (.terminal 0)",
+        "theorem invariant1_environment_body_count : environmentBodyTable.size = " ++ show count ++ " := by decide",
+        "theorem invariant1_environment_erasure : ∀ i : Fin " ++ show count ++ ",",
+        "    PegHs.EnvironmentEval.erase (environmentBody i) = Meta" ++ show index ++ ".rules i := by decide",
+        "theorem invariant1_call_site_count : callSites.size = " ++ show (length (envCalls envState)) ++ " := by decide",
+        "theorem invariant1_binding_site_count : bindingSites.size = " ++ show (length (envBindings envState)) ++ " := by decide",
+        "theorem invariant1_depth_action_count : depthActions.size = " ++ show (length (envActions envState)) ++ " := by decide",
+        "theorem invariant1_environment_sites : ∀ i : Fin " ++ show count ++ ",",
+        "    PegHs.EnvironmentEval.sitesInBounds table.size predicateSites.size callSites.size",
+        "      bindingSites.size depthActions.size " ++ show count ++ " (environmentBody i) = true := by decide",
+        "theorem invariant1_call_args_supported :",
+        "    callSites.all PegHs.EnvironmentDepth.supportedCallArgs = true := by decide +kernel",
+        "#print axioms invariant1_environment_erasure",
+        "#print axioms invariant1_environment_sites",
+        "#print axioms invariant1_call_args_supported",
         "end " ++ ns,
         "-- counts " ++ show literals ++ " literal, " ++ show classes ++ " class, " ++ show anys ++ " any"]
 
@@ -306,7 +481,7 @@ main :: IO ()
 main = do
   paths <- getArgs
   when (null paths) (die "pass the actual metagrammar files")
-  putStrLn "import ConcreteTerminalBody\nimport LabeledConcreteBody\nimport CallTables\nopen PegHs.ConcreteTerminal PegHs.ConcreteTerminalBody\nset_option maxRecDepth 16384\nset_option maxHeartbeats 12000000"
+  putStrLn "import ConcreteTerminalBody\nimport LabeledConcreteBody\nimport EnvironmentEval\nimport EnvironmentDepth\nimport CallTables\nopen PegHs.ConcreteTerminal PegHs.ConcreteTerminalBody\nset_option maxRecDepth 16384\nset_option maxHeartbeats 12000000"
   forM_ (zip [1 ..] paths) $ \(index, path) -> do
     src <- TIO.readFile path
     either (die . ((path ++ ": ") ++)) (mapM_ putStrLn) $

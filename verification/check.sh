@@ -13,9 +13,16 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates Header Lexical Nullable Reachable Literal Signatures File Consumption Pipeline Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh DirectiveNames AssembleValidationHelpers AssembleValidation CallOrder RecursiveEval ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
+runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedEscapes.olean" "$work/TranslatedEscapes.lean"
+lean -DwarningAsError=true -o "$work/SimpleEscapeProof.olean" SimpleEscapeProof.lean
+lean -DwarningAsError=true -o "$work/DirectiveDecode.olean" DirectiveDecode.lean
+runghc-9.10.3 -Werror ExtractTabstop.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedTabstop.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedTabstop.olean" "$work/TranslatedTabstop.lean"
+lean -DwarningAsError=true -o "$work/TabstopProof.olean" TabstopProof.lean
 lean --run Boundary.lean > "$work/boundary-expected"
 cd ..
 verification/check-guard.sh
@@ -36,13 +43,15 @@ verification/check-pragmas.sh "$work"
 verification/check-render-expression.sh "$work"
 verification/check-no-record.sh
 verification/check-pipeline.sh
+verification/check-public-parsing.sh "$work"
 verification/check-assemble-validation.sh
 verification/check-assemble-validation-helpers.sh
+verification/check-directive-comment.sh "$work"
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
 verification/check-inner-generation.sh
 verification/check-inner-unicode.sh
-verification/check-public-parsing.sh
+MEMO_PROOF_DIR="$work" verification/check-memo-tables.sh
 
 extract_file() {
   "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/ExtractFile.hs "$@"
@@ -51,8 +60,44 @@ extract_file packages/peg-grammar/grammar/Peg.hpeg packages/peg-grammar/grammar/
 (cd verification && lean -DwarningAsError=true -R "$work" -o "$work/FileTrees.olean" "$work/FileTrees.lean" &&
   lean -DwarningAsError=true CheckEmpty.lean)
 verification/check-call-order.sh "$work"
+verification/check-memo-meta.sh "$work"
 verification/check-concrete-terminals.sh "$work"
-(cd verification && lean -DwarningAsError=true Audit.lean)
+mkdir "$work/meta-cases"
+"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/MetaExecutionCases.hs "$work/meta-cases" > "$work/meta-results"
+(cd verification && lean -DwarningAsError=true -o "$work/MetagrammarPredicates.olean" MetagrammarPredicates.lean &&
+  lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
+  ./check-env-projection.sh "$work" &&
+  lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
+  lean -DwarningAsError=true -o "$work/EnvRunCongruence.olean" EnvRunCongruence.lean &&
+  lean -DwarningAsError=true EnvRunCongruenceTests.lean &&
+  lean -DwarningAsError=true -o "$work/MetaEnvCompatible.olean" MetaEnvCompatible.lean &&
+  lean -DwarningAsError=true MetaEnvCompatibleTests.lean &&
+  lean -DwarningAsError=true -o "$work/MemoKeyEnvironment.olean" MemoKeyEnvironment.lean &&
+  lean -DwarningAsError=true MemoKeyEnvironmentTests.lean &&
+  lean -DwarningAsError=true -o "$work/NoArgInputReads.olean" NoArgInputReads.lean &&
+  lean -DwarningAsError=true NoArgInputReadsTests.lean &&
+  lean -DwarningAsError=true -o "$work/VerbatimScan.olean" VerbatimScan.lean &&
+  lean -DwarningAsError=true -o "$work/VerbatimRule.olean" VerbatimRule.lean &&
+  lean -DwarningAsError=true -o "$work/PrefixReplay.olean" PrefixReplay.lean &&
+  lean -DwarningAsError=true -o "$work/WindowReplay.olean" WindowReplay.lean &&
+  lean -DwarningAsError=true -o "$work/WindowReads.olean" WindowReads.lean &&
+  lean -DwarningAsError=true -o "$work/FastWindow.olean" FastWindow.lean &&
+  lean -DwarningAsError=true FastWindowTests.lean &&
+  lean -DwarningAsError=true -o "$work/ItemWindow.olean" ItemWindow.lean &&
+  lean -DwarningAsError=true -o "$work/InitialWhitespace.olean" InitialWhitespace.lean &&
+  lean -DwarningAsError=true -o "$work/InitialWhitespaceCall.olean" InitialWhitespaceCall.lean &&
+  lean -DwarningAsError=true -o "$work/FileTopItems.olean" FileTopItems.lean &&
+  lean -DwarningAsError=true -o "$work/FileEnd.olean" FileEnd.lean &&
+  lean -DwarningAsError=true -o "$work/FileItemChain.olean" FileItemChain.lean &&
+  lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
+  lean -DwarningAsError=true -o "$work/TotalFile.olean" TotalFile.lean &&
+  ./check-strict-file.sh "$work" &&
+  lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
+  ./check-file-items.sh "$work" &&
+  lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
+  lean -DwarningAsError=true --run CheckMetaExecution.lean ../packages/peg-grammar/grammar/Peg.hpeg ../packages/peg-grammar/grammar/PegSyntax.hpeg &&
+  ./check-file-certificates.sh "$work" &&
+  lean -DwarningAsError=true Audit.lean)
 
 # Each edited hpeg must still parse and translate. Only the Lean certificate fails.
 reject_mutation() {

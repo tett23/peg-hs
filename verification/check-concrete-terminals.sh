@@ -12,9 +12,16 @@ scratch=${1:?pass the verification scratch directory}
 [ "$(grep -c '^-- counts ' "$scratch/ConcreteTables.lean")" -eq 2 ]
 (cd verification &&
   lean -DwarningAsError=true -o "$scratch/ConcreteTerminal.olean" ConcreteTerminal.lean &&
+  lean -DwarningAsError=true -o "$scratch/TerminalCursor.olean" TerminalCursor.lean &&
   lean -DwarningAsError=true -o "$scratch/Utf8Terminals.olean" Utf8Terminals.lean &&
   lean -DwarningAsError=true -o "$scratch/ConcreteTerminalBody.olean" ConcreteTerminalBody.lean &&
   lean -DwarningAsError=true -o "$scratch/LabeledConcreteBody.olean" LabeledConcreteBody.lean &&
-  lean -DwarningAsError=true -R "$scratch" -o "$scratch/ConcreteTables.olean" "$scratch/ConcreteTables.lean")
+  lean -DwarningAsError=true -o "$scratch/EnvironmentEval.olean" EnvironmentEval.lean &&
+  lean -DwarningAsError=true -o "$scratch/CaptureWindow.olean" CaptureWindow.lean &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentFuel.olean" EnvironmentFuel.lean &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentDerivation.olean" EnvironmentDerivation.lean &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentDepth.olean" EnvironmentDepth.lean &&
+  lean -DwarningAsError=true -R "$scratch" -o "$scratch/ConcreteTables.olean" "$scratch/ConcreteTables.lean" &&
+  lean -DwarningAsError=true -o "$scratch/EnvironmentActual.olean" EnvironmentActual.lean)
 
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-runtime verification/CheckUtf8Runtime.hs

@@ -3,12 +3,66 @@ import CallOrder
 import CallTables
 import RecursiveEval
 import ConcreteTerminal
+import TerminalCursor
 import Utf8Terminals
 import ConcreteTerminalBody
 import LabeledConcreteBody
 import ConcreteTables
+import MetagrammarPredicates
+import PredicateBindings
 import Guard
 import SemanticPredicates
+import EnvironmentEval
+import CaptureWindow
+import EnvironmentFuel
+import EnvironmentDerivation
+import EnvironmentActual
+import MetaExecution
+import VerbatimRule
+import PrefixReplay
+import WindowReplay
+import WindowReads
+import FastWindow
+import MemoRecognition
+import MemoTrace
+import MemoTables
+import MemoMetaNoLR
+import EnvProjection
+import EnvProjectionPredicate
+import MemoKeyTransfer
+import EnvRunCongruence
+import MetaEnvCompatible
+import MemoKeyEnvironment
+import NoArgInputReads
+import ItemWindow
+import InitialWhitespaceCall
+import FileTopItems
+import FileEnd
+import FileItemChain
+import FileEntry
+import TotalFile
+import RuntimeChoiceProof
+import StrictSpaceChar
+import StrictInlineSpace
+import DirectiveCommentProof
+import DirectiveSuccess
+import DirectiveAssembly
+import SimpleEscapeProof
+import DirectiveDecode
+import DirectiveSourceDiagnostic
+import DirectiveHex
+import DirectiveStringDiagnostic
+import TabstopProof
+import BoundedDecimal
+import DirectiveDuplicates
+import DirectiveArityProof
+import DirectiveFailure
+import StrictWhitespaceScan
+import PublicParsing
+import PublicEntryProof
+import FileExamples
+import ConcreteFileCertificates
+import EnvironmentDepth
 import CapturedPredicates
 import GhcPredicates
 import ParameterPredicates
@@ -33,7 +87,6 @@ import Pipeline
 import RenderExpression
 import AssembleValidation
 import ImportResolution
-import PublicParsing
 import LabelPropagation
 import InnerGeneration
 import InnerUnicode
@@ -97,24 +150,27 @@ end PegHs.ConcreteTerminalBody
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CapturedPredicates, `SemanticPredicates, `GhcPredicates, `ParameterPredicates, `EscapePredicates, `ExpressionDepth,
-      `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
-      `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal,
-      `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `RenderExpression, `DirectiveNames,
-      `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
-      `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal,
-      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration, `InnerUnicode,
-      `PublicParsing, `LabelPropagation] do
+  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor,
+      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard,
+      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable,
+      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
+      `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
+      `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
+      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `MemoTrace, `MemoTables, `MemoMetaNoLR, `EnvProjection, `EnvProjectionPredicate, `MemoKeyTransfer, `EnvRunCongruence, `MetaEnvCompatible, `MemoKeyEnvironment, `NoArgInputReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `TotalFile, `SelfHostedFileProof, `RuntimeChoiceProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveSourceDiagnostic, `DirectiveDecode, `SimpleEscapeProof, `TranslatedEscapes, `DirectiveHex, `DirectiveStringDiagnostic, `TabstopProof, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
+      `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
+      `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
+      `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
+    let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop].contains moduleName
     let mut checked := 0
     for (name, info) in env.constants.toList do
       if env.getModuleIdxFor? name != some idx then continue
       if info.isAxiom then throwError "unexpected axiom declaration {name}"
-      if !info.isTheorem then continue
+      if !info.isTheorem && !(generated && info.isDefinition) then continue
       checked := checked + 1
       let axioms ← collectAxioms name
       logInfo m!"{name}: {axioms}"
       for ax in axioms do
         unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
           throwError "{name} depends on unexpected axiom {ax}"
-    if checked == 0 then throwError "no theorems in {moduleName}"
+    if checked == 0 then throwError "no audited declarations in {moduleName}"
