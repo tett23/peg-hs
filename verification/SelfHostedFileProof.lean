@@ -45,6 +45,13 @@ theorem invariant1_strict_type_text (input : List Char) :
 theorem invariant1_strict_param_list (input : List Char) :
     translatedStrictParamList = (context false input).rules 17 := rfl
 
+theorem invariant1_strict_param_chunks (input : List Char) :
+    translatedStrictParamChunks = (context false input).rules 18 := rfl
+
+theorem invariant1_strict_alternatives (input : List Char) :
+    translatedStrictAlts = (context false input).rules 20 ∧
+    translatedStrictMoreAlt = (context false input).rules 21 := ⟨rfl, rfl⟩
+
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
     Derives (context false (pre ++ '%' :: '{' :: xs)) translatedStrictVerbatim
