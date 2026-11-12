@@ -12,6 +12,7 @@ import PredicateBindings
 import Guard
 import SemanticPredicates
 import EnvironmentEval
+import EnvironmentFuel
 import EnvironmentDepth
 import CapturedPredicates
 import GhcPredicates
@@ -95,7 +96,7 @@ run_cmd do
       `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `Parsing, `Header, `Lexical,
       `Whitespace, `TemplateQueue, `Nullable, `Reachable, `Literal, `Signatures,
       `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection,
-      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `EnvironmentEval, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
+      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `EnvironmentEval, `EnvironmentFuel, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
