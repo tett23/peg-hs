@@ -23,7 +23,7 @@ verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
 verification/check-template-substitution.sh
-verification/check-template-expansion.sh
+verification/check-template-expansion-fresh.sh
 verification/check-template-queue.sh "$work"
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
