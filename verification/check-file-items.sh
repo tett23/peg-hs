@@ -50,5 +50,6 @@ for grammar in Peg Syntax; do
   lean -DwarningAsError=true -R "$item_work" \
     -o "$item_work/${grammar}Full.olean" "$item_work/${grammar}Full.lean"
 done
+lean -DwarningAsError=true CertifiedPublicFiles.lean
 printf '%s local certificates, %s full-input steps, 2 FileResult proofs checked\n' \
   "$item_count" "$step_count"
