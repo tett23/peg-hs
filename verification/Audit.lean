@@ -17,6 +17,9 @@ import ExpressionDepth
 import Parsing
 import Header
 import Whitespace
+import TemplateExpansion
+import TemplateExpansionFresh
+import TemplateSubstitution
 import TemplateQueue
 import Lexical
 import Nullable
@@ -27,6 +30,7 @@ import File
 import Consumption
 import FileTrees
 import Pipeline
+import AssembleValidation
 import ImportResolution
 import PublicParsing
 import LabelPropagation
@@ -93,10 +97,11 @@ open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`CapturedPredicates, `SemanticPredicates, `GhcPredicates, `ParameterPredicates, `EscapePredicates, `ExpressionDepth,
-      `Guard, `Parsing, `Header, `Lexical, `Nullable, `Reachable,
-      `Literal, `Signatures, `File, `Consumption, `FileTrees, `Pipeline,
-      `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `Whitespace,
-      `TemplateQueue, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal,
+      `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
+      `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable, `Reachable, `Literal,
+      `Signatures, `File, `Consumption, `FileTrees, `Pipeline, `DirectiveNames,
+      `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,
+      `RuleRejectionNullable, `CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal,
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `ImportResolution, `InnerGeneration, `InnerUnicode,
       `PublicParsing, `LabelPropagation] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"

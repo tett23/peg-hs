@@ -476,6 +476,12 @@ templateTests =
     , testCase "the same arguments make one instance, others another" $ do
         g <- expanded (t "S :: ([Int], [Int], [Int])\nS <- a:List<N, ','> b:List<N, ','> c:List<N, ';'> { (a, b, c) }")
         sort [ruleName r | r <- grammarRules g] @?= ["List'0", "List'1", "N", "S", "Sp"]
+    , testCase "invariant2: a used instance name is skipped" $ do
+        g <- expanded "%module M\nS :: ()\nS <- T<'a'> { () }\nT'0 :: ()\nT'0 <- 'b' { () }\nT<x> :: ()\nT<x> <- x { () }\n"
+        sort [ruleName r | r <- grammarRules g] @?= ["S", "T'0", "T'1"]
+    , testCase "invariant2: generated instance names stay distinct" $ do
+        g <- expanded "%module M\nS :: ()\nS <- T<'a'> T<'b'> { () }\nT'0 :: ()\nT'0 <- 'c' { () }\nT<x> :: ()\nT<x> <- x { () }\n"
+        sort [ruleName r | r <- grammarRules g] @?= ["S", "T'0", "T'1", "T'2"]
     , testCase "the type variable is replaced by the argument's type" $ do
         g <- expanded (t "S :: [Int]\nS <- List<N, ','>")
         [unLoc (ruleType r) | r <- grammarRules g, ruleName r == "List'0"] @?= ["[(Int)]"]
