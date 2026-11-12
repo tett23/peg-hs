@@ -27,7 +27,7 @@ SOURCE
 cat "$work/string-source" "$work/split-source" \
   verification/AssembleValidationHelpersProbe.hs >> "$work/Probe.hs"
 
-"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -ipackages/peg-grammar/src \
+"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 \
   -package=peg-grammar "$work/Probe.hs" > "$work/haskell-output"
 
 (cd verification &&

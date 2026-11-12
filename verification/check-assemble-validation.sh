@@ -37,6 +37,6 @@ SOURCE
 sed -n '/^generateWithWarnings ::/,/^  pure (Generation target warnings (generate opts target))$/p' \
   "$codegen_file" | diff -u "$expected" -
 
-"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -ipackages/peg-codegen/src \
-  -ipackages/peg-grammar/src -package=peg-codegen -package=peg-grammar \
+"${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 \
+  -package=peg-codegen -package=peg-grammar \
   verification/AssembleValidationProbe.hs
