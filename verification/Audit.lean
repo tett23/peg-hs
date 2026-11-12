@@ -18,6 +18,7 @@ import EnvironmentFuel
 import EnvironmentDerivation
 import EnvironmentActual
 import MetaExecution
+import PrefixReplay
 import FileEntry
 import PublicParsing
 import FileExamples
@@ -104,7 +105,7 @@ run_cmd do
       `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `Parsing, `Header, `Lexical,
       `Whitespace, `TemplateQueue, `Nullable, `Reachable, `Literal, `Signatures,
       `File, `Consumption, `FileTrees, `Pipeline, `Pragmas, `RuleRejection,
-      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `FileEntry, `PublicParsing, `FileExamples, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
+      `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable, `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `PrefixReplay, `FileEntry, `PublicParsing, `FileExamples, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     let mut checked := 0
