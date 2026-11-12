@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-const cases = ['start', 'middle', 'end'].flatMap(place =>
+export const cases = ['start', 'middle', 'end'].flatMap(place =>
   ['range: decode, check, encode', 'range, and the semantic tokens']
     .map(operation => `an edit at the ${place}, ${operation}`));
 
