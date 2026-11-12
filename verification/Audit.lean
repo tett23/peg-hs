@@ -5,6 +5,7 @@ import RecursiveEval
 import ConcreteTerminal
 import Utf8Terminals
 import ConcreteTerminalBody
+import LabeledConcreteBody
 import ConcreteTables
 import Guard
 import Parsing
@@ -64,12 +65,23 @@ theorem invariant1_actual_concrete_total (syntaxMode : Bool)
 
 #print axioms invariant1_actual_concrete_total
 
+theorem invariant1_actual_labeled_total (syntaxMode : Bool)
+    (oracle : Nat → Nat → Bool) (input : List Char) (rule : Nat) :
+    ∃ fuel result,
+      (if syntaxMode then MetaTerminal2.runLabeled oracle input fuel rule
+       else MetaTerminal1.runLabeled oracle input fuel rule) = some result := by
+  cases syntaxMode with
+  | false => simpa using MetaTerminal1.invariant1_runLabeled_total oracle input rule
+  | true => simpa using MetaTerminal2.invariant1_runLabeled_total oracle input rule
+
+#print axioms invariant1_actual_labeled_total
+
 end PegHs.ConcreteTerminalBody
 
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `ConcreteTerminalBody, `ConcreteTables,
+  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables,
       `Guard, `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue,
       `Nullable, `Reachable, `Literal, `Signatures, `File, `Consumption,
       `FileTrees, `Pipeline, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat,

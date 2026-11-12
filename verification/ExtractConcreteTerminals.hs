@@ -37,8 +37,25 @@ terminals = \case
   EPred {} -> pure []
   ETemplate {} -> Left "unexpanded template in metagrammar"
 
+predicateSites :: Expr -> [(Bool, T.Text)]
+predicateSites = \case
+  EPred polarity code -> [(polarity, unLoc code)]
+  EGroup alts -> concatMap (concatMap (predicateSites . itemExpr)) alts
+  EStar e -> predicateSites e
+  EPlus e -> predicateSites e
+  EOpt e -> predicateSites e
+  EAnd e -> predicateSites e
+  ENot e -> predicateSites e
+  ECapture e -> predicateSites e
+  ELabel _ e _ -> predicateSites e
+  EDiscard e -> predicateSites e
+  _ -> []
+
 renderChar :: Char -> String
 renderChar c = "Char.ofNat " ++ show (ord c)
+
+renderString :: T.Text -> String
+renderString value = "String.ofList [" ++ intercalate ", " (map renderChar (T.unpack value)) ++ "]"
 
 renderTerminal :: Terminal -> String
 renderTerminal = \case
@@ -86,6 +103,56 @@ project names = \case
   EPred {} -> pure ".eps"
   ETemplate {} -> lift (Left "unexpanded template in metagrammar")
 
+type LabeledBuild = StateT (Int, Int) (Either String)
+
+labeledProject :: M.Map T.Text Int -> M.Map T.Text T.Text -> Expr -> LabeledBuild String
+labeledProject names messages = \case
+  ELit value _ -> do
+    (term, predSite) <- get
+    put (term + 1, predSite)
+    pure $ if T.null value then ".eps" else "(.terminal " ++ show term ++ ")"
+  EClass {} -> freshTerminal
+  EAny -> freshTerminal
+  ERef _ name _ -> case M.lookup name names of
+    Just index -> pure ("(.call " ++ show index ++ ")")
+    Nothing -> lift (Left ("undefined reference in metagrammar: " ++ show name))
+  EGroup alts -> labeledAlternatives names messages alts
+  EStar e -> wrap "star" e
+  EPlus e -> do
+    a <- labeledProject names messages e
+    pure ("(.seq " ++ a ++ " (.star " ++ a ++ "))")
+  EOpt e -> do
+    a <- labeledProject names messages e
+    pure ("(.alt " ++ a ++ " .eps)")
+  EAnd e -> wrap "ahead" e
+  ENot e -> wrap "notAhead" e
+  ECapture e -> labeledProject names messages e
+  ELabel _ e label -> do
+    a <- labeledProject names messages e
+    let rendered = case M.lookup label messages of
+          Nothing -> "none"
+          Just value -> "(some (" ++ renderString value ++ "))"
+    pure ("(.label (" ++ renderString label ++ ") " ++ rendered ++ " " ++ a ++ ")")
+  EDiscard e -> labeledProject names messages e
+  EPred polarity _ -> do
+    (term, predSite) <- get
+    put (term, predSite + 1)
+    pure ("(.predicate " ++ show predSite ++ " " ++ (if polarity then "true" else "false") ++ ")")
+  ETemplate {} -> lift (Left "unexpanded template in metagrammar")
+  where
+    freshTerminal = do
+      (term, predSite) <- get
+      put (term + 1, predSite)
+      pure ("(.terminal " ++ show term ++ ")")
+    wrap constructor e = do
+      a <- labeledProject names messages e
+      pure ("(." ++ constructor ++ " " ++ a ++ ")")
+
+labeledAlternatives :: M.Map T.Text Int -> M.Map T.Text T.Text -> [[Item]] -> LabeledBuild String
+labeledAlternatives names messages alts = do
+  parts <- traverse (fmap (chain "seq" ".eps") . traverse (labeledProject names messages . itemExpr)) alts
+  pure (chain "alt" ".eps" parts)
+
 alternatives :: M.Map T.Text Int -> [[Item]] -> Build String
 alternatives names alts = do
   parts <- traverse (fmap (chain "seq" ".eps") . traverse (project names . itemExpr)) alts
@@ -102,13 +169,21 @@ emit index g = do
     (Left "duplicate/empty rules, imports, or unexpanded templates in metagrammar")
   rows <- traverse (traverse (terminals . itemExpr) . concatMap altItems . ruleAlts) rs
   (bodies, assigned) <- runStateT (traverse (alternatives nameToIndex . map altItems . ruleAlts) rs) 0
+  let messages = M.fromList [(unLoc name, unLoc msg) | (name, msg) <- grammarMessages g]
+  (labeledBodies, (labeledTerms, labeledPredicates)) <-
+    runStateT (traverse (labeledAlternatives nameToIndex messages . map altItems . ruleAlts) rs) (0, 0)
   let numbered = [(rule, term) | (rule, groups) <- zip [0 :: Int ..] rows, term <- concat groups]
+      predicateRows =
+        [(ruleName r, polarity, source) | r <- rs,
+          a <- ruleAlts r, item <- altItems a,
+          (polarity, source) <- predicateSites (itemExpr item)]
       literals = length [() | (_, Lit _) <- numbered]
       classes = length [() | (_, Cls _) <- numbered]
       anys = length [() | (_, Any) <- numbered]
       ns = "MetaTerminal" ++ show index
       table = ["(" ++ show rule ++ ", " ++ renderTerminal term ++ ")" | (rule, term) <- numbered]
-  when (assigned /= length numbered) (Left "terminal numbering differs from terminal extraction")
+  when (assigned /= length numbered || labeledTerms /= assigned || labeledPredicates /= length predicateRows)
+    (Left "site numbering differs from source extraction")
   pure ["namespace " ++ ns,
         "def table : Array (Nat × Terminal) := #[\n" ++ intercalate ",\n" table ++ "]",
         "theorem invariant1_terminal_count : table.size = " ++ show (length numbered) ++ " := by decide",
@@ -184,6 +259,46 @@ emit index g = do
         "#print axioms invariant1_terminal_ids",
         "#print axioms invariant1_runConcrete_sound",
         "#print axioms invariant1_runConcrete_total",
+        "def predicateSites : Array (String × Bool × String) := #[" ++
+          intercalate ", " ["(" ++ renderString rule ++ ", " ++
+            (if polarity then "true" else "false") ++ ", " ++ renderString source ++ ")"
+            | (rule, polarity, source) <- predicateRows] ++ "]",
+        "theorem invariant1_predicate_count : predicateSites.size = " ++ show labeledPredicates ++ " := by decide",
+        "def labeledBodyTable : Array PegHs.LabeledConcreteBody.Body := #[\n" ++
+          intercalate ",\n" labeledBodies ++ "]",
+        "def labeledBody (n : Nat) := labeledBodyTable[n]?.getD (.terminal 0)",
+        "theorem invariant1_labeled_body_count : labeledBodyTable.size = " ++ show count ++ " := by decide",
+        "theorem invariant1_labeled_erasure : ∀ i : Fin " ++ show count ++ ",",
+        "    PegHs.LabeledConcreteBody.erase (labeledBody i) = Meta" ++ show index ++ ".rules i := by decide",
+        "theorem invariant1_labeled_erasure_all (n : Nat) :",
+        "    PegHs.LabeledConcreteBody.erase (labeledBody n) = Meta" ++ show index ++ ".rules n := by",
+        "  by_cases h : n < " ++ show count,
+        "  · exact invariant1_labeled_erasure ⟨n, h⟩",
+        "  · have bodyMiss : labeledBodyTable[n]? = none := Array.getElem?_eq_none (by change " ++ show count ++ " ≤ n; omega)",
+        "    have callMiss : Meta" ++ show index ++ ".table[n]? = none := Array.getElem?_eq_none (by change " ++ show count ++ " ≤ n; omega)",
+        "    simp [labeledBody, bodyMiss, Meta" ++ show index ++ ".rules, Meta" ++ show index ++ ".entry, callMiss,",
+        "      PegHs.LabeledConcreteBody.erase]",
+        "theorem invariant1_labeled_checked : ∀ n,",
+        "    PegHs.CallOrder.validRule Meta" ++ show index ++ ".known Meta" ++ show index ++ ".rank n",
+        "      (PegHs.LabeledConcreteBody.erase (labeledBody n)) = true := by",
+        "  intro n",
+        "  rw [invariant1_labeled_erasure_all]",
+        "  exact Meta" ++ show index ++ ".invariant1_checked n",
+        "def runLabeled (oracle : Nat → Nat → Bool) (input : List Char)",
+        "    (fuel rule : Nat) : Option PegHs.LabeledConcreteBody.Result :=",
+        "  PegHs.LabeledConcreteBody.runFuel labeledBody termById oracle input",
+        "    fuel (labeledBody rule) input.length",
+        "theorem invariant1_runLabeled_total (oracle : Nat → Nat → Bool)",
+        "    (input : List Char) (rule : Nat) :",
+        "    ∃ fuel result, runLabeled oracle input fuel rule = some result := by",
+        "  simpa [runLabeled] using",
+        "    (PegHs.LabeledConcreteBody.invariant1_rule_executable",
+        "      (rules := labeledBody) (terms := termById) (oracle := oracle)",
+        "      (input := input) invariant1_labeled_checked (input.length, rule))",
+        "#print axioms invariant1_labeled_erasure",
+        "#print axioms invariant1_labeled_erasure_all",
+        "#print axioms invariant1_labeled_checked",
+        "#print axioms invariant1_runLabeled_total",
         "end " ++ ns,
         "-- counts " ++ show literals ++ " literal, " ++ show classes ++ " class, " ++ show anys ++ " any"]
 
@@ -191,7 +306,7 @@ main :: IO ()
 main = do
   paths <- getArgs
   when (null paths) (die "pass the actual metagrammar files")
-  putStrLn "import ConcreteTerminalBody\nimport CallTables\nopen PegHs.ConcreteTerminal PegHs.ConcreteTerminalBody\nset_option maxRecDepth 16384\nset_option maxHeartbeats 12000000"
+  putStrLn "import ConcreteTerminalBody\nimport LabeledConcreteBody\nimport CallTables\nopen PegHs.ConcreteTerminal PegHs.ConcreteTerminalBody\nset_option maxRecDepth 16384\nset_option maxHeartbeats 12000000"
   forM_ (zip [1 ..] paths) $ \(index, path) -> do
     src <- TIO.readFile path
     either (die . ((path ++ ": ") ++)) (mapM_ putStrLn) $
