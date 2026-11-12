@@ -81,6 +81,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/FileEnd.olean" FileEnd.lean &&
   lean -DwarningAsError=true -o "$work/FileItemChain.olean" FileItemChain.lean &&
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
+  lean -DwarningAsError=true -o "$work/TotalFile.olean" TotalFile.lean &&
   ./check-strict-file.sh "$work" &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
