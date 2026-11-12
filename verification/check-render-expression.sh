@@ -25,7 +25,7 @@ cat > "$scratch/render-expression-expected" <<'SOURCE'
   EAny -> pure "PegRt.anyChar"
   ERef _ n [] -> pure (ruleVar n)
   ERef _ n args ->
-    pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragment (envSources env) x <> ")" | x <- args] <> ")")
+    pure ("PegRt.withCol (\\_col -> " <> ruleVar n <> T.concat [" (" <> fragmentEnv env x <> ")" | x <- args] <> ")")
   EGroup alts
     | used && hasValue (units env) expr -> do
         bodies <- mapM (\is -> passThrough env False is >>= \(stmts, v) -> pure (doBlock (stmts ++ ["PegPrelude.pure " <> v]))) alts
