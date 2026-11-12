@@ -37,6 +37,8 @@ main = do
   let collect = ["    stringArgs d = [(l, stringArg d l (Located al a)) | TDirective l d' al a <- items, d' == d, not (T.null a)]",
                  "    expects = stringArgs \"expect\"", "    messages = stringArgs \"message\""]
   unless (collect `isInfixOf` source) (die "unsupported stringArgs collection")
+  unless ("        ++ [d | (_, Left d) <- expects ++ messages]" `elem` source)
+    (die "unsupported string directive diagnostic collection")
   let entry = ["decodeString :: Loc -> String -> Either Diagnostic (Text, String)",
                "decodeString start = go (next start '\"') []",
                "  where", "    next l c = advanceLoc l (T.singleton c)"]
@@ -131,6 +133,10 @@ main = do
       putStrLn "  items.filterMap fun (loc, top) => match top with"
       putStrLn "    | .directive d a => if d == directive && !a.isEmpty then some (loc, parse directive a) else none"
       putStrLn "    | _ => none"
+      putStrLn "def failures (expects messages : List (α × Except String β)) : List String :="
+      putStrLn "  (expects ++ messages).filterMap fun (_, result) => match result with"
+      putStrLn "    | .error msg => some msg"
+      putStrLn "    | .ok _ => none"
       putStrLn "end PegHs.TranslatedEscapes"
     _ -> die "unsupported simple escape table"
   where

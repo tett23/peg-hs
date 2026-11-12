@@ -122,6 +122,24 @@ theorem invariant2_source_string_results (items : List (α × Top)) (p : Predica
           ite_true, invariant2_source_string_argument, List.cons.injEq, true_and] using ih
     | _ => exact ih
 
+theorem invariant2_source_string_errors (items : List (α × Top)) (p : Predicates) :
+    let parse := argument p.validIdent (fun body => run (body.length + 1) .plain [] body)
+    let ds := directives (items.map Prod.snd)
+    failures (collect parse "expect" items) (collect parse "message" items) =
+      parseFailures (stringResults p ds "expect" ++ stringResults p ds "message") := by
+  dsimp only
+  rw [← invariant2_source_string_results items p "expect", ← invariant2_source_string_results items p "message"]
+  generalize collect _ "expect" items = es
+  generalize collect _ "message" items = ms
+  simp only [failures, parseFailures, List.filterMap_append]
+  congr 1
+  · induction es with
+    | nil => rfl
+    | cons x xs ih => obtain ⟨l, r⟩ := x; cases r <;> simp_all [Except.map]
+  · induction ms with
+    | nil => rfl
+    | cons x xs ih => obtain ⟨l, r⟩ := x; cases r <;> simp_all [Except.map]
+
 theorem invariant2_duplicate_string_result (items : List (α × Top)) (p : Predicates)
     (directive target : String) (supported : directive = "expect" ∨ directive = "message")
     (before after : List (Except String String))
