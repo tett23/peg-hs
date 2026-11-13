@@ -860,6 +860,31 @@ theorem positional_store_declaration (fields : ConstructorFields) :
     (beside (data_constructors fields []) (data_deriving [])))))
   simpa [constructorTail, derivingClause] using oneRule (id := 153) (by rfl) decl
 
+def pureStoreBindingWord (hasEnv : Bool) : List Symbol :=
+  let env := if hasEnv then [.terminal 117] else []
+  [.terminal 117] ++ env ++ [.terminal 77, .terminal 121, .terminal 107, .terminal 118] ++
+    env ++ [.terminal 108]
+
+open RenderExpressionGHC in
+theorem new_store_without_tables (hasEnv : Bool) :
+    Derives productions [.nonterminal 78] (pureStoreBindingWord hasEnv) := by
+  have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+    (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
+      (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl)
+        (oneRule (id := 811) (by rfl) (applyRule (g := productions) (id := 813)
+          (by rfl) (.refl [.terminal 118]))))))))
+  have expr {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have pureStore {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    expr (application qualified_function (parenthesized (oneRule (id := 596) (by rfl) (expr f))))
+  cases hasEnv
+  · exact binding_named (pureStore con)
+  · exact binding_named_arguments [[.terminal 117]]
+      (by intro a h; simpa using List.mem_singleton.mp h ▸ varid_argument)
+      (pureStore (application con varid_argument))
+
+#print axioms new_store_without_tables
+
 #print axioms positional_store_declaration
 
 theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFields)
