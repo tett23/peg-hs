@@ -20,6 +20,7 @@ compile GHCGrammar
 ./check-render-composition.sh "$work"
 ./check-render-primitive-do-ghc.sh "$work"
 ./check-render-primitive-choice.sh "$work"
+./check-render-primitive-statement.sh "$work"
 for name in Peg PegSyntax; do
   awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.ids" "$work/$name.trace" > "$work/Derivation$name.lean"
   compile "Derivation$name"
