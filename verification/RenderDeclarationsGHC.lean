@@ -1152,6 +1152,38 @@ theorem syntax_accessor_signature (kind : SyntaxAccessorKind) :
   exact signature_named_ctype (oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
     (beside arg (beside (.refl [.terminal 83]) result))))
 
+def syntaxAccessorBody (kind : SyntaxAccessorKind) : List Symbol :=
+  let lookup := [.terminal 121, .terminal 117, .terminal 107, .terminal 121,
+                 .terminal 130, .terminal 108, .terminal 117]
+  match kind with
+  | .oneNode | .manyNodes => [.terminal 121, .terminal 118, .terminal 107] ++ lookup ++ [.terminal 108]
+  | .oneToken | .manyTokens | .elements => lookup
+
+open RenderExpressionGHC in
+theorem syntax_accessor_binding (kind : SyntaxAccessorKind) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord [[.terminal 107, .terminal 118, .terminal 117, .terminal 108]] ++
+        [.terminal 77] ++ syntaxAccessorBody kind) := by
+  have expr {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have paren {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    parenthesized (oneRule (id := 596) (by rfl) (expr f))
+  have str := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+    (oneRule (id := 559) (by rfl) (applyRule (g := productions) (id := 819) (by rfl) (.refl [.terminal 130]))))
+  have label := paren (application qualified_function str)
+  have lookup := application (application (application qualified_function varid_argument) label) varid_argument
+  have con := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+    (oneRule (id := 556) (by rfl) (oneRule (id := 693) (by rfl)
+      (oneRule (id := 695) (by rfl) (oneRule (id := 811) (by rfl)
+        (applyRule (g := productions) (id := 813) (by rfl) (.refl [.terminal 118])))))))
+  have mapped := application (application qualified_function con) (paren lookup)
+  apply binding_named_arguments
+  · intro arg member
+    obtain rfl := List.mem_singleton.mp member
+    exact paren (application store_constructor_expr varid_argument)
+  · cases kind <;> first | exact expr mapped | exact expr lookup
+
+#print axioms syntax_accessor_binding
 #print axioms syntax_accessor_signature
 #print axioms syntax_node_newtype
 #print axioms syntax_kind_binding
