@@ -278,12 +278,11 @@ theorem invariant2_parameter_chunks_throw (input : List Char) (n pos : Nat) (env
   exact .altLeft (.seqCarryThrow (Derives.bind call)) (by simp)
 
 set_option maxRecDepth 8192 in
-theorem invariant2_parameter_list_throw (before xs : List Char) (initial : Env)
-    (pos : Nat) (label : String) (msg : Option String)
+theorem invariant1_parameter_list_reply (before xs : List Char) (initial : Env) (reply : Reply)
     (chunks : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunks xs.length
-      {initial with resultDepth := 0} (.throwLabel pos label msg)) :
+      {initial with resultDepth := 0} reply) :
     Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
-      (.throwLabel pos label msg) := by
+      (callResult (context false (before ++ '(' :: xs)) 43 {initial with resultDepth := 0} reply) := by
   let ctx := context false (before ++ '(' :: xs)
   let next := {initial with resultDepth := 0}
   have openTerm : ctx.terms 26 = some (.lit ['(']) := rfl
@@ -296,6 +295,14 @@ theorem invariant2_parameter_list_throw (before xs : List Char) (initial : Env)
     simp [next]
   apply Derives.seqOk (invariant1_runFuel_sound openStep)
   exact Derives.call (ctx := ctx) (site := 43) (rule := 18) (env := next) (callee := next) (by rfl) chunks
+
+theorem invariant2_parameter_list_throw (before xs : List Char) (initial : Env)
+    (pos : Nat) (label : String) (msg : Option String)
+    (chunks : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunks xs.length
+      {initial with resultDepth := 0} (.throwLabel pos label msg)) :
+    Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
+      (.throwLabel pos label msg) := by
+  exact invariant1_parameter_list_reply before xs initial _ chunks
 
 theorem invariant2_parameter_list_first_throw (before xs : List Char) (initial : Env)
     (pos : Nat) (label : String) (msg : Option String)
@@ -387,6 +394,7 @@ theorem invariant1_parameter_chunks_last (pre tail : List Char) (start : Nat) (e
   exact ⟨_, .altRetry (.seqOk first (.seqCarryFail (invariant1_runFuel_sound retry)))
     (.seqOk last (invariant1_runFuel_sound finish))⟩
 
+#print axioms invariant1_parameter_list_reply
 #print axioms invariant1_parameter_chunks_tail_success
 #print axioms invariant1_parameter_chunks_last
 #print axioms invariant2_parameter_chunks_tail_throw
