@@ -532,6 +532,36 @@ theorem invariant2_declaration_repeat_candidates (declarations : List (String ×
 #print axioms nullableDeclarationNames_named_fixed
 #print axioms invariant2_declaration_repeat_candidates
 
+def declarationRepetitionErrors (declarations : List (String × List (List Expr)))
+    (items : List (Nat × Expr)) : List RuleRejection.Diagnostic :=
+  let nullable := namedLanguageNullable (nullableDeclarationNames declarations)
+  RuleRejection.repetitionFromNullable (items.flatMap fun (location, e) =>
+    RuleRejectionRepeat.repeatCandidates nullable location e)
+
+theorem invariant2_declaration_repeat_diagnostic
+    (declarations : List (String × List (List Expr))) (items : List (Nat × Expr))
+    (location : Nat) (e : Expr) (item : (location, e) ∈ items)
+    (found : RuleRejectionRepeat.HasNullableRepeat
+      (namedLanguageNullable (nullableDeclarationNames declarations)) e)
+    (undefined before after : List RuleRejection.Diagnostic) :
+    ∃ ds, RuleRejection.checkRoot undefined (declarationRepetitionErrors declarations items)
+      before after = .error ds ∧
+      "the repeated expression can match the empty string, which would loop forever" ∈ ds := by
+  have candidate := (invariant2_declaration_repeat_candidates declarations location e).mpr found
+  have member : (location, true) ∈ items.flatMap (fun (l, x) =>
+      RuleRejectionRepeat.repeatCandidates (namedLanguageNullable (nullableDeclarationNames declarations)) l x) :=
+    List.mem_flatMap.mpr ⟨(location, e), item, candidate⟩
+  have diagnostic := RuleRejection.invariant2_nullableRepeatProducesError _ _ member
+    (show (location, "the repeated expression can match the empty string, which would loop forever") ∈
+      RuleRejection.nullableRepeat location true by simp [RuleRejection.nullableRepeat])
+  exact RuleRejection.checkRoot_error_contains undefined (declarationRepetitionErrors declarations items) before after
+    (location, "the repeated expression can match the empty string, which would loop forever")
+    (by
+      unfold RuleRejection.allErrors
+      exact List.mem_append_left _ (List.mem_append_right _ diagnostic))
+
+#print axioms invariant2_declaration_repeat_diagnostic
+
 theorem nullableDeclarationNames_least (declarations : List (String × List (List Expr)))
     (candidate : Fin (declarationNames declarations).length → Bool)
     (closed : directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
