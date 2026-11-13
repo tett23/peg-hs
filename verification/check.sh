@@ -36,6 +36,7 @@ verification/check-semantic-predicates.sh "$work"
 # The line lookup proof follows the inclusive upper-midpoint binary search.
 sed -n -e '/^lineIndex t =/,/^$/p' -e '/^lineOf arr off =/,/^$/p' -e '/^posIn input index off =/,$p' packages/peg-runtime/src/Peg/Runtime/Position.hs |
   diff -u - verification/line-of.source
+runghc-9.10.3 -Wall -Werror -ipackages/peg-runtime/src verification/CheckLineIndex.hs
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh
