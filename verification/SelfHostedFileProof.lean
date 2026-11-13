@@ -209,6 +209,22 @@ theorem invariant2_strict_rejection_no_module (source : String)
   rintro ⟨env, accepted⟩
   exact invalid ⟨env, (invariant1_strict_recursive_file _ _).mpr accepted⟩
 
+theorem invariant1_strict_generated_module_consumes_file (source moduleText : String)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String)
+    (generated : Pipeline.visible (Pipeline.pipeline ((parseFile false source format).bind assemble)
+      resolve expand check notes strip warnings generate) = .ok moduleText) :
+    ∃ env bound, ∀ limit ≥ bound, runFuel (strictContext source.toList) limit translatedStrictFile
+      source.toList.length {} = some (.ok 0 env) := by
+  obtain ⟨env, parsed⟩ := invariant1_generated_module_requires_complete_parse false source moduleText
+    format assemble resolve expand check notes strip warnings generate generated
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file _ _).mpr parsed
+  exact ⟨env, bound, fun _ enough => invariant1_fuel_stable _ enough observed⟩
+
+#print axioms invariant1_strict_generated_module_consumes_file
 #print axioms invariant2_strict_rejection_no_module
 #print axioms invariant2_strict_public_terminates
 #print axioms invariant1_strict_public_reply
