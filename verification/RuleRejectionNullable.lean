@@ -389,6 +389,29 @@ theorem namedNullableNext_indexed (declarations : List (String × List (List Exp
 #print axioms namedNullableNext_member
 #print axioms namedNullableNext_indexed
 
+theorem namedNullableNext_represents (declarations : List (String × List (List Expr)))
+    (known : Fin (declarationNames declarations).length → Bool) (name : String) :
+    name ∈ namedNullableNext declarations (knownRuleNames (indexedDeclarationName declarations) known) ↔
+      name ∈ knownRuleNames (indexedDeclarationName declarations)
+        (directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations) known) := by
+  constructor
+  · intro member
+    obtain ⟨declaration, hd, named, _⟩ := (namedNullableNext_member _ _ _).mp member
+    have present : name ∈ declarationNames declarations :=
+      (uniqueRuleNames_member _ _).mpr (List.mem_map.mpr ⟨declaration, hd, named⟩)
+    obtain ⟨i, bound, atIndex⟩ := List.getElem_of_mem present
+    have equal : indexedDeclarationName declarations ⟨i, bound⟩ = name := atIndex
+    exact (knownRuleNames_member _ _ _).mpr ⟨⟨i, bound⟩, equal,
+      (namedNullableNext_indexed _ known ⟨i, bound⟩).mp (equal ▸ member)⟩
+  · intro member
+    obtain ⟨i, named, updated⟩ := (knownRuleNames_member _ _ _).mp member
+    exact named ▸ (namedNullableNext_indexed _ known i).mpr updated
+
+def namedNullableRounds (declarations : List (String × List (List Expr))) : Nat → List String
+  | 0 => []
+  | k + 1 => namedNullableNext declarations (namedNullableRounds declarations k)
+
 def directRounds {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) : Nat → Fin n → Bool
   | 0 => fun _ => false
@@ -422,6 +445,23 @@ theorem direct_least_fixed {n : Nat} (lookup : RuleLookup n)
     rw [directRounds_correct]
     exact Peg.Verification.rounds_below_fixed _ fixed fixedPositive k
 
+theorem namedNullableRounds_correct (declarations : List (String × List (List Expr))) (k : Nat) :
+    ∀ name, name ∈ namedNullableRounds declarations k ↔
+      name ∈ knownRuleNames (indexedDeclarationName declarations)
+        (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations) k) := by
+  induction k with
+  | zero => simp [namedNullableRounds, knownRuleNames, directRounds]
+  | succ k ih =>
+    intro name
+    rw [namedNullableRounds, namedNullableNext_member]
+    simp only [namedLanguageNullable_congr _ _ ih]
+    rw [← namedNullableNext_member, namedNullableNext_represents]
+    rfl
+
+#print axioms namedNullableNext_represents
+#print axioms namedNullableRounds_correct
+
 theorem direct_rounds_after_fixed {n : Nat} (lookup : RuleLookup n)
     (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) (k : Nat)
     (stable : directNext lookup recovery rules (directRounds lookup recovery rules k) =
@@ -440,6 +480,15 @@ theorem direct_rounds_rule_count_fixed {n : Nat} (lookup : RuleLookup n)
   have same := direct_rounds_after_fixed lookup recovery rules k stable (n - k)
   rw [Nat.add_sub_of_le bound] at same
   rw [same, stable]
+
+theorem namedNullableRounds_stable (declarations : List (String × List (List Expr))) (extra : Nat) :
+    ∀ name, name ∈ namedNullableRounds declarations ((declarationNames declarations).length + extra) ↔
+      name ∈ namedNullableRounds declarations (declarationNames declarations).length := by
+  intro name
+  rw [namedNullableRounds_correct, namedNullableRounds_correct]
+  rw [direct_rounds_after_fixed _ _ _ _ (direct_rounds_rule_count_fixed _ _ _) extra]
+
+#print axioms namedNullableRounds_stable
 
 -- The loop tests equality before continuing, as nullableRulesWith.go does.
 def nullableUntilStable {n : Nat} (lookup : RuleLookup n)
