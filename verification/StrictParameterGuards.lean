@@ -563,6 +563,32 @@ theorem invariant2_file_empty_parameter (pre : List Char) (c : Char) (cs xs tail
   have decl := invariant2_declaration_empty_parameter pre c cs xs tail {} valid afterName comma
   exact file_item_throw _ _ ends items (invariant2_top_item_declaration_throw pre c cs ordinary _ _ _ decl)
 
+theorem invariant2_empty_parameter_no_module (pre : List Char) (c : Char) (cs xs tail : List Char)
+    (ends : List Nat) (valid : CharRule.identStart.accepts c = true) (ordinary : '%' ≠ c)
+    (afterName : cs.dropWhile CharRule.identChar.accepts = '(' :: xs)
+    (comma : afterWhitespace xs = ',' :: tail)
+    (items : let input := pre ++ c :: cs
+      ItemStepsTo (context false input) (c :: cs).length (afterWhitespace input).length ends)
+    (reply : Reply) (parsed : FileResult false (pre ++ c :: cs) reply)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let input := pre ++ c :: cs
+    let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input reply))
+    let diagnostic := [format (.labelled "argument" (some "expected an argument"))]
+    tops = .error diagnostic ∧
+      Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+        .error diagnostic := by
+  obtain ⟨_, _, unique⟩ := invariant1_file_result false _
+  have rejected := invariant2_file_empty_parameter pre c cs xs tail ends valid ordinary afterName comma items
+  have eq := (unique _ parsed).trans (unique _ rejected).symm
+  subst reply
+  exact ⟨rfl, rfl⟩
+
+#print axioms invariant2_empty_parameter_no_module
 #print axioms invariant2_file_empty_parameter
 #print axioms invariant2_top_item_declaration_throw
 #print axioms invariant2_declaration_empty_parameter
