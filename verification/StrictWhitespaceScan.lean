@@ -87,5 +87,21 @@ theorem invariant1_strict_whitespace_scan (pre xs : List Char) (env : Env) :
       (.ok (afterWhitespace xs).length {env with resultDepth := 0}) :=
   .star (ws_loop _ pre xs _ rfl rfl)
 
+-- Ws is memoized by offset and returns (). Its only callee state visible
+-- on return is resultDepth. Both that depth and the end cursor are fixed
+-- even if the caller entered with different captures and bindings.
+theorem invariant1_strict_ws_memo_reply (pre xs : List Char) (env : Env) (reply : Reply) :
+    let ctx := context false (pre ++ xs)
+    (∃ fuel, runFuel ctx fuel (ctx.rules 4) xs.length env = some reply) ↔
+      reply = .ok (afterWhitespace xs).length {env with resultDepth := 0} := by
+  obtain ⟨fuel, succeeded⟩ := invariant1_derivation_has_fuel
+    (invariant1_strict_whitespace_scan pre xs env)
+  constructor
+  · rintro ⟨k, observed⟩
+    exact invariant1_result_unique _ observed succeeded
+  · rintro rfl
+    exact ⟨fuel, succeeded⟩
+
+#print axioms invariant1_strict_ws_memo_reply
 #print axioms invariant1_strict_whitespace_scan
 end PegHs.MetaExecution
