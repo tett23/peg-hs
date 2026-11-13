@@ -37,6 +37,12 @@ sed -n '/^itemStmt ::/,/^      else e$/p' \
 diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
   "$scratch/RenderPrimitiveStatementItem.actual"
 
+cat > "$scratch/FreshNames.expected" <<'SOURCE'
+fresh = Gen $ \n -> ("peg'v" <> showT n, n + 1)
+freshK = Gen $ \n -> ("peg'k" <> showT n, n + 1)
+SOURCE
+sed -n '/^fresh = /p; /^freshK = /p' packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/FreshNames.actual"
+diff -u "$scratch/FreshNames.expected" "$scratch/FreshNames.actual"
 grep -Fxq 'newtype Gen a = Gen {runGen :: Natural -> (a, Natural)}' packages/peg-codegen/src/Peg/Codegen.hs
 grep -Fxq "parenthesise t = if T.any (== ' ') t then \"(\" <> t <> \")\" else t" packages/peg-codegen/src/Peg/Codegen.hs
 
@@ -141,4 +147,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 13 Lean theorems, 5 source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 13 Lean theorems, 6 source checks, 36 GHC tokens, 1 rejected mutation.\n'
