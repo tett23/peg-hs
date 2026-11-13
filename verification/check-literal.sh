@@ -49,3 +49,33 @@ SOURCE
 runghc-9.10.3 "$scratch/LiteralProbe.hs" > "$scratch/haskell-literal.txt"
 diff -u "$scratch/haskell-literal.txt" "$scratch/lean-literal.txt"
 printf 'Compared 134 single-character and 17956 two-character literals with GHC Show.\n'
+
+cat > "$scratch/LiteralLexer.hs" <<'SOURCE'
+import Control.Monad (forM_)
+import Data.Char (chr)
+import GHC (getSessionDynFlags, runGhc)
+import GHC.Data.FastString (mkFastString, unpackFS)
+import GHC.Data.StringBuffer (stringToStringBuffer)
+import GHC.Driver.Config.Parser (initParserOpts)
+import GHC.Parser.Lexer
+import GHC.Types.SrcLoc (mkRealSrcLoc, unLoc)
+import System.Environment (getArgs)
+
+main :: IO ()
+main = do
+  [libdir, fixture] <- getArgs
+  opts <- runGhc (Just libdir) (initParserOpts <$> getSessionDynFlags)
+  rows <- lines <$> readFile fixture
+  let loc = mkRealSrcLoc (mkFastString "LiteralProbe") 1 1
+  forM_ rows $ \row -> case break (== '\t') row of
+    (numbers, '\t' : literal) -> do
+      let expected = map chr (read ("[" ++ numbers ++ "]"))
+      case lexTokenStream opts (stringToStringBuffer literal) loc of
+        POk _ tokens -> case map unLoc tokens of
+          [ITstring _ value] | unpackFS value == expected -> pure ()
+          actual -> fail ("unexpected literal tokens at " ++ numbers ++ ": " ++ show actual)
+        PFailed _ -> fail ("lexer rejected " ++ numbers)
+    _ -> fail "malformed literal fixture"
+  putStrLn ("Checked " ++ show (length rows) ++ " GHC string tokens and decoded values.")
+SOURCE
+runghc-9.10.3 -package=ghc "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
