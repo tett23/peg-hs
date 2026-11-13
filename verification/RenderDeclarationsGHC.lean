@@ -253,9 +253,9 @@ theorem parameter_arrows (params : List (List Symbol)) (result : List Symbol)
 
 -- runParser, runParserRecover and runSyntaxRecover take the same initial
 -- arguments. runSyntaxRecover additionally receives the rule's syntax kind.
-def runtimeCallWord (hasEnv withKind : Bool) : List Symbol :=
+def runtimeCallWord (hasEnv withKind : Bool) (config : List Symbol := [.terminal 117]) : List Symbol :=
   let store := [.terminal 117] ++ (if hasEnv then [.terminal 117] else [])
-  [.terminal 121, .terminal 117, .terminal 107] ++ store ++
+  [.terminal 121] ++ config ++ [.terminal 107] ++ store ++
     [.terminal 108, .terminal 117] ++
     (if withKind then [.terminal 117] else []) ++ [.terminal 117]
 
@@ -268,8 +268,9 @@ def entryBodyWord (hasEnv syntaxMode : Bool) : List Symbol :=
   else project
 
 open RenderExpressionGHC in
-theorem runtime_call (hasEnv withKind : Bool) :
-    Derives productions [.nonterminal 217] (runtimeCallWord hasEnv withKind) := by
+theorem runtime_call (hasEnv withKind : Bool) (config : List Symbol := [.terminal 117])
+    (config_ok : Derives productions [.nonterminal 218] config := by exact varid_argument) :
+    Derives productions [.nonterminal 217] (runtimeCallWord hasEnv withKind config) := by
   have store : Derives productions [.nonterminal 217]
       ([.terminal 117] ++ (if hasEnv then [.terminal 117] else [])) := by
     have name := oneRule (id := 536) (by rfl) varid_argument
@@ -278,13 +279,28 @@ theorem runtime_call (hasEnv withKind : Bool) :
     · exact application name varid_argument
   have nested := parenthesized (oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
     (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) store))))
-  have partialCall := application (application (application qualified_function varid_argument)
+  have partialCall := application (application (application qualified_function config_ok)
     nested) varid_argument
   cases withKind
   · simpa [runtimeCallWord, List.append_assoc] using application partialCall varid_argument
   · simpa [runtimeCallWord, List.append_assoc] using
       application (application partialCall varid_argument) varid_argument
 
+def tabstopConfigWord : List Symbol :=
+  [.terminal 107, .terminal 117, .terminal 107, .terminal 121, .terminal 117,
+   .terminal 108, .terminal 117, .terminal 108]
+
+open RenderExpressionGHC in
+theorem debug_tabstop_call (hasEnv withKind : Bool) :
+    Derives productions [.nonterminal 217] (runtimeCallWord hasEnv withKind tabstopConfigWord) := by
+  have parens {w} (f : Derives productions [.nonterminal 217] w) :=
+    parenthesized (oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+      (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))))
+  have get := parens (application qualified_function varid_argument)
+  have set := application (oneRule (id := 536) (by rfl) varid_argument) get
+  exact runtime_call hasEnv withKind _ (parens (application set varid_argument))
+
+#print axioms debug_tabstop_call
 #print axioms runtime_call
 
 open RenderExpressionGHC in
