@@ -80,12 +80,14 @@ main = do
   putStrLn ("Checked " ++ show (length rows) ++ " GHC string tokens and decoded values.")
   forM_ ([0..0xd7ff] ++ [0xe000..0x10ffff]) $ \n -> do
     let c = chr n
-    case lexTokenStream opts (stringToStringBuffer (show c)) loc of
+        pair = "(" ++ show c ++ ", " ++ show c ++ ")"
+    case lexTokenStream opts (stringToStringBuffer pair) loc of
       POk _ tokens -> case map unLoc tokens of
-        [ITchar _ value] | value == c -> pure ()
-        actual -> fail ("unexpected character tokens at " ++ show n ++ ": " ++ show actual)
-      PFailed _ -> fail ("lexer rejected character " ++ show n)
-  putStrLn "Checked all 1112064 Unicode scalar character tokens and decoded values."
+        [IToparen, ITchar _ lo, ITcomma, ITchar _ hi, ITcparen]
+          | lo == c && hi == c -> pure ()
+        actual -> fail ("unexpected range tokens at " ++ show n ++ ": " ++ show actual)
+      PFailed _ -> fail ("lexer rejected range at " ++ show n)
+  putStrLn "Checked all 1112064 Unicode scalars in both range endpoint positions."
 SOURCE
 runghc-9.10.3 -package=ghc "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
 
