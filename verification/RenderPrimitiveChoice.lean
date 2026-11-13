@@ -8,10 +8,7 @@ open PegHs.CFG PegHs.GHCGrammar
 
 -- A generated alternative always ends with the action's return statement.
 def doAlternative (first : RenderPrimitiveDoGHC.Statement) (rest : List RenderPrimitiveDoGHC.Statement) :
-    Alternative where
-  source := RenderPrimitiveDo.printedDo (first.source :: rest.map RenderPrimitiveDoGHC.Statement.source)
-  tokens := [.terminal 125, .terminal 101] ++ RenderPrimitiveDoGHC.statementTokens first rest ++ [.terminal 102]
-  valid := RenderExpressionGHC.aexp_to_texp (RenderPrimitiveDoGHC.do_tokens_derive first rest)
+    Alternative := ⟨first, rest⟩
 
 -- The inner `PegRt.choice` fragment in Codegen.ruleDecl. A parsed hpeg rule
 -- has at least one alternative (Peg.hpeg: Alts <- a:Alt as:MoreAlt*).

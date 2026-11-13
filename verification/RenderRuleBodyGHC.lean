@@ -1,13 +1,51 @@
 import RenderDeclarationsGHC
 
+import RenderPrimitiveDo
+
+namespace PegHs.RenderPrimitiveDoGHC
+
+open CFG GHCGrammar
+
+structure Statement where
+  source : String
+  tokens : List Symbol
+  valid : Derives productions [.nonterminal 257] tokens
+
+def statementTokens (first : Statement) (rest : List Statement) : List Symbol :=
+  rest.foldl (fun acc statement =>
+    RenderExpressionGHC.semicolonAppend acc statement.tokens) first.tokens
+
+theorem do_tokens_derive (first : Statement) (rest : List Statement) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 125, .terminal 101] ++ statementTokens first rest ++
+        [.terminal 102]) := by
+  have rest_ok : ∀ tokens ∈ rest.map Statement.tokens,
+      Derives productions [.nonterminal 257] tokens := by
+    intro tokens member
+    obtain ⟨statement, _, equal⟩ := List.mem_map.mp member
+    exact equal ▸ statement.valid
+  have h := RenderExpressionGHC.do_many first.tokens (rest.map Statement.tokens)
+    first.valid rest_ok
+  simpa [statementTokens, List.foldl_map] using h
+
+end PegHs.RenderPrimitiveDoGHC
+
 namespace PegHs.RenderPrimitiveChoice
 
 open CFG GHCGrammar
 
 structure Alternative where
-  source : String
-  tokens : List Symbol
-  valid : Derives productions [.nonterminal 229] tokens
+  first : RenderPrimitiveDoGHC.Statement
+  rest : List RenderPrimitiveDoGHC.Statement
+
+def Alternative.source (alt : Alternative) : String :=
+  RenderPrimitiveDo.printedDo (alt.first.source :: alt.rest.map RenderPrimitiveDoGHC.Statement.source)
+
+def Alternative.tokens (alt : Alternative) : List Symbol :=
+  [.terminal 125, .terminal 101] ++ RenderPrimitiveDoGHC.statementTokens alt.first alt.rest ++ [.terminal 102]
+
+theorem Alternative.valid (alt : Alternative) : Derives productions [.nonterminal 229] alt.tokens :=
+  RenderExpressionGHC.aexp_to_texp (RenderPrimitiveDoGHC.do_tokens_derive alt.first alt.rest)
 
 def choiceTokens (first : Alternative) (rest : List Alternative) : List Symbol :=
   [.terminal 121, .terminal 105] ++

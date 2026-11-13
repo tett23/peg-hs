@@ -626,7 +626,7 @@ private theorem returningAlternative_source (stmts : List RenderPrimitiveDoGHC.S
     (ret : RenderPrimitiveDoGHC.Statement) :
     (returningAlternative stmts ret).source =
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ [ret.source]) := by
-  cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative]
+  cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative, RenderPrimitiveChoice.Alternative.source]
 
 def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
   returningAlternative stmts
