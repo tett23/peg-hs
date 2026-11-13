@@ -85,5 +85,29 @@ theorem invariant2_nested_binder_reported (tree : BindingTree) (name rule : Stri
   | nil => simp [h] at reported
   | cons d ds => exact ⟨_, by simp [assemble, h], h ▸ reported⟩
 
+-- Flags act from left to right. Reading them from the right gives an
+-- independent specification: the last mention of any alias wins.
+def extensionFlag (aliases : List String) (option : String) : Option Bool :=
+  if option ∈ aliases then some true
+  else if option ∈ aliases.map ("No" ++ ·) then some false else none
+
+def extensionEnabled (aliases options : List String) (initial := false) : Bool :=
+  options.foldl (fun enabled option => (extensionFlag aliases option).getD enabled) initial
+
+theorem invariant2_extension_last_setting (aliases options : List String) (initial : Bool) :
+    extensionEnabled aliases options initial =
+      (options.reverse.findSome? (extensionFlag aliases)).getD initial := by
+  induction options generalizing initial with
+  | nil => rfl
+  | cons option rest ih =>
+    change extensionEnabled aliases rest ((extensionFlag aliases option).getD initial) = _
+    rw [ih, List.reverse_cons, List.findSome?_append]
+    cases rest.reverse.findSome? (extensionFlag aliases) <;>
+      cases h : extensionFlag aliases option <;> simp [h]
+
+example : extensionEnabled ["RecursiveDo", "DoRec"] ["DoRec", "NoRecursiveDo"] = false := rfl
+example : extensionEnabled ["RecursiveDo", "DoRec"] ["NoDoRec", "Arrows", "RecursiveDo"] = true := rfl
+
+#print axioms invariant2_extension_last_setting
 #print axioms invariant2_nested_binder_reported
 end PegHs.AssembleValidation
