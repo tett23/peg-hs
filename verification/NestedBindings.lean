@@ -71,11 +71,19 @@ theorem invariant2_nested_names_iff (tree : BindingTree) (name : String) :
 
 theorem invariant2_nested_binder_reported (tree : BindingTree) (name rule : String)
     (templates : List String) (p : Predicates) (reserved : p.reservedBinder name = true)
-    (occurs : tree.Binds name) :
-    ∃ ds, assemble [.definitionWithBindings rule templates tree.names] p = .error ds ∧ ds ≠ [] := by
-  have member := (invariant2_nested_names_iff tree name).2 occurs
-  apply binder_violation_rejected _ p ⟨.reservedBinding, name⟩
-  simp [binderViolations, emit, member, reserved]
+    (occurs : tree.Binds name) (tops : List Top)
+    (definition : Top.definitionWithBindings rule templates tree.names ∈ tops) :
+    ∃ ds, assemble tops p = .error ds ∧ diagnostic ⟨.reservedBinding, name⟩ ∈ ds := by
+  have names := (invariant2_nested_names_iff tree name).2 occurs
+  have violation : ⟨.reservedBinding, name⟩ ∈ binderViolations tops p := by
+    apply List.mem_append_right
+    apply List.mem_map.mpr
+    exact ⟨name, List.mem_filter.mpr ⟨List.mem_flatMap.mpr ⟨_, definition, names⟩, reserved⟩, rfl⟩
+  have reported : diagnostic ⟨.reservedBinding, name⟩ ∈ errors tops p :=
+    List.mem_map.mpr ⟨_, List.mem_append_right _ violation, rfl⟩
+  cases h : errors tops p with
+  | nil => simp [h] at reported
+  | cons d ds => exact ⟨_, by simp [assemble, h], h ▸ reported⟩
 
 #print axioms invariant2_nested_binder_reported
 end PegHs.AssembleValidation
