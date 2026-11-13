@@ -180,11 +180,33 @@ theorem quoted_fold (s : String) :
 
 #print axioms quoted_fold
 
+-- Nonnegative branch of itos' in GHC.Internal.Show (GHC 9.10.3).
+private def intDigits (n : Nat) (suffix : List Char) : List Char :=
+  if n < 10 then Char.ofNat (48 + n) :: suffix
+  else intDigits (n / 10) (Char.ofNat (48 + n % 10) :: suffix)
+termination_by n
+decreasing_by omega
+
+private theorem decimal_digit (n : Nat) (h : n < 10) :
+    Char.ofNat (48 + n) = n.digitChar := by
+  have finite : ∀ d : Fin 10, Char.ofNat (48 + d.val) = d.val.digitChar := by decide
+  exact finite ⟨n, h⟩
+
+private theorem intDigits_eq (n : Nat) (suffix : List Char) :
+    intDigits n suffix = Nat.toDigits 10 n ++ suffix := by
+  induction n using Nat.strongRecOn generalizing suffix with
+  | ind n ih =>
+    rw [intDigits, Nat.toDigits_eq_ite (by decide : 1 < 10)]
+    split <;> rename_i h
+    · simp [decimal_digit n h]
+    · rw [ih (n / 10) (by omega), decimal_digit _ (Nat.mod_lt _ (by decide))]
+      simp
+
 -- Character spelling in ghc-9.10.3-release, GHC.Internal.Show:
 -- showLitString handles quotes, showLitChar handles the remaining cases.
 private def showSpelling (c : Char) : String :=
   if c == '"' then "\\\""
-  else if 127 < c.toNat then "\\" ++ c.toNat.repr
+  else if 127 < c.toNat then "\\" ++ String.ofList (intDigits c.toNat [])
   else if c.toNat == 127 then "\\DEL"
   else if c == '\\' then "\\\\"
   else if 32 ≤ c.toNat then String.singleton c
@@ -199,7 +221,7 @@ private def showSpelling (c : Char) : String :=
 
 theorem showSpelling_eq (c : Char) : showSpelling c = encodeChar c := by
   by_cases high : 127 < c.toNat
-  · simp [showSpelling, encodeChar, high, quote, slash]
+  · simp [showSpelling, encodeChar, high, quote, slash, intDigits_eq, Nat.repr]
     repeat' split
     all_goals first | rfl | (subst c; contradiction)
   · have ascii : ∀ n : Fin 128, showSpelling (Char.ofNat n.val) = encodeChar (Char.ofNat n.val) := by
