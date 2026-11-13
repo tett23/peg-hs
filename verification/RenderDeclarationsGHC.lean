@@ -413,6 +413,29 @@ theorem recover_let (hasEnv withKind projectValue : Bool) {close : List Symbol}
   simpa [List.append_assoc] using applyRule (id := 541) (by rfl)
     (beside (.refl [.terminal 18]) (beside binds (beside (.refl [.terminal 13]) body)))
 
+def recoverBodyWord (hasEnv syntaxMode syntaxTree parserClose : Bool) : List Symbol :=
+  [.terminal 18, .terminal 103] ++ recoverPatternWord false ++ [.terminal 77] ++
+    runtimeCallWord hasEnv syntaxTree ++ [.terminal (if parserClose then 0 else 104),
+      .terminal 13] ++ recoverResultWord (syntaxMode && !syntaxTree)
+
+theorem recover_entry_binding (hasEnv syntaxMode syntaxTree parserClose : Bool) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord (List.replicate (if hasEnv then 2 else 1) [.terminal 117]) ++
+        [.terminal 77] ++ recoverBodyWord hasEnv syntaxMode syntaxTree parserClose) := by
+  have close : Derives productions [.nonterminal 320]
+      [.terminal (if parserClose then 0 else 104)] := by
+    cases parserClose
+    · exact applyRule (id := 834) (by rfl) (.refl _)
+    · exact applyRule (id := 835) (by rfl) (.refl _)
+  have atom := recover_let hasEnv syntaxTree (syntaxMode && !syntaxTree) close
+  apply binding_named_arguments
+  · intro arg h
+    exact List.eq_of_mem_replicate h ▸ varid_argument
+  · simpa [recoverBodyWord, List.append_assoc] using
+      oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl)
+        (oneRule (id := 528) (by rfl) (oneRule (id := 536) (by rfl) atom)))
+
+#print axioms recover_entry_binding
 #print axioms recover_let
 
 #print axioms recover_result
