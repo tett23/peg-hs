@@ -177,6 +177,22 @@ theorem invariant1_verbatim_top_item (mode : Bool) (pre xs tail : List Char) (re
   have h := Derives.call entered item
   cases mode <;> exact h
 
+theorem invariant2_unterminated_verbatim_item (pre xs : List Char) (env : Env)
+    (missing : verbatimRest xs = []) :
+    Derives (context false (pre ++ '%' :: '{' :: xs)) (.call 1 1) (xs.length + 2) env
+      (.throwLabel 0 "verbatim" (some "unterminated %{ block")) := by
+  let ctx := context false (pre ++ '%' :: '{' :: xs)
+  let failed := Reply.throwLabel 0 "verbatim" (some "unterminated %{ block")
+  have verb : Derives ctx (.call 4 11) (xs.length + 2) env failed :=
+    Derives.call (callee := env) (by rfl) (invariant2_unterminated_verbatim false pre xs env missing)
+  have choice : Derives ctx (ctx.rules 2) (xs.length + 2) env failed :=
+    .altLeft verb (by simp [failed])
+  have top : Derives ctx (.call 2 2) (xs.length + 2) env failed :=
+    Derives.call (callee := env) (by rfl) choice
+  have item : Derives ctx (ctx.rules 1) (xs.length + 2) env failed := .seqCarryThrow top
+  exact Derives.call (callee := env) (by rfl) item
+
+#print axioms invariant2_unterminated_verbatim_item
 #print axioms invariant1_verbatim_top_item
 #print axioms invariant1_closed_verbatim_call
 #print axioms invariant2_unterminated_verbatim
