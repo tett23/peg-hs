@@ -274,10 +274,37 @@ theorem renderLine_single_line (n : Nat) (path : String) : '\n' ∉ (renderLine 
   have literal := (invariant3_literal_sound path).single_line
   simpa [renderLine, String.toList_append] using And.intro digits literal
 
-theorem finalizeText_lines (marker path : String) (lines : List String)
-    (clean : ∀ line ∈ lines, '\n' ∉ line.toList) :
-    textLines (finalizeText marker path (textUnlines lines)) = finalizeLines marker path lines := by
-  rw [finalizeText, textLines_unlines lines clean]
+theorem textLines_single_line (source line : String) (member : line ∈ textLines source) :
+    '\n' ∉ line.toList := by
+  have parts (xs acc : List Char) (clean : '\n' ∉ acc) :
+      ∀ field ∈ List.splitOnPPrepend (· == '\n') xs acc, '\n' ∉ field := by
+    induction xs generalizing acc with
+    | nil => simpa using clean
+    | cons c rest ih =>
+      rw [List.splitOnPPrepend_cons_eq_ite]
+      split
+      · intro field mem
+        rcases List.mem_cons.mp mem with rfl | more
+        · simpa using clean
+        · exact ih [] (by simp) field more
+      · apply ih
+        simp_all
+        exact Ne.symm (by assumption)
+  let fields := (source.toList.splitOn '\n').map String.ofList
+  have retained : line ∈ fields := by
+    change line ∈ (match fields.reverse with | "" :: tail => tail.reverse | _ => fields) at member
+    split at member
+    next tail eq =>
+      apply List.mem_reverse.mp
+      rw [eq]
+      exact List.mem_cons_of_mem _ (List.mem_reverse.mp member)
+    next => exact member
+  obtain ⟨field, mem, rfl⟩ := List.mem_map.mp retained
+  simpa using parts source.toList [] (by simp) field mem
+
+theorem finalizeText_lines (marker path source : String) :
+    textLines (finalizeText marker path source) = finalizeLines marker path (textLines source) := by
+  unfold finalizeText
   apply textLines_unlines
   intro line member
   obtain ⟨⟨input, idx⟩, hi, rfl⟩ := List.mem_map.mp member
@@ -285,7 +312,7 @@ theorem finalizeText_lines (marker path : String) (lines : List String)
   unfold finalizeLine
   split
   · exact renderLine_single_line _ _
-  · exact clean _ (by simpa using List.mem_map_of_mem (f := Prod.fst) hi)
+  · exact textLines_single_line source _ (by simpa using List.mem_map_of_mem (f := Prod.fst) hi)
 
 #print axioms finalizeText_lines
 
