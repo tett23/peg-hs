@@ -484,6 +484,45 @@ theorem invariant1_declaration_name (pre : List Char) (c : Char) (cs : List Char
   rw [invariant1_identifier_capture] at bound
   exact bound
 
+set_option maxRecDepth 8192 in
+private theorem templates_before_parameters (pre xs : List Char) (env : Env) :
+    Derives (context false (pre ++ '(' :: xs)) (.alt (.bind 11 "tps" (.call 18 14)) .eps)
+      ('(' :: xs).length env (.ok ('(' :: xs).length {env with resultDepth := 0}) := by
+  let ctx := context false (pre ++ '(' :: xs)
+  have term : ctx.terms 20 = some (.lit ['<']) := rfl
+  have miss : ConcreteTerminal.terminalOracle (.lit ['<']) ctx.input ('(' :: xs).length = none := by
+    change ConcreteTerminal.terminalOracle _ (pre ++ '(' :: xs) _ = _
+    rw [ConcreteTerminal.invariant1_oracle_suffix]
+    rfl
+  have failed : runFuel ctx 1 (.terminal 20) ('(' :: xs).length env = some .fail := by
+    simp only [runFuel, term, miss]
+  have body : Derives ctx (ctx.rules 14) ('(' :: xs).length env .fail :=
+    .seqCarryFail (invariant1_runFuel_sound failed)
+  have call : Derives ctx (.call 18 14) ('(' :: xs).length env .fail :=
+    Derives.call (callee := env) (by rfl) body
+  exact .altRetry (Derives.bind call) .eps
+
+theorem invariant2_declaration_empty_parameter (pre : List Char) (c : Char) (cs xs tail : List Char)
+    (env : Env) (valid : CharRule.identStart.accepts c = true)
+    (afterName : cs.dropWhile CharRule.identChar.accepts = '(' :: xs)
+    (comma : afterWhitespace xs = ',' :: tail)
+    (commaPrefix : ∃ ws, xs = ws ++ ',' :: tail) :
+    Derives (context false (pre ++ c :: cs)) translatedStrictDeclaration (c :: cs).length env
+      (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+  obtain ⟨ws, splitXs⟩ := commaPrefix
+  obtain ⟨here, name⟩ := invariant1_declaration_name pre c cs env valid
+  rw [afterName] at name
+  let namePrefix := pre ++ c :: cs.takeWhile CharRule.identChar.accepts
+  have splitInput : pre ++ c :: cs = namePrefix ++ '(' :: xs := by
+    simp [namePrefix, List.append_assoc, ← afterName]
+  apply invariant2_declaration_parameter_throw _ _ _ _ _ _ _ _ _ _ _ here name
+  · rw [splitInput]
+    exact templates_before_parameters _ _ _
+  · rw [splitInput]
+    apply invariant2_parameter_list_empty_first namePrefix xs (((namePrefix ++ ['(']) ++ ws)) tail _ _ comma
+    simp only [List.append_assoc, splitXs]
+
+#print axioms invariant2_declaration_empty_parameter
 #print axioms invariant1_declaration_name
 #print axioms invariant2_declaration_parameter_throw
 #print axioms invariant2_declaration_optional_parameters_throw
