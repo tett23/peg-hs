@@ -183,4 +183,27 @@ theorem invariant1_runtime_anyChar_eof (input : List Char) (width : Nat) :
     translatedAnyChar input.utf8Encode.size input.utf8Encode.size width = none := by
   simp [translatedAnyChar]
 
+private def iteratorWidth (bytes : ByteArray) (i : Nat) : Nat :=
+  if h : (bytes.utf8DecodeChar? i).isSome then
+    (bytes[i]'(ByteArray.lt_size_of_isSome_utf8DecodeChar? h)).utf8ByteSize
+      (ByteArray.isUTF8FirstByte_of_isSome_utf8DecodeChar? h)
+  else 0
+
+theorem invariant1_runtime_anyChar_lead_byte (before : List Char) (c : Char) (after : List Char) :
+    let bytes := (before ++ c :: after).utf8Encode
+    let i := before.utf8Encode.size
+    bytes.utf8DecodeChar? i = some c ∧
+      translatedAnyChar bytes.size i (iteratorWidth bytes i) = some (before ++ [c]).utf8Encode.size := by
+  dsimp only
+  have decoded : (before ++ c :: after).utf8Encode.utf8DecodeChar? before.utf8Encode.size = some c := by
+    rw [ByteArray.utf8DecodeChar?_eq_utf8DecodeChar?_extract, List.utf8Encode_append,
+      ByteArray.size_append, ByteArray.extract_append_eq_right rfl rfl]
+    simp
+  refine ⟨decoded, ?_⟩
+  have valid : ((before ++ c :: after).utf8Encode.utf8DecodeChar? before.utf8Encode.size).isSome = true := congrArg Option.isSome decoded
+  unfold iteratorWidth
+  rw [dite_eq_left_of_eq_true (by exact eq_true valid), ← ByteArray.utf8Size_utf8DecodeChar]
+  simpa only [ByteArray.utf8DecodeChar, decoded, Option.get_some] using invariant1_runtime_anyChar before c after
+  exact valid
+
 end PegHs.EnvironmentEval
