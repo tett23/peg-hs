@@ -394,6 +394,26 @@ theorem invariant1_parameter_chunks_last (pre tail : List Char) (start : Nat) (e
   exact ⟨_, .altRetry (.seqOk first (.seqCarryFail (invariant1_runFuel_sound retry)))
     (.seqOk last (invariant1_runFuel_sound finish))⟩
 
+set_option maxRecDepth 8192 in
+theorem invariant1_parameter_list_absent (before xs : List Char) (initial : Env)
+    (absent : xs.head? ≠ some '(') :
+    Derives (context false (before ++ xs)) translatedStrictParamList xs.length initial .fail := by
+  let ctx := context false (before ++ xs)
+  have term : ctx.terms 26 = some (.lit ['(']) := rfl
+  have missing : ConcreteTerminal.matchTerm (.lit ['(']) xs = none := by
+    cases xs with
+    | nil => rfl
+    | cons c cs =>
+      have ne : '(' ≠ c := by intro eq; subst c; exact absent rfl
+      simp [ConcreteTerminal.matchTerm, ConcreteTerminal.matchLiteral, ne]
+  have miss := ConcreteTerminal.invariant1_oracle_suffix (.lit ['(']) before xs
+  rw [missing] at miss
+  have run : runFuel ctx 1 (.terminal 26) xs.length initial = some .fail := by
+    have src : ctx.input = before ++ xs := rfl
+    simp only [runFuel, term, src, miss, Option.map_none]
+  exact .seqCarryFail (invariant1_runFuel_sound run)
+
+#print axioms invariant1_parameter_list_absent
 #print axioms invariant1_parameter_list_reply
 #print axioms invariant1_parameter_chunks_tail_success
 #print axioms invariant1_parameter_chunks_last
