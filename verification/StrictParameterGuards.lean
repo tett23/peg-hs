@@ -1,4 +1,5 @@
 import SelfHostedFileProof
+import TerminalCursor
 
 namespace PegHs.MetaExecution
 open EnvironmentEval
@@ -74,28 +75,50 @@ theorem invariant2_parameter_capture_tests (input : List Char) (env : Env) :
     site 6 .paramType (by change (context false []).sites 6 = _; decide +kernel)]
   exact ⟨rfl, rfl, rfl⟩
 
-theorem invariant2_parameter_rule_reply (input : List Char) (start here stop : Nat)
-    (initial spaced located captured : Env) (r : Reply)
-    (ws : Derives (context false input) (.call 47 4) start initial (.ok here spaced))
-    (loc : Derives (context false input) (.bind 27 "l" (.call 48 3)) here spaced (.ok here located))
-    (code : Derives (context false input) (.bind 28 "c" (.capture (.call 49 51)))
-      here located (.ok stop captured))
-    (delimiter : Derives (context false input) (.label "argcode" none (.ahead (.terminal 29)))
-      stop {captured with resultDepth := 0} r) :
+private def delimiterRanges := [(',', ','), (')', ')')]
+
+def parameterDelimiterReply (suffix : List Char) (env : Env) : Reply :=
+  if suffix.head?.any (ConcreteTerminal.classHas delimiterRanges) then .ok suffix.length env
+  else .throwLabel suffix.length "argcode" none
+
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_delimiter (pre suffix : List Char) (env : Env) :
+    Derives (context false (pre ++ suffix)) (.label "argcode" none (.ahead (.terminal 29)))
+      suffix.length env (parameterDelimiterReply suffix env) := by
+  let ctx := context false (pre ++ suffix)
+  have term : ctx.terms 29 = some (.cls delimiterRanges) := rfl
+  have src : ctx.input = pre ++ suffix := rfl
+  apply invariant1_runFuel_sound (fuel := 3)
+  change runFuel ctx 3 _ _ _ = _
+  simp only [runFuel, term, src, ConcreteTerminal.invariant1_oracle_suffix]
+  cases suffix with
+  | nil => rfl
+  | cons c rest =>
+    cases h : ConcreteTerminal.classHas delimiterRanges c <;>
+      simp [ConcreteTerminal.matchTerm, parameterDelimiterReply, h]
+
+theorem invariant2_parameter_rule_reply (pre suffix : List Char) (start here : Nat)
+    (initial spaced located captured : Env)
+    (ws : Derives (context false (pre ++ suffix)) (.call 47 4) start initial (.ok here spaced))
+    (loc : Derives (context false (pre ++ suffix)) (.bind 27 "l" (.call 48 3)) here spaced (.ok here located))
+    (code : Derives (context false (pre ++ suffix)) (.bind 28 "c" (.capture (.call 49 51)))
+      here located (.ok suffix.length captured))
+    :
     let text := captured.lookup "c"
-    Derives (context false input) translatedStrictParamChunk start initial
+    Derives (context false (pre ++ suffix)) translatedStrictParamChunk start initial
       (if (ParameterPredicates.strip GhcPredicates.space text).isEmpty then
-        .throwLabel stop "argument" (some "expected an argument")
+        .throwLabel suffix.length "argument" (some "expected an argument")
        else match ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum text with
-       | .formError => .throwLabel stop "paramform" (some "expected a parameter of the form name :: Type")
-       | .typeError => .throwLabel stop "paramtype" (some "expected a parameter type")
-       | .ok .. => r) := by
+       | .formError => .throwLabel suffix.length "paramform" (some "expected a parameter of the form name :: Type")
+       | .typeError => .throwLabel suffix.length "paramtype" (some "expected a parameter type")
+       | .ok .. => parameterDelimiterReply suffix {captured with resultDepth := 0}) := by
   rw [invariant2_parameter_guard_shape]
   apply Derives.seqOk ws
   apply Derives.seqOk loc
   apply Derives.seqOk code
-  have h := invariant2_parameter_guard_order input stop captured _ r delimiter
-  obtain ⟨a, b, c⟩ := invariant2_parameter_capture_tests input captured
+  have h := invariant2_parameter_guard_order (pre ++ suffix) suffix.length captured _ _
+    (invariant2_parameter_delimiter pre suffix _)
+  obtain ⟨a, b, c⟩ := invariant2_parameter_capture_tests (pre ++ suffix) captured
   dsimp only at h ⊢
   rw [a, b, c] at h
   cases empty : (ParameterPredicates.strip GhcPredicates.space (captured.lookup "c")).isEmpty <;>
