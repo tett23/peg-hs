@@ -663,6 +663,45 @@ private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.ter
   oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
     (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
 
+-- The two contexts used by typeCode: a complete type inside a list and
+-- an atomic argument after Maybe or a data constructor.
+structure FieldType where
+  word : List Symbol
+  atom : List Symbol
+  typeValid : Derives productions [.nonterminal 162] word
+  atomValid : Derives productions [.nonterminal 172] atom
+
+private theorem field_application_type {w} (h : Derives productions [.nonterminal 169] w) :
+    Derives productions [.nonterminal 162] w :=
+  oneRule (id := 374) (by rfl) (oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) h))))
+
+def FieldType.atomic {w} (h : Derives productions [.nonterminal 172] w) : FieldType :=
+  ⟨w, w, field_application_type (oneRule (id := 390) (by rfl) h), h⟩
+
+def FieldType.list (t : FieldType) : FieldType :=
+  .atomic (applyRule (id := 411) (by rfl)
+    (beside (.refl [.terminal 105]) (beside t.typeValid (.refl [.terminal 106]))))
+
+def FieldType.maybe (t : FieldType) : FieldType := by
+  have app := applyRule (id := 392) (by rfl)
+    (beside (oneRule (id := 390) (by rfl) qualifiedTypeAtom)
+      (oneRule (id := 394) (by rfl) t.atomValid))
+  have ty := field_application_type app
+  exact ⟨_, _, ty, applyRule (id := 412) (by rfl)
+    (beside (.refl [.terminal 107]) (beside ty (.refl [.terminal 108])))⟩
+
+def ConstructorFields.ofTypes (types : List FieldType) : ConstructorFields where
+  fields := types.map FieldType.atom
+  valid := by
+    intro field member
+    obtain ⟨t, _, rfl⟩ := List.mem_map.mp member
+    exact t.atomValid
+
+#print axioms FieldType.list
+#print axioms FieldType.maybe
+#print axioms ConstructorFields.ofTypes
+
 -- Each class is one CONID or QCONID token after lexing.
 def derivingNames (qualified : Bool) : List Bool → List Symbol
   | [] => [.terminal (if qualified then 122 else 118)]
