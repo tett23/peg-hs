@@ -250,6 +250,34 @@ theorem parameter_arrows (params : List (List Symbol)) (result : List Symbol)
     have rhs := beside (oneRule base (oneRule infixTy (oneRule app lhs))) (beside (.refl [.terminal 83]) tail)
     simpa [parameterArrows, List.append_assoc] using oneRule ctype (applyRule arrow rhs)
 
+-- PegRt.Text -> PegPrelude.Either PegRt.ParseError (resultType)
+def entryTypeWord (result : List Symbol) : List Symbol :=
+  [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 107] ++
+    result ++ [.terminal 108]
+
+theorem entry_type {result : List Symbol}
+    (valid : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 163] (entryTypeWord result) := by
+  have atom : Derives productions [.nonterminal 172] [.terminal 122] :=
+    oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+      (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
+  have paren := applyRule (g := productions) (id := 412) (by rfl)
+    (beside (.refl [.terminal 107]) (beside (oneRule (id := 374) (by rfl) valid)
+      (.refl [.terminal 108])))
+  have head := oneRule (id := 390) (by rfl) atom
+  have eitherError := applyRule (id := 392) (by rfl)
+    (beside head (oneRule (id := 394) (by rfl) atom))
+  have applied := applyRule (id := 392) (by rfl)
+    (beside eitherError (oneRule (id := 394) (by rfl) paren))
+  have base {xs} (app : Derives productions [.nonterminal 169] xs) :=
+    oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)
+  have rhs := oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl) (base applied))
+  simpa [entryTypeWord, List.append_assoc] using
+    oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
+      (beside (base head) (beside (.refl [.terminal 83]) rhs)))
+
+#print axioms entry_type
+
 theorem generated_rule_signature (params : List (List Symbol)) (result : List Symbol)
     (valid : ∀ p ∈ params, Derives productions [.nonterminal 163] p)
     (result_ok : Derives productions [.nonterminal 163] result) :

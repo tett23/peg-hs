@@ -138,14 +138,14 @@ theorem rule_items_valid (rules : List RuleFragment) :
   · exact RenderDeclarationsGHC.binding_named_arguments _ args body
 
 structure EntryFragment where
-  inputToResult : List Symbol
+  resultType : List Symbol
   body : List Symbol
-  type_ok : Derives productions [.nonterminal 163] inputToResult
+  type_ok : Derives productions [.nonterminal 163] resultType
   body_ok : Derives productions [.nonterminal 211] body
 
 def entryItems (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment) : List (List Symbol) :=
   entries.flatMap fun e => RenderDeclarationsGHC.generatedPair
-    (RenderDeclarationsGHC.parameterArrows (envType.toList.map Subtype.val) e.inputToResult)
+    (RenderDeclarationsGHC.parameterArrows (envType.toList.map Subtype.val) (RenderDeclarationsGHC.entryTypeWord e.resultType))
     (List.replicate (if envType.isSome then 2 else 1) [.terminal 117]) e.body
 
 theorem entry_items_valid (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment)
@@ -155,7 +155,7 @@ theorem entry_items_valid (envType : Option { ty : List Symbol // Derives produc
   simp only [RenderDeclarationsGHC.generatedPair, List.mem_cons,
     List.mem_nil_iff, or_false] at inside
   rcases inside with rfl | rfl
-  · apply RenderDeclarationsGHC.generated_rule_signature _ _ _ e.type_ok
+  · apply RenderDeclarationsGHC.generated_rule_signature _ _ _ (RenderDeclarationsGHC.entry_type e.type_ok)
     intro ty member
     obtain ⟨checked, _, rfl⟩ := List.mem_map.mp member
     exact checked.property
