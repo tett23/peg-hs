@@ -315,6 +315,44 @@ theorem config_items_valid (kept explicitTabstop positional debug : Bool) (item 
 
 #print axioms config_items_valid
 
+def positionalStoreWord (types : List (List Symbol)) : List Symbol :=
+  [.terminal 6, .terminal 118, .terminal 117, .terminal 77, .terminal 118] ++
+    (types.map fun ty => [.terminal 107] ++ ty ++ [.terminal 108]).flatten
+
+def storeDeclarations (positional : Bool) (types : List (List Symbol)) : List (List Symbol) :=
+  match types with
+  | [] => [positionalStoreWord []]
+  | first :: rest =>
+    if positional then positionalStoreWord types :: storeAccessors 0 types
+    else [recordStoreWord first rest]
+
+theorem store_declarations_valid (positional : Bool) (types : List (List Symbol))
+    (typed : ∀ ty ∈ types, Derives productions [.nonterminal 163] ty)
+    (item : List Symbol) (member : item ∈ storeDeclarations positional types) :
+    Derives productions [.nonterminal 78] item := by
+  have group (xs : List (List Symbol)) (ok : ∀ ty ∈ xs, Derives productions [.nonterminal 163] ty) :
+      Derives productions [.nonterminal 78] (positionalStoreWord xs) := by
+    let fields := ConstructorFields.ofParenthesized xs (fun ty h =>
+      Derives.production (pre := []) (post := []) (id := 374)
+        (rhs := [.nonterminal 163]) (by decide) (ok ty h))
+    simpa [positionalStoreWord, fields, ConstructorFields.ofParenthesized, ConstructorFields.word]
+      using positional_store_declaration fields
+  cases types with
+  | nil =>
+    obtain rfl := List.mem_singleton.mp member
+    exact group [] typed
+  | cons first rest =>
+    cases positional with
+    | false =>
+      obtain rfl := List.mem_singleton.mp member
+      exact record_store_declaration _ _ typed
+    | true =>
+      rcases List.mem_cons.mp member with rfl | accessor
+      · exact group _ typed
+      · exact store_accessors_valid _ typed 0 item accessor
+
+#print axioms store_declarations_valid
+
 -- storeDecl (including positional accessors) and newStoreDecl are kept
 -- together. The initializer follows the store declarations in both modes.
 def storeItems (kept : Bool) (decls : List (List Symbol)) (env : CheckedEnvType)
@@ -350,7 +388,7 @@ theorem generated_module_with_rules
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
-    (userExports verbatimImports syntaxDecls storeDecls : List (List Symbol))
+    (userExports verbatimImports syntaxDecls storeFieldTypes : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
@@ -358,7 +396,8 @@ theorem generated_module_with_rules
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
     (dataDecls : List DataDeclaration) (explicitTabstop : Bool) (memoised : Nat)
-    (other_ok : ∀ item ∈ syntaxDecls ++ storeDecls,
+    (store_types_ok : ∀ ty ∈ storeFieldTypes, Derives productions [.nonterminal 163] ty)
+    (syntax_ok : ∀ item ∈ syntaxDecls,
       Derives productions [.nonterminal 78] item)
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
@@ -372,7 +411,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") storeDecls envType memoised ++ ruleItems rules).foldl semiAppend [])) :
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -387,7 +426,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") storeDecls envType memoised ++ ruleItems rules) name_ok
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
@@ -398,9 +437,9 @@ theorem generated_module_with_rules
     · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
-    · exact other_ok item (List.mem_append_left _ hsyntax)
+    · exact syntax_ok item hsyntax
     · exact config_items_valid _ _ _ _ item hconfig
-    · exact store_items_valid _ _ _ _ (fun d hd => other_ok d (List.mem_append_right _ hd)) item hstore
+    · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ store_types_ok) item hstore
     · exact rule_items_valid rules item hr
   · exact initial
   · exact trace
