@@ -127,6 +127,13 @@ theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : St
   change binderKeyword grammarReservedWords (languageOptions tops) name = true
   simp [binderKeyword, word, notWildcard]
 
+theorem invariant2_forall_reserved (options : List String) :
+    binderKeyword grammarReservedWords options "forall" = true := by
+  have member : "forall" ∈ grammarReservedWords := by decide
+  simp [binderKeyword, member]
+
+#print axioms invariant2_forall_reserved
+
 theorem invariant2_wildcard_not_reserved (options : List String) :
     binderKeyword grammarReservedWords options "_" = false := by
   simp [binderKeyword]

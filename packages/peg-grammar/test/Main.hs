@@ -419,6 +419,8 @@ untypedSyntaxTests =
         messagesOf (s "W <- N /") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
     , testCase "a rule annotated :: () is treated as before" $
         messagesOf (s "W :: ()\nW <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "invariant2: forall cannot bind a captured value" $
+        messagesOf (s "W <- forall:$'a' { () }") @?= ["binding name forall is a Haskell reserved word"]
     , testCase "a binding of an expression without a value is an error, as before" $
         messagesOf (s "W <- x:'a' N") @?= ["cannot bind x: the expression has no value (capture the text with $)"]
     , testCase "without %syntax, two values generate a type (ADR 0075)" $
