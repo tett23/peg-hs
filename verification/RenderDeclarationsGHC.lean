@@ -677,10 +677,10 @@ theorem debug_recovery_signature (syntaxTree : Bool) (envType : Option { ty : Li
 #print axioms debug_recovery_signature
 #print axioms recover_entry_type
 
-private theorem entry_arrow {word : List Symbol}
+private theorem either_type {word : List Symbol}
     (arg : Derives productions [.nonterminal 172] word) :
     Derives productions [.nonterminal 163]
-      ([.terminal 122, .terminal 83, .terminal 122, .terminal 122] ++ word) := by
+      ([.terminal 122, .terminal 122] ++ word) := by
   have head := oneRule (id := 390) (by rfl) qualifiedTypeAtom
   have eitherError := applyRule (id := 392) (by rfl)
     (beside head (oneRule (id := 394) (by rfl) qualifiedTypeAtom))
@@ -689,9 +689,40 @@ private theorem entry_arrow {word : List Symbol}
   have base {xs} (app : Derives productions [.nonterminal 169] xs) :=
     oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)
   have rhs := oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl) (base applied))
-  simpa [List.append_assoc] using
-    oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
-      (beside (base head) (beside (.refl [.terminal 83]) rhs)))
+  simpa [List.append_assoc] using rhs
+
+private theorem entry_arrow {word : List Symbol}
+    (arg : Derives productions [.nonterminal 172] word) :
+    Derives productions [.nonterminal 163]
+      ([.terminal 122, .terminal 83, .terminal 122, .terminal 122] ++ word) :=
+  qualified_type_arrow (either_type arg)
+
+def debugResultWord (syntaxTree : Bool) (result : List Symbol) :=
+  let value := if syntaxTree then [.terminal 122] else [.terminal 107] ++ result ++ [.terminal 108]
+  [.terminal 107, .terminal 122, .terminal 122] ++ value ++ [.terminal 114, .terminal 122, .terminal 108]
+
+theorem debug_value_signature (syntaxTree : Bool) (envType : Option { ty : List Symbol //
+    Derives productions [.nonterminal 163] ty }) {result : List Symbol}
+    (valid : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 78] ([.terminal 117, .terminal 76] ++
+      debugTypeWord (envType.map Subtype.val) (debugResultWord syntaxTree result)) := by
+  have value : Derives productions [.nonterminal 172] (if syntaxTree then [.terminal 122]
+      else [.terminal 107] ++ result ++ [.terminal 108]) := by
+    cases syntaxTree
+    · simpa [List.append_assoc] using applyRule (id := 412) (by rfl) (beside (.refl [.terminal 107])
+        (beside (oneRule (id := 374) (by rfl) valid) (.refl [.terminal 108])))
+    · exact qualifiedTypeAtom
+  have ctype {w} (atom : Derives productions [.nonterminal 172] w) :=
+    oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+      (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
+  have first := oneRule (id := 374) (by rfl) (either_type value)
+  have stats := oneRule (id := 433) (by rfl) (oneRule (id := 374) (by rfl) (ctype qualifiedTypeAtom))
+  have pair := applyRule (id := 407) (by rfl) (beside (.refl [.terminal 107])
+    (beside first (beside (.refl [.terminal 114]) (beside stats (.refl [.terminal 108])))))
+  apply debug_signature
+  simpa [debugResultWord, List.append_assoc] using ctype pair
+
+#print axioms debug_value_signature
 
 theorem entry_type {result : List Symbol}
     (valid : Derives productions [.nonterminal 163] result) :
