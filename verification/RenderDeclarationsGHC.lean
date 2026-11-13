@@ -848,6 +848,32 @@ private theorem type_with_state_parameter {w} (atom : Derives productions [.nont
   exact applyRule (id := 392) (by rfl)
     (beside (oneRule (id := 390) (by rfl) atom) (oneRule (id := 394) (by rfl) param))
 
+def memoTableTypeWord (key : Option (List Symbol)) (result : List Symbol) : List Symbol :=
+  [.terminal 122, .terminal 117] ++
+    (match key with
+     | none => []
+     | some ty => [.terminal 107] ++ ty ++ [.terminal 108]) ++ result
+
+theorem memo_table_field_type (key : Option (List Symbol)) {result : List Symbol}
+    (validKey : ∀ ty ∈ key.toList, Derives productions [.nonterminal 162] ty)
+    (validResult : Derives productions [.nonterminal 172] result) :
+    Derives productions [.nonterminal 163] (memoTableTypeWord key result) := by
+  have appendArg {w a} (f : Derives productions [.nonterminal 169] w)
+      (arg : Derives productions [.nonterminal 172] a) :=
+    applyRule (id := 392) (by rfl) (beside f (oneRule (id := 394) (by rfl) arg))
+  have liftApp {w} (f : Derives productions [.nonterminal 169] w) :=
+    oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+      (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) f)))
+  have table := type_with_state_parameter qualifiedTypeAtom
+  cases key with
+  | none => exact liftApp (appendArg table validResult)
+  | some ty =>
+    have group := applyRule (id := 412) (by rfl)
+      (beside (.refl [.terminal 107]) (beside (validKey ty (by simp)) (.refl [.terminal 108])))
+    simpa [memoTableTypeWord, List.append_assoc] using liftApp (appendArg (appendArg table group) validResult)
+
+#print axioms memo_table_field_type
+
 private theorem store_header :
     Derives productions [.nonterminal 105] [.terminal 118, .terminal 117] :=
   oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
