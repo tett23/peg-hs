@@ -686,6 +686,28 @@ theorem data_deriving (classes : List Bool) :
     simpa [derivingClause, List.append_assoc] using oneRule (id := 476) (by rfl)
       (oneRule (id := 478) (by rfl) (applyRule (id := 479) (by rfl) (beside (.refl [.terminal 8]) clause)))
 
+def dataDeclWord (first : ConstructorFields) (rest : List ConstructorFields) (classes : List Bool) :=
+  let keyword := if rest.isEmpty && first.fields.length == 1 then 20 else 6
+  [.terminal keyword, .terminal 118, .terminal 77] ++ constructorTail first.word rest ++ derivingClause classes
+
+theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFields)
+    (classes : List Bool) : Derives productions [.nonterminal 78] (dataDeclWord first rest classes) := by
+  have kw : Derives productions [.nonterminal 99]
+      [.terminal (if rest.isEmpty && first.fields.length == 1 then 20 else 6)] := by
+    split
+    · exact applyRule (id := 223) (by rfl) (.refl _)
+    · exact applyRule (id := 222) (by rfl) (.refl _)
+  have atom := oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
+      (applyRule (g := productions) (id := 733) (by rfl) (.refl _)))))
+  have header := oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
+  have capi := applyRule (g := productions) (id := 245) (by rfl) (.refl [])
+  have decl := applyRule (id := 169) (by rfl) (beside kw (beside capi (beside header
+    (beside (data_constructors first rest) (data_deriving classes)))))
+  simpa [dataDeclWord, List.append_assoc] using oneRule (id := 153) (by rfl) decl
+
+#print axioms data_declaration
 #print axioms data_deriving
 
 private theorem qualified_type_arrow {tail : List Symbol}
