@@ -490,6 +490,37 @@ theorem namedNullableRounds_stable (declarations : List (String × List (List Ex
 
 #print axioms namedNullableRounds_stable
 
+def stableNamedRound (declarations : List (String × List (List Expr)))
+    (k : Nat) (bound : k ≤ (declarationNames declarations).length) :
+    {round : Nat // round ≤ (declarationNames declarations).length ∧
+      (namedNullableRounds declarations (round + 1) ⊆ namedNullableRounds declarations round ∧
+       namedNullableRounds declarations round ⊆ namedNullableRounds declarations (round + 1))} :=
+  if same : namedNullableRounds declarations (k + 1) ⊆ namedNullableRounds declarations k ∧
+      namedNullableRounds declarations k ⊆ namedNullableRounds declarations (k + 1) then
+    ⟨k, bound, same⟩
+  else
+    have less : k < (declarationNames declarations).length := by
+      apply Nat.lt_of_le_of_ne bound
+      intro equal
+      subst k
+      have stable := namedNullableRounds_stable declarations 1
+      exact same ⟨fun name member => (stable name).mp member,
+        fun name member => (stable name).mpr member⟩
+    stableNamedRound declarations (k + 1) (by omega)
+termination_by (declarationNames declarations).length - k
+
+def namedNullableUntilStable (declarations : List (String × List (List Expr))) : List String :=
+  namedNullableRounds declarations (stableNamedRound declarations 0 (by omega)).val
+
+theorem namedNullableUntilStable_fixed (declarations : List (String × List (List Expr))) :
+    ∀ name, name ∈ namedNullableNext declarations (namedNullableUntilStable declarations) ↔
+      name ∈ namedNullableUntilStable declarations := by
+  intro name
+  have stable := (stableNamedRound declarations 0 (by omega)).property.2
+  exact ⟨fun member => stable.1 member, fun member => stable.2 member⟩
+
+#print axioms namedNullableUntilStable_fixed
+
 -- The loop tests equality before continuing, as nullableRulesWith.go does.
 def nullableUntilStable {n : Nat} (lookup : RuleLookup n)
     (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr))
