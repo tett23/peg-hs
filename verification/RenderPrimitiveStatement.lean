@@ -368,6 +368,48 @@ theorem generated_literal_forms (value original : String) :
 
 #print axioms generated_literal_forms
 
+private def rangePair : List Symbol :=
+  [.terminal 107, .terminal 129, .terminal 114, .terminal 129, .terminal 108]
+
+private theorem range_pair_expression : Derives productions [.nonterminal 229] rangePair := by
+  have literal : Derives productions [.nonterminal 319] [.terminal 129] :=
+    Derives.production (pre := []) (post := []) (id := 818) (rhs := [.terminal 129])
+      (by decide) (.refl _)
+  have arg := one (id := 551) (lhs := 218) (by decide)
+    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
+  have endpoint := RenderExpressionGHC.aexp_to_texp arg
+  exact RenderExpressionGHC.aexp_to_texp (pair_argument endpoint endpoint)
+
+def classFunctionTokens : Nat → List Symbol
+  | 0 => [.terminal 121, .terminal 105, .terminal 106]
+  | 1 => [.terminal 121, .terminal 105] ++ rangePair ++ [.terminal 106]
+  | n + 2 => [.terminal 121, .terminal 105] ++
+      (List.replicate n rangePair).foldl RenderExpressionGHC.commaAppend
+        (RenderExpressionGHC.commaAppend rangePair rangePair) ++ [.terminal 106]
+
+theorem class_body (ranges : Nat) : Derives productions [.nonterminal 211]
+    (classFunctionTokens ranges ++ [.terminal 130]) := by
+  apply function_expression
+  apply RenderExpressionGHC.application _ string_argument
+  cases ranges with
+  | zero =>
+    have nil : Derives productions [.nonterminal 280] [.terminal 105, .terminal 106] :=
+      Derives.production (pre := []) (post := []) (id := 709) (rhs := [.terminal 105, .terminal 106])
+        (by decide) (.refl _)
+    exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+      (one (id := 551) (by decide) (one (id := 554) (lhs := 219) (by decide)
+        (one (id := 556) (lhs := 220) (by decide) (one (id := 694) (lhs := 274) (by decide) nil))))
+  | succ n =>
+    cases n with
+    | zero => exact RenderExpressionGHC.choice_singleton range_pair_expression
+    | succ n =>
+      apply RenderExpressionGHC.choice_many _ _ _ range_pair_expression range_pair_expression
+      intro item mem
+      obtain rfl := (List.mem_replicate.mp mem).2
+      exact range_pair_expression
+
+#print axioms class_body
+
 theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List Symbol}
     (valid : Derives productions [.nonterminal 229] body) :
     let nameArgs : List Symbol := if hasMessage then [.terminal 121, .terminal 130, .terminal 130]
