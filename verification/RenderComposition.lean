@@ -138,23 +138,27 @@ theorem rule_items_valid (rules : List RuleFragment) :
   · exact RenderDeclarationsGHC.binding_named_arguments _ args body
 
 structure EntryFragment where
-  signatureType : List Symbol
+  inputToResult : List Symbol
   body : List Symbol
-  type_ok : Derives productions [.nonterminal 163] signatureType
+  type_ok : Derives productions [.nonterminal 163] inputToResult
   body_ok : Derives productions [.nonterminal 211] body
 
-def entryItems (hasEnv : Bool) (entries : List EntryFragment) : List (List Symbol) :=
-  entries.flatMap fun e => RenderDeclarationsGHC.generatedPair e.signatureType
-    (List.replicate (if hasEnv then 2 else 1) [.terminal 117]) e.body
+def entryItems (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment) : List (List Symbol) :=
+  entries.flatMap fun e => RenderDeclarationsGHC.generatedPair
+    (RenderDeclarationsGHC.parameterArrows (envType.toList.map Subtype.val) e.inputToResult)
+    (List.replicate (if envType.isSome then 2 else 1) [.terminal 117]) e.body
 
-theorem entry_items_valid (hasEnv : Bool) (entries : List EntryFragment)
-    (item : List Symbol) (member : item ∈ entryItems hasEnv entries) :
+theorem entry_items_valid (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment)
+    (item : List Symbol) (member : item ∈ entryItems envType entries) :
     Derives productions [.nonterminal 78] item := by
   obtain ⟨e, _, inside⟩ := List.mem_flatMap.mp member
   simp only [RenderDeclarationsGHC.generatedPair, List.mem_cons,
     List.mem_nil_iff, or_false] at inside
   rcases inside with rfl | rfl
-  · exact RenderDeclarationsGHC.signature_named_ctype e.type_ok
+  · apply RenderDeclarationsGHC.generated_rule_signature _ _ _ e.type_ok
+    intro ty member
+    obtain ⟨checked, _, rfl⟩ := List.mem_map.mp member
+    exact checked.property
   · apply RenderDeclarationsGHC.binding_named_arguments _ _ e.body_ok
     intro arg h
     exact List.eq_of_mem_replicate h ▸ RenderDeclarationsGHC.varid_argument
@@ -167,7 +171,7 @@ theorem generated_module_with_rules
     (qualifiedName : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
-    (hasEnv : Bool) (entries : List EntryFragment) (rules : List RuleFragment)
+    (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -181,7 +185,7 @@ theorem generated_module_with_rules
         (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
-          semiAppend [] ++ (dataDecls ++ entryItems hasEnv entries ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
+          semiAppend [] ++ (dataDecls ++ entryItems envType entries ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -191,14 +195,14 @@ theorem generated_module_with_rules
     · exact module_name_qualified
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
-    (dataDecls ++ entryItems hasEnv entries ++ otherDecls ++ ruleItems rules) name_ok
+    (dataDecls ++ entryItems envType entries ++ otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
     rcases List.mem_append.mp member with inOther | inRule
     · rcases List.mem_append.mp inOther with beforeOther | rest
       · rcases List.mem_append.mp beforeOther with dataItem | entryItem
         · exact data_ok item dataItem
-        · exact entry_items_valid hasEnv entries item entryItem
+        · exact entry_items_valid envType entries item entryItem
       · exact other_ok item rest
     · exact rule_items_valid rules item inRule
   · exact initial
