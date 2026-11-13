@@ -180,6 +180,34 @@ theorem quoted_fold (s : String) :
 
 #print axioms quoted_fold
 
+-- Character spelling in ghc-9.10.3-release, GHC.Internal.Show:
+-- showLitString handles quotes, showLitChar handles the remaining cases.
+private def showSpelling (c : Char) : String :=
+  if c == '"' then "\\\""
+  else if 127 < c.toNat then "\\" ++ c.toNat.repr
+  else if c.toNat == 127 then "\\DEL"
+  else if c == '\\' then "\\\\"
+  else if 32 ≤ c.toNat then String.singleton c
+  else
+    match c.toNat with
+    | 7 => "\\a" | 8 => "\\b" | 9 => "\\t" | 10 => "\\n"
+    | 11 => "\\v" | 12 => "\\f" | 13 => "\\r" | 14 => "\\SO"
+    | n => "\\" ++ (["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+        "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2",
+        "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS",
+        "GS", "RS", "US", "SP"] : List String)[n]!
+
+theorem showSpelling_eq (c : Char) : showSpelling c = encodeChar c := by
+  by_cases high : 127 < c.toNat
+  · simp [showSpelling, encodeChar, high, quote, slash]
+    repeat' split
+    all_goals first | rfl | (subst c; contradiction)
+  · have ascii : ∀ n : Fin 128, showSpelling (Char.ofNat n.val) = encodeChar (Char.ofNat n.val) := by
+      decide
+    simpa using ascii ⟨c.toNat, by omega⟩
+
+#print axioms showSpelling_eq
+
 private theorem encodeChar_sound (c : Char) (h : Allowed c) :
     TokenSyntax c (encodeChar c) := by
   by_cases hq : c = quote
