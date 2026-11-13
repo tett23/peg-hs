@@ -199,6 +199,37 @@ theorem direct_rounds_after_fixed {n : Nat} (lookup : RuleLookup n)
   | succ extra ih =>
     rw [Nat.add_succ, directRounds, ih, stable]
 
+theorem direct_rounds_rule_count_fixed {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) :
+    directNext lookup recovery rules (directRounds lookup recovery rules n) =
+      directRounds lookup recovery rules n := by
+  obtain ⟨k, bound, stable, _⟩ := direct_least_fixed lookup recovery rules
+  have same := direct_rounds_after_fixed lookup recovery rules k stable (n - k)
+  rw [Nat.add_sub_of_le bound] at same
+  rw [same, stable]
+
+def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) : Expr → Bool :=
+  directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules n)
+
+theorem invariant2_computed_language_repeat {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) (location extra : Nat) (e : Expr) :
+    ((location, true) ∈ RuleRejectionRepeat.repeatCandidates
+      (computedLanguageNullable lookup rules) location e ↔
+      RuleRejectionRepeat.HasNullableRepeat (computedLanguageNullable lookup rules) e) ∧
+    RuleRejectionRepeat.repeatCandidates
+      (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules (n + extra))) location e =
+      RuleRejectionRepeat.repeatCandidates (computedLanguageNullable lookup rules) location e := by
+  constructor
+  · exact ⟨RuleRejectionRepeat.invariant2_candidate_has_nullable_repeat _ _ e,
+      RuleRejectionRepeat.invariant2_nullableRepeat_candidate _ _ e⟩
+  · rw [direct_rounds_after_fixed lookup (fun _ => none) rules n
+      (direct_rounds_rule_count_fixed lookup (fun _ => none) rules) extra]
+    rfl
+
+#print axioms direct_rounds_rule_count_fixed
+#print axioms invariant2_computed_language_repeat
+
 theorem invariant2_language_repeat_stabilizes {n : Nat} (lookup : RuleLookup n)
     (rules : Fin n → List (List Expr)) :
     ∃ k ≤ n, ∀ (extra location : Nat) (e : Expr),
