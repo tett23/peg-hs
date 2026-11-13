@@ -634,9 +634,33 @@ def printedKids (children : List String) : String :=
   | [k] => k
   | ks => "PegPrelude.concat [" ++ String.intercalate ", " ks ++ "]"
 
+inductive SyntaxReturnValue where
+  | unit
+  | boundName (name : String)
+  | action (source : String) (tokens : List Symbol)
+      (valid : Derives productions [.nonterminal 229] tokens)
+
+def SyntaxReturnValue.source : SyntaxReturnValue → String
+  | .unit => "()"
+  | .boundName name => name
+  | .action fragment _ _ => "(" ++ fragment ++ ")"
+
+def SyntaxReturnValue.tokens : SyntaxReturnValue → List Symbol
+  | .unit => [.terminal 107, .terminal 108]
+  | .boundName _ => [.terminal 117]
+  | .action _ fragment _ => [.terminal 107] ++ fragment ++ [.terminal 108]
+
+theorem SyntaxReturnValue.valid (value : SyntaxReturnValue) :
+    Derives productions [.nonterminal 229] value.tokens := by
+  apply RenderExpressionGHC.aexp_to_texp
+  cases value with
+  | unit => exact RenderDeclarationsGHC.parameter_key_argument true
+  | boundName _ => exact RenderDeclarationsGHC.varid_argument
+  | action _ _ h => exact RenderExpressionGHC.parenthesized h
+
 -- Each child reference is the name returned by freshK for that item.
 def syntaxAlternative (stmts : List RenderPrimitiveDoGHC.Statement)
-    (value : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (value : SyntaxReturnValue)
     (children : List Nat) : RenderPrimitiveChoice.Alternative :=
   let names := children.map fun n => "peg'k" ++ n.repr
   let childTokens := children.map fun _ => [Symbol.terminal 117]
@@ -645,15 +669,15 @@ def syntaxAlternative (stmts : List RenderPrimitiveDoGHC.Statement)
     obtain ⟨_, _, rfl⟩ := List.mem_map.mp mem
     exact RenderExpressionGHC.aexp_to_texp RenderDeclarationsGHC.varid_argument
   returningAlternative stmts
-    ⟨"PegPrelude.pure (" ++ value ++ ", " ++ printedKids names ++ ")",
-      _, kids_return_statement childTokens valid child_ok⟩
+    ⟨"PegPrelude.pure (" ++ value.source ++ ", " ++ printedKids names ++ ")",
+      _, kids_return_statement childTokens value.valid child_ok⟩
 
 theorem syntaxAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement)
-    (value : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (value : SyntaxReturnValue)
     (children : List Nat) :
-    (syntaxAlternative stmts value tokens valid children).source =
+    (syntaxAlternative stmts value children).source =
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++
-        ["PegPrelude.pure (" ++ value ++ ", " ++ printedKids (children.map fun n => "peg'k" ++ n.repr) ++ ")"]) :=
+        ["PegPrelude.pure (" ++ value.source ++ ", " ++ printedKids (children.map fun n => "peg'k" ++ n.repr) ++ ")"]) :=
   returningAlternative_source stmts _
 
 #print axioms syntaxAlternative_source
