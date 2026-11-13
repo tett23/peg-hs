@@ -785,6 +785,30 @@ theorem actionAlternative_marker_slot (hasEnv : Bool) (items : List RenderPrimit
   simpa only [source] using Peg.Verification.invariant3_fragment_marker_slot
     (lead ++ retHead) (retTail ++ "\n          }") path body line col n
 
+open Peg.Verification in
+theorem actionAlternative_restore_line (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (path body : String) (line col n : Nat) (tokens : List Symbol)
+    (valid : Derives productions [.nonterminal 229] tokens) (children : Option (List Nat)) :
+    let source := (actionAlternative hasEnv items (renderFragment (markerCandidate n) line col path body)
+      tokens valid children).source
+    ∃ offset : Nat, ∀ (preceding following : List String) (outputPath : String),
+      let lines := preceding ++ (source.toList.splitOn '\n').map String.ofList ++ following
+      (finalizeLines (markerCandidate n) outputPath lines)[preceding.length + offset]? =
+        some (renderLine (preceding.length + offset + 2) outputPath) := by
+  dsimp only
+  obtain ⟨left, right, slot⟩ := actionAlternative_marker_slot hasEnv items path body line col n tokens valid children
+  refine ⟨left.length, ?_⟩
+  intro preceding following outputPath
+  rw [slot _ (by simp)]
+  simp only [List.map_append, List.map_cons, List.map_nil, String.ofList_toList]
+  let lead := preceding ++ left.map String.ofList
+  let tail := right.map String.ofList ++ following
+  have atSlot := invariant3_finalize_lines_at (markerCandidate n) outputPath
+    (lead ++ markerCandidate n :: tail) lead.length (by simp)
+  simpa [lead, tail, List.append_assoc] using atSlot
+
+#print axioms actionAlternative_restore_line
+
 #print axioms actionAlternative_marker_slot
 
 -- passThroughOf binds the chosen item and returns that same name after
