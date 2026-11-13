@@ -133,6 +133,25 @@ theorem invariant3_unqualified_export_iff (validIdent : String → Bool) (option
 
 #print axioms invariant3_unqualified_export_iff
 
+-- The host supplies Data.Char.generalCategory's ModifierLetter test.
+def binderRejected (modifier : Char → Bool) (options : List String) (name : String) : Bool :=
+  binderKeyword grammarReservedWords options name || name.toList.head?.any modifier
+
+theorem invariant2_modifier_binding_rejected (modifier : Char → Bool) (c : Char)
+    (tail : List Char) (isModifier : modifier c = true) (tree : BindingTree)
+    (rule : String) (templates : List String) (tops : List Top) (p : Predicates)
+    (occurs : tree.Binds (String.ofList (c :: tail)))
+    (definition : Top.definitionWithBindings rule templates tree.names ∈ tops) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+        = .error ds ∧ ds ≠ [] := by
+  obtain ⟨ds, rejected, reported⟩ := invariant2_nested_binder_reported tree
+    (String.ofList (c :: tail)) rule templates
+    {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+    (by simp [binderRejected, isModifier]) occurs tops definition
+  exact ⟨ds, rejected, fun empty => by simp [empty] at reported⟩
+
+#print axioms invariant2_modifier_binding_rejected
+
 theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
     (word : name ∈ grammarReservedWords) (notWildcard : name ≠ "_")
