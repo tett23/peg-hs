@@ -70,16 +70,34 @@ theorem wrap_choice_valid (wrapper : Option (List Symbol))
     exact RenderExpressionGHC.application_parenthesized
       (wrapper_ok fn (by simp)) (RenderExpressionGHC.fexp_to_texp inner_ok)
 
+def expectWrapper (hasLabel : Bool) : Option (List Symbol) :=
+  if hasLabel then some [.terminal 121, .terminal 130] else none
+
+-- PegRt.token and PegRt.node are both QVARIDs, and kindVar emits a VARID.
+def treeWrapper (syntaxMode inlineRule : Bool) : Option (List Symbol) :=
+  if syntaxMode && !inlineRule then some [.terminal 121, .terminal 117] else none
+
 theorem rule_body_valid (first : Alternative) (rest : List Alternative)
-    (memo : List Symbol) (expect tree : Option (List Symbol))
-    (memo_ok : Derives productions [.nonterminal 217] memo)
-    (expect_ok : ∀ fn ∈ expect, Derives productions [.nonterminal 217] fn)
-    (tree_ok : ∀ fn ∈ tree, Derives productions [.nonterminal 217] fn) :
+    (memo : List Symbol) (hasLabel syntaxMode inlineRule : Bool)
+    (memo_ok : Derives productions [.nonterminal 217] memo) :
     Derives productions [.nonterminal 211]
-      (memo ++ [.terminal 107] ++ wrapChoice expect (wrapChoice tree (choiceTokens first rest)) ++ [.terminal 108]) :=
-  RenderExpressionGHC.fexp_to_exp (RenderExpressionGHC.application_parenthesized memo_ok
-    (RenderExpressionGHC.fexp_to_texp (wrap_choice_valid expect expect_ok
-      (wrap_choice_valid tree tree_ok (choice_tokens_derive first rest)))))
+      (memo ++ [.terminal 107] ++ wrapChoice (expectWrapper hasLabel)
+        (wrapChoice (treeWrapper syntaxMode inlineRule) (choiceTokens first rest)) ++ [.terminal 108]) := by
+  have expect_ok : ∀ fn ∈ expectWrapper hasLabel, Derives productions [.nonterminal 217] fn := by
+    intro fn member
+    unfold expectWrapper at member
+    split at member <;> cases member
+    exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+      RenderExpressionGHC.string_argument
+  have tree_ok : ∀ fn ∈ treeWrapper syntaxMode inlineRule, Derives productions [.nonterminal 217] fn := by
+    intro fn member
+    unfold treeWrapper at member
+    split at member <;> cases member
+    exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+      RenderDeclarationsGHC.varid_argument
+  exact RenderExpressionGHC.fexp_to_exp (RenderExpressionGHC.application_parenthesized memo_ok
+    (RenderExpressionGHC.fexp_to_texp (wrap_choice_valid _ expect_ok
+      (wrap_choice_valid _ tree_ok (choice_tokens_derive first rest)))))
 
 #print axioms rule_body_valid
 

@@ -213,19 +213,11 @@ def labeledBindingTokens (body : List Symbol) : List Symbol :=
   [.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
    .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++ [.terminal 108]
 
-private theorem string_argument : Derives productions [.nonterminal 218] [.terminal 130] := by
-  have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
-    Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
-      (by decide) (.refl _)
-  have arg := one (id := 551) (lhs := 218) (by decide)
-    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
-  exact arg
-
 theorem labeled_item_parts {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 229] body) :
     Derives productions [.nonterminal 257] (labeledBindingTokens body) ∧
     Derives productions [.nonterminal 257] [.terminal 121, .terminal 117] := by
-  have arg := string_argument
+  have arg := RenderExpressionGHC.string_argument
   have expr {tokens : List Symbol} (f : Derives productions [.nonterminal 217] tokens) :
       Derives productions [.nonterminal 211] tokens :=
     one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
@@ -339,8 +331,8 @@ theorem generated_literal_forms (value original : String) :
     Derives productions [.nonterminal 211]
       [.terminal 121, .terminal 107, .terminal 121, .terminal 130, .terminal 130, .terminal 108] := by
   have body := function_expression (RenderExpressionGHC.application
-    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument)
-    string_argument)
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function RenderExpressionGHC.string_argument)
+    RenderExpressionGHC.string_argument)
   exact ⟨by simpa [Peg.Verification.showStringModel_eq, Peg.Verification.renderPegLit] using
     Peg.Verification.invariant3_pegLit_sound value original,
     body, plain_syntax_body (one (id := 596) (by decide) body)⟩
@@ -369,7 +361,7 @@ def classFunctionTokens : Nat → List Symbol
 theorem class_body (ranges : Nat) : Derives productions [.nonterminal 211]
     (classFunctionTokens ranges ++ [.terminal 130]) := by
   apply function_expression
-  apply RenderExpressionGHC.application _ string_argument
+  apply RenderExpressionGHC.application _ RenderExpressionGHC.string_argument
   cases ranges with
   | zero =>
     have nil : Derives productions [.nonterminal 280] [.terminal 105, .terminal 106] :=
@@ -464,12 +456,12 @@ theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List 
     Derives productions [.nonterminal 211]
       ((nameArgs ++ recoveryTokens valued) ++ [.terminal 107] ++ inner ++ [.terminal 108]) := by
   dsimp only
-  have named := RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument
+  have named := RenderExpressionGHC.application RenderExpressionGHC.qualified_function RenderExpressionGHC.string_argument
   have prefixOk : Derives productions [.nonterminal 217]
       (if hasMessage then [.terminal 121, .terminal 130, .terminal 130] else [.terminal 121, .terminal 130]) := by
     cases hasMessage
     · exact named
-    · exact RenderExpressionGHC.application named string_argument
+    · exact RenderExpressionGHC.application named RenderExpressionGHC.string_argument
   have innerOk : Derives productions [.nonterminal 229]
       (if valued = some false then [.terminal 121, .terminal 107] ++ body ++ [.terminal 108] else body) := by
     split

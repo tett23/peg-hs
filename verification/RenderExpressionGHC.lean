@@ -159,6 +159,14 @@ theorem do_many (first : List Symbol) (rest : List (List Symbol))
 
 -- A qualified rule/function name is a QVARID token. These six rules lift it
 -- through qvarid, qvar, aexp2, aexp1, aexp, and fexp.
+theorem string_argument : Derives productions [.nonterminal 218] [.terminal 130] := by
+  have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
+    Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
+      (by decide) (.refl _)
+  have arg := one (id := 551) (lhs := 218) (by decide)
+    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
+  exact arg
+
 theorem qualified_function :
     Derives productions [.nonterminal 217] [.terminal 121] := by
   have r774 : productions 774 = some (306, [.terminal 121]) := by decide
