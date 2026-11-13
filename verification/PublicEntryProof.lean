@@ -53,6 +53,41 @@ theorem invariant2_assembly_diagnostics {T M G} (bytes : Nat) (tops : T) (d : Fa
     simp [translatedGrammar, translatedRuntime, translatedPublic, translatedAssemble, Except.bind,
       eq_comm]
 
+-- GHC.Internal.Data.OldList.merge takes the right head exactly for GT.
+private def mergeRuns {A} (greater : A → A → Bool) : List A → List A → List A
+  | [], ys => ys
+  | xs, [] => xs
+  | x :: xs, y :: ys =>
+    if greater x y then y :: mergeRuns greater (x :: xs) ys
+    else x :: mergeRuns greater xs (y :: ys)
+termination_by xs ys => xs.length + ys.length
+
+theorem invariant2_mergeRuns_length {A} (greater : A → A → Bool) (xs ys : List A) :
+    (mergeRuns greater xs ys).length = xs.length + ys.length := by
+  induction xs, ys using mergeRuns.induct greater with
+  | case1 | case2 => simp [mergeRuns]
+  | case3 | case4 =>
+    rw [mergeRuns]
+    split <;> simp_all <;> omega
+
+#print axioms invariant2_mergeRuns_length
+
+private def mergePairs {A} (greater : A → A → Bool) : List (List A) → List (List A)
+  | a :: b :: xs => mergeRuns greater a b :: mergePairs greater xs
+  | xs => xs
+
+theorem invariant2_mergePairs_length {A} (greater : A → A → Bool) (runs : List (List A)) :
+    (mergePairs greater runs).flatten.length = runs.flatten.length := by
+  induction runs using mergePairs.induct with
+  | case1 => simp_all [mergePairs, invariant2_mergeRuns_length, Nat.add_assoc]
+  | case2 xs h => cases xs with
+    | nil => rfl
+    | cons a tail => cases tail with
+      | nil => rfl
+      | cons b rest => exact False.elim (h a b rest rfl)
+
+#print axioms invariant2_mergePairs_length
+
 -- Data.List.sortOn decorates each element with its key, sorts the pairs,
 -- and projects the original elements. Only the length matters to rejection.
 theorem invariant2_sortOn_length {A K} (key : A → K)
