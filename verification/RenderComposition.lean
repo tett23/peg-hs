@@ -315,6 +315,36 @@ theorem config_items_valid (kept explicitTabstop positional debug : Bool) (item 
 
 #print axioms config_items_valid
 
+-- storeDecl (including positional accessors) and newStoreDecl are kept
+-- together. The initializer follows the store declarations in both modes.
+def storeItems (kept : Bool) (decls : List (List Symbol)) (env : CheckedEnvType)
+    (memoised : Nat) : List (List Symbol) :=
+  if kept then decls ++ [newStoreSignatureWord (env.map Subtype.val), match memoised with
+    | 0 => pureStoreBindingWord env.isSome
+    | n + 1 => memoStoreBindingWord env.isSome n]
+  else []
+
+theorem store_items_valid (kept : Bool) (decls : List (List Symbol)) (env : CheckedEnvType)
+    (memoised : Nat) (decls_ok : ∀ d ∈ decls, Derives productions [.nonterminal 78] d)
+    (item : List Symbol) (h : item ∈ storeItems kept decls env memoised) :
+    Derives productions [.nonterminal 78] item := by
+  cases kept with
+  | false => simp [storeItems] at h
+  | true =>
+    simp only [storeItems, ite_true, List.mem_append, List.mem_cons, List.mem_nil_iff,
+      or_false] at h
+    rcases h with hd | rfl | rfl
+    · exact decls_ok _ hd
+    · apply new_store_signature
+      cases env with
+      | none => simp
+      | some e => simpa using e.property
+    · cases memoised with
+      | zero => exact new_store_without_tables _
+      | succ n => exact new_store_with_tables _ n
+
+#print axioms store_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
@@ -327,7 +357,7 @@ theorem generated_module_with_rules
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
-    (dataDecls : List DataDeclaration) (explicitTabstop : Bool)
+    (dataDecls : List DataDeclaration) (explicitTabstop : Bool) (memoised : Nat)
     (other_ok : ∀ item ∈ syntaxDecls ++ storeDecls,
       Derives productions [.nonterminal 78] item)
     (initial : lex first = firstTokens)
@@ -341,7 +371,8 @@ theorem generated_module_with_rules
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
-        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++ storeDecls ++ ruleItems rules).foldl semiAppend [])) :
+        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
+        storeItems (keep "peg'newStore") storeDecls envType memoised ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -355,7 +386,8 @@ theorem generated_module_with_rules
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
-        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++ storeDecls ++ ruleItems rules) name_ok
+        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
+        storeItems (keep "peg'newStore") storeDecls envType memoised ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
@@ -368,7 +400,7 @@ theorem generated_module_with_rules
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
     · exact other_ok item (List.mem_append_left _ hsyntax)
     · exact config_items_valid _ _ _ _ item hconfig
-    · exact other_ok item (List.mem_append_right _ hstore)
+    · exact store_items_valid _ _ _ _ (fun d hd => other_ok d (List.mem_append_right _ hd)) item hstore
     · exact rule_items_valid rules item hr
   · exact initial
   · exact trace
