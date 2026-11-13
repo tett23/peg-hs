@@ -879,16 +879,19 @@ theorem tuple_key_argument (first second : List Symbol) (rest : List (List Symbo
 
 #print axioms tuple_key_argument
 
-def memoTableTypeWord (key : Option (List Symbol)) (result : List Symbol) : List Symbol :=
-  [.terminal 122, .terminal 117] ++
-    (match key with
-     | none => []
-     | some ty => [.terminal 107] ++ ty ++ [.terminal 108]) ++ result
+def memoKeyArgument : List (List Symbol) → List Symbol
+  | [] => []
+  | [ty] => groupedKeyParameter ty
+  | first :: second :: rest =>
+    [.terminal 107] ++ keyParameterTail first (second :: rest) ++ [.terminal 108]
 
-theorem memo_table_field_type (key : Option (List Symbol)) {result : List Symbol}
-    (validKey : ∀ ty ∈ key.toList, Derives productions [.nonterminal 162] ty)
+def memoTableTypeWord (params : List (List Symbol)) (result : List Symbol) : List Symbol :=
+  [.terminal 122, .terminal 117] ++ memoKeyArgument params ++ result
+
+theorem memo_table_field_type (params : List (List Symbol)) {result : List Symbol}
+    (validParams : ∀ ty ∈ params, Derives productions [.nonterminal 162] ty)
     (validResult : Derives productions [.nonterminal 172] result) :
-    Derives productions [.nonterminal 163] (memoTableTypeWord key result) := by
+    Derives productions [.nonterminal 163] (memoTableTypeWord params result) := by
   have appendArg {w a} (f : Derives productions [.nonterminal 169] w)
       (arg : Derives productions [.nonterminal 172] a) :=
     applyRule (id := 392) (by rfl) (beside f (oneRule (id := 394) (by rfl) arg))
@@ -896,12 +899,17 @@ theorem memo_table_field_type (key : Option (List Symbol)) {result : List Symbol
     oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
       (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) f)))
   have table := type_with_state_parameter qualifiedTypeAtom
-  cases key with
-  | none => exact liftApp (appendArg table validResult)
-  | some ty =>
-    have group := applyRule (id := 412) (by rfl)
-      (beside (.refl [.terminal 107]) (beside (validKey ty (by simp)) (.refl [.terminal 108])))
-    simpa [memoTableTypeWord, List.append_assoc] using liftApp (appendArg (appendArg table group) validResult)
+  cases params with
+  | nil => exact liftApp (appendArg table validResult)
+  | cons first rest =>
+    cases rest with
+    | nil =>
+      have grouped := applyRule (id := 412) (by rfl)
+        (beside (.refl [.terminal 107]) (beside (validParams first (by simp)) (.refl [.terminal 108])))
+      simpa [memoTableTypeWord, memoKeyArgument, groupedKeyParameter, List.append_assoc] using
+        liftApp (appendArg (appendArg table grouped) validResult)
+    | cons second rest =>
+      exact liftApp (appendArg (appendArg table (tuple_key_argument first second rest validParams)) validResult)
 
 #print axioms memo_table_field_type
 
