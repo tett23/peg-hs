@@ -24,6 +24,37 @@ theorem invariant1_translated_grammar {T G} (bytes : Nat) (start : StartResult T
   | fail => simp [entry, Except.bind]
   | throwLabel => simp [entry, Except.bind]
 
+theorem invariant1_translated_grammar_assembled {T M G} (bytes : Nat) (start : StartResult T)
+    (d : Failure → String) (errors : T → List String) (name : T → Option M)
+    (build : T → M → G) (missing : String) (sortErrors : List String → List String) (g : G) :
+    translatedGrammar bytes start d (fun t =>
+      translatedAssemble (errors t) (name t) (build t) missing sortErrors) = .ok g ↔
+      ∃ t m, start = .ok bytes t ∧ errors t = [] ∧ name t = some m ∧ build t m = g := by
+  rw [invariant1_translated_grammar]
+  constructor
+  · rintro ⟨t, hs, ha⟩
+    cases he : errors t with
+    | cons e es => simp [translatedAssemble, he] at ha
+    | nil =>
+      cases hn : name t with
+      | none => simp [translatedAssemble, he, hn] at ha
+      | some m => exact ⟨t, m, hs, he, hn, by simpa [translatedAssemble, he, hn] using ha⟩
+  · rintro ⟨t, m, hs, he, hn, rfl⟩
+    exact ⟨t, hs, by simp [translatedAssemble, he, hn]⟩
+
+theorem invariant2_assembly_diagnostics {T M G} (bytes : Nat) (tops : T) (d : Failure → String)
+    (errors : List String) (name : Option M) (build : M → G) (missing : String)
+    (sortErrors : List String → List String) (ds : List String) :
+    translatedGrammar bytes (.ok bytes tops) d (fun _ =>
+      translatedAssemble errors name build missing sortErrors) = .error ds ↔
+      (errors = [] ∧ name = none ∧ ds = [missing]) ∨
+      (errors ≠ [] ∧ ds = sortErrors errors) := by
+  cases errors <;> cases name <;>
+    simp [translatedGrammar, translatedRuntime, translatedPublic, translatedAssemble, Except.bind,
+      eq_comm]
+
+#print axioms invariant2_assembly_diagnostics
+#print axioms invariant1_translated_grammar_assembled
 #print axioms invariant1_translated_grammar
 #print axioms invariant1_translated_entry
 end PegHs.PublicParsing

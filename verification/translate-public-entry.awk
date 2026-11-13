@@ -31,6 +31,16 @@ wrapper == 1 && !done {
   reject()
 }
 /^  res <- case r of$/ { if (seen++) reject(); active = 1; next }
+/^assemble items =$/ { if (body++) reject(); assemblyStage = 1; next }
+assemblyStage == 1 { if ($0 != "  case errors of") reject(); assemblyStage++; next }
+assemblyStage == 2 { if ($0 != "    [] -> case moduleName of") reject(); assemblyStage++; next }
+assemblyStage == 3 { if ($0 != "      Just m ->") reject(); assemblyStage++; next }
+assemblyStage == 4 { if ($0 != "        Right") reject(); assemblyStage++; next }
+assemblyStage == 5 && /^      Nothing ->/ {
+  if ($0 != "      Nothing -> Left [Diagnostic (Loc 0 1 1) \"missing %module directive\"]") reject()
+  assemblyStage++; next
+}
+assemblyStage == 6 { if ($0 != "    es -> Left (sortOn diagLoc es)") reject(); assemblyStage++; next }
 !active { next }
 $0 == "  s <- readSTRef (ctxStats ctx)" {
   if (stage != 6) reject()
@@ -54,9 +64,16 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7) exit 1
   emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
   emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
   emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")
+  emit("def translatedAssemble {M G D} (errors : List D) (moduleName : Option M)")
+  emit("    (build : M → G) (missing : D) (sortErrors : List D → List D) : Except (List D) G :=")
+  emit("  match errors with")
+  emit("  | [] => match moduleName with")
+  emit("    | some m => .ok (build m)")
+  emit("    | none => .error [missing]")
+  emit("  | e :: es => .error (sortErrors (e :: es))")
   emit("end PegHs.PublicParsing")
 }
