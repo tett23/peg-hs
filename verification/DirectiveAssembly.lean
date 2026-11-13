@@ -15,6 +15,17 @@ theorem invariant2_definition_value_fields (loc : ι) (name : String) (params : 
       top = .definitionWithBindings name ((params.getD []).map paramName) (bindings alts) := by
   cases params <;> exact ⟨rfl, rfl⟩
 
+theorem invariant2_annotation_value_fields (loc : ι) (name : String)
+    (params : Option (List π)) (templates : Option (List τ)) (ty : υ)
+    (paramName : π → String) (templateName : τ → String) :
+    let top := translatedAnnotationValue
+      (fun _ n ps ts _ => Top.annotationWithParams n (ts.map templateName) (ps.map paramName))
+      loc name params templates ty
+    annotations [top] = [(name, (templates.getD []).map templateName)] ∧
+      top = .annotationWithParams name ((templates.getD []).map templateName)
+        ((params.getD []).map paramName) := ⟨rfl, rfl⟩
+
+#print axioms invariant2_annotation_value_fields
 #print axioms invariant2_definition_value_fields
 
 -- Both binders use remaining-input lengths, as in the generated Directive rule.

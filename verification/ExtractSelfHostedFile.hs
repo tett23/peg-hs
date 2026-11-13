@@ -1156,6 +1156,7 @@ main = do
   putStrLn "def translatedDirectiveValue (build : String → String → α) (argument : String → List Char → List Char) (name : String) (raw : List Char) : α := build name (String.ofList (argument name raw))"
   -- declarationRule checks the definition action, including the template
   -- parameter name projection and the unmodified list of alternatives.
+  putStrLn "def translatedAnnotationValue (build : ι → String → List π → List τ → υ → α) (loc : ι) (name : String) (params : Option (List π)) (templates : Option (List τ)) (ty : υ) : α := build loc name (params.getD []) (templates.getD []) ty"
   putStrLn "def translatedDefinitionValue (build : ι → String → List String → β → α) (paramName : τ → String) (loc : ι) (name : String) (params : Option (List τ)) (alts : β) : α := build loc name ((params.map (List.map paramName)).getD []) alts"
   putStrLn "def translatedFileReturn {α : Type} (items : List α) : List α := items"
   putStrLn ("def translatedStrictTable : Array EnvironmentEval.Body := #[" ++
