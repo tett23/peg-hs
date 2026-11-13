@@ -1301,6 +1301,38 @@ theorem kind_name_arm (numbered : Bool) :
       (applyRule (g := productions) (id := 560) (by rfl) (.refl [.terminal 131])))
     exact arm (application con num)
 
+def numberedKindArms : Nat → List Symbol
+  | 0 => kindNameArm true
+  | n + 1 => numberedKindArms n ++ [.terminal 113] ++ kindNameArm true
+
+def kindNameBody (extra : Nat) : List Symbol :=
+  [.terminal 121, .terminal 107, .terminal 4, .terminal 117, .terminal 21, .terminal 101] ++
+    numberedKindArms (extra + 1) ++ [.terminal 113] ++ kindNameArm false ++ [.terminal 102, .terminal 108]
+
+open RenderExpressionGHC in
+theorem kind_name_binding (extra : Nat) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord [[.terminal 117]] ++ [.terminal 77] ++ kindNameBody extra) := by
+  have extend {w} (h : Derives productions [.nonterminal 332] w) (numbered : Bool) :=
+    applyRule (id := 861) (by rfl) (beside h (beside (.refl [.terminal 113]) (kind_name_arm numbered)))
+  have numbers (n : Nat) : Derives productions [.nonterminal 332] (numberedKindArms n) := by
+    induction n with
+    | zero => exact oneRule (id := 863) (by rfl) (kind_name_arm true)
+    | succ n ih => simpa [numberedKindArms, List.append_assoc] using extend ih true
+  have alts := oneRule (id := 856) (by rfl) (extend (numbers (extra + 1)) false)
+  have block := applyRule (id := 848) (by rfl)
+    (beside (.refl [.terminal 101]) (beside alts (.refl [.terminal 102])))
+  have scrutinee := oneRule (id := 520) (by rfl) name_infixexp
+  have casesExpr := applyRule (id := 547) (by rfl)
+    (beside (.refl [.terminal 4]) (beside scrutinee (beside (.refl [.terminal 21]) block)))
+  have call := application qualified_function (parenthesized (aexp_to_texp casesExpr))
+  apply binding_named_arguments
+  · intro a h
+    exact List.mem_singleton.mp h ▸ varid_argument
+  · simpa [kindNameBody, List.append_assoc] using oneRule (id := 520) (by rfl)
+      (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) call))
+
+#print axioms kind_name_binding
 #print axioms kind_name_arm
 #print axioms syntax_cast_binding
 #print axioms syntax_query_signature
