@@ -1223,6 +1223,27 @@ private theorem qualified_type_arrow {tail : List Symbol}
   simpa [List.append_assoc] using oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
     (beside arg (beside (.refl [.terminal 83]) valid)))
 
+-- nameOfSyntaxKind and isTriviaSyntaxKind return qualified runtime or
+-- Prelude types. A typed node cast returns Maybe applied to a local type.
+def syntaxQuerySignatureWord (cast : Bool) : List Symbol :=
+  [.terminal 117, .terminal 76, .terminal 122, .terminal 83, .terminal 122] ++
+    (if cast then [.terminal 118] else [])
+
+theorem syntax_query_signature (cast : Bool) :
+    Derives productions [.nonterminal 78] (syntaxQuerySignatureWord cast) := by
+  have liftApp {w} (a : Derives productions [.nonterminal 169] w) :=
+    oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+      (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) a)))
+  have head := oneRule (id := 390) (by rfl) qualifiedTypeAtom
+  cases cast with
+  | false => exact signature_named_ctype (qualified_type_arrow (liftApp head))
+  | true =>
+    have app := applyRule (id := 392) (by rfl)
+      (beside head (oneRule (id := 394) (by rfl) unqualifiedTypeAtom))
+    exact signature_named_ctype (qualified_type_arrow (liftApp app))
+
+#print axioms syntax_query_signature
+
 theorem with_tabstop_signature :
     Derives productions [.nonterminal 78]
       [.terminal 117, .terminal 76, .terminal 122, .terminal 83,
