@@ -51,3 +51,9 @@ if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/Ch
   echo 'entry translation accepted selecting the start rule as the module' >&2
   exit 1
 fi
+
+sed 's/(l, "library", _) <- directives/(l, "module", _) <- directives/' "$assembly" > "$work/ChangedLibraryLookup.hs"
+if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/ChangedLibraryLookup.hs" > /dev/null; then
+  echo 'entry translation accepted a changed library directive lookup' >&2
+  exit 1
+fi

@@ -41,6 +41,22 @@ assemblyStage == 5 && /^      Nothing ->/ {
   assemblyStage++; next
 }
 assemblyStage == 6 { if ($0 != "    es -> Left (sortOn diagLoc es)") reject(); assemblyStage++; next }
+/^    libraryLoc =/ {
+  if (librarySeen++ || $0 != "    libraryLoc = case [l | (l, \"library\", _) <- directives] of") reject()
+  if (getline <= 0 || $0 != "      l : _ -> Just l") reject()
+  if (getline <= 0 || $0 != "      [] -> Nothing") reject()
+  emit("def translatedLibraryLoc {L} (ds : List (L × String × String)) : Option L :=")
+  emit("  (ds.filterMap fun (l, n, _) => if n == \"library\" then some l else none).head?")
+  next
+}
+/^    single n =/ {
+  if (singleSeen++ || $0 != "    single n = case [Located l a | (l, n', a) <- directives, n' == n] of") reject()
+  if (getline <= 0 || $0 != "      x : _ -> Just x") reject()
+  if (getline <= 0 || $0 != "      [] -> Nothing") reject()
+  emit("def translatedSingle {L} (ds : List (L × String × String)) (name : String) : Option (L × String) :=")
+  emit("  (ds.filterMap fun (l, n, a) => if n == name then some (l, a) else none).head?")
+  next
+}
 /^    moduleName = case libraryLoc of$/ {
   if (moduleBranch++) reject()
   emit("def translatedModuleName {L} (libraryLoc : Option L) (single : String → Option (L × String)) : Option (L × String) :=")
@@ -80,7 +96,7 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3 || librarySeen != 1 || singleSeen != 1) exit 1
   emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
   emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
   emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")

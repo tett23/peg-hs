@@ -77,6 +77,27 @@ theorem invariant1_translated_module_selection {T L G} (bytes : Nat) (start : St
     · obtain ⟨hl, m, hm, hg⟩ := mod
       exact ⟨t, m, hs, he, by simpa [translatedModuleName, hl] using hm, hg⟩
 
+theorem invariant2_missing_module_iff {L} (ds : List (L × String × String)) :
+    translatedModuleName (translatedLibraryLoc ds) (translatedSingle ds) = none ↔
+      ∀ d ∈ ds, d.2.1 ≠ "library" ∧ d.2.1 ≠ "module" := by
+  have absent (name : String) :
+      translatedSingle ds name = none ↔ ∀ d ∈ ds, d.2.1 ≠ name := by
+    simp [translatedSingle]
+  have libraryAbsent :
+      translatedLibraryLoc ds = none ↔ ∀ d ∈ ds, d.2.1 ≠ "library" := by
+    simp [translatedLibraryLoc]
+  cases h : translatedLibraryLoc ds with
+  | none =>
+    simp only [translatedModuleName, absent]
+    exact ⟨fun hm d hd => ⟨libraryAbsent.mp h d hd, hm d hd⟩,
+      fun both d hd => (both d hd).2⟩
+  | some loc =>
+    simp only [translatedModuleName, reduceCtorEq, false_iff]
+    intro both
+    have hn := libraryAbsent.mpr (fun d hd => (both d hd).1)
+    simp [h] at hn
+
+#print axioms invariant2_missing_module_iff
 #print axioms invariant1_translated_module_selection
 #print axioms invariant2_assembly_diagnostics
 #print axioms invariant1_translated_grammar_assembled
