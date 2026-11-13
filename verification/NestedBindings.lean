@@ -108,6 +108,29 @@ theorem invariant2_extension_last_setting (aliases options : List String) (initi
 example : extensionEnabled ["RecursiveDo", "DoRec"] ["DoRec", "NoRecursiveDo"] = false := rfl
 example : extensionEnabled ["RecursiveDo", "DoRec"] ["NoDoRec", "Arrows", "RecursiveDo"] = true := rfl
 
+def languageOptions (tops : List Top) : List String :=
+  (args (directives tops) "language").flatMap AssembleValidationHelpers.splitExports
+
+def binderKeyword (words options : List String) (name : String) : Bool :=
+  (name != "_" && words.contains name) ||
+    (extensionEnabled ["RecursiveDo", "DoRec"] options && ["mdo", "rec"].contains name) ||
+    (extensionEnabled ["Arrows"] options && ["proc", "rec"].contains name)
+
+theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule : String)
+    (templates words : List String) (tops : List Top) (p : Predicates)
+    (occurs : tree.Binds name) (definition : Top.definitionWithBindings rule templates tree.names ∈ tops)
+    (enabled : (name ∈ ["mdo", "rec"] ∧
+        (languageOptions tops).reverse.findSome? (extensionFlag ["RecursiveDo", "DoRec"]) = some true) ∨
+      (name ∈ ["proc", "rec"] ∧
+        (languageOptions tops).reverse.findSome? (extensionFlag ["Arrows"]) = some true)) :
+    ∃ ds, assemble tops {p with reservedBinder := binderKeyword words (languageOptions tops)} = .error ds ∧
+      diagnostic ⟨.reservedBinding, name⟩ ∈ ds := by
+  apply invariant2_nested_binder_reported tree name rule templates _ _ occurs tops definition
+  change binderKeyword words (languageOptions tops) name = true
+  rcases enabled with ⟨member, flag⟩ | ⟨member, flag⟩ <;>
+    simp [binderKeyword, invariant2_extension_last_setting, flag, member]
+
+#print axioms invariant2_extension_binder_diagnostic
 #print axioms invariant2_extension_last_setting
 #print axioms invariant2_nested_binder_reported
 end PegHs.AssembleValidation
