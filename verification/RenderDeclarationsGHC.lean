@@ -271,6 +271,29 @@ def RuleTokens.Valid (r : RuleTokens) : Prop :=
   (∀ a ∈ r.arguments, Derives productions [.nonterminal 218] a) ∧
   Derives productions [.nonterminal 211] r.body
 
+-- ruleDecl reads the type and binding name from the same parameter list.
+-- Each boolean records whether the accepted parameter name is a wildcard.
+def ruleFromParams (params : List (List Symbol × Bool)) (result body : List Symbol) : RuleTokens :=
+  { params := params.map Prod.fst, result := result, body := body
+    arguments := params.map fun p => [if p.2 then .terminal 2 else .terminal 117] }
+
+theorem rule_from_params_valid (params : List (List Symbol × Bool)) (result body : List Symbol)
+    (types : ∀ p ∈ params, Derives productions [.nonterminal 163] p.1)
+    (result_ok : Derives productions [.nonterminal 163] result)
+    (body_ok : Derives productions [.nonterminal 211] body) :
+    (ruleFromParams params result body).Valid := by
+  refine ⟨?_, result_ok, ?_, body_ok⟩
+  · intro ty member
+    obtain ⟨p, hp, rfl⟩ := List.mem_map.mp member
+    exact types p hp
+  · intro arg member
+    obtain ⟨p, _, rfl⟩ := List.mem_map.mp member
+    cases p.2
+    · exact varid_argument
+    · exact wildcard_argument
+
+#print axioms rule_from_params_valid
+
 theorem module_with_rules (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
     (exports imports beforeRules afterRules : List (List Symbol)) (rules : List RuleTokens)
     (name_ok : Derives productions [.nonterminal 321] name)
