@@ -501,6 +501,37 @@ theorem nullableDeclarationNames_iff (declarations : List (String × List (List 
     exact (nullableDeclarationNames_fixed declarations ⟨i, bound⟩).mpr
       ⟨declaration, member, named.trans eq.symm, valid⟩
 
+theorem namedDeclarationNullable_correct (declarations : List (String × List (List Expr))) (e : Expr) :
+    namedLanguageNullable (nullableDeclarationNames declarations) e =
+      directNullable (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+        (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations)
+          (declarationNames declarations).length) e := by
+  unfold nullableDeclarationNames
+  dsimp only
+  rw [namedLanguageNullable_correct _ (indexedDeclarationName_injective declarations),
+    nullableUntilStable_correct]
+
+theorem nullableDeclarationNames_named_fixed (declarations : List (String × List (List Expr))) (name : String) :
+    name ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = name ∧
+        namedLanguageNullable (nullableDeclarationNames declarations) (.group declaration.2) = true := by
+  simp only [namedDeclarationNullable_correct]
+  exact nullableDeclarationNames_iff declarations name
+
+theorem invariant2_declaration_repeat_candidates (declarations : List (String × List (List Expr)))
+    (location : Nat) (e : Expr) :
+    (location, true) ∈ RuleRejectionRepeat.repeatCandidates
+      (namedLanguageNullable (nullableDeclarationNames declarations)) location e ↔
+    RuleRejectionRepeat.HasNullableRepeat
+      (namedLanguageNullable (nullableDeclarationNames declarations)) e :=
+  ⟨RuleRejectionRepeat.invariant2_candidate_has_nullable_repeat _ _ e,
+    RuleRejectionRepeat.invariant2_nullableRepeat_candidate _ _ e⟩
+
+#print axioms namedDeclarationNullable_correct
+#print axioms nullableDeclarationNames_named_fixed
+#print axioms invariant2_declaration_repeat_candidates
+
 theorem nullableDeclarationNames_least (declarations : List (String × List (List Expr)))
     (candidate : Fin (declarationNames declarations).length → Bool)
     (closed : directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
