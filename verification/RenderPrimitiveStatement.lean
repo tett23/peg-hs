@@ -229,6 +229,33 @@ theorem syntax_item_pair_binding (discard : Bool) {body : List Symbol}
 
 #print axioms syntax_item_pair_binding
 
+theorem labeled_item_statements {body : List Symbol}
+    (body_ok : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 254]
+      ([.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
+        .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++
+        [.terminal 108, .terminal 113, .terminal 121, .terminal 117]) := by
+  have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
+    Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
+      (by decide) (.refl _)
+  have arg := one (id := 551) (lhs := 218) (by decide)
+    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
+  have expr {tokens : List Symbol} (f : Derives productions [.nonterminal 217] tokens) :
+      Derives productions [.nonterminal 211] tokens :=
+    one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
+      (one (id := 528) (lhs := 214) (by decide) f))
+  have label := RenderExpressionGHC.application_parenthesized
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function arg) body_ok
+  have bind := syntax_item_pair_binding false (expr label)
+  have touch := expr (RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+    RenderDeclarationsGHC.varid_argument)
+  have stmt := one (id := 658) (lhs := 257) (by decide)
+    (one (id := 661) (lhs := 258) (by decide) touch)
+  simpa [List.append_assoc] using
+    RenderExpressionGHC.statement_cons (RenderExpressionGHC.statement_one bind) stmt
+
+#print axioms labeled_item_statements
+
 theorem named_binding_statement {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 211] body) :
     Derives productions [.nonterminal 257]
