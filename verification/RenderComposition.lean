@@ -2,7 +2,7 @@ import RenderModuleGHC
 import RenderExpressionLexer
 import RenderModuleNames
 import TemplateSubstitution
-import RenderDeclarationsGHC
+import RenderRuleBodyGHC
 
 namespace PegHs.RenderComposition
 
@@ -325,18 +325,21 @@ structure MemoTable where
 
 structure RenderRule where
   params : List (List Symbol × Bool)
-  body : List Symbol
+  first : RenderPrimitiveChoice.Alternative
+  rest : List RenderPrimitiveChoice.Alternative
+  memo : RenderPrimitiveChoice.MemoCall
+  hasLabel : Bool
+  inlineRule : Bool
   types_ok : ∀ p ∈ params, Derives productions [.nonterminal 163] p.1
-  body_ok : Derives productions [.nonterminal 211] body
   name : String
   valueType : List Symbol
   value_ok : Derives productions [.nonterminal 163] valueType
 
 def RenderRule.fragment (syntaxMode : Bool) (r : RenderRule) : RuleFragment where
   params := r.params
-  body := r.body
+  body := _
   types_ok := r.types_ok
-  body_ok := r.body_ok
+  body_ok := RenderPrimitiveChoice.rule_body_valid r.first r.rest r.memo r.hasLabel syntaxMode r.inlineRule
   result := parserResultWord syntaxMode r.valueType
   result_ok := parser_result_type syntaxMode r.value_ok
 

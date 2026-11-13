@@ -5,6 +5,14 @@ scratch=${1:?pass the shared temporary verification directory}
 : "${LEAN_PATH:?set LEAN_PATH to the shared Lean object directory}"
 
 (cd verification && lean -DwarningAsError=true \
+  -o "$scratch/RenderRuleBodyGHC.olean" RenderRuleBodyGHC.lean) \
+  > "$scratch/RenderRuleBodyGHC.log"
+if grep -Fq 'sorryAx' "$scratch/RenderRuleBodyGHC.log"; then
+  cat "$scratch/RenderRuleBodyGHC.log" >&2
+  exit 1
+fi
+
+(cd verification && lean -DwarningAsError=true \
   -o "$scratch/RenderComposition.olean" RenderComposition.lean) \
   > "$scratch/RenderComposition.log"
 if grep -Fq 'sorryAx' "$scratch/RenderComposition.log"; then

@@ -19,7 +19,7 @@ sed -n '/^    , "  " <> memoCall /p' \
   packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderPrimitiveChoice.actual"
 diff -u "$scratch/RenderPrimitiveChoice.expected" "$scratch/RenderPrimitiveChoice.actual"
 
-sed 's/rest.map Alternative.tokens).foldl RenderExpressionGHC.commaAppend/rest.map Alternative.tokens).foldl RenderExpressionGHC.semicolonAppend/' \
+sed 's/= openTokens ++ \[.terminal 106\]/= openTokens ++ [.terminal 105]/' \
   verification/RenderPrimitiveChoice.lean > "$scratch/RenderPrimitiveChoiceInvalid.lean"
 if cmp -s verification/RenderPrimitiveChoice.lean "$scratch/RenderPrimitiveChoiceInvalid.lean"; then
   echo 'choice token mutation did not change the source' >&2
