@@ -278,9 +278,9 @@ theorem invariant2_parameter_chunks_throw (input : List Char) (n pos : Nat) (env
   exact .altLeft (.seqCarryThrow (Derives.bind call)) (by simp)
 
 set_option maxRecDepth 8192 in
-theorem invariant2_parameter_list_first_throw (before xs : List Char) (initial : Env)
+theorem invariant2_parameter_list_throw (before xs : List Char) (initial : Env)
     (pos : Nat) (label : String) (msg : Option String)
-    (chunk : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunk xs.length
+    (chunks : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunks xs.length
       {initial with resultDepth := 0} (.throwLabel pos label msg)) :
     Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
       (.throwLabel pos label msg) := by
@@ -294,9 +294,17 @@ theorem invariant2_parameter_list_first_throw (before xs : List Char) (initial :
   have openStep : runFuel ctx 1 (.terminal 26) ('(' :: xs).length initial = some (.ok xs.length next) := by
     simp only [runFuel, openTerm, hit]
     simp [next]
-  have chunks := invariant2_parameter_chunks_throw _ _ _ _ _ _ chunk
   apply Derives.seqOk (invariant1_runFuel_sound openStep)
   exact Derives.call (ctx := ctx) (site := 43) (rule := 18) (env := next) (callee := next) (by rfl) chunks
+
+theorem invariant2_parameter_list_first_throw (before xs : List Char) (initial : Env)
+    (pos : Nat) (label : String) (msg : Option String)
+    (chunk : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunk xs.length
+      {initial with resultDepth := 0} (.throwLabel pos label msg)) :
+    Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
+      (.throwLabel pos label msg) := by
+  exact invariant2_parameter_list_throw before xs initial pos label msg
+    (invariant2_parameter_chunks_throw _ _ _ _ _ _ chunk)
 
 theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (initial : Env)
     (sameInput : (before ++ ['(']) ++ xs = pre ++ ',' :: tail)
