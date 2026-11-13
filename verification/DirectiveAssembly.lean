@@ -5,11 +5,34 @@ import AssembleValidation
 namespace PegHs.MetaExecution
 open EnvironmentEval ConcreteTerminal AssembleValidation
 
+-- Projection of the generated TDef action onto the definition fields used
+-- by assembly. Binding extraction still depends on the alternatives.
+theorem invariant2_definition_value_fields (loc : ι) (name : String) (params : Option (List τ))
+    (paramName : τ → String) (alts : β) (bindings : β → List String) :
+    let top := translatedDefinitionValue
+      (fun _ n ts as => Top.definitionWithBindings n ts (bindings as)) paramName loc name params alts
+    definitions [top] = [(name, (params.getD []).map paramName)] ∧
+      top = .definitionWithBindings name ((params.getD []).map paramName) (bindings alts) := by
+  cases params <;> exact ⟨rfl, rfl⟩
+
+theorem invariant2_annotation_value_fields (loc : ι) (name : String)
+    (params : Option (List π)) (templates : Option (List τ)) (ty : υ)
+    (paramName : π → String) (templateName : τ → String) :
+    let top := translatedAnnotationValue
+      (fun _ n ps ts _ => Top.annotationWithParams n (ts.map templateName) (ps.map paramName))
+      loc name params templates ty
+    annotations [top] = [(name, (templates.getD []).map templateName)] ∧
+      top = .annotationWithParams name ((templates.getD []).map templateName)
+        ((params.getD []).map paramName) := ⟨rfl, rfl⟩
+
+#print axioms invariant2_annotation_value_fields
+#print axioms invariant2_definition_value_fields
+
 -- Both binders use remaining-input lengths, as in the generated Directive rule.
 def capturedDirective (input : List Char) (nameStart nameEnd rawStart rawEnd : Nat) : Top :=
   let name := String.ofList (matchedText input nameStart nameEnd)
   let raw := matchedText input rawStart rawEnd
-  .directive name (String.ofList (DirectiveArgument.argument name raw))
+  translatedDirectiveValue Top.directive DirectiveArgument.argument name raw
 
 theorem directiveRawCapture (pre arg : List Char) :
     matchedText (pre ++ arg) arg.length (arg.dropWhile (· != '\n')).length =
@@ -27,24 +50,33 @@ theorem directiveRawCapture (pre arg : List Char) :
   conv => lhs; rw [← parts]
   simp
 
+theorem invariant2_directive_captures_at (before : List Char) (c : Char) (cs : List Char) :
+    let tail := cs.dropWhile CharRule.identChar.accepts
+    let raw := tail.dropWhile PegVerification.isInlineSpace
+    let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
+    capturedDirective (before ++ '%' :: c :: cs) (c :: cs).length tail.length raw.length
+      (raw.dropWhile (· != '\n')).length =
+      .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
+  dsimp only
+  unfold capturedDirective translatedDirectiveValue
+  have name := invariant1_identifier_capture (before ++ ['%']) c cs
+  simp only [List.append_assoc, List.cons_append, List.nil_append] at name
+  dsimp only
+  rw [name]
+  let pre := before ++ ['%', c] ++ cs.takeWhile CharRule.identChar.accepts ++
+    (cs.dropWhile CharRule.identChar.accepts).takeWhile PegVerification.isInlineSpace
+  have split : pre ++ ((cs.dropWhile CharRule.identChar.accepts).dropWhile
+      PegVerification.isInlineSpace) = before ++ '%' :: c :: cs := by simp [pre, List.append_assoc]
+  rw [← split, directiveRawCapture]
+
 theorem invariant2_directive_captures (c : Char) (cs : List Char) :
     let tail := cs.dropWhile CharRule.identChar.accepts
     let raw := tail.dropWhile PegVerification.isInlineSpace
     let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
     capturedDirective ('%' :: c :: cs) (c :: cs).length tail.length raw.length
       (raw.dropWhile (· != '\n')).length =
-      .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
-  dsimp only
-  unfold capturedDirective
-  have name := invariant1_identifier_capture ['%'] c cs
-  simp only [List.cons_append, List.nil_append] at name
-  dsimp only
-  rw [name]
-  let pre := ['%', c] ++ cs.takeWhile CharRule.identChar.accepts ++
-    (cs.dropWhile CharRule.identChar.accepts).takeWhile PegVerification.isInlineSpace
-  have split : pre ++ ((cs.dropWhile CharRule.identChar.accepts).dropWhile
-      PegVerification.isInlineSpace) = '%' :: c :: cs := by simp [pre, List.append_assoc]
-  rw [← split, directiveRawCapture]
+      .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) :=
+  invariant2_directive_captures_at [] c cs
 
 private theorem filteredDirectiveDiagnostic (tops : List Top) (name arg : String)
     (kind : Kind) (test : String × String → Bool)

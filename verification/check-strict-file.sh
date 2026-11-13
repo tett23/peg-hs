@@ -2,6 +2,11 @@
 set -eu
 cd "$(dirname "$0")"
 work=${1:?pass the Lean object directory}
+runghc-9.10.3 -Werror ExtractVerbatimBody.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs \
+  ../packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs \
+  ../packages/peg-grammar/src/Peg/Grammar/SelfHostedSyntax.hs > "$work/TranslatedVerbatimBody.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedVerbatimBody.olean" "$work/TranslatedVerbatimBody.lean"
+lean -DwarningAsError=true VerbatimValue.lean
 runtime=../packages/peg-runtime/src/Peg/Runtime/Internal.hs
 runghc-9.10.3 -Werror ExtractRuntimeChoice.hs "$runtime" > "$work/TranslatedRuntimeChoice.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedRuntimeChoice.olean" "$work/TranslatedRuntimeChoice.lean"
@@ -10,6 +15,7 @@ source=../packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs
 runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$source" > "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedStrictFile.olean" "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -o "$work/SelfHostedFileProof.olean" SelfHostedFileProof.lean
+lean -DwarningAsError=true StrictParameterGuards.lean
 lean -DwarningAsError=true -o "$work/StrictSpaceChar.olean" StrictSpaceChar.lean
 lean -DwarningAsError=true -o "$work/StrictInlineSpace.olean" StrictInlineSpace.lean
 lean -DwarningAsError=true -o "$work/StrictIdentifier.olean" StrictIdentifier.lean
@@ -17,14 +23,24 @@ lean -DwarningAsError=true -o "$work/StrictDirective.olean" StrictDirective.lean
 lean -DwarningAsError=true -o "$work/StrictComment.olean" StrictComment.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
+lean -DwarningAsError=true -o "$work/StrictWhitespaceLexical.olean" StrictWhitespaceLexical.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceMemo.olean" StrictWhitespaceMemo.lean
 lean -DwarningAsError=true StrictIdentifierMemo.lean
 lean -DwarningAsError=true StrictCharMemo.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
+lean -DwarningAsError=true DirectiveSequence.lean
 lean -DwarningAsError=true -o "$work/DirectiveSourceDiagnostic.olean" DirectiveSourceDiagnostic.lean
 sh check-directive-arity.sh "$work"
+
+# Recognition is unchanged if File discards the collected values.
+sed "/^peg'rule'File =$/,/^$/s/PegPrelude.pure peg'v0/PegPrelude.pure []/" "$source" > "$work/DroppedFileItems.hs"
+if runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$work/DroppedFileItems.hs" > /dev/null 2>"$work/dropped-file-items.log"; then
+  echo 'accepted a File action discarding its items' >&2
+  exit 1
+fi
+grep -Fq 'unsupported or missing generated rule File' "$work/dropped-file-items.log"
 
 # A different but supported call still translates; it must lose the File derivation.
 sed "/^peg'rule'File =$/,/^$/s/PegRt.many (peg'rule'TopItem)/PegRt.many (peg'rule'Ws)/" \

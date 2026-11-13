@@ -84,6 +84,16 @@ main = do
       TDef l "P" [] [Alt l [] Nothing Nothing]])
   assertFailure "invariant2_reserved_binding" "binding name case is a Haskell reserved word"
     (assemble [modM, TDef l "S" [] [Alt l [Item l (Just "case") (ELit "a" "'a'")] Nothing Nothing]])
+  let bindingLoc = Loc 0 3 9
+      nested = Item bindingLoc (Just "case") (ELit "a" "'a'")
+      grouped = Item l Nothing (EStar (EGroup [[], [nested]]))
+      nestedDefinition = TDef l "S" [] [Alt l [grouped] Nothing Nothing]
+  case assemble [modM, nestedDefinition] of
+    Left [Diagnostic actualLoc message]
+      | actualLoc == bindingLoc && message == "binding name case is a Haskell reserved word" ->
+          putStrLn "invariant2_nested_binding_location 1"
+    Left ds -> die ("invariant2_nested_binding_location: unexpected diagnostics " ++ show ds)
+    Right _ -> die "invariant2_nested_binding_location: unexpectedly accepted"
   assertFailure "invariant2_public_missing_module" "missing %module"
     (generateWithWarnings defaultOptions Nothing [] "S <- 'a'\n")
   assertFailure "invariant2_public_duplicate_definition" "duplicate definition of S"

@@ -61,7 +61,7 @@ theorem invariant2_unterminated_verbatim (mode : Bool) (pre xs : List Char) (env
   right
   exact ⟨.lit ['}', '%'], by cases mode <;> rfl, by simp⟩
 
-private theorem rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ verbatimRest xs := by
+theorem verbatim_rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ verbatimRest xs := by
   induction xs with
   | nil => exact ⟨[], rfl⟩
   | cons c cs ih =>
@@ -70,6 +70,27 @@ private theorem rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ ve
     | false =>
       obtain ⟨consumed, eq⟩ := ih
       exact ⟨c :: consumed, by simpa [verbatimRest, h] using congrArg (List.cons c) eq⟩
+
+-- The generated action reads b from the capture environment. Recover the
+-- original source as that exact capture followed by the unconsumed suffix.
+theorem invariant1_verbatim_capture_split (pre xs : List Char) (env : Env) :
+    let captured := (afterCapture (pre ++ '%' :: '{' :: xs) xs env).lookup "b"
+    xs = captured ++ verbatimRest xs := by
+  obtain ⟨body, split⟩ := verbatim_rest_suffix xs
+  have lengths := congrArg List.length split
+  simp only [List.length_append] at lengths
+  have width : xs.length - (verbatimRest xs).length = body.length := by omega
+  have capture : matchedText (pre ++ '%' :: '{' :: xs) xs.length (verbatimRest xs).length = body := by
+    unfold matchedText
+    simp only [List.length_append, List.length_cons, width]
+    rw [show pre.length + (xs.length + 1 + 1) - xs.length = pre.length + 2 by omega]
+    rw [List.drop_append]
+    simp only [List.drop_of_length_le (show pre.length ≤ pre.length + 2 by omega), List.nil_append,
+      Nat.add_sub_cancel_left]
+    change xs.take body.length = body
+    conv => lhs; rw [split]
+    simp
+  simpa [afterCapture, Env.lookup, Env.putDepth, Env.put, capture] using split
 
 -- A certificate may check an isolated block ending in }% once and replay it
 -- with any following grammar text without traversing the following input.
@@ -111,7 +132,7 @@ theorem invariant1_closed_verbatim_call (mode : Bool) (pre xs tail : List Char) 
   let ctx := context mode input
   let captured := afterCapture input xs env
   have found : ctx.terms (if mode then 12 else 11) = some (.lit ['}', '%']) := by cases mode <;> rfl
-  obtain ⟨consumed, eq⟩ := rest_suffix xs
+  obtain ⟨consumed, eq⟩ := verbatim_rest_suffix xs
   rw [closed] at eq
   have src : ctx.input = ((pre ++ ['%', '{']) ++ consumed) ++ ('}' :: '%' :: tail) := by
     have source : ctx.input = input := by cases mode <;> rfl
@@ -156,6 +177,22 @@ theorem invariant1_verbatim_top_item (mode : Bool) (pre xs tail : List Char) (re
   have h := Derives.call entered item
   cases mode <;> exact h
 
+theorem invariant2_unterminated_verbatim_item (pre xs : List Char) (env : Env)
+    (missing : verbatimRest xs = []) :
+    Derives (context false (pre ++ '%' :: '{' :: xs)) (.call 1 1) (xs.length + 2) env
+      (.throwLabel 0 "verbatim" (some "unterminated %{ block")) := by
+  let ctx := context false (pre ++ '%' :: '{' :: xs)
+  let failed := Reply.throwLabel 0 "verbatim" (some "unterminated %{ block")
+  have verb : Derives ctx (.call 4 11) (xs.length + 2) env failed :=
+    Derives.call (callee := env) (by rfl) (invariant2_unterminated_verbatim false pre xs env missing)
+  have choice : Derives ctx (ctx.rules 2) (xs.length + 2) env failed :=
+    .altLeft verb (by simp [failed])
+  have top : Derives ctx (.call 2 2) (xs.length + 2) env failed :=
+    Derives.call (callee := env) (by rfl) choice
+  have item : Derives ctx (ctx.rules 1) (xs.length + 2) env failed := .seqCarryThrow top
+  exact Derives.call (callee := env) (by rfl) item
+
+#print axioms invariant2_unterminated_verbatim_item
 #print axioms invariant1_verbatim_top_item
 #print axioms invariant1_closed_verbatim_call
 #print axioms invariant2_unterminated_verbatim

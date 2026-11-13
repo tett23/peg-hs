@@ -156,4 +156,29 @@ theorem invariant1_parameter_form_error {space alpha alnum src} :
         | true => exact False.elim (missing ⟨_, _, split_sound hs, test⟩)
       simp [classify, hs, hi]
 
+private theorem FirstSeparator.reconstruct {src a b : List Char} (found : FirstSeparator src a b) :
+    src = a ++ [':', ':'] ++ b := by
+  induction found with
+  | here => rfl
+  | later _ _ ih => exact congrArg (List.cons _) ih
+
+theorem invariant1_parameter_type_start {space alpha alnum src name ty}
+    (accepted : classify space alpha alnum src = .ok name ty) :
+    ∃ rawName rawType, FirstSeparator src rawName rawType ∧
+      src = (rawName ++ [':', ':'] ++ rawType.takeWhile space) ++ rawType.dropWhile space ∧
+      (rawType.dropWhile space).head?.any (fun c => !space c) = true ∧
+      stripEnd space (rawType.dropWhile space) = ty := by
+  obtain ⟨a, b, found, _, rfl, _, nonempty⟩ := invariant1_parameter_accepts.mp accepted
+  have parts := found.reconstruct
+  refine ⟨a, b, found, ?_, ?_, rfl⟩
+  · simpa [List.append_assoc] using parts
+  · have existsChar := (invariant1_argumentChunk space b).1 nonempty
+    have remaining := (nonspace_iff_drop_nonempty b).2 existsChar
+    cases h : b.dropWhile space with
+    | nil => contradiction
+    | cons c cs =>
+      have first := List.head?_dropWhile_not (p := space) (l := b)
+      simp [h] at first
+      simpa using first
+
 end PegHs.ParameterPredicates

@@ -4,6 +4,24 @@ import MetaExecution
 
 namespace PegHs.EnvironmentEval
 
+-- Each advancing success updates the accumulator once. Finishing after any
+-- finite sequence restores source order, including repeated identical values.
+theorem invariant1_runtime_many_accumulator (values acc : List α) :
+    translatedManyStop (values.foldl translatedManyPush acc) =
+      translatedManyStop acc ++ values := by
+  induction values generalizing acc with
+  | nil => simp
+  | cons value tail ih =>
+    rw [List.foldl_cons, ih]
+    simp [translatedManyStop, translatedManyPush]
+
+theorem invariant1_runtime_many_values (values : List α) :
+    translatedManyStop (values.foldl translatedManyPush translatedManyInitial) = values := by
+  simpa [translatedManyStop, translatedManyInitial] using
+    invariant1_runtime_many_accumulator values ([] : List α)
+
+#print axioms invariant1_runtime_many_values
+
 theorem invariant1_runtime_choice_two (ctx : Inputs) (fuel n : Nat) (env : Env) (a b : Body) :
     translatedChoice [runFuel ctx fuel a n env, runFuel ctx fuel b n env] =
       runFuel ctx (fuel + 1) (.alt a b) n env := by

@@ -45,6 +45,69 @@ private theorem bad_item (xs : List Char)
   have item : Derives ctx (ctx.rules 1) n {} err := .seqCarryThrow oneCall
   exact Derives.call (callee := {}) (by rfl) item
 
+private theorem file_item_throw (input : List Char) (stopPos : Nat) (ends : List Nat)
+    (items : ItemStepsTo (context false input) stopPos (afterWhitespace input).length ends)
+    (failed : Derives (context false input) (.call 1 1) stopPos {} (.throwLabel pos name msg)) :
+    FileResult false input (.throwLabel pos name msg) := by
+  let ctx := context false input
+  have scan : Derives ctx (ctx.rules 4) input.length {} (.ok (afterWhitespace input).length {}) :=
+    invariant1_strict_whitespace_scan [] input {}
+  have leading : Derives ctx (.call 0 4) input.length {} (.ok (afterWhitespace input).length {}) :=
+    Derives.call (callee := {}) (by rfl) scan
+  exact Derives.seqOk leading (.seqCarryThrow (.star (invariant2_steps_to_throw _ _ _ ends items failed)))
+
+theorem invariant2_unterminated_block_file (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends) :
+    FileResult false (pre ++ '%' :: '{' :: xs) (.throwLabel 0 "verbatim" (some "unterminated %{ block")) :=
+  file_item_throw _ _ ends items (invariant2_unterminated_verbatim_item pre xs {} missing)
+
+theorem invariant2_unterminated_block_public (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends)
+    (reply : Reply) (parsed : FileResult false (pre ++ '%' :: '{' :: xs) reply)
+    (format : PublicParsing.Failure → String) :
+    let input := pre ++ '%' :: '{' :: xs
+    PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input reply)) = .error [format (.labelled "verbatim" (some "unterminated %{ block"))] := by
+  obtain ⟨_, _, unique⟩ := invariant1_file_result false _
+  have eq := (unique _ parsed).trans (unique _ (invariant2_unterminated_block_file pre xs ends missing items)).symm
+  subst reply
+  rfl
+
+theorem invariant2_unterminated_block_no_module (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends)
+    (reply : Reply) (parsed : FileResult false (pre ++ '%' :: '{' :: xs) reply)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let input := pre ++ '%' :: '{' :: xs
+    let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input reply))
+    Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+      .error [format (.labelled "verbatim" (some "unterminated %{ block"))] := by
+  dsimp only
+  rw [invariant2_unterminated_block_public pre xs ends missing items reply parsed format]
+  rfl
+
+-- A preceding rule consumes its trailing newline before reaching the block.
+set_option maxRecDepth 20000 in
+example : FileResult false "S <- .\n%{body".toList
+    (.throwLabel 0 "verbatim" (some "unterminated %{ block")) := by
+  apply invariant2_unterminated_block_file "S <- .\n".toList "body".toList [6] (by decide)
+  refine ⟨?_, by decide +kernel, rfl⟩
+  apply invariant1_runFuel_sound (fuel := 256)
+  decide +kernel
+
+#print axioms invariant2_unterminated_block_no_module
+#print axioms invariant2_unterminated_block_public
+
 theorem invariant2_missing_directive_after_items (pre xs : List Char) (ends : List Nat)
     (notBlock : xs.head? ≠ some '{')
     (bad : xs.head?.all (fun c => !(CharRule.identStart.accepts c)) = true)
@@ -58,11 +121,7 @@ theorem invariant2_missing_directive_after_items (pre xs : List Char) (ends : Li
   have full := invariant1_prepend_derivation pre failure (by rw [src]; exact Nat.le_refl _)
   have same : {context false ('%' :: xs) with input := pre ++ (context false ('%' :: xs)).input} = ctx := rfl
   rw [same] at full
-  have scan : Derives ctx (ctx.rules 4) input.length {} (.ok (afterWhitespace input).length {}) :=
-    invariant1_strict_whitespace_scan [] input {}
-  have leading : Derives ctx (.call 0 4) input.length {} (.ok (afterWhitespace input).length {}) :=
-    Derives.call (callee := {}) (by rfl) scan
-  exact Derives.seqOk leading (.seqCarryThrow (.star (invariant2_steps_to_throw _ _ _ ends items full)))
+  exact file_item_throw input _ ends items full
 
 theorem invariant2_missing_directive_file (xs : List Char)
     (notBlock : xs.head? ≠ some '{')
