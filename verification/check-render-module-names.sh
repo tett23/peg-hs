@@ -113,4 +113,4 @@ for name in QualifiedMdo UnicodeNames UnicodeModule; do
     "$scratch/$name.hs" > "$scratch/$name.ghc.log" 2>&1
 done
 
-printf 'Module names and exports: 8 Lean declarations, 1114112 character classifications, 28 GHC identifier scans, 2 invalid inputs rejected, 3 generated modules compiled.\n'
+printf 'Module names and exports: 9 Lean declarations, 1114112 character classifications, 28 GHC identifier scans, 2 invalid inputs rejected, 3 generated modules compiled.\n'

@@ -71,6 +71,23 @@ theorem scan_conid_boundary (large tail : Char → Bool) (name : String)
     obtain ⟨take, drop⟩ := span cs allTail
     simp [scanConId, first, take, drop]
 
+-- A qualified identifier must contain a conid immediately followed by a
+-- dot; the MagicHash extension similarly requires a hash after the conid.
+-- Even choosing a shorter conid prefix cannot create either match.
+theorem no_extended_conid_prefix (large tail : Char → Bool)
+    (name candidate : String) (name_ok : ghcConId large tail name = true)
+    (candidate_ok : ghcConId large tail candidate = true)
+    (sep marker : Char) (rest suffix : List Char)
+    (boundary : tail sep = false) (marker_boundary : tail marker = false)
+    (different : sep ≠ marker) :
+    name.toList ++ sep :: rest ≠ candidate.toList ++ marker :: suffix := by
+  intro same
+  have scan := scan_conid_boundary large tail name name_ok sep rest boundary
+  rw [same, scan_conid_boundary large tail candidate candidate_ok marker suffix marker_boundary] at scan
+  exact different (by simpa using (congrArg (fun r : Option (List Char × List Char) =>
+    r.map (fun p => p.2.head?)) scan).symm)
+
+#print axioms no_extended_conid_prefix
 #print axioms scan_conid_boundary
 #print axioms generated_type_name_conid
 

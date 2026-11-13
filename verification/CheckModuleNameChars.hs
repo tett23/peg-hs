@@ -14,7 +14,7 @@ main = forM_ [minBound .. maxBound] $ \c -> do
       digit = byte == 3 || (48 <= byte && byte <= 57)
       idchar = large || small || digit || byte == 7 || byte == 39
       exportStart = (isAlpha c || c == '_') && generalCategory c /= ModifierLetter
-  unless (c `notElem` " )]\n" || not idchar) $
+  unless (c `notElem` ".# )]\n" || not idchar) $
     die ("generated type delimiter is an identifier character: " ++ show (ord c))
   unless (exportStart == (large || small)) $
     die ("export initial character disagrees with GHC: " ++ show (ord c))
