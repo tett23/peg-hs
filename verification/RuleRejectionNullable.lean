@@ -451,6 +451,30 @@ theorem nullableDeclarationNames_iff (declarations : List (String × List (List 
     exact (nullableDeclarationNames_fixed declarations ⟨i, bound⟩).mpr
       ⟨declaration, member, named.trans eq.symm, valid⟩
 
+theorem nullableDeclarationNames_least (declarations : List (String × List (List Expr)))
+    (candidate : Fin (declarationNames declarations).length → Bool)
+    (closed : directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+      (mergedNamedRules (indexedDeclarationName declarations) declarations) candidate = candidate) :
+    ∀ name ∈ nullableDeclarationNames declarations,
+      name ∈ knownRuleNames (indexedDeclarationName declarations) candidate := by
+  let lookup := lookupRuleNames (indexedDeclarationName declarations)
+  let rules := mergedNamedRules (indexedDeclarationName declarations) declarations
+  have positiveFixed : Peg.Verification.next (positiveRules lookup (fun _ => none) rules) candidate = candidate := by
+    rw [directNext_correct]
+    exact closed
+  have below := Peg.Verification.rounds_below_fixed
+    (positiveRules lookup (fun _ => none) rules) candidate positiveFixed (declarationNames declarations).length
+  intro name member
+  unfold nullableDeclarationNames at member
+  dsimp only at member
+  rw [nullableUntilStable_correct, knownRuleNames_member] at member
+  obtain ⟨i, named, nullable⟩ := member
+  apply (knownRuleNames_member _ _ _).mpr
+  refine ⟨i, named, ?_⟩
+  exact below i (by simpa [directRounds_correct] using nullable)
+
+#print axioms nullableDeclarationNames_least
+
 #print axioms nullableDeclarationNames_iff
 
 #print axioms nullableDeclarationNames_fixed
