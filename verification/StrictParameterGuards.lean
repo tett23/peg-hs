@@ -227,6 +227,21 @@ theorem invariant2_argcode_ne_fail (input : List Char) (n : Nat) (env : Env) :
     cases body with
     | star loop => exact loop_ne_fail _ _ _ _ loop
 
+set_option maxRecDepth 8192 in
+theorem invariant2_argcode_outcomes (input : List Char) (n : Nat) (env : Env) :
+    (∃ rest next, rest ≤ n ∧ Derives (context false input) (.call 49 51) n env (.ok rest next)) ∨
+    (∃ pos name msg, Derives (context false input) (.call 49 51) n env (.throwLabel pos name msg)) := by
+  let ctx := context false input
+  obtain ⟨fuel, reply, observed⟩ := invariant1_actual_environment_total false ctx rfl (n, 51) env
+  have call := Derives.call (ctx := ctx) (site := 49) (rule := 51) (env := env) (callee := env)
+    (by rfl) (invariant1_runFuel_sound observed)
+  cases reply with
+  | fail => exact False.elim (invariant2_argcode_ne_fail input n env call)
+  | ok rest inner =>
+    exact .inl ⟨rest, _, invariant1_success_remaining_le call rest _ rfl, call⟩
+  | throwLabel pos name msg => exact .inr ⟨pos, name, msg, call⟩
+
+#print axioms invariant2_argcode_outcomes
 #print axioms invariant2_argcode_ne_fail
 #print axioms invariant2_empty_parameter_before_comma
 #print axioms invariant2_argcode_at_comma
