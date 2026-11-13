@@ -2,6 +2,8 @@ import StrictWhitespaceScan
 import Whitespace
 import FileEnd
 import FileEntry
+import TranslatedRuntimeChoice
+import AssembleValidation
 
 namespace PegHs.MetaExecution
 
@@ -75,6 +77,17 @@ theorem invariant1_whitespace_only_public (input : List Char)
   have parsed := invariant1_whitespace_only_file input consumed
   exact (FileEntry.invariant1_translated_public_entry parsed diagnostic).2 ⟨{}, parsed⟩
 
+theorem invariant2_whitespace_only_assembly (input : List Char)
+    (consumed : PegVerification.run PegVerification.whitespaceExpr input = .ok [])
+    (p : AssembleValidation.Predicates) :
+    FileResult false input (.ok 0 {}) ∧
+    EnvironmentEval.Derives (context false input) (.call 1 1) 0 {} .fail ∧
+    AssembleValidation.parseGrammar (.ok (EnvironmentEval.translatedManyStop
+      EnvironmentEval.translatedManyInitial)) p = .error ["missing %module directive"] := by
+  exact ⟨invariant1_whitespace_only_file input consumed,
+    invariant1_top_item_at_end false input {}, rfl⟩
+
+#print axioms invariant2_whitespace_only_assembly
 #print axioms invariant1_whitespace_only_public
 #print axioms invariant1_file_initial_ws_lexical
 #print axioms invariant1_strict_ws_lexical_reply

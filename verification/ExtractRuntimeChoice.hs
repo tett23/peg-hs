@@ -93,6 +93,10 @@ main = do
         _ -> die ("unsupported repetition body: " ++ name)
   repeatBody "many" "  let go j acc = do" "   in go i []" "translatedManyProgress"
     "          Ok k x | " " -> go k (x : acc)" "(reverse acc)"
+  -- repeatBody checked both the initial accumulator and the stopping
+  -- branch of many above, including the order in which it returns values.
+  putStrLn "def translatedManyInitial {α : Type} : List α := []"
+  putStrLn "def translatedManyStop {α : Type} (acc : List α) : List α := acc.reverse"
   repeatBody "skipMany" "  let go j = do" "   in go i" "translatedSkipManyProgress"
     "          Ok k _ | " " -> go k" "()"
   case (body "labeled rawLabel =", body "labeledMessage rawLabel msg =") of
