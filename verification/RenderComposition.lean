@@ -299,14 +299,14 @@ theorem generated_module_with_rules
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
-    (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
+    (userExports verbatimImports otherDecls : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
-    (data_ok : ∀ item ∈ dataDecls, Derives productions [.nonterminal 78] item)
+    (dataDecls : List DataDeclaration)
     (other_ok : ∀ item ∈ otherDecls,
       Derives productions [.nonterminal 78] item)
     (initial : lex first = firstTokens)
@@ -316,7 +316,7 @@ theorem generated_module_with_rules
         (RenderModuleGHC.moduleExports selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
-          semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
+          semiAppend [] ++ (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
@@ -329,7 +329,7 @@ theorem generated_module_with_rules
     · exact module_name_qualified
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length) verbatimImports
-    (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
+    (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules) name_ok
@@ -337,7 +337,8 @@ theorem generated_module_with_rules
   · intro item member
     simp only [List.mem_append] at member
     rcases member with (((((hd | he) | hs) | hc) | hdebug) | ho) | hr
-    · exact data_ok item hd
+    · obtain ⟨d, _, rfl⟩ := List.mem_map.mp hd
+      exact data_declaration_valid d
     · exact entry_items_valid syntaxMode envType _ item he
     · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc

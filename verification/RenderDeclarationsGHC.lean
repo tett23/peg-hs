@@ -690,6 +690,13 @@ def dataDeclWord (first : ConstructorFields) (rest : List ConstructorFields) (cl
   let keyword := if rest.isEmpty && first.fields.length == 1 then 20 else 6
   [.terminal keyword, .terminal 118, .terminal 77] ++ constructorTail first.word rest ++ derivingClause classes
 
+private theorem data_header : Derives productions [.nonterminal 105] [.terminal 118] := by
+  have atom := oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
+      (applyRule (g := productions) (id := 733) (by rfl) (.refl _)))))
+  exact oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
+
 theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFields)
     (classes : List Bool) : Derives productions [.nonterminal 78] (dataDeclWord first rest classes) := by
   have kw : Derives productions [.nonterminal 99]
@@ -697,16 +704,35 @@ theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFie
     split
     · exact applyRule (id := 223) (by rfl) (.refl _)
     · exact applyRule (id := 222) (by rfl) (.refl _)
-  have atom := oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
-    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
-      (applyRule (g := productions) (id := 733) (by rfl) (.refl _)))))
-  have header := oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
-    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
   have capi := applyRule (g := productions) (id := 245) (by rfl) (.refl [])
-  have decl := applyRule (id := 169) (by rfl) (beside kw (beside capi (beside header
+  have decl := applyRule (id := 169) (by rfl) (beside kw (beside capi (beside data_header
     (beside (data_constructors first rest) (data_deriving classes)))))
   simpa [dataDeclWord, List.append_assoc] using oneRule (id := 153) (by rfl) decl
 
+structure DataDeclaration where
+  constructors : List ConstructorFields
+  classes : List Bool
+
+def DataDeclaration.word (d : DataDeclaration) : List Symbol :=
+  match d.constructors with
+  | [] => [.terminal 6, .terminal 118] ++ derivingClause d.classes
+  | first :: rest => dataDeclWord first rest d.classes
+
+theorem data_declaration_valid (d : DataDeclaration) :
+    Derives productions [.nonterminal 78] d.word := by
+  unfold DataDeclaration.word
+  cases d.constructors with
+  | cons first rest => exact data_declaration first rest d.classes
+  | nil =>
+    have kw := applyRule (g := productions) (id := 222) (by rfl) (.refl _)
+    have capi := applyRule (g := productions) (id := 245) (by rfl) (.refl [])
+    have kind := applyRule (g := productions) (id := 227) (by rfl) (.refl [])
+    have empty := applyRule (g := productions) (id := 454) (by rfl) (.refl [])
+    have decl := applyRule (id := 170) (by rfl) (beside kw (beside capi (beside data_header
+      (beside kind (beside empty (data_deriving d.classes))))))
+    simpa using oneRule (id := 153) (by rfl) decl
+
+#print axioms data_declaration_valid
 #print axioms data_declaration
 #print axioms data_deriving
 
