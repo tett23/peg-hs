@@ -302,6 +302,45 @@ theorem syntax_action_bindings :
     named_binding_statement (expr (RenderExpressionGHC.application
       RenderExpressionGHC.qualified_function RenderDeclarationsGHC.varid_argument))⟩
 
+private theorem function_expression {tokens : List Symbol}
+    (f : Derives productions [.nonterminal 217] tokens) :
+    Derives productions [.nonterminal 211] tokens :=
+  one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
+    (one (id := 528) (lhs := 214) (by decide) f))
+
+theorem plain_syntax_body {body : List Symbol}
+    (valid : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 211]
+      ([.terminal 121, .terminal 107] ++ body ++ [.terminal 108]) :=
+  function_expression (RenderExpressionGHC.application_parenthesized
+    RenderExpressionGHC.qualified_function valid)
+
+theorem wrapped_syntax_body {function body : List Symbol}
+    (f : Derives productions [.nonterminal 229] function)
+    (valid : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 211]
+      ([.terminal 107] ++ function ++ [.terminal 108, .terminal 107] ++ body ++ [.terminal 108]) := by
+  have paren := RenderExpressionGHC.parenthesized f
+  have applied := RenderExpressionGHC.application_parenthesized
+    (one (id := 536) (lhs := 217) (by decide) paren) valid
+  simpa [List.append_assoc] using function_expression applied
+
+theorem unary_syntax_body {body : List Symbol}
+    (valid : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 211]
+      ([.terminal 107, .terminal 121, .terminal 108, .terminal 107] ++ body ++ [.terminal 108]) :=
+  wrapped_syntax_body (one (id := 596) (by decide)
+    (function_expression RenderExpressionGHC.qualified_function)) valid
+
+theorem unary_syntax_names :
+    ["plain", "manyS", "many1S", "optionalS", "captureS", "voidS"].all
+      (RenderExpressionLexer.qualifiedVarId "PegRt") = true := by decide
+
+#print axioms plain_syntax_body
+#print axioms wrapped_syntax_body
+#print axioms unary_syntax_body
+#print axioms unary_syntax_names
+
 def syntaxItemTokens (labeled : Bool) (body : List Symbol) :
     List (List Symbol) × List Symbol :=
   let statements := if labeled then [labeledBindingTokens body, [.terminal 121, .terminal 117]]
