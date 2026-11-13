@@ -1,3 +1,4 @@
+import GhcPredicates
 import VerbatimRule
 import TranslatedVerbatimBody
 import AssembleValidationHelpers
@@ -50,6 +51,22 @@ theorem invariant1_toParam_result (space alpha alnum : Char → Bool) (src : Lis
       simp [ParameterPredicates.classify, translatedToParam, split, ident, empty]
     exact ⟨a, b, ⟨rfl, rfl⟩, rfl⟩
 
+theorem invariant1_toParam_guards (env : SemanticPredicates.Env) (loc : α × Nat × Nat) :
+    let result := translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc env.captured
+    (SemanticPredicates.eval GhcPredicates.classes .paramForm env = true ↔
+      result ≠ .error "expected a parameter of the form name :: Type") ∧
+    (SemanticPredicates.eval GhcPredicates.classes .paramType env = true ↔
+      ∃ value, result = .ok value) := by
+  have h := invariant1_toParam_result GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum env.captured loc
+  cases hc : ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum env.captured with
+  | formError => simp [hc] at h; simp [SemanticPredicates.eval, GhcPredicates.classes, hc, h]
+  | typeError => simp [hc] at h; simp [SemanticPredicates.eval, GhcPredicates.classes, hc, h]
+  | ok n ty =>
+    simp only [hc] at h
+    obtain ⟨_, _, _, value⟩ := h
+    simp [SemanticPredicates.eval, GhcPredicates.classes, hc, value]
+
+#print axioms invariant1_toParam_guards
 #print axioms invariant1_toParam_result
 #print axioms invariant1_parameter_location
 #print axioms invariant1_verbatim_value

@@ -10,6 +10,12 @@ main = do
   source <- lines <$> readFile path
   let body = takeWhile (not . null) (dropWhile (/= "verbatimBody l body =") source)
   let advance = takeWhile (not . null) (dropWhile (/= "advanceLoc = T.foldl' step") source)
+  let definition start = takeWhile (not . null) (dropWhile (/= start) source)
+  if and
+      [ definition "isIdentStart c = isAlpha c || c == '_'" == ["isIdentStart c = isAlpha c || c == '_'"]
+      , definition "isIdentChar c = isAlphaNum c || c == '_' || c == '\\''" == ["isIdentChar c = isAlphaNum c || c == '_' || c == '\\''"]
+      , definition "isValidIdent t = case T.uncons t of" == ["isValidIdent t = case T.uncons t of", "  Just (c, rest) -> isIdentStart c && T.all isIdentChar rest", "  Nothing -> False"] ]
+    then pure () else die "unsupported parameter identifier"
   let param = takeWhile (not . null) (dropWhile (/= "toParam (Located l t) = case T.breakOn \"::\" t of") source)
   if param ==
       [ "toParam (Located l t) = case T.breakOn \"::\" t of"
