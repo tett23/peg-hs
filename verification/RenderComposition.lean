@@ -140,11 +140,10 @@ theorem rule_items_valid (rules : List RuleFragment) :
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
-    (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
+    (qualifiedName : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports otherDecls : List (List Symbol))
     (rules : List RuleFragment)
-    (name_ok : Derives productions [.nonterminal 321] name)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -153,14 +152,19 @@ theorem generated_module_with_rules
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
-      ([.terminal 19] ++ name ++ exportWord
+      ([.terminal 19] ++ [.terminal (if qualifiedName then 122 else 118)] ++ exportWord
         (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
-  apply generated_module lex first firstTokens chunks finalSource finalTokens name
+  have name_ok : Derives productions [.nonterminal 321]
+      [.terminal (if qualifiedName then 122 else 118)] := by
+    cases qualifiedName
+    · exact module_name_simple
+    · exact module_name_qualified
+  apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
     (otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
