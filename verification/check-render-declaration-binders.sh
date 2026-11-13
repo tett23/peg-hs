@@ -28,9 +28,9 @@ cat > "$scratch/UnqualifiedExportName.expected" <<'SOURCE'
 SOURCE
 diff -u "$scratch/UnqualifiedExportName.expected" "$scratch/UnqualifiedExportName.actual"
 sed -n '/^    errors =/,/^-- | Whether a text is a path/p' "$source" |
-  grep -Fq ', binderKeyword name'
+  grep -Fq ', Just reason <- [binderError name]'
 sed -n '/^    errors =/,/^-- | Whether a text is a path/p' "$source" |
-  grep -Fq ', binderKeyword (paramName p)'
+  grep -Fq ', Just reason <- [binderError (paramName p)]'
 sed -n '/^reservedWords =/,/^  ]/p' packages/peg-grammar/src/Peg/Grammar.hs |
   grep -Fq '"case"'
 sed -n '/^    keyParamType p/,/^    storeDecl/p' packages/peg-codegen/src/Peg/Codegen.hs |

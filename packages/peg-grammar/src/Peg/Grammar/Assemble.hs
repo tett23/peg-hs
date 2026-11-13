@@ -250,6 +250,10 @@ assemble items =
     binderKeyword name =
       (name /= "_" && name `elem` reservedWords)
         || extensionKeyword recursiveDoEnabled arrowsEnabled name
+    binderError name
+      | binderKeyword name = Just " is a Haskell reserved word"
+      | startsWithModifier name = Just " starts with a Unicode modifier letter"
+      | otherwise = Nothing
     known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
     -- ADR 0092
     libraryLoc = case [l | (l, "library", _) <- directives] of
@@ -378,18 +382,18 @@ assemble items =
            , c > 1
            , (l, _, _) : _ <- [drop 1 [d | d@(_, n', _) <- defs, n' == n]]
            ]
-        ++ [ Diagnostic (itemLoc i) ("binding name " <> name <> " is a Haskell reserved word")
+        ++ [ Diagnostic (itemLoc i) ("binding name " <> name <> reason)
            | (_, _, alts) <- defs
            , alt <- alts
            , i <- concatMap nestedItems (altItems alt)
            , Just name <- [itemBind i]
-           , binderKeyword name
+           , Just reason <- [binderError name]
            ]
-        ++ [ Diagnostic al ("parameter name " <> paramName p <> " is a Haskell reserved word")
+        ++ [ Diagnostic al ("parameter name " <> paramName p <> reason)
            | annotations <- M.elems annots
            , (al, ps, _, _) <- annotations
            , p <- ps
-           , binderKeyword (paramName p)
+           , Just reason <- [binderError (paramName p)]
            ]
         ++ [Diagnostic (Loc 0 1 1) "the grammar has no rules" | null defs, isJust moduleName]
         -- ADR 0031
@@ -461,6 +465,10 @@ isClassName t = not (T.null t) && all part (T.splitOn "." t)
 isModuleName :: Text -> Bool
 isModuleName = isClassName
 
+-- GHC Lexer.x maps ModifierLetter to $uniidchar, which is tail-only.
+startsWithModifier :: Text -> Bool
+startsWithModifier = maybe False ((== ModifierLetter) . generalCategory . fst) . T.uncons
+
 extensionKeyword :: Bool -> Bool -> Text -> Bool
 extensionKeyword recursiveDoEnabled arrowsEnabled name =
   (recursiveDoEnabled && name `elem` ["mdo", "rec"])
@@ -497,8 +505,7 @@ isExportItem recursiveDoEnabled arrowsEnabled t = not (any (`T.isInfixOf` t) ["-
       "(" : op : ")" : rest | isOperator op -> Just rest
       n : rest | unqualifiedName (T.pack n) -> Just rest
       _ -> Nothing
-    -- GHC Lexer.x maps ModifierLetter to $uniidchar, which is tail-only.
-    exportIdent name = isValidIdent name && maybe False ((/= ModifierLetter) . generalCategory . fst) (T.uncons name)
+    exportIdent name = isValidIdent name && not (startsWithModifier name)
     unqualifiedName name = exportIdent name && name `notElem` reservedWords
       && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
     isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))

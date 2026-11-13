@@ -425,6 +425,10 @@ untypedSyntaxTests =
         messagesOf (s "W <- N /") @?= ["an alternative without an action must have exactly one element with a value, but it has none"]
     , testCase "a rule annotated :: () is treated as before" $
         messagesOf (s "W :: ()\nW <- N N") @?= ["an alternative without an action must have exactly one element with a value, but it has 2"]
+    , testCase "invariant2: modifier letter cannot start a capture binder" $
+        messagesOf (s "W <- ʰabc:$'a' { () }") @?= ["binding name ʰabc starts with a Unicode modifier letter"]
+    , testCase "invariant2: modifier letter cannot start a parameter" $
+        messagesOf (s "W(ʰabc :: Int) :: ()\nW <- 'a' { () }") @?= ["parameter name ʰabc starts with a Unicode modifier letter"]
     , testCase "invariant2: forall cannot bind a captured value" $
         messagesOf (s "W <- forall:$'a' { () }") @?= ["binding name forall is a Haskell reserved word"]
     , testCase "a binding of an expression without a value is an error, as before" $
