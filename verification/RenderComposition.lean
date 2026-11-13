@@ -199,13 +199,19 @@ structure RecoveryEntry extends EntryFragment where
   syntaxTree : Bool
   parserClose : Bool
 
-structure RecoveryCandidate extends EntryFragment where
+structure EntryCandidate extends EntryFragment where
   suffix : String
   valueClose : Bool
   syntaxClose : Bool
 
+def selectedValueEntries (keep : String → Bool) (entries : List EntryCandidate) :=
+  (entries.filter fun e => keep ("parse" ++ e.suffix)).map EntryCandidate.toEntryFragment
+
+def selectedSyntaxCount (keep : String → Bool) (entries : List EntryCandidate) :=
+  (entries.filter fun e => keep ("parseSyntax" ++ e.suffix)).length
+
 def selectRecoveryEntries (recovering syntaxMode : Bool) (keep : String → Bool)
-    (entries : List RecoveryCandidate) : List RecoveryEntry :=
+    (entries : List EntryCandidate) : List RecoveryEntry :=
   if recovering then entries.flatMap fun e =>
     (if keep ("parseRecover" ++ e.suffix) then
       [⟨e.toEntryFragment, false, e.valueClose⟩] else []) ++
@@ -242,9 +248,8 @@ theorem generated_module_with_rules
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
-    (envType : CheckedEnvType) (entries : List EntryFragment)
-    (syntaxEntryCount : Nat) (recovering : Bool) (keep : String → Bool)
-    (candidates : List RecoveryCandidate) (rules : List RuleFragment)
+    (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
+    (candidates : List EntryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -258,8 +263,8 @@ theorem generated_module_with_rules
         (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
-          semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType
+          semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
+        syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
@@ -271,8 +276,8 @@ theorem generated_module_with_rules
     · exact module_name_qualified
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
-    (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType
+    (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
+        syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
@@ -280,8 +285,8 @@ theorem generated_module_with_rules
     simp only [List.mem_append] at member
     rcases member with ((((hd | he) | hs) | hc) | ho) | hr
     · exact data_ok item hd
-    · exact entry_items_valid syntaxMode envType entries item he
-    · exact syntax_entry_items_valid syntaxMode envType syntaxEntryCount item hs
+    · exact entry_items_valid syntaxMode envType _ item he
+    · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc
     · exact other_ok item ho
     · exact rule_items_valid rules item hr
