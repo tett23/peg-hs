@@ -390,6 +390,36 @@ theorem successful_output_preserves_original_lines {G A : Type} (bad valid : Boo
 
 #print axioms successful_output_preserves_original_lines
 
+open Peg.Verification in
+theorem invariant3_public_output_lines {G A : Type} (parse : Except Diagnostics G)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (bad : Bool) (valid : G → Bool) (name : G → String)
+    (missing : G → A → List String) (render : G → A → String → String) (path code : String)
+    (success : Pipeline.visible (Pipeline.pipeline parse resolve expand (fun g => (check g).map (fun _ => ()))
+      notes strip warnings (fun t => innerGenerate bad (valid t) (name t) t expand check notes missing
+        render selectMarker (fun marker => finalizeText marker path))) = .ok code) :
+    ∃ p r g final a, parse = .ok p ∧ resolve p = .ok r ∧ expand r = .ok g ∧
+      expand (match strip with | none => g | some change => change g) = .ok final ∧
+      check final = .ok a ∧ missing final a = [] ∧
+      let unmarked := render final a ""
+      let marker := selectMarker unmarked
+      let lines := textLines (render final a marker)
+      ∀ (i : Nat) (inside : i < lines.length),
+        (textLines code)[i]? = some (if lines[i] = marker then renderLine (i + 2) path else lines[i]) ∧
+        (lines[i] ∈ textLines unmarked → (textLines code)[i]? = some lines[i]) := by
+  obtain ⟨_, _, _, hp, hr, he, _, _, _, final, a, hf, hc, hm, rfl⟩ :=
+    (invariant3_public_render_iff ..).mp success
+  refine ⟨_, _, _, final, a, hp, hr, he, hf, hc, hm, ?_⟩
+  dsimp only
+  intro i inside
+  constructor
+  · rw [finalizeText_lines]
+    exact invariant3_finalize_lines_at _ _ _ i inside
+  · exact selected_marker_preserves_text_line _ _ _ i inside
+
+#print axioms invariant3_public_output_lines
+
 end PegHs.InnerGeneration
 
 #print axioms PegHs.InnerGeneration.success_iff
