@@ -1,6 +1,7 @@
 import SelfHostedFileProof
 import TerminalCursor
 import StrictWhitespaceScan
+import DirectiveFailure
 import StrictIdentifier
 import StrictWhitespaceLexical
 
@@ -552,6 +553,17 @@ theorem invariant2_top_item_declaration_throw (pre : List Char) (c : Char) (cs :
   have item : Derives ctx (ctx.rules 1) n {} err := .seqCarryThrow top
   exact Derives.call (callee := {}) (by rfl) item
 
+theorem invariant2_file_empty_parameter (pre : List Char) (c : Char) (cs xs tail : List Char)
+    (ends : List Nat) (valid : CharRule.identStart.accepts c = true) (ordinary : '%' ≠ c)
+    (afterName : cs.dropWhile CharRule.identChar.accepts = '(' :: xs)
+    (comma : afterWhitespace xs = ',' :: tail)
+    (items : let input := pre ++ c :: cs
+      ItemStepsTo (context false input) (c :: cs).length (afterWhitespace input).length ends) :
+    FileResult false (pre ++ c :: cs) (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+  have decl := invariant2_declaration_empty_parameter pre c cs xs tail {} valid afterName comma
+  exact file_item_throw _ _ ends items (invariant2_top_item_declaration_throw pre c cs ordinary _ _ _ decl)
+
+#print axioms invariant2_file_empty_parameter
 #print axioms invariant2_top_item_declaration_throw
 #print axioms invariant2_declaration_empty_parameter
 #print axioms invariant1_declaration_name
