@@ -144,6 +144,21 @@ def positiveRules {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n
     (rules : Fin n → List (List Expr)) : Fin n → Peg.Verification.PositiveExpr n :=
   fun i => toPositive lookup recovery (.group (rules i))
 
+-- Multiple declarations of a name contribute alternatives to the same set member.
+def mergedNamedRules {n : Nat} (names : Fin n → String)
+    (declarations : List (String × List (List Expr))) (i : Fin n) : List (List Expr) :=
+  (declarations.filter fun declaration => declaration.1 == names i).flatMap Prod.snd
+
+theorem merged_named_rule_nullable {n : Nat} (names : Fin n → String)
+    (declarations : List (String × List (List Expr))) (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (known : Fin n → Bool) (i : Fin n) :
+    directNullable lookup recovery known (.group (mergedNamedRules names declarations i)) = true ↔
+      ∃ declaration ∈ declarations, declaration.1 = names i ∧
+        directNullable lookup recovery known (.group declaration.2) = true := by
+  simp [directNullable, mergedNamedRules, List.any_eq_true]
+
+#print axioms merged_named_rule_nullable
+
 def directNext {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) (known : Fin n → Bool) : Fin n → Bool :=
   fun i => directNullable lookup recovery known (.group (rules i))
