@@ -141,12 +141,14 @@ structure EntryFragment where
   resultType : List Symbol
   type_ok : Derives productions [.nonterminal 163] resultType
 
-def entryItems (syntaxMode : Bool) (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment) : List (List Symbol) :=
+abbrev CheckedEnvType := Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }
+
+def entryItems (syntaxMode : Bool) (envType : CheckedEnvType) (entries : List EntryFragment) : List (List Symbol) :=
   entries.flatMap fun e => RenderDeclarationsGHC.generatedPair
     (RenderDeclarationsGHC.parameterArrows (envType.toList.map Subtype.val) (RenderDeclarationsGHC.entryTypeWord e.resultType))
     (List.replicate (if envType.isSome then 2 else 1) [.terminal 117]) (RenderDeclarationsGHC.entryBodyWord envType.isSome syntaxMode)
 
-theorem entry_items_valid (syntaxMode : Bool) (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment)
+theorem entry_items_valid (syntaxMode : Bool) (envType : CheckedEnvType) (entries : List EntryFragment)
     (item : List Symbol) (member : item ∈ entryItems syntaxMode envType entries) :
     Derives productions [.nonterminal 78] item := by
   obtain ⟨e, _, inside⟩ := List.mem_flatMap.mp member
@@ -163,13 +165,42 @@ theorem entry_items_valid (syntaxMode : Bool) (envType : Option { ty : List Symb
 
 #print axioms entry_items_valid
 
+-- Entry names all lex as VARID, so only the number retained by keep matters here.
+def syntaxEntryItems (syntaxMode : Bool) (envType : CheckedEnvType) (retained : Nat) :=
+  let pair := RenderDeclarationsGHC.generatedPair
+    (RenderDeclarationsGHC.parameterArrows (envType.toList.map Subtype.val)
+      [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 122])
+    (List.replicate (if envType.isSome then 2 else 1) [.terminal 117])
+    (RenderDeclarationsGHC.syntaxEntryBodyWord envType.isSome)
+  if syntaxMode then (List.replicate retained pair).flatten else []
+
+theorem syntax_entry_items_valid (syntaxMode : Bool) (envType : CheckedEnvType) (retained : Nat)
+    (item : List Symbol) (member : item ∈ syntaxEntryItems syntaxMode envType retained) :
+    Derives productions [.nonterminal 78] item := by
+  cases syntaxMode with
+  | false => simp [syntaxEntryItems] at member
+  | true =>
+    simp only [syntaxEntryItems, ite_true, List.mem_flatten] at member
+    obtain ⟨pair, h, inside⟩ := member
+    rw [List.eq_of_mem_replicate h] at inside
+    simp only [RenderDeclarationsGHC.generatedPair, List.mem_cons, List.mem_nil_iff,
+      or_false] at inside
+    rcases inside with rfl | rfl
+    · exact RenderDeclarationsGHC.syntax_entry_signature envType
+    · apply RenderDeclarationsGHC.binding_named_arguments _ _ (RenderDeclarationsGHC.syntax_entry_body _)
+      intro arg h
+      exact List.eq_of_mem_replicate h ▸ RenderDeclarationsGHC.varid_argument
+
+#print axioms syntax_entry_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
-    (envType : Option { ty : List Symbol // Derives productions [.nonterminal 163] ty }) (entries : List EntryFragment) (rules : List RuleFragment)
+    (envType : CheckedEnvType) (entries : List EntryFragment)
+    (syntaxEntryCount : Nat) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -183,7 +214,8 @@ theorem generated_module_with_rules
         (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
-          semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType entries ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
+          semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType entries ++
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -193,16 +225,17 @@ theorem generated_module_with_rules
     · exact module_name_qualified
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
-    (dataDecls ++ entryItems syntaxMode envType entries ++ otherDecls ++ ruleItems rules) name_ok
+    (dataDecls ++ entryItems syntaxMode envType entries ++
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
-    rcases List.mem_append.mp member with inOther | inRule
-    · rcases List.mem_append.mp inOther with beforeOther | rest
-      · rcases List.mem_append.mp beforeOther with dataItem | entryItem
-        · exact data_ok item dataItem
-        · exact entry_items_valid syntaxMode envType entries item entryItem
-      · exact other_ok item rest
-    · exact rule_items_valid rules item inRule
+    simp only [List.mem_append] at member
+    rcases member with (((hd | he) | hs) | ho) | hr
+    · exact data_ok item hd
+    · exact entry_items_valid syntaxMode envType entries item he
+    · exact syntax_entry_items_valid syntaxMode envType syntaxEntryCount item hs
+    · exact other_ok item ho
+    · exact rule_items_valid rules item hr
   · exact initial
   · exact trace
   · exact tokens_match
