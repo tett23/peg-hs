@@ -2,6 +2,9 @@
 set -eu
 cd "$(dirname "$0")"
 work=${1:?pass the Lean object directory}
+runghc-9.10.3 -Werror ExtractVerbatimBody.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedVerbatimBody.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/TranslatedVerbatimBody.olean" "$work/TranslatedVerbatimBody.lean"
+lean -DwarningAsError=true VerbatimValue.lean
 runtime=../packages/peg-runtime/src/Peg/Runtime/Internal.hs
 runghc-9.10.3 -Werror ExtractRuntimeChoice.hs "$runtime" > "$work/TranslatedRuntimeChoice.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedRuntimeChoice.olean" "$work/TranslatedRuntimeChoice.lean"
