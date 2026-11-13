@@ -692,6 +692,38 @@ theorem default_config_binding :
   binding_named_infixexp (oneRule (id := 523) (by rfl)
     (oneRule (id := 528) (by rfl) RenderExpressionGHC.qualified_function))
 
+-- Explicit %tabstop uses either an update of defaultConfig or the
+-- positional helper when traditional record syntax is disabled.
+def tabstopBindingWord (positional : Bool) : List Symbol :=
+  [.terminal 117, .terminal 77] ++
+    (if positional then [.terminal 117, .terminal 131, .terminal 121]
+     else [.terminal 121, .terminal 101, .terminal 121, .terminal 77,
+           .terminal 131, .terminal 102])
+
+open RenderExpressionGHC in
+theorem tabstop_config_binding (positional : Bool) :
+    Derives productions [.nonterminal 78] (tabstopBindingWord positional) := by
+  have qvar := oneRule (id := 769) (by rfl)
+    (applyRule (g := productions) (id := 774) (by rfl) (.refl [.terminal 121]))
+  have cfg := oneRule (id := 554) (by rfl) (oneRule (id := 555) (by rfl) qvar)
+  have number := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+    (applyRule (g := productions) (id := 560) (by rfl) (.refl [.terminal 131])))
+  have infixExpr {w} (f : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f)
+  cases positional
+  · have rhs := oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+      (infixExpr (oneRule (id := 536) (by rfl) number)))
+    have field := applyRule (id := 668) (by rfl) (beside qvar (beside (.refl [.terminal 77]) rhs))
+    have fields := oneRule (id := 663) (by rfl) (oneRule (id := 666) (by rfl) field)
+    have update := applyRule (id := 552) (by rfl) (beside cfg
+      (beside (.refl [.terminal 101]) (beside fields (.refl [.terminal 102]))))
+    exact binding_named_infixexp (infixExpr (oneRule (id := 536) (by rfl)
+      (oneRule (id := 551) (by rfl) update)))
+  · have call := application (application (oneRule (id := 536) (by rfl) varid_argument) number)
+      (oneRule (id := 551) (by rfl) cfg)
+    exact binding_named_infixexp (infixExpr call)
+
+#print axioms tabstop_config_binding
 #print axioms config_signature
 #print axioms default_config_binding
 
