@@ -649,6 +649,45 @@ private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.ter
   oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
     (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
 
+-- Each class is one CONID or QCONID token after lexing.
+def derivingNames (qualified : Bool) : List Bool → List Symbol
+  | [] => [.terminal (if qualified then 122 else 118)]
+  | q :: qs => [.terminal (if qualified then 122 else 118), .terminal 114] ++ derivingNames q qs
+
+def derivingClause : List Bool → List Symbol
+  | [] => []
+  | q :: qs => [.terminal 8, .terminal 107] ++ derivingNames q qs ++ [.terminal 108]
+
+theorem data_deriving (classes : List Bool) :
+    Derives productions [.nonterminal 198] (derivingClause classes) := by
+  have classType (q : Bool) : Derives productions [.nonterminal 156]
+      [.terminal (if q then 122 else 118)] := by
+    have atom : Derives productions [.nonterminal 172] [.terminal (if q then 122 else 118)] := by
+      cases q
+      · exact oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+          (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
+            (applyRule (id := 733) (by rfl) (.refl _)))))
+      · exact qualifiedTypeAtom
+    exact oneRule (id := 363) (by rfl) (oneRule (id := 365) (by rfl)
+      (oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+        (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))))
+  have names (q : Bool) (qs : List Bool) :
+      Derives productions [.nonterminal 174] (derivingNames q qs) := by
+    induction qs generalizing q with
+    | nil => exact oneRule (id := 429) (by rfl) (classType q)
+    | cons next rest ih =>
+      simpa [derivingNames, List.append_assoc] using applyRule (id := 430) (by rfl) (beside (classType q)
+        (beside (.refl [.terminal 114]) (ih next)))
+  cases classes with
+  | nil => exact applyRule (id := 475) (by rfl) (.refl [])
+  | cons q qs =>
+    have clause := applyRule (id := 484) (by rfl) (beside (.refl [.terminal 107])
+      (beside (names q qs) (.refl [.terminal 108])))
+    simpa [derivingClause, List.append_assoc] using oneRule (id := 476) (by rfl)
+      (oneRule (id := 478) (by rfl) (applyRule (id := 479) (by rfl) (beside (.refl [.terminal 8]) clause)))
+
+#print axioms data_deriving
+
 private theorem qualified_type_arrow {tail : List Symbol}
     (valid : Derives productions [.nonterminal 163] tail) :
     Derives productions [.nonterminal 163] ([.terminal 122, .terminal 83] ++ tail) := by
