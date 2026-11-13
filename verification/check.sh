@@ -13,6 +13,9 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
+runghc-9.10.3 -Werror ExtractReservedWords.hs ../packages/peg-grammar/src/Peg/Grammar.hs > "$work/GrammarReservedWords.lean"
+lean -DwarningAsError=true -R "$work" -o "$work/GrammarReservedWords.olean" "$work/GrammarReservedWords.lean"
+
 for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
