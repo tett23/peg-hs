@@ -66,6 +66,17 @@ theorem invariant1_toParam_guards (env : SemanticPredicates.Env) (loc : α × Na
     obtain ⟨_, _, _, value⟩ := h
     simp [SemanticPredicates.eval, GhcPredicates.classes, hc, value]
 
+theorem invariant1_parameter_diagnostics (env : SemanticPredicates.Env) (loc : α × Nat × Nat) :
+    (SemanticPredicates.eval GhcPredicates.classes .paramForm env = true ↔
+      translatedParamError loc env.captured ≠ some "expected a parameter of the form name :: Type") ∧
+    (SemanticPredicates.eval GhcPredicates.classes .paramType env = true ↔
+      translatedParamError loc env.captured = none) := by
+  obtain ⟨form, type⟩ := invariant1_toParam_guards env loc
+  rw [form, type]
+  cases h : translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc env.captured <;>
+    simp [translatedParamError, h]
+
+#print axioms invariant1_parameter_diagnostics
 #print axioms invariant1_toParam_guards
 #print axioms invariant1_toParam_result
 #print axioms invariant1_parameter_location

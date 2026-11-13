@@ -1,12 +1,22 @@
 module Main (main) where
 
+import Control.Monad (forM_, unless)
 import Data.List (stripPrefix)
 import System.Environment (getArgs)
 import System.Exit (die)
 
 main :: IO ()
 main = do
-  [path] <- getArgs
+  (path : parsers) <- getArgs
+  forM_ parsers $ \parser -> do
+    definitions <- lines <$> readFile parser
+    let matches prefix expected = filter (starts prefix) definitions == [expected]
+        starts prefix line = case stripPrefix prefix line of
+          Just _ -> True
+          Nothing -> False
+    unless (matches "paramFormMessage =" "paramFormMessage = T.pack \"expected a parameter of the form name :: Type\"" &&
+            matches "paramError l c =" "paramError l c = either Just (const Nothing) (toParam (Located l c))") $
+      die ("unsupported parameter diagnostics in " ++ parser)
   source <- lines <$> readFile path
   let body = takeWhile (not . null) (dropWhile (/= "verbatimBody l body =") source)
   let advance = takeWhile (not . null) (dropWhile (/= "advanceLoc = T.foldl' step") source)
@@ -41,7 +51,7 @@ main = do
      "        _ -> (l, T.stripStart body)", finish]
       | Just "T.stripEnd text)" <- stripPrefix "   in (start, " finish ->
           putStrLn $ unlines
-            [ "import ParameterPredicates", "import Whitespace", "namespace PegHs.MetaExecution"
+            [ "import GhcPredicates", "import Whitespace", "namespace PegHs.MetaExecution"
             , "def translatedAdvanceLoc (loc : α × Nat × Nat) (text : List Char) := text.foldl (fun (f,l,c) ch => if ch = '\\n' then (f,l+1,1) else (f,l,c+1)) loc"
             , "def translatedVerbatimBody (file : α) (line column : Nat) (body : List Char) : (α × Nat × Nat) × List Char :="
             , "  let (loc, text) := match body with"
@@ -58,5 +68,9 @@ main = do
             , "      else .ok (name, translatedAdvanceLoc loc (n ++ [':', ':'] ++ rest.takeWhile space), ty)"
             , "    else .error \"expected a parameter of the form name :: Type\""
             , "  | none => .error \"expected a parameter of the form name :: Type\""
+            , "def translatedParamError (loc : α × Nat × Nat) (src : List Char) : Option String :="
+            , "  match translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc src with"
+            , "  | .error message => some message"
+            , "  | .ok _ => none"
             , "end PegHs.MetaExecution" ]
     _ -> die "unsupported verbatimBody"
