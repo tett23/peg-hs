@@ -70,6 +70,25 @@ def renderFragment (marker : String) (line col : Nat) (path body : String) : Str
   "\n" ++ renderLine line path ++ "\n " ++ renderColumn col ++ body ++
     "\n" ++ marker ++ "\n    "
 
+theorem invariant3_fragment_marker_slot (before after path body : String) (line col n : Nat) :
+    ∃ left right : List (List Char), ∀ marker ∈ ["", markerCandidate n],
+      (before ++ renderFragment marker line col path body ++ after).toList.splitOn '\n' =
+        left ++ [marker.toList] ++ right := by
+  let head := before ++ "\n" ++ renderLine line path ++ "\n " ++ renderColumn col ++ body
+  let tail := "    " ++ after
+  refine ⟨head.toList.splitOn '\n', tail.toList.splitOn '\n', ?_⟩
+  intro marker member
+  have noLF : '\n' ∉ marker.toList := by
+    simp only [List.mem_cons, List.mem_nil_iff, or_false] at member
+    rcases member with rfl | rfl <;> simp [markerCandidate, String.toList_append]
+  have parts : (before ++ renderFragment marker line col path body ++ after).toList =
+      head.toList ++ '\n' :: (marker.toList ++ '\n' :: tail.toList) := by
+    simp [renderFragment, head, tail, String.toList_append, List.append_assoc]
+  rw [parts, List.splitOn_append_cons_self, List.splitOn_append_cons_self,
+    List.splitOn_eq_singleton noLF, List.append_assoc]
+
+#print axioms invariant3_fragment_marker_slot
+
 def finalizeLine (marker : String) (line : Nat) (path input : String) : String :=
   if input == marker then renderLine (line + 1) path else input
 
