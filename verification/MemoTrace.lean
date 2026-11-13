@@ -73,6 +73,39 @@ theorem runMemo_same_as_unmemo [DecidableEq κ] (enabled : Bool)
   have b := runFrom_sound false body keys [] state (empty_invariant body)
   exact ⟨a.1.trans b.1.symm, a.2.trans b.2.symm⟩
 
+-- Subsequent calls can depend on success, failure and the replayed state.
+-- The driver has no access to cache internals.
+inductive Calls (κ α : Type) where
+  | done
+  | call (key : κ) (next : Result α → State → Calls κ α)
+
+def runCalls [DecidableEq κ] (enabled : Bool) (body : κ → Entry α) :
+    Calls κ α → List (κ × Entry α) → State → List (Result α) × State
+  | .done, _, state => ([], state)
+  | .call key next, table, state =>
+    let step := memoStep enabled body table key state
+    let tail := runCalls enabled body (next step.result step.state) step.table step.state
+    (step.result :: tail.1, tail.2)
+
+theorem runCalls_sound [DecidableEq κ] (enabled : Bool) (body : κ → Entry α)
+    (calls : Calls κ α) (table : List (κ × Entry α)) (state : State)
+    (inv : CacheInvariant body table) :
+    runCalls enabled body calls table state = runCalls false body calls [] state := by
+  induction calls generalizing table state with
+  | done => rfl
+  | call key next ih =>
+    let step := memoStep enabled body table key state
+    have same := hit_miss_same_recognition enabled body table key state inv
+    have tail := ih step.result step.state step.table step.state
+      (step_preserves_invariant enabled body table key state inv)
+    change (step.result :: (runCalls enabled body (next step.result step.state) step.table step.state).1,
+      (runCalls enabled body (next step.result step.state) step.table step.state).2) = _
+    rw [tail]
+    simp only [runCalls, memoStep, Bool.false_eq_true, ↓reduceIte]
+    rw [show step.result = _ from same.1, show step.state = _ from same.2]
+
+#print axioms runCalls_sound
+
 #print axioms runMemo_invariant
 #print axioms runMemo_same_as_unmemo
 

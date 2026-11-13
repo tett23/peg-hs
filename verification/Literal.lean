@@ -159,6 +159,132 @@ theorem fold_escaped_body (chars : List Char) :
 def encodeLiteral (s : String) : String :=
   "\"" ++ encodeBody s.toList ++ "\""
 
+-- Show for String supplies the final double quote as the continuation
+-- of showLitString. Its first character cannot extend either escape.
+theorem quoted_fold (s : String) :
+    "\"" ++ s.toList.foldr prependEscaped "\"" = encodeLiteral s := by
+  have aux (cs : List Char) :
+      cs.foldr prependEscaped "\"" = encodeBody cs ++ "\"" := by
+    induction cs with
+    | nil => rfl
+    | cons c cs ih =>
+      have same : needsEscapeTerminator c (encodeBody cs ++ "\"").toList =
+          needsEscapeTerminator c (encodeBody cs).toList := by
+        simp only [String.toList_append, needsEscapeTerminator]
+        cases (encodeBody cs).toList <;> simp [Char.isDigit]
+      rw [← fold_escaped_body (c :: cs), List.foldr_cons, List.foldr_cons, ih,
+        fold_escaped_body cs]
+      simp only [prependEscaped, same]
+      split <;> simp [String.append_assoc]
+  simp [aux, encodeLiteral, String.append_assoc]
+
+#print axioms quoted_fold
+
+-- Nonnegative branch of itos' in GHC.Internal.Show (GHC 9.10.3).
+private def intDigits (n : Nat) (suffix : List Char) : List Char :=
+  if n < 10 then Char.ofNat (48 + n) :: suffix
+  else intDigits (n / 10) (Char.ofNat (48 + n % 10) :: suffix)
+termination_by n
+decreasing_by omega
+
+private theorem decimal_digit (n : Nat) (h : n < 10) :
+    Char.ofNat (48 + n) = n.digitChar := by
+  have finite : ∀ d : Fin 10, Char.ofNat (48 + d.val) = d.val.digitChar := by decide
+  exact finite ⟨n, h⟩
+
+private theorem intDigits_eq (n : Nat) (suffix : List Char) :
+    intDigits n suffix = Nat.toDigits 10 n ++ suffix := by
+  induction n using Nat.strongRecOn generalizing suffix with
+  | ind n ih =>
+    rw [intDigits, Nat.toDigits_eq_ite (by decide : 1 < 10)]
+    split <;> rename_i h
+    · simp [decimal_digit n h]
+    · rw [ih (n / 10) (by omega), decimal_digit _ (Nat.mod_lt _ (by decide))]
+      simp
+
+-- Character spelling in ghc-9.10.3-release, GHC.Internal.Show:
+-- showLitString handles quotes, showLitChar handles the remaining cases.
+private def showSpelling (c : Char) : String :=
+  if c == '"' then "\\\""
+  else if 127 < c.toNat then "\\" ++ String.ofList (intDigits c.toNat [])
+  else if c.toNat == 127 then "\\DEL"
+  else if c == '\\' then "\\\\"
+  else if 32 ≤ c.toNat then String.singleton c
+  else
+    match c.toNat with
+    | 7 => "\\a" | 8 => "\\b" | 9 => "\\t" | 10 => "\\n"
+    | 11 => "\\v" | 12 => "\\f" | 13 => "\\r" | 14 => "\\SO"
+    | n => "\\" ++ (["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+        "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2",
+        "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS",
+        "GS", "RS", "US", "SP"] : List String)[n]!
+
+theorem showSpelling_eq (c : Char) : showSpelling c = encodeChar c := by
+  by_cases high : 127 < c.toNat
+  · simp [showSpelling, encodeChar, high, quote, slash, intDigits_eq, Nat.repr]
+    repeat' split
+    all_goals first | rfl | (subst c; contradiction)
+  · have ascii : ∀ n : Fin 128, showSpelling (Char.ofNat n.val) = encodeChar (Char.ofNat n.val) := by
+      decide
+    simpa using ascii ⟨c.toNat, by omega⟩
+
+#print axioms showSpelling_eq
+
+private def protectEsc (p : Char → Bool) (suffix : String) : String :=
+  if suffix.toList.head?.any p then "\\&" ++ suffix else suffix
+
+private def showStringStep (c : Char) (suffix : String) : String :=
+  showSpelling c ++
+    (if 127 < c.toNat then protectEsc Char.isDigit suffix
+     else if c.toNat = 14 then protectEsc (· == 'H') suffix
+     else suffix)
+
+private theorem showStringStep_eq (c : Char) (suffix : String) :
+    showStringStep c suffix = prependEscaped c suffix := by
+  unfold showStringStep prependEscaped needsEscapeTerminator protectEsc
+  rw [showSpelling_eq]
+  cases h : suffix.toList.head? with
+  | none => simp
+  | some next =>
+    by_cases high : 127 < c.toNat
+    · have ne : c.toNat ≠ 14 := by omega
+      simp [high, ne, String.append_assoc]
+      split <;> rfl
+    · by_cases so : c.toNat = 14
+      · simp [so, String.append_assoc]
+        split <;> rfl
+      · simp [high, so]
+
+def showStringModel (s : String) : String :=
+  "\"" ++ s.toList.foldr showStringStep "\""
+
+theorem showStringModel_eq (s : String) : showStringModel s = encodeLiteral s := by
+  have step : showStringStep = prependEscaped := funext fun c => funext (showStringStep_eq c)
+  simpa [showStringModel, step] using quoted_fold s
+
+#print axioms showStringModel_eq
+
+-- The closing apostrophe cannot trigger protectEsc. In a character
+-- literal a double quote is plain and the apostrophe itself is escaped.
+def encodeEndpoint (c : Char) : String :=
+  "'" ++ (if c.toNat = 39 then "\\'" else if c == '"' then "\"" else encodeChar c) ++ "'"
+
+private def showEndpoint (c : Char) : String :=
+  if c.toNat = 39 then "'\\''"
+  else if c == '"' then "'\"'"
+  else "'" ++ showStringStep c "'"
+
+theorem showEndpoint_eq (c : Char) : showEndpoint c = encodeEndpoint c := by
+  rw [showEndpoint, encodeEndpoint]
+  by_cases apostrophe : c.toNat = 39
+  · simp [apostrophe]
+  · by_cases doubleQuote : c == '"'
+    · simp [apostrophe, doubleQuote]
+    · simp [apostrophe, doubleQuote, showStringStep_eq, prependEscaped,
+        needsEscapeTerminator, Char.isDigit, String.append_assoc]
+
+#print axioms showEndpoint_eq
+
 private theorem encodeChar_sound (c : Char) (h : Allowed c) :
     TokenSyntax c (encodeChar c) := by
   by_cases hq : c = quote

@@ -108,39 +108,43 @@ theorem generated_module
 -- rule. Other generated declarations may precede these pairs. The exact
 -- ruleDecl rendering is pinned by check-render-declarations-ghc.sh.
 structure RuleFragment where
-  ty : List Symbol
-  args : List (List Symbol)
+  params : List (List Symbol × Bool)
+  result : List Symbol
   body : List Symbol
-  type_ok : Derives productions [.nonterminal 163] ty
-  args_ok : ∀ arg ∈ args, Derives productions [.nonterminal 218] arg
+  types_ok : ∀ p ∈ params, Derives productions [.nonterminal 163] p.1
+  result_ok : Derives productions [.nonterminal 163] result
   body_ok : Derives productions [.nonterminal 211] body
 
+def RuleFragment.tokens (r : RuleFragment) :=
+  RenderDeclarationsGHC.ruleFromParams r.params r.result r.body
+
 def ruleItems (rules : List RuleFragment) : List (List Symbol) :=
-  rules.flatMap fun rule =>
-    RenderDeclarationsGHC.generatedPair rule.ty rule.args rule.body
+  rules.flatMap fun r => r.tokens.declarations
 
 theorem rule_items_valid (rules : List RuleFragment) :
     ∀ item ∈ ruleItems rules,
       Derives productions [.nonterminal 78] item := by
   intro item member
   obtain ⟨rule, _, inside⟩ := List.mem_flatMap.mp member
-  simp only [RenderDeclarationsGHC.generatedPair, List.mem_cons,
+  have valid : rule.tokens.Valid := RenderDeclarationsGHC.rule_from_params_valid
+    _ _ _ rule.types_ok rule.result_ok rule.body_ok
+  obtain ⟨types, result, args, body⟩ := valid
+  simp only [RenderDeclarationsGHC.RuleTokens.declarations,
+    RenderDeclarationsGHC.generatedPair, List.mem_cons,
     List.mem_nil_iff, or_false] at inside
-  rcases inside with signature | binding
-  · rw [signature]
-    exact RenderDeclarationsGHC.signature_named_ctype rule.type_ok
-  · rw [binding]
-    exact RenderDeclarationsGHC.binding_named_arguments rule.args rule.args_ok
-      rule.body_ok
+  rcases inside with rfl | rfl
+  · exact RenderDeclarationsGHC.generated_rule_signature _ _ types result
+  · exact RenderDeclarationsGHC.binding_named_arguments _ args body
 
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
-    (exports verbatimImports otherDecls : List (List Symbol))
+    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
+    (userExports verbatimImports otherDecls : List (List Symbol))
     (rules : List RuleFragment)
     (name_ok : Derives productions [.nonterminal 321] name)
-    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
     (other_ok : ∀ item ∈ otherDecls,
@@ -148,15 +152,17 @@ theorem generated_module_with_rules
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
-      ([.terminal 19] ++ name ++ exportWord exports ++
+      ([.terminal 19] ++ name ++ exportWord
+        (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 32] finalTokens := by
   apply generated_module lex first firstTokens chunks finalSource finalTokens name
-    usesPegPrelude importsPrelude exports verbatimImports
-    (otherDecls ++ ruleItems rules) name_ok exports_ok verbatim_ok
+    usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
+    (otherDecls ++ ruleItems rules) name_ok
+    (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
     rcases List.mem_append.mp member with inOther | inRule
     · exact other_ok item inOther

@@ -42,7 +42,7 @@ private theorem part_sound (upper alphaNum : Char → Bool) (part : String)
     · exact (Bool.and_eq_true_iff.mp h).1
     · exact List.all_eq_true.mp (Bool.and_eq_true_iff.mp h).2
 
-private theorem name_sound (upper alphaNum : Char → Bool) (name : String)
+theorem name_sound (upper alphaNum : Char → Bool) (name : String)
     (h : moduleName upper alphaNum name = true) :
     NameSyntax upper alphaNum name := by
   intro part member

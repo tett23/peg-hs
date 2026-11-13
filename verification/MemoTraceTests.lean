@@ -30,3 +30,21 @@ example : ¬ CacheInvariant changed [(3, body 3)] := by
   have same := inv 3 (body 3) (by rfl)
   have results := congrArg Entry.result same
   cases results
+
+-- Invariant 1: choose the next key using a result and the replayed effects.
+private def branchAfter (key : Nat) : Calls Nat Nat :=
+  .call key fun result state =>
+    match result with
+    | .ok _ value => if state.deps value then .call value (fun _ _ => .done) else .done
+    | .fail => .call (state.failure + 1) (fun _ _ => .done)
+    | .throw .. => .done
+
+example : (runCalls true body (branchAfter 3) [(3, body 3)] initial).1 =
+    [.ok 4 3, .ok 4 3] := by decide
+
+private def failAtThree (key : Nat) := if key = 3 then changed key else body key
+example : (runCalls true failAtThree (branchAfter 3) [(3, failAtThree 3)] initial).1 =
+    [.fail, .ok 5 4] := by decide
+
+example : (runCalls true failAtThree (branchAfter 3) [(3, failAtThree 3)] initial).2.deps 4 =
+    true := by decide
