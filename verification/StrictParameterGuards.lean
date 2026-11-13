@@ -168,6 +168,30 @@ theorem invariant2_parameter_code_throw (before xs : List Char) (initial : Env)
   apply Derives.seqOk (parameter_here _ _ _)
   exact .seqCarryThrow (Derives.bind (Derives.capture code))
 
+set_option maxRecDepth 8192 in
+theorem invariant2_argcode_at_comma (pre tail : List Char) (env : Env) :
+    let suffix := ',' :: tail
+    Derives (context false (pre ++ suffix)) (.call 49 51) suffix.length env
+      (.ok suffix.length {env with resultDepth := 0}) := by
+  let suffix := ',' :: tail
+  let ctx := context false (pre ++ suffix)
+  let cleared := {env with resultDepth := 0}
+  have term : ctx.terms 94 = some (.lit [',']) := rfl
+  have src : ctx.input = pre ++ suffix := rfl
+  have comma : runFuel ctx 1 (.terminal 94) suffix.length cleared =
+      some (.ok tail.length {cleared with resultDepth := 0}) := by
+    have hit : ConcreteTerminal.terminalOracle (.lit [',']) ctx.input suffix.length = some tail.length := by
+      rw [src, ConcreteTerminal.invariant1_oracle_suffix]
+      rfl
+    simp only [runFuel, term, hit]
+    simp [suffix]
+  have stop : Derives ctx (.notAhead (.terminal 94)) suffix.length cleared .fail :=
+    Derives.notAhead (invariant1_runFuel_sound comma)
+  have body : Derives ctx (ctx.rules 51) suffix.length env (.ok suffix.length cleared) :=
+    Derives.star (.loopStop (.seqCarryFail stop))
+  exact Derives.call (ctx := ctx) (site := 49) (rule := 51) (env := env) (callee := env) (by rfl) body
+
+#print axioms invariant2_argcode_at_comma
 #print axioms invariant2_parameter_code_throw
 #print axioms invariant2_parameter_rule_reply
 #print axioms invariant2_parameter_capture_tests
