@@ -1,6 +1,7 @@
 import SelfHostedFileProof
 import TerminalCursor
 import StrictWhitespaceScan
+import StrictIdentifier
 
 namespace PegHs.MetaExecution
 open EnvironmentEval
@@ -455,6 +456,35 @@ theorem invariant2_declaration_parameter_throw (input : List Char) (start named 
   have parameter := (invariant2_declaration_optional_parameters_throw input params pos paramEnv label msg bad).1
   exact .altLeft (.seqOk here (.seqOk name (.seqOk templates (.seqCarryThrow parameter)))) (by simp)
 
+set_option maxRecDepth 8192 in
+theorem invariant1_declaration_name (pre : List Char) (c : Char) (cs : List Char) (env : Env)
+    (valid : CharRule.identStart.accepts c = true) :
+    let ctx := context false (pre ++ c :: cs)
+    let n := (c :: cs).length
+    let located := bindHere env
+    let text := c :: cs.takeWhile CharRule.identChar.accepts
+    Derives ctx (.bind 9 "l" (.call 16 3)) n env (.ok n located) ∧
+      Derives ctx (.bind 10 "n" (.call 17 8)) n located
+        (.ok (cs.dropWhile CharRule.identChar.accepts).length ((located.put "n" text).putDepth "n" 0)) := by
+  let ctx := context false (pre ++ c :: cs)
+  let n := (c :: cs).length
+  have here : Derives ctx (ctx.rules 3) n env (.ok n {env with resultDepth := 0}) := Derives.eps
+  have called : Derives ctx (.call 16 3) n env (.ok n {env with resultDepth := 0}) :=
+    Derives.call (callee := env) (by rfl) here
+  have position := Derives.bind (site := 9) (name := "l") called
+  simp only [bindResult, matchedText, Nat.sub_self, List.take_zero] at position
+  refine ⟨position, ?_⟩
+  have parsed := invariant1_strict_identifier pre (c :: cs) (bindHere env)
+  simp only [valid, ite_true] at parsed
+  have name := Derives.call (ctx := ctx) (site := 17) (rule := 8) (env := bindHere env)
+    (callee := bindHere env) (by rfl) parsed
+  have bound := Derives.bind (site := 10) (name := "n") name
+  change Derives ctx _ _ _ (.ok _ (((bindHere env).put "n"
+    (matchedText (pre ++ c :: cs) (c :: cs).length (cs.dropWhile CharRule.identChar.accepts).length)).putDepth "n" 0)) at bound
+  rw [invariant1_identifier_capture] at bound
+  exact bound
+
+#print axioms invariant1_declaration_name
 #print axioms invariant2_declaration_parameter_throw
 #print axioms invariant2_declaration_optional_parameters_throw
 #print axioms invariant1_declaration_optional_parameters_absent
