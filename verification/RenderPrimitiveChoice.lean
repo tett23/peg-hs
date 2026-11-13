@@ -1,5 +1,6 @@
 import RenderExpressionGHC
 import RenderExpressionLexer
+import RenderComposition
 
 namespace PegHs.RenderPrimitiveChoice
 
@@ -46,6 +47,32 @@ theorem choice_tokens_derive (first : Alternative) (rest : List Alternative) :
       RenderExpressionGHC.choice_many first.tokens second.tokens
         (more.map Alternative.tokens) first.valid second.valid more_ok
 
+-- Each step accounts for the lexer at one comma boundary.
+theorem printed_choice_ghc (lex : String → List Symbol) (first : Alternative) (rest : List Alternative)
+    (initial : lex ("PegRt.choice\n      [ " ++ first.source) = [.terminal 121, .terminal 105] ++ first.tokens)
+    (trace : RenderComposition.Trace lex "\n      , " ("PegRt.choice\n      [ " ++ first.source)
+      ([.terminal 121, .terminal 105] ++ first.tokens)
+      (rest.map fun alt => ⟨alt.source, [.terminal 114] ++ alt.tokens⟩) openSource openTokens)
+    (closing : lex (openSource ++ "\n      ]") = openTokens ++ [.terminal 106]) :
+    Derives productions [.nonterminal 217] (lex (printedChoice first rest)) := by
+  obtain ⟨hs, ht, _⟩ := RenderComposition.trace_sound initial trace
+  have fold (alts : List Alternative) (src : String) (tokens : List Symbol) :
+      let chunks := alts.map fun alt => (⟨alt.source, [.terminal 114] ++ alt.tokens⟩ : RenderComposition.Chunk)
+      RenderComposition.renderTail "\n      , " ("PegRt.choice\n      [ " ++ src) chunks =
+        "PegRt.choice\n      [ " ++ alts.foldl (fun acc alt => acc ++ "\n      , " ++ alt.source) src ∧
+      RenderComposition.tokenTail ([.terminal 121, .terminal 105] ++ tokens) chunks =
+        [.terminal 121, .terminal 105] ++ (alts.map Alternative.tokens).foldl RenderExpressionGHC.commaAppend tokens := by
+    induction alts generalizing src tokens with
+    | nil => exact ⟨rfl, rfl⟩
+    | cons a more ih =>
+      simpa [RenderComposition.renderTail, RenderComposition.tokenTail, RenderExpressionGHC.commaAppend,
+        List.append_assoc, String.append_assoc] using ih (src ++ "\n      , " ++ a.source)
+          (RenderExpressionGHC.commaAppend tokens a.tokens)
+  obtain ⟨sourceEq, tokensEq⟩ := fold rest first.source first.tokens
+  rw [printed_choice_fold, ← sourceEq, ← hs, closing, ht, tokensEq]
+  exact choice_tokens_derive first rest
+
+#print axioms printed_choice_ghc
 #print axioms printed_choice_fold
 #print axioms choice_tokens_derive
 
