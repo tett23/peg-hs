@@ -307,6 +307,30 @@ theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (
   simpa only [List.append_assoc, List.singleton_append] using
     invariant2_empty_parameter_before_comma (before ++ ['(']) xs pre tail {initial with resultDepth := 0} sameInput comma
 
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_chunks_tail_throw (pre tail : List Char) (start pos : Nat)
+    (env bound : Env) (label : String) (msg : Option String)
+    (first : Derives (context false (pre ++ ',' :: tail)) (.bind 24 "p" (.call 44 19))
+      start env (.ok (',' :: tail).length bound))
+    (rest : Derives (context false (pre ++ ',' :: tail)) translatedStrictParamChunks tail.length
+      {bound with resultDepth := 0} (.throwLabel pos label msg)) :
+    Derives (context false (pre ++ ',' :: tail)) translatedStrictParamChunks start env
+      (.throwLabel pos label msg) := by
+  let ctx := context false (pre ++ ',' :: tail)
+  let next := {bound with resultDepth := 0}
+  have term : ctx.terms 27 = some (.lit [',']) := rfl
+  have hit : ConcreteTerminal.terminalOracle (.lit [',']) ctx.input (',' :: tail).length = some tail.length := by
+    change ConcreteTerminal.terminalOracle _ (pre ++ ',' :: tail) _ = _
+    rw [ConcreteTerminal.invariant1_oracle_suffix]
+    rfl
+  have comma : runFuel ctx 1 (.terminal 27) (',' :: tail).length bound = some (.ok tail.length next) := by
+    simp only [runFuel, term, hit]
+    simp [next]
+  have call : Derives ctx (.call 45 18) tail.length next (.throwLabel pos label msg) :=
+    Derives.call (ctx := ctx) (site := 45) (rule := 18) (env := next) (callee := next) (by rfl) rest
+  exact .altLeft (.seqOk first (.seqOk (invariant1_runFuel_sound comma) (Derives.bind call))) (by simp)
+
+#print axioms invariant2_parameter_chunks_tail_throw
 #print axioms invariant2_parameter_list_first_throw
 #print axioms invariant2_parameter_list_empty_first
 #print axioms invariant2_parameter_outcomes
