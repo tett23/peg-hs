@@ -17,3 +17,7 @@ lineOf arr off = go lo hi
           let m = (a + b + 1) `div` 2
            in if arr ! m <= off then go m b else go a (m - 1)
 
+posIn input index off = Pos off (l + 1) (T.length (TU.takeWord8 (off - start) (TU.dropWord8 start input)) + 1)
+  where
+    l = lineOf index off
+    start = index ! l

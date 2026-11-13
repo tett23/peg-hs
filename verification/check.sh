@@ -34,7 +34,7 @@ verification/check-escape-predicates.sh
 verification/check-parameter-predicates.sh
 verification/check-semantic-predicates.sh "$work"
 # The line lookup proof follows the inclusive upper-midpoint binary search.
-sed -n -e '/^lineIndex t =/,/^$/p' -e '/^lineOf arr off =/,/^$/p' packages/peg-runtime/src/Peg/Runtime/Position.hs |
+sed -n -e '/^lineIndex t =/,/^$/p' -e '/^lineOf arr off =/,/^$/p' -e '/^posIn input index off =/,$p' packages/peg-runtime/src/Peg/Runtime/Position.hs |
   diff -u - verification/line-of.source
 verification/check-header.sh
 verification/check-lexical.sh
