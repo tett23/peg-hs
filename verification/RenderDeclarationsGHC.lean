@@ -300,6 +300,29 @@ theorem debug_tabstop_call (hasEnv withKind : Bool) :
   have set := application (oneRule (id := 536) (by rfl) varid_argument) get
   exact runtime_call hasEnv withKind _ (parens (application set varid_argument))
 
+def recordConfigWord : List Symbol :=
+  [.terminal 117, .terminal 101, .terminal 121, .terminal 77,
+   .terminal 121, .terminal 117, .terminal 102]
+
+open RenderExpressionGHC in
+theorem debug_record_call (hasEnv withKind : Bool) :
+    Derives productions [.nonterminal 217] (runtimeCallWord hasEnv withKind recordConfigWord) := by
+  have field := oneRule (id := 769) (by rfl)
+    (applyRule (g := productions) (id := 774) (by rfl) (.refl _))
+  have get := application qualified_function varid_argument
+  have value := oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+    (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) get)))
+  have binding := applyRule (id := 668) (by rfl)
+    (beside field (beside (.refl [.terminal 77]) value))
+  have fields := oneRule (id := 663) (by rfl) (oneRule (id := 666) (by rfl) binding)
+  have cfg := oneRule (id := 554) (by rfl) (oneRule (id := 555) (by rfl)
+    (oneRule (id := 769) (by rfl) (oneRule (id := 773) (by rfl)
+      (applyRule (g := productions) (id := 775) (by rfl) (.refl _)))))
+  have update := applyRule (id := 552) (by rfl) (beside cfg
+    (beside (.refl [.terminal 101]) (beside fields (.refl [.terminal 102]))))
+  exact runtime_call hasEnv withKind _ (oneRule (id := 551) (by rfl) update)
+
+#print axioms debug_record_call
 #print axioms debug_tabstop_call
 #print axioms runtime_call
 
