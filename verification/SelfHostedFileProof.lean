@@ -188,6 +188,28 @@ theorem invariant2_strict_public_terminates (source : String) :
   exact ⟨bound, reply, fun _ enough => invariant1_fuel_stable _ enough observed,
     invariant1_strict_public_reply source bound reply observed⟩
 
+theorem invariant2_strict_rejection_no_module (source : String)
+    (invalid : ¬ ∃ env fuel, runFuel (strictContext source.toList) fuel translatedStrictFile
+      source.toList.length {} = some (.ok 0 env))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    ∃ bound reply, (∀ limit ≥ bound, runFuel (strictContext source.toList) limit translatedStrictFile
+      source.toList.length {} = some reply) ∧
+      Pipeline.visible (Pipeline.pipeline ((parseFile false source format).bind assemble)
+        resolve expand check notes strip warnings generate) =
+        .error [format (FileEntry.incompleteCause source.toList reply)] := by
+  let result := recognizeFile false source.toList
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file _ _).mpr result.property
+  refine ⟨bound, result.val, fun _ enough => invariant1_fuel_stable _ enough observed, ?_⟩
+  apply (invariant2_parseFile_pipeline_diagnostic false source _ format assemble resolve expand
+    check notes strip warnings generate).2
+  rintro ⟨env, accepted⟩
+  exact invalid ⟨env, (invariant1_strict_recursive_file _ _).mpr accepted⟩
+
+#print axioms invariant2_strict_rejection_no_module
 #print axioms invariant2_strict_public_terminates
 #print axioms invariant1_strict_public_reply
 
