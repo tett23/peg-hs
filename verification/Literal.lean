@@ -92,6 +92,48 @@ def encodeBody : List Char → String
     if needsEscapeTerminator c cs then encodeChar c ++ "\\&" ++ encodeBody cs
     else encodeChar c ++ encodeBody cs
 
+-- Classify the next spelling by the only two ASCII prefixes that can
+-- extend an escape. All non-ASCII characters start with a backslash.
+private def escapePrefix (c : Char) : Bool × Bool := (c == 'H', c.isDigit)
+
+private theorem encoded_prefix (c : Char) (suffix : String) :
+    ((encodeChar c ++ suffix).toList.head?.map escapePrefix) = some (escapePrefix c) := by
+  by_cases high : 127 < c.toNat
+  · have enc : encodeChar c = "\\" ++ c.toNat.repr := by
+      simp [encodeChar, high, quote, slash]
+      repeat' split
+      all_goals first | rfl | (subst c; contradiction)
+    have noH : (c == 'H') = false := by
+      apply beq_eq_false_iff_ne.mpr
+      intro h
+      subst c
+      contradiction
+    have noDigit : c.isDigit = false := by
+      have upper : ¬ c.val ≤ '9'.val := by
+        intro h
+        have le : c.toNat ≤ 57 := UInt32.le_iff_toNat_le.mp h
+        omega
+      simp only [Char.isDigit, decide_eq_false upper, Bool.and_false]
+    simp [enc, String.toList_append, escapePrefix, noH, noDigit]
+  · have finite : ∀ n : Fin 128, (encodeChar (Char.ofNat n.val)).toList.head?.map escapePrefix =
+        some (escapePrefix (Char.ofNat n.val)) := by decide
+    have eqn := finite ⟨c.toNat, by omega⟩
+    simp only [Char.ofNat_toNat] at eqn
+    simp only [String.toList_append]
+    cases hc : (encodeChar c).toList <;> simp_all
+
+theorem encoded_suffix_prefix (cs : List Char) :
+    (encodeBody cs).toList.head?.map escapePrefix = cs.head?.map escapePrefix := by
+  cases cs with
+  | nil => rfl
+  | cons c cs =>
+    unfold encodeBody
+    split
+    · simpa [String.append_assoc] using encoded_prefix c ("\\&" ++ encodeBody cs)
+    · exact encoded_prefix c (encodeBody cs)
+
+#print axioms encoded_suffix_prefix
+
 def encodeLiteral (s : String) : String :=
   "\"" ++ encodeBody s.toList ++ "\""
 
