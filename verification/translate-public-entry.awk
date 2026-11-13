@@ -9,6 +9,10 @@ BEGIN {
   emit("    : Except Failure T :=")
   emit("  match start with")
 }
+/^parseGrammar src =/ {
+  if (assembly++ || $0 != "parseGrammar src = parseTops src >>= assemble") reject()
+  next
+}
 /^parseTops src = case SelfHosted.parse src of$/ {
   if (wrapper++ || stage != 6) reject()
   emit("def translatedPublic {T} (d : Failure → String) : Except Failure T → Except PegHs.Pipeline.Diagnostics T")
@@ -50,6 +54,9 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1) exit 1
+  emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
+  emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
+  emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")
   emit("end PegHs.PublicParsing")
 }

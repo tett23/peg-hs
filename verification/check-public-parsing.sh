@@ -32,3 +32,9 @@ if awk -f verification/translate-public-entry.awk "$runtime" "$work/ChangedParse
   echo 'entry translation accepted an empty public diagnostic list' >&2
   exit 1
 fi
+
+sed 's/parseTops src >>= assemble/assemble src/' "$parser" > "$work/ChangedAssembly.hs"
+if awk -f verification/translate-public-entry.awk "$runtime" "$work/ChangedAssembly.hs" > /dev/null; then
+  echo 'entry translation accepted bypassing parseTops' >&2
+  exit 1
+fi
