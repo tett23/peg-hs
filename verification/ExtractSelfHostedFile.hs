@@ -1150,6 +1150,8 @@ main = do
       [body] | [(expr, "")] <- readP_to_S (parser <* skipSpaces <* eof) body ->
         putStrLn ("def translatedStrict" ++ name ++ " : EnvironmentEval.Body := " ++ expr)
       _ -> die ("unsupported or missing generated rule " ++ name)
+  -- production accepts only the return of the binder from PegRt.many.
+  putStrLn "def translatedFileReturn {α : Type} (items : List α) : List α := items"
   putStrLn ("def translatedStrictTable : Array EnvironmentEval.Body := #[" ++
     intercalate ", " (map ("translatedStrict" ++) names) ++ "]")
   putStrLn "end PegHs.MetaExecution"

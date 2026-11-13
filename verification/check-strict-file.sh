@@ -24,6 +24,14 @@ lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.
 lean -DwarningAsError=true -o "$work/DirectiveSourceDiagnostic.olean" DirectiveSourceDiagnostic.lean
 sh check-directive-arity.sh "$work"
 
+# Recognition is unchanged if File discards the collected values.
+sed "/^peg'rule'File =$/,/^$/s/PegPrelude.pure peg'v0/PegPrelude.pure []/" "$source" > "$work/DroppedFileItems.hs"
+if runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$work/DroppedFileItems.hs" > /dev/null 2>"$work/dropped-file-items.log"; then
+  echo 'accepted a File action discarding its items' >&2
+  exit 1
+fi
+grep -Fq 'unsupported or missing generated rule File' "$work/dropped-file-items.log"
+
 # A different but supported call still translates; it must lose the File derivation.
 sed "/^peg'rule'File =$/,/^$/s/PegRt.many (peg'rule'TopItem)/PegRt.many (peg'rule'Ws)/" \
   "$source" > "$work/ChangedStrictFile.hs"
