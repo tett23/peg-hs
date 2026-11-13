@@ -108,30 +108,33 @@ theorem generated_module
 -- rule. Other generated declarations may precede these pairs. The exact
 -- ruleDecl rendering is pinned by check-render-declarations-ghc.sh.
 structure RuleFragment where
-  ty : List Symbol
-  args : List (List Symbol)
+  params : List (List Symbol × Bool)
+  result : List Symbol
   body : List Symbol
-  type_ok : Derives productions [.nonterminal 163] ty
-  args_ok : ∀ arg ∈ args, Derives productions [.nonterminal 218] arg
+  types_ok : ∀ p ∈ params, Derives productions [.nonterminal 163] p.1
+  result_ok : Derives productions [.nonterminal 163] result
   body_ok : Derives productions [.nonterminal 211] body
 
+def RuleFragment.tokens (r : RuleFragment) :=
+  RenderDeclarationsGHC.ruleFromParams r.params r.result r.body
+
 def ruleItems (rules : List RuleFragment) : List (List Symbol) :=
-  rules.flatMap fun rule =>
-    RenderDeclarationsGHC.generatedPair rule.ty rule.args rule.body
+  rules.flatMap fun r => r.tokens.declarations
 
 theorem rule_items_valid (rules : List RuleFragment) :
     ∀ item ∈ ruleItems rules,
       Derives productions [.nonterminal 78] item := by
   intro item member
   obtain ⟨rule, _, inside⟩ := List.mem_flatMap.mp member
-  simp only [RenderDeclarationsGHC.generatedPair, List.mem_cons,
+  have valid : rule.tokens.Valid := RenderDeclarationsGHC.rule_from_params_valid
+    _ _ _ rule.types_ok rule.result_ok rule.body_ok
+  obtain ⟨types, result, args, body⟩ := valid
+  simp only [RenderDeclarationsGHC.RuleTokens.declarations,
+    RenderDeclarationsGHC.generatedPair, List.mem_cons,
     List.mem_nil_iff, or_false] at inside
-  rcases inside with signature | binding
-  · rw [signature]
-    exact RenderDeclarationsGHC.signature_named_ctype rule.type_ok
-  · rw [binding]
-    exact RenderDeclarationsGHC.binding_named_arguments rule.args rule.args_ok
-      rule.body_ok
+  rcases inside with rfl | rfl
+  · exact RenderDeclarationsGHC.generated_rule_signature _ _ types result
+  · exact RenderDeclarationsGHC.binding_named_arguments _ args body
 
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
