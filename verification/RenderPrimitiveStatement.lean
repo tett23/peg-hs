@@ -256,6 +256,18 @@ def constructorAlternative (stmts : List RenderPrimitiveDoGHC.Statement) (name :
     (fields : List String) : RenderPrimitiveChoice.Alternative :=
   valueAlternative stmts (printedConstructor name fields) _ (constructor_value fields.length)
 
+theorem fresh_name_varid (n : Nat) : RenderExpressionLexer.varId ("peg'v" ++ n.repr) = true := by
+  have digits : n.repr.toList.all RenderExpressionLexer.idTail = true := by
+    apply List.all_eq_true.mpr
+    intro c hc
+    have mem : c ∈ Nat.toDigits 10 n := by simpa [Nat.repr] using hc
+    have digit := Nat.isDigit_of_mem_toDigits (by decide : 0 < 10) (by decide : 10 ≤ 10) mem
+    have ascii : RenderExpressionLexer.asciiDigit c = true := digit
+    simp [RenderExpressionLexer.idTail, ascii]
+  simp [RenderExpressionLexer.varId, String.toList_append] at *
+  exact ⟨by decide, by decide, by decide, by decide, by decide, digits⟩
+
+#print axioms fresh_name_varid
 #print axioms constructor_name_no_space
 #print axioms printedConstructor_shape
 #print axioms constructor_value
