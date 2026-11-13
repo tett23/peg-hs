@@ -114,10 +114,11 @@ private theorem parameter_here (input : List Char) (n : Nat) (env : Env) :
 
 set_option maxRecDepth 8192 in
 theorem invariant2_parameter_rule_reply (before xs pre suffix : List Char)
-    (sameInput : before ++ xs = pre ++ suffix) (initial captured : Env)
-    (code : Derives (context false (pre ++ suffix)) (.bind 28 "c" (.capture (.call 49 51)))
-      (afterWhitespace xs).length (bindHere {initial with resultDepth := 0}) (.ok suffix.length captured)) :
-    let text := captured.lookup "c"
+    (sameInput : before ++ xs = pre ++ suffix) (initial parsed : Env)
+    (code : Derives (context false (pre ++ suffix)) (.call 49 51)
+      (afterWhitespace xs).length (bindHere {initial with resultDepth := 0}) (.ok suffix.length parsed)) :
+    let text := matchedText (pre ++ suffix) (afterWhitespace xs).length suffix.length
+    let captured := (parsed.put "c" text).putDepth "c" parsed.resultDepth
     Derives (context false (pre ++ suffix)) translatedStrictParamChunk xs.length initial
       (if (ParameterPredicates.strip GhcPredicates.space text).isEmpty then
         .throwLabel suffix.length "argument" (some "expected an argument")
@@ -133,15 +134,22 @@ theorem invariant2_parameter_rule_reply (before xs pre suffix : List Char)
     Derives.call (ctx := context false (pre ++ suffix)) (site := 47) (rule := 4) (env := initial) (callee := initial) (by rfl) scan
   apply Derives.seqOk ws
   apply Derives.seqOk (parameter_here _ _ _)
-  apply Derives.seqOk code
+  let text := matchedText (pre ++ suffix) (afterWhitespace xs).length suffix.length
+  let captured := (parsed.put "c" text).putDepth "c" parsed.resultDepth
+  have bound : Derives (context false (pre ++ suffix)) (.bind 28 "c" (.capture (.call 49 51)))
+      (afterWhitespace xs).length (bindHere {initial with resultDepth := 0}) (.ok suffix.length captured) :=
+    Derives.bind (Derives.capture code)
+  apply Derives.seqOk bound
   have h := invariant2_parameter_guard_order (pre ++ suffix) suffix.length captured _ _
     (invariant2_parameter_delimiter pre suffix _)
   obtain ⟨a, b, c⟩ := invariant2_parameter_capture_tests (pre ++ suffix) captured
   dsimp only at h ⊢
   rw [a, b, c] at h
-  cases empty : (ParameterPredicates.strip GhcPredicates.space (captured.lookup "c")).isEmpty <;>
+  have lookup : captured.lookup "c" = text := rfl
+  rw [lookup] at h
+  cases empty : (ParameterPredicates.strip GhcPredicates.space text).isEmpty <;>
     cases result : ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum
-      (captured.lookup "c") <;> simpa [empty, result] using h
+      text <;> simpa [← show text = matchedText (pre ++ suffix) (afterWhitespace xs).length suffix.length from rfl, empty, result] using h
 
 #print axioms invariant2_parameter_rule_reply
 #print axioms invariant2_parameter_capture_tests
