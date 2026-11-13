@@ -1,5 +1,5 @@
 import TranslatedStrictFile
-import FileEntry
+import TotalFile
 import VerbatimRule
 
 namespace PegHs.MetaExecution
@@ -146,6 +146,26 @@ theorem invariant1_strict_recursive_file (input : List Char) (reply : Reply) :
     (∃ fuel, runFuel (strictContext input) fuel translatedStrictFile input.length {} = some reply) ↔
       FileResult false input reply := by
   rw [invariant1_strict_context, invariant1_translated_strict_run]
+
+theorem invariant1_strict_public_acceptance (source : String)
+    (format : PublicParsing.Failure → String) :
+    parseFile false source format = .ok () ↔ ∃ env fuel,
+      runFuel (strictContext source.toList) fuel translatedStrictFile source.toList.length {} =
+        some (.ok 0 env) := by
+  rw [invariant1_parseFile_entry, FileEntry.invariant1_public_entry
+    (recognizeFile false source.toList).property]
+  exact exists_congr fun env => (invariant1_strict_recursive_file _ (.ok 0 env)).symm
+
+theorem invariant2_strict_public_rejection (source : String)
+    (format : PublicParsing.Failure → String) :
+    (∃ msg, parseFile false source format = .error [msg]) ↔ ¬ ∃ env fuel,
+      runFuel (strictContext source.toList) fuel translatedStrictFile source.toList.length {} =
+        some (.ok 0 env) := by
+  rw [invariant2_parseFile_rejects_iff]
+  exact not_congr (exists_congr fun env => (invariant1_strict_recursive_file _ (.ok 0 env)).symm)
+
+#print axioms invariant1_strict_public_acceptance
+#print axioms invariant2_strict_public_rejection
 
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :
