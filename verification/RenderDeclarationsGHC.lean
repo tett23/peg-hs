@@ -896,6 +896,27 @@ theorem positional_store_declaration (fields : ConstructorFields) :
     (beside (data_constructors fields []) (data_deriving [])))))
   simpa [constructorTail, derivingClause] using oneRule (id := 153) (by rfl) decl
 
+def storeRecordFields (first : List Symbol) : List (List Symbol) → List Symbol
+  | [] => [.terminal 117, .terminal 76] ++ first
+  | next :: rest => [.terminal 117, .terminal 76] ++ first ++ [.terminal 114] ++ storeRecordFields next rest
+
+theorem store_record_fields (first : List Symbol) (rest : List (List Symbol))
+    (valid : ∀ ty ∈ first :: rest, Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 196] (storeRecordFields first rest) := by
+  have field {ty} (h : Derives productions [.nonterminal 163] ty) :=
+    applyRule (id := 474) (by rfl) (beside
+      (oneRule (id := 367) (by rfl) (oneRule (id := 767) (by rfl)
+        (applyRule (g := productions) (id := 775) (by rfl) (.refl [.terminal 117]))))
+      (beside (.refl [.terminal 76]) h))
+  induction rest generalizing first with
+  | nil => exact oneRule (id := 473) (by rfl) (field (valid first (by simp)))
+  | cons next rest ih =>
+    have tail := ih next (fun ty h => valid ty (List.mem_cons_of_mem _ h))
+    simpa [storeRecordFields, List.append_assoc] using applyRule (id := 472) (by rfl)
+      (beside (field (valid first (by simp))) (beside (.refl [.terminal 114]) tail))
+
+#print axioms store_record_fields
+
 def pureStoreBindingWord (hasEnv : Bool) : List Symbol :=
   let env := if hasEnv then [.terminal 117] else []
   [.terminal 117] ++ env ++ [.terminal 77, .terminal 121, .terminal 107, .terminal 118] ++
