@@ -151,6 +151,24 @@ theorem invariant2_parameter_rule_reply (before xs pre suffix : List Char)
     cases result : ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum
       text <;> simpa [← show text = matchedText (pre ++ suffix) (afterWhitespace xs).length suffix.length from rfl, empty, result] using h
 
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_code_throw (before xs : List Char) (initial : Env)
+    (pos : Nat) (label : String) (msg : Option String)
+    (code : Derives (context false (before ++ xs)) (.call 49 51)
+      (afterWhitespace xs).length (bindHere {initial with resultDepth := 0}) (.throwLabel pos label msg)) :
+    Derives (context false (before ++ xs)) translatedStrictParamChunk xs.length initial
+      (.throwLabel pos label msg) := by
+  let ctx := context false (before ++ xs)
+  have scan := invariant1_strict_whitespace_scan before xs initial
+  have ws : Derives ctx (.call 47 4) xs.length initial
+      (.ok (afterWhitespace xs).length {initial with resultDepth := 0}) :=
+    Derives.call (ctx := ctx) (site := 47) (rule := 4) (env := initial) (callee := initial) (by rfl) scan
+  rw [invariant2_parameter_guard_shape]
+  apply Derives.seqOk ws
+  apply Derives.seqOk (parameter_here _ _ _)
+  exact .seqCarryThrow (Derives.bind (Derives.capture code))
+
+#print axioms invariant2_parameter_code_throw
 #print axioms invariant2_parameter_rule_reply
 #print axioms invariant2_parameter_capture_tests
 #print axioms invariant2_parameter_guard_order
