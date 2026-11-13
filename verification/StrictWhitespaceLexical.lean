@@ -86,6 +86,27 @@ theorem invariant1_file_return_values (items : List α) :
       (items.foldl EnvironmentEval.translatedManyPush EnvironmentEval.translatedManyInitial)) = items :=
   EnvironmentEval.invariant1_runtime_many_values items
 
+theorem invariant2_file_missing_module {L G} (input : List Char)
+    (items : List (PublicParsing.AssemblyItem L)) (diagnostic : PublicParsing.Failure → String)
+    (build : (L × String) → G) (sortErrors : List String → List String)
+    (absent : ∀ l n al a, PublicParsing.AssemblyItem.directive l n al a ∈ items →
+      n ≠ "library" ∧ n ≠ "module") :
+    let values := translatedFileReturn (EnvironmentEval.translatedManyStop
+      (items.foldl EnvironmentEval.translatedManyPush EnvironmentEval.translatedManyInitial))
+    PublicParsing.translatedGrammar input.utf8Encode.size (.ok input.utf8Encode.size values)
+      diagnostic (fun ts =>
+        let ds := PublicParsing.translatedDirectives ts
+        PublicParsing.translatedAssemble [] (PublicParsing.translatedModuleName
+          (PublicParsing.translatedLibraryLoc ds) (PublicParsing.translatedSingle ds))
+          build "missing %module directive" sortErrors) = .error ["missing %module directive"] := by
+  dsimp only
+  rw [invariant1_file_return_values]
+  have missing := (PublicParsing.invariant2_missing_module_items items).2 absent
+  simp [PublicParsing.translatedGrammar, PublicParsing.translatedRuntime,
+    PublicParsing.translatedPublic, Except.bind, missing, PublicParsing.translatedAssemble]
+
+#print axioms invariant2_file_missing_module
+
 theorem invariant2_whitespace_only_assembly (input : List Char)
     (consumed : PegVerification.run PegVerification.whitespaceExpr input = .ok [])
     (p : AssembleValidation.Predicates) :
