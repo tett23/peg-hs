@@ -302,6 +302,32 @@ theorem syntax_action_bindings :
     named_binding_statement (expr (RenderExpressionGHC.application
       RenderExpressionGHC.qualified_function RenderDeclarationsGHC.varid_argument))⟩
 
+def syntaxItemTokens (labeled : Bool) (body : List Symbol) :
+    List (List Symbol) × List Symbol :=
+  let statements := if labeled then [labeledBindingTokens body, [.terminal 121, .terminal 117]]
+    else [[.terminal 107, .terminal 2, .terminal 114, .terminal 117, .terminal 108,
+      .terminal 82] ++ body]
+  (statements, [.terminal 117])
+
+theorem syntax_item_tokens_valid (labeled : Bool) {body : List Symbol}
+    (body_ok : Derives productions [.nonterminal 211] body) :
+    (∀ stmt ∈ (syntaxItemTokens labeled body).1, Derives productions [.nonterminal 257] stmt) ∧
+      Derives productions [.nonterminal 229] (syntaxItemTokens labeled body).2 := by
+  constructor
+  · intro stmt mem
+    cases labeled with
+    | false =>
+      simp only [syntaxItemTokens, Bool.false_eq_true, ite_false, List.mem_singleton] at mem
+      subst stmt
+      exact syntax_item_pair_binding true body_ok
+    | true =>
+      have parts := labeled_item_parts (one (id := 596) (lhs := 229) (by decide) body_ok)
+      simp only [syntaxItemTokens, ite_true, List.mem_cons, List.not_mem_nil, or_false] at mem
+      rcases mem with rfl | rfl
+      · exact parts.1
+      · exact parts.2
+  · exact RenderExpressionGHC.aexp_to_texp RenderDeclarationsGHC.varid_argument
+
 theorem syntax_action_block (hasEnv : Bool) (items : List (List (List Symbol) × List Symbol))
     (fragment : List Symbol)
     (fragment_ok : Derives productions [.nonterminal 229] fragment)
@@ -327,6 +353,24 @@ theorem syntax_action_block (hasEnv : Bool) (items : List (List (List Symbol) ×
     obtain ⟨item, hi, rfl⟩ := List.mem_map.mp mem
     exact (items_ok item hi).2
 
+theorem syntax_action_items (hasEnv : Bool) (inputs : List (Bool × List Symbol))
+    (fragment : List Symbol)
+    (fragment_ok : Derives productions [.nonterminal 229] fragment)
+    (bodies_ok : ∀ input ∈ inputs, Derives productions [.nonterminal 211] input.2) :
+    let items := inputs.map fun input => syntaxItemTokens input.1 input.2
+    let bindCall : List Symbol := [.terminal 117, .terminal 82, .terminal 121, .terminal 117]
+    let start : List Symbol := [.terminal 117, .terminal 82, .terminal 121]
+    let stmts := (if hasEnv then [bindCall] else []) ++ [start] ++ items.flatMap Prod.fst ++ [bindCall]
+    Derives productions [.nonterminal 218] (RenderExpressionGHC.blockTokens
+      (stmts ++ [[.terminal 121, .terminal 107] ++ ([.terminal 107] ++ fragment ++ [.terminal 108]) ++
+        [.terminal 114] ++ kidsTokens (items.map Prod.snd) ++ [.terminal 108]])) := by
+  apply syntax_action_block _ _ _ fragment_ok
+  intro item mem
+  obtain ⟨input, hi, rfl⟩ := List.mem_map.mp mem
+  exact syntax_item_tokens_valid input.1 (bodies_ok input hi)
+
+#print axioms syntax_item_tokens_valid
+#print axioms syntax_action_items
 #print axioms syntax_action_block
 
 theorem syntax_action_names :
