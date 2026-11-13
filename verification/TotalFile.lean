@@ -90,6 +90,43 @@ theorem invariant2_total_invalid_file (mode : Bool) (input : List Char)
   exact FileEntry.invariant2_invalid_file_no_module (recognizeFile mode input).property invalid
     diagnostic assemble resolve expand check notes strip warnings generate
 
+theorem invariant2_parseFile_pipeline_diagnostic (mode : Bool) (source : String)
+    (invalid : ¬ ∃ env, FileResult mode source.toList (.ok 0 env))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let cause := FileEntry.incompleteCause source.toList (recognizeFile mode source.toList).val
+    let tops := parseFile mode source format
+    tops = .error [format cause] ∧
+      Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+        .error [format cause] := by
+  have result := FileEntry.invariant2_incomplete_file_diagnostic (recognizeFile mode source.toList).property
+    invalid format assemble resolve expand check notes strip warnings generate
+  dsimp only at result ⊢
+  rw [invariant1_parseFile_entry]
+  rw [PublicParsing.invariant1_translated_entry] at result
+  exact result
+
+theorem invariant1_generated_module_requires_complete_parse (mode : Bool) (source moduleText : String)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String)
+    (generated : Pipeline.visible (Pipeline.pipeline ((parseFile mode source format).bind assemble)
+      resolve expand check notes strip warnings generate) = .ok moduleText) :
+    ∃ env, FileResult mode source.toList (.ok 0 env) := by
+  apply Classical.byContradiction
+  intro invalid
+  have rejected := (invariant2_parseFile_pipeline_diagnostic mode source invalid format assemble
+    resolve expand check notes strip warnings generate).2
+  rw [generated] at rejected
+  contradiction
+
+#print axioms invariant1_generated_module_requires_complete_parse
+#print axioms invariant2_parseFile_pipeline_diagnostic
 #print axioms invariant2_total_invalid_file
 #print axioms invariant1_total_public_entry
 end PegHs.MetaExecution

@@ -15,7 +15,6 @@ source=../packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs
 runghc-9.10.3 -Werror ExtractSelfHostedFile.hs "$source" > "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedStrictFile.olean" "$work/TranslatedStrictFile.lean"
 lean -DwarningAsError=true -o "$work/SelfHostedFileProof.olean" SelfHostedFileProof.lean
-lean -DwarningAsError=true StrictParameterGuards.lean
 lean -DwarningAsError=true -o "$work/StrictSpaceChar.olean" StrictSpaceChar.lean
 lean -DwarningAsError=true -o "$work/StrictInlineSpace.olean" StrictInlineSpace.lean
 lean -DwarningAsError=true -o "$work/StrictIdentifier.olean" StrictIdentifier.lean
@@ -28,6 +27,7 @@ lean -DwarningAsError=true -o "$work/StrictWhitespaceMemo.olean" StrictWhitespac
 lean -DwarningAsError=true StrictIdentifierMemo.lean
 lean -DwarningAsError=true StrictCharMemo.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
+lean -DwarningAsError=true StrictParameterGuards.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
 lean -DwarningAsError=true DirectiveSequence.lean

@@ -52,4 +52,57 @@ theorem invariant2_invalid_file_no_module {mode input reply} (result : FileResul
     simpa only [h] using invariant2_parseFailure_no_module _ _ _ _ h assemble resolve expand
       check notes strip warnings generate
 
+noncomputable def incompleteCause (input : List Char) : Reply → Failure
+  | .fail => .ordinary
+  | .throwLabel _ label msg => .labelled label msg
+  | .ok rest _ => .expectedEnd (Utf8Terminals.byteOffset input (input.length - rest))
+
+theorem invariant2_incomplete_file_diagnostic {mode input reply}
+    (parsed : FileResult mode input reply)
+    (invalid : ¬ ∃ env, FileResult mode input (.ok 0 env))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (start input reply))
+    let cause := incompleteCause input reply
+    let diagnostic := [format cause]
+    tops = .error diagnostic ∧
+      Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+        .error diagnostic := by
+  cases reply with
+  | fail => exact ⟨rfl, rfl⟩
+  | throwLabel => exact ⟨rfl, rfl⟩
+  | ok rest env =>
+    have remaining : rest ≠ 0 := by intro h; subst rest; exact invalid ⟨env, parsed⟩
+    have partialEnd := mt (invariant1_file_end_bytes parsed).mp remaining
+    dsimp only
+    rw [invariant1_translated_entry]
+    simp [start, entry, partialEnd, incompleteCause]
+    rfl
+
+#print axioms invariant2_incomplete_file_diagnostic
+
+theorem invariant2_labelled_file_diagnostic {mode input reply pos label message}
+    (parsed : FileResult mode input reply)
+    (rejected : FileResult mode input (.throwLabel pos label message))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (start input reply))
+    let diagnostic := [format (.labelled label message)]
+    tops = .error diagnostic ∧
+      Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+        .error diagnostic := by
+  obtain ⟨_, _, unique⟩ := invariant1_file_result mode input
+  have eq := (unique _ parsed).trans (unique _ rejected).symm
+  subst reply
+  exact ⟨rfl, rfl⟩
+
+#print axioms invariant2_labelled_file_diagnostic
 end PegHs.FileEntry

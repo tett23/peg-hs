@@ -37,6 +37,41 @@ sed -n '/^itemStmt ::/,/^      else e$/p' \
 diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
   "$scratch/RenderPrimitiveStatementItem.actual"
 
+grep -Fxq 'doReturn stmts value kids = doBlock (stmts ++ ["PegPrelude.pure (" <> value <> ", " <> kidsExpr kids <> ")"])' packages/peg-codegen/src/Peg/Codegen.hs
+
+cat > "$scratch/SyntaxAction.expected" <<'SOURCE'
+  let envStmt = ["_env <- PegRt.askStore peg'env" | isJust (grammarEnv (envGrammar env))]
+      items = altItems a
+  case altAction a of
+    Just act -> do
+      rs <- mapM (itemStmtS env True) items
+      pure $
+        doReturn
+          (envStmt ++ ["peg'start <- PegRt.getOffset"] ++ map fst rs ++ ["_span <- PegRt.spanFrom peg'start"])
+          ("(" <> fragmentEnv env act <> ")")
+          (map snd rs)
+SOURCE
+sed -n '/^altCodeS env rule a = do$/,/^    Nothing$/{ /^altCodeS /d; /^    Nothing$/d; p; }' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/SyntaxAction.actual"
+diff -u "$scratch/SyntaxAction.expected" "$scratch/SyntaxAction.actual"
+
+cat > "$scratch/KidsExpr.expected" <<'SOURCE'
+kidsExpr [] = "[]"
+kidsExpr [k] = k
+kidsExpr ks = "PegPrelude.concat [" <> T.intercalate ", " ks <> "]"
+SOURCE
+sed -n '/^kidsExpr \[\] =/,/^kidsExpr ks =/p' packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/KidsExpr.actual"
+diff -u "$scratch/KidsExpr.expected" "$scratch/KidsExpr.actual"
+
+cat > "$scratch/FreshNames.expected" <<'SOURCE'
+fresh = Gen $ \n -> ("peg'v" <> showT n, n + 1)
+freshK = Gen $ \n -> ("peg'k" <> showT n, n + 1)
+SOURCE
+sed -n '/^fresh = /p; /^freshK = /p' packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/FreshNames.actual"
+diff -u "$scratch/FreshNames.expected" "$scratch/FreshNames.actual"
+grep -Fxq 'newtype Gen a = Gen {runGen :: Natural -> (a, Natural)}' packages/peg-codegen/src/Peg/Codegen.hs
+grep -Fxq "parenthesise t = if T.any (== ' ') t then \"(\" <> t <> \")\" else t" packages/peg-codegen/src/Peg/Codegen.hs
+
 cat > "$scratch/RenderPrimitivePureSites.expected" <<'SOURCE'
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> parenthesise (T.unwords (maybe (dataName d) conName (listToMaybe con) : vs))]))
@@ -121,6 +156,45 @@ TOKENS
 diff -u "$scratch/RenderPrimitiveBinding.expected-tokens" \
   "$scratch/RenderPrimitiveBinding.tokens"
 
+# Exercise the actual renderer definitions with zero, one and multiple children.
+cat > "$scratch/RenderReturnProbe.hs" <<'SOURCE'
+{-# LANGUAGE OverloadedStrings #-}
+import Data.List (intersperse)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+SOURCE
+sed -n '/^doBlock ::/,/^doBlock stmts =/p; /^doReturn ::/,/^kidsExpr ks =/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs >> "$scratch/RenderReturnProbe.hs"
+cat >> "$scratch/RenderReturnProbe.hs" <<'SOURCE'
+main :: IO ()
+main = TIO.putStrLn $ T.unlines
+  ("module LexProbe where" : zipWith render ["x", "y", "z"]
+    [[], ["peg'k0"], ["peg'k0", "peg'k1", "peg'k2"]])
+  where render name kids = name <> " = " <> doReturn [] "peg'v0" kids
+SOURCE
+runghc "$scratch/RenderReturnProbe.hs" > "$scratch/RenderReturnOutput.hs"
+"$scratch/trace-generated-module" "$(ghc-9.10.3 --print-libdir)" \
+  "$scratch/RenderReturnOutput.hs" > "$scratch/RenderReturn.result" 2> "$scratch/RenderReturn.trace"
+[ "$(cat "$scratch/RenderReturn.result")" = parsed-no-diagnostics ]
+sed -n 's/^token: //p' "$scratch/RenderReturn.trace" > "$scratch/RenderReturn.tokens"
+{
+  printf '%s\n' ITmodule 'ITconid "LexProbe"' ITwhere ITvocurly
+  for name in x y z; do
+    printf '%s\n' "ITvarid \"$name\"" ITequal 'ITdo Nothing' ITocurly \
+      'ITqvarid ("PegPrelude","pure")' IToparen "ITvarid \"peg'v0\"" ITcomma
+    case $name in
+      x) printf '%s\n' ITobrack ITcbrack ;;
+      y) printf '%s\n' "ITvarid \"peg'k0\"" ;;
+      z) printf '%s\n' 'ITqvarid ("PegPrelude","concat")' ITobrack \
+           "ITvarid \"peg'k0\"" ITcomma "ITvarid \"peg'k1\"" ITcomma "ITvarid \"peg'k2\"" ITcbrack ;;
+    esac
+    printf '%s\n' ITcparen ITccurly ITsemi
+  done
+  printf '%s\n' ITeof
+} > "$scratch/RenderReturn.expected-tokens"
+diff -u "$scratch/RenderReturn.expected-tokens" "$scratch/RenderReturn.tokens"
+
 sed 's/productions 708 =/productions 709 =/' \
   verification/RenderPrimitiveStatement.lean > "$scratch/RenderPrimitiveStatementInvalid.lean"
 if cmp -s verification/RenderPrimitiveStatement.lean "$scratch/RenderPrimitiveStatementInvalid.lean"; then
@@ -138,4 +212,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 6 Lean theorems, 3 source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 33 Lean theorems, 9 source checks, 85 GHC tokens, 1 rejected mutation.\n'

@@ -45,7 +45,7 @@ private theorem bad_item (xs : List Char)
   have item : Derives ctx (ctx.rules 1) n {} err := .seqCarryThrow oneCall
   exact Derives.call (callee := {}) (by rfl) item
 
-private theorem file_item_throw (input : List Char) (stopPos : Nat) (ends : List Nat)
+theorem file_item_throw (input : List Char) (stopPos : Nat) (ends : List Nat)
     (items : ItemStepsTo (context false input) stopPos (afterWhitespace input).length ends)
     (failed : Derives (context false input) (.call 1 1) stopPos {} (.throwLabel pos name msg)) :
     FileResult false input (.throwLabel pos name msg) := by

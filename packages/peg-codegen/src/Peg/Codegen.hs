@@ -50,6 +50,7 @@ import Data.Char (toLower, toUpper)
 import Data.List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust, isNothing, listToMaybe)
+import Numeric.Natural (Natural)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
@@ -816,7 +817,7 @@ ruleDecl env r =
       | otherwise = ("PegRt.node " <> kindVar name <> " (", ")")
 
 -- A counter for fresh variable names.
-newtype Gen a = Gen {runGen :: Int -> (a, Int)}
+newtype Gen a = Gen {runGen :: Natural -> (a, Natural)}
 
 instance Functor Gen where
   fmap f (Gen g) = Gen $ \n -> let (a, n') = g n in (f a, n')
