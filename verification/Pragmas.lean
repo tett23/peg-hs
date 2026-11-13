@@ -89,6 +89,37 @@ theorem invariant3_fragment_marker_slot (before after path body : String) (line 
 
 #print axioms invariant3_fragment_marker_slot
 
+-- Each adjacent pair of chunks encloses one generated restore line.
+def renderRestoreSlots (marker : String) : List String → String
+  | [] => ""
+  | [last] => last
+  | first :: second :: rest =>
+    first ++ "\n" ++ marker ++ "\n" ++ renderRestoreSlots marker (second :: rest)
+
+def restoreLineSlots : List String → List (Option (List Char))
+  | [] => [some []]
+  | [last] => (last.toList.splitOn '\n').map some
+  | first :: second :: rest =>
+    (first.toList.splitOn '\n').map some ++ none :: restoreLineSlots (second :: rest)
+
+theorem invariant3_multiple_restore_slots (chunks : List String) (marker : String)
+    (singleLine : '\n' ∉ marker.toList) :
+    (renderRestoreSlots marker chunks).toList.splitOn '\n' =
+      (restoreLineSlots chunks).map (fun slot => slot.getD marker.toList) := by
+  induction chunks using renderRestoreSlots.induct with
+  | case1 => rfl
+  | case2 last => simp [renderRestoreSlots, restoreLineSlots, List.map_map, Function.comp_def]
+  | case3 first second rest ih =>
+    have chars : (renderRestoreSlots marker (first :: second :: rest)).toList =
+        first.toList ++ '\n' :: (marker.toList ++ '\n' ::
+          (renderRestoreSlots marker (second :: rest)).toList) := by
+      simp [renderRestoreSlots, String.toList_append, List.append_assoc]
+    rw [chars, List.splitOn_append_cons_self, List.splitOn_append_cons_self,
+      List.splitOn_eq_singleton singleLine, ih]
+    simp [restoreLineSlots, List.map_map, Function.comp_def]
+
+#print axioms invariant3_multiple_restore_slots
+
 def finalizeLine (marker : String) (line : Nat) (path input : String) : String :=
   if input == marker then renderLine (line + 1) path else input
 
