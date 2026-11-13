@@ -865,14 +865,17 @@ def pureStoreBindingWord (hasEnv : Bool) : List Symbol :=
   [.terminal 117] ++ env ++ [.terminal 77, .terminal 121, .terminal 107, .terminal 118] ++
     env ++ [.terminal 108]
 
-open RenderExpressionGHC in
-theorem new_store_without_tables (hasEnv : Bool) :
-    Derives productions [.nonterminal 78] (pureStoreBindingWord hasEnv) := by
-  have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+private theorem store_constructor_expr : Derives productions [.nonterminal 217] [.terminal 118] :=
+  oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
     (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
       (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl)
         (oneRule (id := 811) (by rfl) (applyRule (g := productions) (id := 813)
           (by rfl) (.refl [.terminal 118]))))))))
+
+open RenderExpressionGHC in
+theorem new_store_without_tables (hasEnv : Bool) :
+    Derives productions [.nonterminal 78] (pureStoreBindingWord hasEnv) := by
+  have con := store_constructor_expr
   have expr {ts} (f : Derives productions [.nonterminal 217] ts) :=
     oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
   have pureStore {ts} (f : Derives productions [.nonterminal 217] ts) :=
@@ -883,6 +886,43 @@ theorem new_store_without_tables (hasEnv : Bool) :
       (by intro a h; simpa using List.mem_singleton.mp h ▸ varid_argument)
       (pureStore (application con varid_argument))
 
+-- Both qualified operators and both table allocators have the same token
+-- classes. The first pair is <$>/newTable (or newArgTable), then <*> pairs.
+def tableAllocations (count : Nat) (head : List Symbol) : List Symbol :=
+  head ++ (List.replicate count [.terminal 123, .terminal 121]).flatten
+
+private theorem table_allocations_valid (count : Nat) (head : List Symbol)
+    (valid : Derives productions [.nonterminal 212] head) :
+    Derives productions [.nonterminal 212] (tableAllocations count head) := by
+  induction count generalizing head with
+  | zero => simpa [tableAllocations] using valid
+  | succ n ih =>
+    have op := oneRule (id := 749) (by rfl) (oneRule (id := 756) (by rfl)
+      (oneRule (id := 783) (by rfl) (applyRule (g := productions) (id := 786)
+        (by rfl) (.refl [.terminal 123]))))
+    have rhs := oneRule (id := 525) (by rfl) (oneRule (id := 528) (by rfl)
+      RenderExpressionGHC.qualified_function)
+    have step := applyRule (id := 524) (by rfl) (beside valid (beside op rhs))
+    simpa [tableAllocations, List.replicate_succ, List.append_assoc] using ih _ step
+
+def memoStoreBindingWord (hasEnv : Bool) (additional : Nat) : List Symbol :=
+  let env := if hasEnv then [.terminal 117] else []
+  [.terminal 117] ++ env ++ [.terminal 77] ++
+    tableAllocations (additional + 1) ([.terminal 118] ++ env)
+
+open RenderExpressionGHC in
+theorem new_store_with_tables (hasEnv : Bool) (additional : Nat) :
+    Derives productions [.nonterminal 78] (memoStoreBindingWord hasEnv additional) := by
+  have body {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    oneRule (id := 520) (by rfl) (table_allocations_valid (additional + 1) _
+      (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f)))
+  cases hasEnv
+  · exact binding_named (body store_constructor_expr)
+  · exact binding_named_arguments [[.terminal 117]]
+      (by intro a h; simpa using List.mem_singleton.mp h ▸ varid_argument)
+      (body (application store_constructor_expr varid_argument))
+
+#print axioms new_store_with_tables
 #print axioms new_store_without_tables
 
 #print axioms positional_store_declaration
