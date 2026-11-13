@@ -37,6 +37,8 @@ sed -n '/^itemStmt ::/,/^      else e$/p' \
 diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
   "$scratch/RenderPrimitiveStatementItem.actual"
 
+grep -Fxq "parenthesise t = if T.any (== ' ') t then \"(\" <> t <> \")\" else t" packages/peg-codegen/src/Peg/Codegen.hs
+
 cat > "$scratch/RenderPrimitivePureSites.expected" <<'SOURCE'
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure ()"]))
           pure (doBlock (envStmt ++ stmts ++ ["PegPrelude.pure " <> parenthesise (T.unwords (maybe (dataName d) conName (listToMaybe con) : vs))]))
@@ -138,4 +140,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 10 Lean theorems, 3 source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 11 Lean theorems, 4 source checks, 36 GHC tokens, 1 rejected mutation.\n'

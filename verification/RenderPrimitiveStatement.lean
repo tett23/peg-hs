@@ -227,6 +227,24 @@ theorem constructor_value (fields : Nat) :
     exact one (child := 211) (id := 596) (by decide) (one (child := 212) (id := 520) (by decide)
       (one (child := 214) (id := 523) (by decide) (one (child := 217) (id := 528) (by decide) (args fields))))
 
+def printedConstructor (name : String) (fields : List String) : String :=
+  let text := String.intercalate " " (name :: fields)
+  if ' ' ∈ text.toList then "(" ++ text ++ ")" else text
+
+theorem printedConstructor_shape (name : String) (fields : List String) (clean : ' ' ∉ name.toList) :
+    printedConstructor name fields =
+      match fields with
+      | [] => name
+      | f :: fs => "(" ++ String.intercalate " " (name :: f :: fs) ++ ")" := by
+  cases fields with
+  | nil => simp [printedConstructor, clean]
+  | cons f fs => simp [printedConstructor]
+
+def constructorAlternative (stmts : List RenderPrimitiveDoGHC.Statement) (name : String)
+    (fields : List String) : RenderPrimitiveChoice.Alternative :=
+  valueAlternative stmts (printedConstructor name fields) _ (constructor_value fields.length)
+
+#print axioms printedConstructor_shape
 #print axioms constructor_value
 #print axioms passThroughAlternative_source
 #print axioms valueAlternative_source
