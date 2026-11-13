@@ -267,6 +267,39 @@ theorem invariant2_parameter_outcomes (before xs : List Char) (initial : Env) :
       split <;> simp
   · exact ⟨_, invariant2_parameter_code_throw before xs initial pos label msg code, by simp⟩
 
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_chunks_throw (input : List Char) (n pos : Nat) (env : Env)
+    (label : String) (msg : Option String)
+    (chunk : Derives (context false input) translatedStrictParamChunk n env (.throwLabel pos label msg)) :
+    Derives (context false input) translatedStrictParamChunks n env (.throwLabel pos label msg) := by
+  let ctx := context false input
+  have call : Derives ctx (.call 44 19) n env (.throwLabel pos label msg) :=
+    Derives.call (ctx := ctx) (site := 44) (rule := 19) (env := env) (callee := env) (by rfl) chunk
+  exact .altLeft (.seqCarryThrow (Derives.bind call)) (by simp)
+
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (initial : Env)
+    (sameInput : (before ++ ['(']) ++ xs = pre ++ ',' :: tail)
+    (comma : afterWhitespace xs = ',' :: tail) :
+    Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
+      (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+  let ctx := context false (before ++ '(' :: xs)
+  let next := {initial with resultDepth := 0}
+  have openTerm : ctx.terms 26 = some (.lit ['(']) := rfl
+  have hit : ConcreteTerminal.terminalOracle (.lit ['(']) ctx.input ('(' :: xs).length = some xs.length := by
+    change ConcreteTerminal.terminalOracle _ (before ++ '(' :: xs) _ = _
+    rw [ConcreteTerminal.invariant1_oracle_suffix]
+    rfl
+  have openStep : runFuel ctx 1 (.terminal 26) ('(' :: xs).length initial = some (.ok xs.length next) := by
+    simp only [runFuel, openTerm, hit]
+    simp [next]
+  have bad := invariant2_empty_parameter_before_comma (before ++ ['(']) xs pre tail next sameInput comma
+  have chunks := invariant2_parameter_chunks_throw _ _ _ _ _ _ bad
+  simp only [List.append_assoc, List.singleton_append] at chunks
+  apply Derives.seqOk (invariant1_runFuel_sound openStep)
+  exact Derives.call (ctx := ctx) (site := 43) (rule := 18) (env := next) (callee := next) (by rfl) chunks
+
+#print axioms invariant2_parameter_list_empty_first
 #print axioms invariant2_parameter_outcomes
 #print axioms invariant2_argcode_outcomes
 #print axioms invariant2_argcode_ne_fail
