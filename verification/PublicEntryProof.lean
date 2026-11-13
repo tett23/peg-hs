@@ -92,6 +92,33 @@ theorem invariant2_translated_grammar_error_nonempty {T M G} (bytes : Nat)
 
 #print axioms invariant2_translated_grammar_error_nonempty
 
+open PegHs.Pipeline in
+theorem invariant2_rejected_grammar_visible {T M G} (bytes : Nat) (start : StartResult T)
+    (d : Failure → String) (errors : T → List String) (name : T → Option M)
+    (build : T → M → G) (missing : String) (le : String → String → Bool)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics Unit)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (generate : G → Except Diagnostics String)
+    (invalid : ¬ ∃ t m, start = .ok bytes t ∧ errors t = [] ∧ name t = some m) :
+    let parsed := translatedGrammar bytes start d (fun t =>
+      translatedAssemble (errors t) (name t) (build t) missing (fun es => es.mergeSort le))
+    ∃ msg rest, visible (pipeline parsed resolve expand check notes strip warnings generate)
+      = .error (msg :: rest) := by
+  dsimp only
+  cases hp : translatedGrammar bytes start d (fun t =>
+      translatedAssemble (errors t) (name t) (build t) missing (fun es => es.mergeSort le)) with
+  | ok g =>
+    obtain ⟨t, m, hs, he, hn, _⟩ := (invariant1_translated_grammar_assembled ..).mp hp
+    exact False.elim (invalid ⟨t, m, hs, he, hn⟩)
+  | error ds =>
+    have nonempty := invariant2_translated_grammar_error_nonempty bytes start d errors name
+      build missing le ds hp
+    cases ds with
+    | nil => exact False.elim (nonempty rfl)
+    | cons msg rest => exact ⟨msg, rest, rfl⟩
+
+#print axioms invariant2_rejected_grammar_visible
+
 theorem invariant1_translated_module_selection {T L G} (bytes : Nat) (start : StartResult T)
     (d : Failure → String) (errors : T → List String) (library : T → Option L)
     (single : T → String → Option (L × String)) (build : T → (L × String) → G)
