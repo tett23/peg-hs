@@ -294,20 +294,41 @@ theorem debug_items_valid (debug : DebugSettings) (recovering syntaxMode : Bool)
 
 #print axioms debug_items_valid
 
+def configItems (kept explicitTabstop positional debug : Bool) : List (List Symbol) :=
+  if kept then
+    [[.terminal 117, .terminal 76, .terminal 122],
+     if explicitTabstop then tabstopBindingWord positional else [.terminal 117, .terminal 77, .terminal 121]] ++
+    (if positional && (explicitTabstop || debug) then
+      [[.terminal 117, .terminal 76, .terminal 122, .terminal 83, .terminal 122, .terminal 83, .terminal 122],
+       withTabstopBindingWord] else [])
+  else []
+
+theorem config_items_valid (kept explicitTabstop positional debug : Bool) (item : List Symbol)
+    (h : item ∈ configItems kept explicitTabstop positional debug) :
+    Derives productions [.nonterminal 78] item := by
+  cases kept <;> cases explicitTabstop <;> cases positional <;> cases debug <;>
+    simp [configItems] at h <;>
+    repeat' first | obtain rfl | h := h | subst item | exact config_signature
+                  | exact default_config_binding | exact tabstop_config_binding true
+                  | exact tabstop_config_binding false | exact with_tabstop_signature
+                  | exact with_tabstop_binding
+
+#print axioms config_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
-    (userExports verbatimImports otherDecls : List (List Symbol))
+    (userExports verbatimImports syntaxDecls storeDecls : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
-    (dataDecls : List DataDeclaration)
-    (other_ok : ∀ item ∈ otherDecls,
+    (dataDecls : List DataDeclaration) (explicitTabstop : Bool)
+    (other_ok : ∀ item ∈ syntaxDecls ++ storeDecls,
       Derives productions [.nonterminal 78] item)
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
@@ -319,7 +340,8 @@ theorem generated_module_with_rules
           semiAppend [] ++ (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
+        debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
+        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++ storeDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -332,18 +354,21 @@ theorem generated_module_with_rules
     (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules) name_ok
+        debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
+        configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++ storeDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
-    rcases member with (((((hd | he) | hs) | hc) | hdebug) | ho) | hr
+    rcases member with (((((((hd | he) | hs) | hc) | hdebug) | hsyntax) | hconfig) | hstore) | hr
     · obtain ⟨d, _, rfl⟩ := List.mem_map.mp hd
       exact data_declaration_valid d
     · exact entry_items_valid syntaxMode envType _ item he
     · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
-    · exact other_ok item ho
+    · exact other_ok item (List.mem_append_left _ hsyntax)
+    · exact config_items_valid _ _ _ _ item hconfig
+    · exact other_ok item (List.mem_append_right _ hstore)
     · exact rule_items_valid rules item hr
   · exact initial
   · exact trace
