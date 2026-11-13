@@ -50,6 +50,7 @@ runghc-9.10.3 "$scratch/LiteralProbe.hs" > "$scratch/haskell-literal.txt"
 diff -u "$scratch/haskell-literal.txt" "$scratch/lean-literal.txt"
 printf 'Compared 134 single-character and 17956 two-character literals with GHC Show.\n'
 
+grep -Fxq 'showT = T.pack . show' packages/peg-codegen/src/Peg/Codegen.hs
 cat > "$scratch/LiteralLexer.hs" <<'SOURCE'
 import Control.Monad (forM_)
 import Data.Char (chr)
@@ -77,6 +78,14 @@ main = do
         PFailed _ -> fail ("lexer rejected " ++ numbers)
     _ -> fail "malformed literal fixture"
   putStrLn ("Checked " ++ show (length rows) ++ " GHC string tokens and decoded values.")
+  forM_ ([0..0xd7ff] ++ [0xe000..0x10ffff]) $ \n -> do
+    let c = chr n
+    case lexTokenStream opts (stringToStringBuffer (show c)) loc of
+      POk _ tokens -> case map unLoc tokens of
+        [ITchar _ value] | value == c -> pure ()
+        actual -> fail ("unexpected character tokens at " ++ show n ++ ": " ++ show actual)
+      PFailed _ -> fail ("lexer rejected character " ++ show n)
+  putStrLn "Checked all 1112064 Unicode scalar character tokens and decoded values."
 SOURCE
 runghc-9.10.3 -package=ghc "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
 
