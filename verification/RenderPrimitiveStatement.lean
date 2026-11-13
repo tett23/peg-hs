@@ -220,6 +220,27 @@ theorem wildcard_binding_statement {body : List Symbol}
       RenderDeclarationsGHC.wildcard_argument)))
   simpa using binding_statement wildcard body_ok
 
+-- altCodeS inserts getOffset, spanFrom and the optional askStore binding.
+theorem syntax_action_bindings :
+    Derives productions [.nonterminal 257] [.terminal 117, .terminal 82, .terminal 121] ∧
+    Derives productions [.nonterminal 257]
+      [.terminal 117, .terminal 82, .terminal 121, .terminal 117] := by
+  have expr {tokens : List Symbol} (f : Derives productions [.nonterminal 217] tokens) :
+      Derives productions [.nonterminal 211] tokens :=
+    one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
+      (one (id := 528) (lhs := 214) (by decide) f))
+  exact ⟨named_binding_statement (expr RenderExpressionGHC.qualified_function),
+    named_binding_statement (expr (RenderExpressionGHC.application
+      RenderExpressionGHC.qualified_function RenderDeclarationsGHC.varid_argument))⟩
+
+theorem syntax_action_names :
+    ["peg'start", "_span", "_env", "peg'env"].all RenderExpressionLexer.varId = true ∧
+    ["getOffset", "spanFrom", "askStore"].all
+      (RenderExpressionLexer.qualifiedVarId "PegRt") = true := by decide
+
+#print axioms syntax_action_bindings
+#print axioms syntax_action_names
+
 -- The surrounding lexer bridge checks the bound name token. The caller supplies the
 -- expression derivation for exprCodeU's output.
 def itemStatement (source : String) (tokens : List Symbol)

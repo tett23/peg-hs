@@ -196,4 +196,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 17 Lean theorems, 8 source checks, 85 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 19 Lean theorems, 8 source checks, 85 GHC tokens, 1 rejected mutation.\n'
