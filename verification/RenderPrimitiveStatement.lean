@@ -154,18 +154,39 @@ def itemStatement (source : String) (tokens : List Symbol)
     have r658 : productions 658 = some (257, [.nonterminal 258]) := by decide
     ⟨source, tokens, one r658 (one r661 expression)⟩
 
-def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
-  let unit : RenderPrimitiveDoGHC.Statement :=
-    ⟨"PegPrelude.pure ()", [.terminal 121, .terminal 107, .terminal 108], pure_unit_statement⟩
+private def returningAlternative (stmts : List RenderPrimitiveDoGHC.Statement)
+    (ret : RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
   match stmts with
-  | [] => RenderPrimitiveChoice.doAlternative unit []
-  | first :: rest => RenderPrimitiveChoice.doAlternative first (rest ++ [unit])
+  | [] => RenderPrimitiveChoice.doAlternative ret []
+  | first :: rest => RenderPrimitiveChoice.doAlternative first (rest ++ [ret])
+
+private theorem returningAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement)
+    (ret : RenderPrimitiveDoGHC.Statement) :
+    (returningAlternative stmts ret).source =
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ [ret.source]) := by
+  cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative]
+
+def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
+  returningAlternative stmts
+    ⟨"PegPrelude.pure ()", [.terminal 121, .terminal 107, .terminal 108], pure_unit_statement⟩
 
 theorem unitAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) :
     (unitAlternative stmts).source =
-      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure ()"]) := by
-  cases stmts <;> simp [unitAlternative, RenderPrimitiveChoice.doAlternative]
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure ()"]) :=
+  returningAlternative_source stmts _
 
+def valueAlternative (stmts : List RenderPrimitiveDoGHC.Statement) (source : String)
+    (tokens : List Symbol) (value : Derives productions [.nonterminal 218] tokens) :
+    RenderPrimitiveChoice.Alternative :=
+  returningAlternative stmts ⟨"PegPrelude.pure " ++ source, [.terminal 121] ++ tokens, pure_value_statement value⟩
+
+theorem valueAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) (source : String)
+    (tokens : List Symbol) (value : Derives productions [.nonterminal 218] tokens) :
+    (valueAlternative stmts source tokens value).source =
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure " ++ source]) :=
+  returningAlternative_source stmts _
+
+#print axioms valueAlternative_source
 #print axioms itemStatement
 #print axioms unitAlternative_source
 #print axioms pure_name_lexeme
