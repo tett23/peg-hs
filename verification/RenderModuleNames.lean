@@ -66,6 +66,33 @@ theorem module_parts_transfer
       ⟨largeCompatible first upper,
         List.all_eq_true.mpr (fun c inRest => tailCompatible c (tail c inRest))⟩
 
+-- Recognize the isolated GHC conid / qconid lexical forms. The two
+-- character classes are supplied by the host Unicode classification.
+def moduleNameTokens (large tail : Char → Bool) (name : String) : Option (List Symbol) :=
+  let parts := name.splitOn "."
+  if parts.all (ghcConId large tail) then
+    some [if parts.length = 1 then .terminal 118 else .terminal 122]
+  else none
+
+theorem checked_module_name_tokens (upper alphaNum large tail : Char → Bool) (name : String)
+    (first_ok : ∀ c, upper c = true → large c = true)
+    (tail_ok : ∀ c, Peg.Verification.identTail alphaNum c = true → tail c = true)
+    (accepted : Peg.Verification.moduleName upper alphaNum name = true) :
+    ∃ word, moduleNameTokens large tail name = some word ∧
+      Derives productions [.nonterminal 321] word := by
+  have parts := List.all_eq_true.mp accepted
+  refine ⟨[if (name.splitOn ".").length = 1 then .terminal 118 else .terminal 122], ?_, ?_⟩
+  · unfold moduleNameTokens
+    dsimp only
+    rw [ite_eq_left ?_]
+    exact List.all_eq_true.mpr (module_parts_transfer _ _ _ _ name first_ok tail_ok
+      (Peg.Verification.name_sound _ _ _ accepted))
+  · split
+    · exact module_name_simple
+    · exact module_name_qualified
+
+#print axioms checked_module_name_tokens
+
 -- Once the real lexer has produced CONID or QCONID, Parser.y productions
 -- 836/837 discharge the modid child of the module-frame theorem.
 theorem module_name_from_token (qualified : Bool) :
