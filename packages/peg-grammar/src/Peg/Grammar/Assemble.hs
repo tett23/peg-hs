@@ -249,8 +249,7 @@ assemble items =
     arrowsEnabled = extensionEnabled ["Arrows"]
     binderKeyword name =
       (name /= "_" && name `elem` reservedWords)
-        || (recursiveDoEnabled && name `elem` ["mdo", "rec"])
-        || (arrowsEnabled && name `elem` ["proc", "rec"])
+        || extensionKeyword recursiveDoEnabled arrowsEnabled name
     known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
     -- ADR 0092
     libraryLoc = case [l | (l, "library", _) <- directives] of
@@ -462,6 +461,11 @@ isClassName t = not (T.null t) && all part (T.splitOn "." t)
 isModuleName :: Text -> Bool
 isModuleName = isClassName
 
+extensionKeyword :: Bool -> Bool -> Text -> Bool
+extensionKeyword recursiveDoEnabled arrowsEnabled name =
+  (recursiveDoEnabled && name `elem` ["mdo", "rec"])
+    || (arrowsEnabled && name `elem` ["proc", "rec"])
+
 -- The lexical form of an item of an export list (ADR 0014, ADR 0080): a
 -- name that may be qualified, a type name followed by @(..)@ or by names
 -- and operators in parentheses, an operator in parentheses, any of them
@@ -491,12 +495,14 @@ isExportItem recursiveDoEnabled arrowsEnabled t = not (any (`T.isInfixOf` t) ["-
         _ -> Nothing
     member = \case
       "(" : op : ")" : rest | isOperator op -> Just rest
-      n : rest | isValidIdent (T.pack n) && T.pack n `notElem` reservedWords -> Just rest
+      n : rest | unqualifiedName (T.pack n) -> Just rest
       _ -> Nothing
+    unqualifiedName name = isValidIdent name && name `notElem` reservedWords
+      && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
     isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))
     -- A variable or a type name, after a module name and a dot.
     isQualifiedName n = case T.breakOnEnd "." (T.pack n) of
-      ("", name) -> isValidIdent name && name `notElem` reservedWords
+      ("", name) -> unqualifiedName name
       (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
         && name /= "do" && (not recursiveDoEnabled || name /= "mdo")
     -- GHC 9.10.3's reservedSymsFM gives these their own tokens, which the

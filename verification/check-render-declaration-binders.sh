@@ -17,6 +17,8 @@ source=packages/peg-grammar/src/Peg/Grammar/Assemble.hs
 sed -n '/^toParam ::/,/^-- | The body/p' "$source" |
   grep -Fq ', isValidIdent name ->'
 sed -n '/^    binderKeyword name =/,/^    known =/p' "$source" |
+  grep -Fq 'extensionKeyword recursiveDoEnabled arrowsEnabled name'
+sed -n '/^extensionKeyword recursiveDoEnabled arrowsEnabled name =/,/^$/p' "$source" |
   grep -Fq 'recursiveDoEnabled && name `elem` ["mdo", "rec"]'
 sed -n '/^    errors =/,/^-- | Whether a text is a path/p' "$source" |
   grep -Fq ', binderKeyword name'
