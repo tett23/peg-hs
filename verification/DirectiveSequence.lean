@@ -50,5 +50,21 @@ theorem directiveValues_items (xs pre : List Char) (values : List Top)
           · contradiction
         · simp [directiveValues, markerEq] at parsed
 
+set_option maxRecDepth 8192 in
+theorem invariant1_directive_sequence_file (input : List Char) (values : List Top)
+    (parsed : directiveValues (afterWhitespace input) = some values) :
+    FileResult false input (.ok 0 {}) := by
+  obtain ⟨pre, splitInput⟩ := afterWhitespace_suffix input
+  have items := directiveValues_items _ pre values parsed
+  rw [splitInput] at items
+  have ws := invariant1_strict_whitespace_scan [] input {}
+  simp only [List.nil_append] at ws
+  let ctx := context false input
+  have entered : ctx.hooks.enterCall 0 {} = some {} := rfl
+  have firstWs : Derives ctx (.call 0 4) input.length {} (.ok (afterWhitespace input).length {}) :=
+    Derives.call (rule := 4) entered ws
+  exact invariant1_file_from_top_items false input firstWs items (invariant1_eof_terminal _ _)
+
+#print axioms invariant1_directive_sequence_file
 #print axioms directiveValues_items
 end PegHs.MetaExecution
