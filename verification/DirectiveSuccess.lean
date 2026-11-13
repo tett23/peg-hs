@@ -1,3 +1,4 @@
+import StrictWhitespaceScan
 import StrictDirective
 import StrictInlineSpace
 import StrictComment
@@ -68,6 +69,45 @@ theorem invariant1_directive_call (pre : List Char) (c : Char) (cs : List Char) 
       (.seqOk boundArgLoc boundRaw))))
   exact Derives.call (callee := env) (by rfl) directive
 
+theorem invariant1_directive_top_item (pre : List Char) (c : Char) (cs : List Char)
+    (start : CharRule.identStart.accepts c = true) :
+    let rest := ((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
+      |>.dropWhile (· != '\n'))
+    Derives (context false (pre ++ '%' :: c :: cs)) (.call 1 1) (cs.length + 2) {}
+      (.ok (afterWhitespace rest).length {}) := by
+  let input := pre ++ '%' :: c :: cs
+  let ctx := context false input
+  let n := cs.length + 2
+  let names := cs.dropWhile CharRule.identChar.accepts
+  let raw := names.dropWhile PegVerification.isInlineSpace
+  let rest := raw.dropWhile (· != '\n')
+  have directive := invariant1_directive_call pre c cs {} start
+  have ne : '{' ≠ c := by
+    intro same
+    subst c
+    have bad : CharRule.identStart.accepts '{' = false := by decide +kernel
+    simp [bad] at start
+  have literal : ctx.terms 8 = some (.lit ['%', '{']) := rfl
+  have src : ctx.input = input := rfl
+  have oracle := invariant1_oracle_suffix (.lit ['%', '{']) pre ('%' :: c :: cs)
+  simp [matchTerm, matchLiteral, ne] at oracle
+  have fail : runFuel ctx 1 (.terminal 8) n {} = some .fail := by
+    simp [runFuel, literal, src, input, n, oracle]
+  have verbatim : Derives ctx (ctx.rules 11) n {} .fail := .seqCarryFail (invariant1_runFuel_sound fail)
+  have first : Derives ctx (.call 4 11) n {} .fail := Derives.call (callee := {}) (by rfl) verbatim
+  have one : Derives ctx (ctx.rules 2) n {} (.ok rest.length {}) :=
+    .altRetry first (.altLeft directive (by intro h; cases h))
+  have oneCall : Derives ctx (.call 2 2) n {} (.ok rest.length {}) := Derives.call (callee := {}) (by rfl) one
+  let before := pre ++ ['%', c] ++ cs.takeWhile CharRule.identChar.accepts ++
+    names.takeWhile PegVerification.isInlineSpace ++ raw.takeWhile (· != '\n')
+  have split : before ++ rest = input := by simp [before, rest, raw, names, input, List.append_assoc]
+  have scanned := invariant1_strict_whitespace_scan before rest {}
+  rw [split] at scanned
+  have wsCall : Derives ctx (.call 3 4) rest.length {} (.ok (afterWhitespace rest).length {}) :=
+    Derives.call (rule := 4) (callee := {}) (by rfl) scanned
+  have item : Derives ctx (ctx.rules 1) n {} (.ok (afterWhitespace rest).length {}) := .seqOk oneCall wsCall
+  exact Derives.call (callee := {}) (by rfl) item
+
 -- For a single directive the raw argument may extend all the way to EOF.
 theorem invariant1_single_directive_file (c : Char) (cs : List Char)
     (start : CharRule.identStart.accepts c = true)
@@ -77,34 +117,14 @@ theorem invariant1_single_directive_file (c : Char) (cs : List Char)
   let input := '%' :: c :: cs
   let ctx := context false input
   let n := cs.length + 2
-  have directive := invariant1_directive_call [] c cs {} start
-  dsimp only at directive
-  rw [endOfArg] at directive
-  have ne : '{' ≠ c := by
-    intro same
-    subst c
-    have bad : CharRule.identStart.accepts '{' = false := by decide +kernel
-    simp [bad] at start
-  have literal : ctx.terms 8 = some (.lit ['%', '{']) := rfl
-  have src : ctx.input = input := rfl
-  have oracle := invariant1_oracle_suffix (.lit ['%', '{']) [] input
-  simp [input, matchTerm, matchLiteral, ne] at oracle
-  have fail : runFuel ctx 1 (.terminal 8) n {} = some .fail := by
-    simp [runFuel, literal, src, input, n, oracle]
-  have verbatim : Derives ctx (ctx.rules 11) n {} .fail := .seqCarryFail (invariant1_runFuel_sound fail)
-  have first : Derives ctx (.call 4 11) n {} .fail := Derives.call (callee := {}) (by rfl) verbatim
-  have one : Derives ctx (ctx.rules 2) n {} (.ok 0 {}) :=
-    .altRetry first (.altLeft directive (by intro h; cases h))
-  have oneCall : Derives ctx (.call 2 2) n {} (.ok 0 {}) := Derives.call (callee := {}) (by rfl) one
-  have wsEnd : Derives ctx (ctx.rules 4) 0 {} (.ok 0 {}) := invariant1_strict_ws_eof input {}
-  have wsCall : Derives ctx (.call 3 4) 0 {} (.ok 0 {}) := Derives.call (callee := {}) (by rfl) wsEnd
-  have item : Derives ctx (ctx.rules 1) n {} (.ok 0 {}) := .seqOk oneCall wsCall
-  have itemCall : Derives ctx (.call 1 1) n {} (.ok 0 {}) := Derives.call (callee := {}) (by rfl) item
+  have itemCall := invariant1_directive_top_item [] c cs start
+  dsimp only at itemCall
+  rw [endOfArg] at itemCall
   have leading : Derives ctx (ctx.rules 4) n {} (.ok n {}) :=
     invariant1_strict_ws_stop [] '%' (c :: cs) {} (by decide +kernel) (by decide)
   have firstWs : Derives ctx (.call 0 4) n {} (.ok n {}) := Derives.call (callee := {}) (by rfl) leading
   exact invariant1_file_from_top_items false input firstWs
-    (.next itemCall (by dsimp [n]; omega) (invariant1_top_items_end false input {}))
+    (.next (by simpa [afterWhitespace] using itemCall) (by dsimp [n]; omega) (invariant1_top_items_end false input {}))
     (invariant1_eof_terminal _ _)
 
 #print axioms invariant1_single_directive_file
