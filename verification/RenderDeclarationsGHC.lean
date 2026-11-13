@@ -593,13 +593,16 @@ def entryTypeWord (result : List Symbol) : List Symbol :=
   [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 107] ++
     result ++ [.terminal 108]
 
+private theorem unqualifiedTypeAtom : Derives productions [.nonterminal 172] [.terminal 118] :=
+  oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
+      (applyRule (g := productions) (id := 733) (by rfl) (.refl [.terminal 118])))))
+
 -- dataDecl emits an unqualified constructor followed by typeAtom for each field.
 theorem data_constructor (fields : List (List Symbol))
     (field_ok : ∀ field ∈ fields, Derives productions [.nonterminal 172] field) :
     Derives productions [.nonterminal 191] ([.terminal 118] ++ fields.flatten) := by
-  have name := oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
-    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
-      (applyRule (g := productions) (id := 733) (by rfl) (.refl _)))))
+  have name := unqualifiedTypeAtom
   have appendFields (args : List (List Symbol)) (head : List Symbol)
       (h : Derives productions [.nonterminal 169] head)
       (ok : ∀ x ∈ args, Derives productions [.nonterminal 172] x) :
@@ -679,6 +682,19 @@ private theorem field_application_type {w} (h : Derives productions [.nontermina
 def FieldType.atomic {w} (h : Derives productions [.nonterminal 172] w) : FieldType :=
   ⟨w, w, field_application_type (oneRule (id := 390) (by rfl) h), h⟩
 
+-- The two named leaves introduced by classify itself (unit and an
+-- unqualified generated constructor identifier) have fixed token shapes.
+def FieldType.unit : FieldType :=
+  .atomic (applyRule (id := 406) (by rfl) (.refl [.terminal 107, .terminal 108]))
+
+def FieldType.generated : FieldType := .atomic unqualifiedTypeAtom
+
+-- For explicitly grouped annotations only the complete type is a premise.
+def FieldType.parenthesized {word} (valid : Derives productions [.nonterminal 162] word) :
+    FieldType :=
+  ⟨word, _, valid, applyRule (id := 412) (by rfl)
+    (beside (.refl [.terminal 107]) (beside valid (.refl [.terminal 108])))⟩
+
 def FieldType.list (t : FieldType) : FieldType :=
   .atomic (applyRule (id := 411) (by rfl)
     (beside (.refl [.terminal 105]) (beside t.typeValid (.refl [.terminal 106]))))
@@ -720,6 +736,9 @@ theorem value_type_constructor (resolve : name → FieldType) (types : List (Val
     data_constructor fields.fields fields.valid
 
 #print axioms value_type_constructor
+#print axioms FieldType.unit
+#print axioms FieldType.generated
+#print axioms FieldType.parenthesized
 #print axioms FieldType.list
 #print axioms FieldType.maybe
 #print axioms ConstructorFields.ofTypes
