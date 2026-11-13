@@ -332,6 +332,29 @@ theorem unary_syntax_body {body : List Symbol}
   wrapped_syntax_body (one (id := 596) (by decide)
     (function_expression RenderExpressionGHC.qualified_function)) valid
 
+theorem lookahead_syntax_body {body : List Symbol}
+    (valid : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 211]
+      ([.terminal 107, .terminal 121, .terminal 123, .terminal 121,
+        .terminal 108, .terminal 107] ++ body ++ [.terminal 108]) := by
+  have symbol : Derives productions [.nonterminal 310] [.terminal 123] :=
+    Derives.production (pre := []) (post := []) (id := 786) (rhs := [.terminal 123])
+      (by decide) (.refl _)
+  have op := one (id := 749) (lhs := 295) (by decide)
+    (one (id := 756) (lhs := 298) (by decide) (one (id := 783) (lhs := 308) (by decide) symbol))
+  have operand := one (id := 528) (lhs := 214) (by decide) RenderExpressionGHC.qualified_function
+  have left := one (id := 523) (lhs := 212) (by decide) operand
+  have right := one (id := 525) (lhs := 213) (by decide) operand
+  have infixExpr : Derives productions [.nonterminal 212] [.terminal 121, .terminal 123, .terminal 121] := by
+    apply Derives.production (pre := []) (post := []) (id := 524)
+      (rhs := [.nonterminal 212, .nonterminal 295, .nonterminal 213]) (by decide)
+    exact trans (after [.nonterminal 295, .nonterminal 213] left)
+      (before [.terminal 121] (trans (after [.nonterminal 213] op) (before [.terminal 123] right)))
+  exact wrapped_syntax_body (one (id := 596) (by decide)
+    (one (id := 520) (lhs := 211) (by decide) infixExpr)) valid
+
+#print axioms lookahead_syntax_body
+
 theorem unary_syntax_names :
     ["plain", "manyS", "many1S", "optionalS", "captureS", "voidS"].all
       (RenderExpressionLexer.qualifiedVarId "PegRt") = true := by decide
