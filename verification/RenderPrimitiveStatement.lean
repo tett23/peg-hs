@@ -1,3 +1,4 @@
+import Pragmas
 import Literal
 import RenderExpressionGHC
 import RenderExpressionLexer
@@ -742,6 +743,49 @@ theorem actionAlternative_source (hasEnv : Bool) (items : List RenderPrimitiveDo
 
 #print axioms actionAlternative_source
 #print axioms actionAlternative
+
+-- The restore line stays isolated even inside the final return of an action.
+theorem actionAlternative_marker_slot (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (path body : String) (line col n : Nat) (tokens : List Symbol)
+    (valid : Derives productions [.nonterminal 229] tokens) (children : Option (List Nat)) :
+    ∃ left right : List (List Char), ∀ marker ∈ ["", Peg.Verification.markerCandidate n],
+      ((actionAlternative hasEnv items (Peg.Verification.renderFragment marker line col path body)
+        tokens valid children).source).toList.splitOn '\n' = left ++ [marker.toList] ++ right := by
+  let sep := "\n          ; "
+  have last (xs : List String) (last : String) :
+      String.intercalate sep (xs ++ [last]) =
+        String.join (xs.map (fun x => x ++ sep)) ++ last := by
+    induction xs with
+    | nil => simp
+    | cons x xs ih =>
+      cases xs <;> simp_all [String.intercalate_cons_cons, String.append_assoc]
+  let before := (if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++
+    ["peg'start <- PegRt.getOffset"] ++ items.map RenderPrimitiveDoGHC.Statement.source ++
+    ["_span <- PegRt.spanFrom peg'start"]
+  have printed (ret : String) : RenderPrimitiveDo.printedDo (before ++ [ret]) =
+      "do { " ++ String.join (before.map fun x => x ++ sep) ++ ret ++ "\n          }" := by
+    simp only [RenderPrimitiveDo.printedDo, RenderPrimitiveDo.join_intersperse]
+    rw [last]
+    simp [String.append_assoc]
+  let lead := "do { " ++ String.join (before.map fun x => x ++ sep)
+  let retHead := if children.isSome then "PegPrelude.pure ((" else "PegPrelude.pure ("
+  let retTail := match children with
+    | none => ")"
+    | some ks => "), " ++ printedKids (ks.map fun (k : Nat) => "peg'k" ++ k.repr) ++ ")"
+  have source (fragment : String) :
+      (actionAlternative hasEnv items fragment tokens valid children).source =
+        (lead ++ retHead) ++ fragment ++ (retTail ++ "\n          }") := by
+    rw [actionAlternative_source]
+    have boundary (ret : String) : before ++ [ret] =
+        (if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++ ["peg'start <- PegRt.getOffset"] ++
+          items.map RenderPrimitiveDoGHC.Statement.source ++ ["_span <- PegRt.spanFrom peg'start", ret] := by
+      simp [before, List.append_assoc]
+    rw [← boundary, printed]
+    cases children <;> simp [lead, retHead, retTail, String.append_assoc]
+  simpa only [source] using Peg.Verification.invariant3_fragment_marker_slot
+    (lead ++ retHead) (retTail ++ "\n          }") path body line col n
+
+#print axioms actionAlternative_marker_slot
 
 -- passThroughOf binds the chosen item and returns that same name after
 -- the remaining statements have run.
