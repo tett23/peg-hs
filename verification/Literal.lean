@@ -55,14 +55,22 @@ inductive TokenSyntax : Char → String → Prop where
   | decimal (c : Char) (h : 127 < c.toNat) : TokenSyntax c ("\\" ++ c.toNat.repr)
   | control (c : Char) (text : String) (h : controlEscape c = some text) : TokenSyntax c text
 
+-- A decimal escape consumes following ASCII digits, and SO followed by H
+-- would be read as SOH. Require an empty escape at these boundaries.
+def needsEscapeTerminator (c : Char) (rest : List Char) : Bool :=
+  rest.head?.any fun next =>
+    (c.toNat == 14 && next == 'H') || (127 < c.toNat && next.isDigit)
+
 inductive BodySyntax : List Char → String → Prop where
   | nil : BodySyntax [] ""
   | cons (c : Char) (cs : List Char) (token rest : String)
-      (hToken : TokenSyntax c token) (hRest : BodySyntax cs rest) :
+      (hToken : TokenSyntax c token) (hRest : BodySyntax cs rest)
+      (boundary : needsEscapeTerminator c cs = false) :
       BodySyntax (c :: cs) (token ++ rest)
 
   | separated (c : Char) (cs : List Char) (token rest : String)
-      (hToken : TokenSyntax c token) (hRest : BodySyntax cs rest) :
+      (hToken : TokenSyntax c token) (hRest : BodySyntax cs rest)
+      (boundary : needsEscapeTerminator c cs = true) :
       BodySyntax (c :: cs) (token ++ "\\&" ++ rest)
 
 inductive LiteralSyntax : String → Prop where
@@ -81,9 +89,7 @@ def encodeChar (c : Char) : String :=
 def encodeBody : List Char → String
   | [] => ""
   | c :: cs =>
-    let separator := cs.head?.any fun next =>
-      (c.toNat == 14 && next == 'H') || (127 < c.toNat && next.isDigit)
-    if separator then encodeChar c ++ "\\&" ++ encodeBody cs
+    if needsEscapeTerminator c cs then encodeChar c ++ "\\&" ++ encodeBody cs
     else encodeChar c ++ encodeBody cs
 
 def encodeLiteral (s : String) : String :=
@@ -125,10 +131,9 @@ private theorem encodeBody_sound (chars : List Char)
       have token := encodeChar_sound c (allowed c (by simp))
       have rest := ih (fun x hx => allowed x (by simp [hx]))
       unfold encodeBody
-      dsimp only
-      split
-      · exact .separated _ _ _ _ token rest
-      · exact .cons _ _ _ _ token rest
+      cases boundary : needsEscapeTerminator c cs with
+      | false => exact .cons _ _ _ _ token rest boundary
+      | true => exact .separated _ _ _ _ token rest boundary
 
 theorem allCharsAllowed (c : Char) : Allowed c := by
   by_cases high : 127 < c.toNat
