@@ -1,5 +1,6 @@
 import SelfHostedFileProof
 import TerminalCursor
+import StrictWhitespaceScan
 
 namespace PegHs.MetaExecution
 open EnvironmentEval
@@ -111,13 +112,13 @@ private theorem parameter_here (input : List Char) (n : Nat) (env : Env) :
   have binds : ctx.hooks.bindValue 27 "l" [] {env with resultDepth := 0} = some (bindHere env) := rfl
   simpa only [bindResult, matchedText, Nat.sub_self, List.take_zero, binds] using bind
 
-theorem invariant2_parameter_rule_reply (pre suffix : List Char) (start here : Nat)
-    (initial spaced captured : Env)
-    (ws : Derives (context false (pre ++ suffix)) (.call 47 4) start initial (.ok here spaced))
+set_option maxRecDepth 8192 in
+theorem invariant2_parameter_rule_reply (before xs pre suffix : List Char)
+    (sameInput : before ++ xs = pre ++ suffix) (initial captured : Env)
     (code : Derives (context false (pre ++ suffix)) (.bind 28 "c" (.capture (.call 49 51)))
-      here (bindHere spaced) (.ok suffix.length captured)) :
+      (afterWhitespace xs).length (bindHere {initial with resultDepth := 0}) (.ok suffix.length captured)) :
     let text := captured.lookup "c"
-    Derives (context false (pre ++ suffix)) translatedStrictParamChunk start initial
+    Derives (context false (pre ++ suffix)) translatedStrictParamChunk xs.length initial
       (if (ParameterPredicates.strip GhcPredicates.space text).isEmpty then
         .throwLabel suffix.length "argument" (some "expected an argument")
        else match ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum text with
@@ -125,8 +126,13 @@ theorem invariant2_parameter_rule_reply (pre suffix : List Char) (start here : N
        | .typeError => .throwLabel suffix.length "paramtype" (some "expected a parameter type")
        | .ok .. => parameterDelimiterReply suffix {captured with resultDepth := 0}) := by
   rw [invariant2_parameter_guard_shape]
+  have scan := invariant1_strict_whitespace_scan before xs initial
+  rw [sameInput] at scan
+  have ws : Derives (context false (pre ++ suffix)) (.call 47 4) xs.length initial
+      (.ok (afterWhitespace xs).length {initial with resultDepth := 0}) :=
+    Derives.call (ctx := context false (pre ++ suffix)) (site := 47) (rule := 4) (env := initial) (callee := initial) (by rfl) scan
   apply Derives.seqOk ws
-  apply Derives.seqOk (parameter_here _ _ spaced)
+  apply Derives.seqOk (parameter_here _ _ _)
   apply Derives.seqOk code
   have h := invariant2_parameter_guard_order (pre ++ suffix) suffix.length captured _ _
     (invariant2_parameter_delimiter pre suffix _)
