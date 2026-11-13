@@ -598,6 +598,14 @@ example : FileResult false "%module Test\nRule( # comment\n ,)".toList
   apply invariant1_runFuel_sound (fuel := 256)
   decide +kernel
 
+-- Without a declaration operator after Rule(...), the preceding right-hand
+-- side can reach the empty argument inside the same top-level item.
+set_option maxRecDepth 20000 in
+example : FileResult false "S <- .\nRule( # comment\n ,)".toList
+    (.throwLabel 2 "argument" (some "expected an argument")) := by
+  apply invariant1_runFuel_sound (fuel := 512)
+  decide +kernel
+
 #print axioms invariant2_empty_parameter_no_module
 #print axioms invariant2_file_empty_parameter
 #print axioms invariant2_top_item_declaration_throw
