@@ -242,6 +242,43 @@ theorem recovery_items_valid (syntaxMode : Bool) (envType : CheckedEnvType)
 
 #print axioms recovery_items_valid
 
+open RenderDeclarationsGHC
+
+structure DebugSettings where
+  enabled : Bool
+  noTraditionalRecordSyntax : Bool
+  parserClose : DebugEntryKind → Bool
+
+def debugKinds (enabled recovering syntaxMode : Bool) : List DebugEntryKind :=
+  if enabled then
+    (if recovering then [.recoverValue] ++ (if syntaxMode then [.recoverSyntax] else []) else []) ++
+    [.value] ++ (if syntaxMode then [.syntaxTree] else [])
+  else []
+
+def debugItems (debug : DebugSettings) (recovering syntaxMode : Bool) (env : CheckedEnvType)
+    (start : EntryFragment) :=
+  (debugKinds debug.enabled recovering syntaxMode).flatMap fun kind =>
+    generatedPair (debugTypeWord (env.map Subtype.val) (kind.resultType start.resultType))
+      (List.replicate (if env.isSome then 3 else 2) [.terminal 117])
+      (kind.body env.isSome syntaxMode debug.noTraditionalRecordSyntax
+        [.terminal (if debug.parserClose kind then 0 else 104)])
+
+theorem debug_items_valid (debug : DebugSettings) (recovering syntaxMode : Bool)
+    (env : CheckedEnvType) (start : EntryFragment) (item : List Symbol)
+    (member : item ∈ debugItems debug recovering syntaxMode env start) :
+    Derives productions [.nonterminal 78] item := by
+  obtain ⟨kind, _, inside⟩ := List.mem_flatMap.mp member
+  have hc : Derives productions [.nonterminal 320]
+      [.terminal (if debug.parserClose kind then 0 else 104)] := by
+    cases debug.parserClose kind
+    · exact Derives.production (pre := []) (post := []) (id := 834)
+        (rhs := [.terminal 104]) (by decide) (.refl _)
+    · exact Derives.production (pre := []) (post := []) (id := 835)
+        (rhs := [.terminal 0]) (by decide) (.refl _)
+  exact debug_pair_valid kind env syntaxMode debug.noTraditionalRecordSyntax hc start.type_ok item inside
+
+#print axioms debug_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
@@ -249,6 +286,7 @@ theorem generated_module_with_rules
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
+    (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
@@ -266,7 +304,7 @@ theorem generated_module_with_rules
           semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        otherDecls ++ ruleItems rules).foldl semiAppend [])) :
+        debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -279,15 +317,16 @@ theorem generated_module_with_rules
     (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        otherDecls ++ ruleItems rules) name_ok
+        debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
-    rcases member with ((((hd | he) | hs) | hc) | ho) | hr
+    rcases member with (((((hd | he) | hs) | hc) | hdebug) | ho) | hr
     · exact data_ok item hd
     · exact entry_items_valid syntaxMode envType _ item he
     · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc
+    · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
     · exact other_ok item ho
     · exact rule_items_valid rules item hr
   · exact initial
