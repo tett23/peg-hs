@@ -96,6 +96,7 @@ main = do
   -- repeatBody checked both the initial accumulator and the stopping
   -- branch of many above, including the order in which it returns values.
   putStrLn "def translatedManyInitial {α : Type} : List α := []"
+  putStrLn "def translatedManyPush {α : Type} (acc : List α) (x : α) : List α := x :: acc"
   putStrLn "def translatedManyStop {α : Type} (acc : List α) : List α := acc.reverse"
   repeatBody "skipMany" "  let go j = do" "   in go i" "translatedSkipManyProgress"
     "          Ok k _ | " " -> go k" "()"
