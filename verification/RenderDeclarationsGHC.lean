@@ -1274,6 +1274,34 @@ theorem syntax_cast_binding :
     exact List.mem_singleton.mp h ▸ varid_argument
   · exact expr (oneRule (id := 536) (by rfl) branch)
 
+def kindNameArm (numbered : Bool) : List Symbol :=
+  (if numbered then [.terminal 122, .terminal 131] else [.terminal 2]) ++ [.terminal 83, .terminal 130]
+
+open RenderExpressionGHC in
+theorem kind_name_arm (numbered : Bool) :
+    Derives productions [.nonterminal 334] (kindNameArm numbered) := by
+  have expr {w} (f : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have lit := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+    (oneRule (id := 559) (by rfl) (applyRule (g := productions) (id := 819) (by rfl) (.refl [.terminal 130]))))
+  have rhs := applyRule (id := 631) (by rfl) (beside
+    (applyRule (id := 632) (by rfl) (beside (.refl [.terminal 83]) (expr (oneRule (id := 536) (by rfl) lit))))
+    (applyRule (g := productions) (id := 300) (by rfl) (.refl [])))
+  have arm {w} (f : Derives productions [.nonterminal 217] w) :=
+    applyRule (id := 865) (by rfl) (beside (oneRule (id := 640) (by rfl)
+      (oneRule (id := 639) (by rfl) (expr f))) rhs)
+  cases numbered with
+  | false => exact arm (oneRule (id := 536) (by rfl) wildcard_argument)
+  | true =>
+    have name := applyRule (g := productions) (id := 812) (by rfl) (.refl [.terminal 122])
+    have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+      (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
+        (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl) name)))))
+    have num := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+      (applyRule (g := productions) (id := 560) (by rfl) (.refl [.terminal 131])))
+    exact arm (application con num)
+
+#print axioms kind_name_arm
 #print axioms syntax_cast_binding
 #print axioms syntax_query_signature
 
