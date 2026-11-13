@@ -229,12 +229,14 @@ theorem syntax_item_pair_binding (discard : Bool) {body : List Symbol}
 
 #print axioms syntax_item_pair_binding
 
-theorem labeled_item_statements {body : List Symbol}
+def labeledBindingTokens (body : List Symbol) : List Symbol :=
+  [.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
+   .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++ [.terminal 108]
+
+theorem labeled_item_parts {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 229] body) :
-    Derives productions [.nonterminal 254]
-      ([.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
-        .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++
-        [.terminal 108, .terminal 113, .terminal 121, .terminal 117]) := by
+    Derives productions [.nonterminal 257] (labeledBindingTokens body) ∧
+    Derives productions [.nonterminal 257] [.terminal 121, .terminal 117] := by
   have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
     Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
       (by decide) (.refl _)
@@ -251,9 +253,19 @@ theorem labeled_item_statements {body : List Symbol}
     RenderDeclarationsGHC.varid_argument)
   have stmt := one (id := 658) (lhs := 257) (by decide)
     (one (id := 661) (lhs := 258) (by decide) touch)
-  simpa [List.append_assoc] using
-    RenderExpressionGHC.statement_cons (RenderExpressionGHC.statement_one bind) stmt
+  exact ⟨by simpa [labeledBindingTokens, List.append_assoc] using bind, stmt⟩
 
+theorem labeled_item_statements {body : List Symbol}
+    (body_ok : Derives productions [.nonterminal 229] body) :
+    Derives productions [.nonterminal 254]
+      ([.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
+        .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++
+        [.terminal 108, .terminal 113, .terminal 121, .terminal 117]) := by
+  obtain ⟨bind, touch⟩ := labeled_item_parts body_ok
+  simpa [labeledBindingTokens, List.append_assoc] using
+    RenderExpressionGHC.statement_cons (RenderExpressionGHC.statement_one bind) touch
+
+#print axioms labeled_item_parts
 #print axioms labeled_item_statements
 
 theorem named_binding_statement {body : List Symbol}
@@ -290,25 +302,25 @@ theorem syntax_action_bindings :
     named_binding_statement (expr (RenderExpressionGHC.application
       RenderExpressionGHC.qualified_function RenderDeclarationsGHC.varid_argument))⟩
 
-theorem syntax_action_block (hasEnv : Bool) (items : List (List Symbol × List Symbol))
+theorem syntax_action_block (hasEnv : Bool) (items : List (List (List Symbol) × List Symbol))
     (fragment : List Symbol)
     (fragment_ok : Derives productions [.nonterminal 229] fragment)
-    (items_ok : ∀ item ∈ items, Derives productions [.nonterminal 257] item.1 ∧
+    (items_ok : ∀ item ∈ items, (∀ stmt ∈ item.1, Derives productions [.nonterminal 257] stmt) ∧
       Derives productions [.nonterminal 229] item.2) :
     let bindCall : List Symbol := [.terminal 117, .terminal 82, .terminal 121, .terminal 117]
     let start : List Symbol := [.terminal 117, .terminal 82, .terminal 121]
-    let stmts := (if hasEnv then [bindCall] else []) ++ [start] ++ items.map Prod.fst ++ [bindCall]
+    let stmts := (if hasEnv then [bindCall] else []) ++ [start] ++ items.flatMap Prod.fst ++ [bindCall]
     Derives productions [.nonterminal 218] (RenderExpressionGHC.blockTokens
       (stmts ++ [[.terminal 121, .terminal 107] ++ ([.terminal 107] ++ fragment ++ [.terminal 108]) ++
         [.terminal 114] ++ kidsTokens (items.map Prod.snd) ++ [.terminal 108]])) := by
   dsimp only
   apply doReturn_block
   · intro stmt mem
-    simp only [List.mem_append, List.mem_singleton, List.mem_map] at mem
-    rcases mem with (((env | rfl) | ⟨item, hi, rfl⟩) | rfl)
+    simp only [List.mem_append, List.mem_singleton, List.mem_flatMap] at mem
+    rcases mem with (((env | rfl) | ⟨item, hi, member⟩) | rfl)
     · cases hasEnv <;> simp_all [syntax_action_bindings.2]
     · exact syntax_action_bindings.1
-    · exact (items_ok item hi).1
+    · exact (items_ok item hi).1 stmt member
     · exact syntax_action_bindings.2
   · exact RenderExpressionGHC.aexp_to_texp (RenderExpressionGHC.parenthesized fragment_ok)
   · intro child mem
