@@ -54,6 +54,35 @@ theorem choice_tokens_derive (first : Alternative) (rest : List Alternative) :
       RenderExpressionGHC.choice_many first.tokens second.tokens
         (more.map Alternative.tokens) first.valid second.valid more_ok
 
+-- ruleDecl emits a closing parenthesis for each present wrapper.
+def wrapChoice (wrapper : Option (List Symbol)) (inner : List Symbol) : List Symbol :=
+  match wrapper with
+  | none => inner
+  | some fn => fn ++ [.terminal 107] ++ inner ++ [.terminal 108]
+
+theorem wrap_choice_valid (wrapper : Option (List Symbol))
+    (wrapper_ok : ∀ fn ∈ wrapper, Derives productions [.nonterminal 217] fn)
+    (inner_ok : Derives productions [.nonterminal 217] inner) :
+    Derives productions [.nonterminal 217] (wrapChoice wrapper inner) := by
+  cases wrapper with
+  | none => exact inner_ok
+  | some fn =>
+    exact RenderExpressionGHC.application_parenthesized
+      (wrapper_ok fn (by simp)) (RenderExpressionGHC.fexp_to_texp inner_ok)
+
+theorem rule_body_valid (first : Alternative) (rest : List Alternative)
+    (memo : List Symbol) (expect tree : Option (List Symbol))
+    (memo_ok : Derives productions [.nonterminal 217] memo)
+    (expect_ok : ∀ fn ∈ expect, Derives productions [.nonterminal 217] fn)
+    (tree_ok : ∀ fn ∈ tree, Derives productions [.nonterminal 217] fn) :
+    Derives productions [.nonterminal 211]
+      (memo ++ [.terminal 107] ++ wrapChoice expect (wrapChoice tree (choiceTokens first rest)) ++ [.terminal 108]) :=
+  RenderExpressionGHC.fexp_to_exp (RenderExpressionGHC.application_parenthesized memo_ok
+    (RenderExpressionGHC.fexp_to_texp (wrap_choice_valid expect expect_ok
+      (wrap_choice_valid tree tree_ok (choice_tokens_derive first rest)))))
+
+#print axioms rule_body_valid
+
 -- Each step accounts for the lexer at one comma boundary.
 theorem printed_choice_ghc (lex : String → List Symbol) (first : Alternative) (rest : List Alternative)
     (initial : lex ("PegRt.choice\n      [ " ++ first.source) = [.terminal 121, .terminal 105] ++ first.tokens)

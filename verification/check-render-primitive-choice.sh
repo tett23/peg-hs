@@ -36,4 +36,4 @@ grep -Fq 'error: Type mismatch' "$scratch/RenderPrimitiveChoiceInvalid.log" || {
   exit 1
 }
 
-printf 'Rule choice renderer: 3 Lean theorems, 1 exact source check, 1 rejected mutation, 0 sorry axioms.\n'
+printf 'Rule choice renderer: 5 Lean theorems, 1 exact source check, 1 rejected mutation, 0 sorry axioms.\n'
