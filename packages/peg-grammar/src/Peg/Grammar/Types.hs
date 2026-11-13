@@ -384,22 +384,24 @@ render text maybe' = go
       TNamed t -> T.strip t
     atom t = parens (go t)
 
--- | A type in parentheses when it has a space outside brackets, so that
+-- | Parenthesize types with top-level whitespace or a function arrow so that
 -- it can be an argument of a type or a constructor.
 typeAtom :: Text -> Text
 typeAtom = parens
 
 parens :: Text -> Text
 parens t
-  | spaced (0 :: Int) (T.unpack t) = "(" <> t <> ")"
+  | needsParens (0 :: Int) (T.unpack t) = "(" <> t <> ")"
   | otherwise = t
   where
-    spaced _ [] = False
-    spaced d (c : cs)
-      | c `elem` ("([" :: String) = spaced (d + 1) cs
-      | c `elem` (")]" :: String) = spaced (d - 1) cs
+    needsParens _ [] = False
+    needsParens d ('-' : '>' : _) | d <= 0 = True
+    needsParens d ('→' : _) | d <= 0 = True
+    needsParens d (c : cs)
+      | c `elem` ("([" :: String) = needsParens (d + 1) cs
+      | c `elem` (")]" :: String) = needsParens (d - 1) cs
       | isSpace c && d <= 0 = True
-      | otherwise = spaced d cs
+      | otherwise = needsParens d cs
 
 -- | The declaration of a generated type as the user reads it, with its
 -- @deriving@ clause on a second line when it derives classes:
