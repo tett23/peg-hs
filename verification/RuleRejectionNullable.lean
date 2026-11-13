@@ -589,6 +589,33 @@ def nullableDeclarationNames (declarations : List (String × List (List Expr))) 
   let rules := mergedNamedRules names declarations
   knownRuleNames names (nullableUntilStable (lookupRuleNames names) (fun _ => none) rules 0 (by omega))
 
+theorem namedNullableUntilStable_correct (declarations : List (String × List (List Expr))) :
+    ∀ name, name ∈ namedNullableUntilStable declarations ↔ name ∈ nullableDeclarationNames declarations := by
+  let names := indexedDeclarationName declarations
+  let lookup := lookupRuleNames names
+  let rules := mergedNamedRules names declarations
+  let result := stableNamedRound declarations 0 (by omega)
+  let k := result.val
+  have bound : k ≤ (declarationNames declarations).length := result.property.1
+  have stable : directNext lookup (fun _ => none) rules (directRounds lookup (fun _ => none) rules k) =
+      directRounds lookup (fun _ => none) rules k := by
+    change directRounds lookup (fun _ => none) rules (k + 1) = directRounds lookup (fun _ => none) rules k
+    apply (knownRuleNames_equality names (indexedDeclarationName_injective declarations) _ _).mp
+    intro name
+    rw [← namedNullableRounds_correct declarations (k + 1), ← namedNullableRounds_correct declarations k]
+    exact ⟨fun member => result.property.2.1 member, fun member => result.property.2.2 member⟩
+  have equal := direct_rounds_after_fixed lookup (fun _ => none) rules k stable
+    ((declarationNames declarations).length - k)
+  rw [Nat.add_sub_of_le bound] at equal
+  intro name
+  unfold namedNullableUntilStable nullableDeclarationNames
+  dsimp only
+  rw [namedNullableRounds_correct, nullableUntilStable_correct]
+  rw [show directRounds lookup (fun _ => none) rules (declarationNames declarations).length =
+    directRounds lookup (fun _ => none) rules result.val from equal]
+
+#print axioms namedNullableUntilStable_correct
+
 theorem nullableDeclarationNames_fixed (declarations : List (String × List (List Expr))) :
     let names := indexedDeclarationName declarations
     let lookup := lookupRuleNames names
