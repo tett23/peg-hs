@@ -43,5 +43,19 @@ theorem invariant1_strict_ws_lexical_reply (pre xs : List Char) (env : Environme
   refine ⟨afterWhitespace xs, ?_, invariant1_strict_whitespace_scan pre xs env⟩
   rw [PegVerification.invariant1_ws_expr, sameRemainder _ _ (by omega)]
 
+-- File calls Ws before trying any top-level item. This establishes its
+-- first runtime cursor for any source, including empty and comment-only files.
+set_option maxRecDepth 8192 in
+theorem invariant1_file_initial_ws_lexical (input : List Char) :
+    ∃ suffix, PegVerification.run PegVerification.whitespaceExpr input = .ok suffix ∧
+      EnvironmentEval.Derives (context false input) (.call 0 4) input.length {}
+        (.ok suffix.length {}) := by
+  obtain ⟨suffix, lexical, parsed⟩ := invariant1_strict_ws_lexical_reply [] input {}
+  simp only [List.nil_append] at parsed
+  let ctx := context false input
+  have entered : ctx.hooks.enterCall 0 {} = some {} := rfl
+  exact ⟨suffix, lexical, EnvironmentEval.Derives.call (ctx := ctx) (rule := 4) entered parsed⟩
+
+#print axioms invariant1_file_initial_ws_lexical
 #print axioms invariant1_strict_ws_lexical_reply
 end PegHs.MetaExecution
