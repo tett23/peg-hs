@@ -1059,6 +1059,32 @@ theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFie
     (beside (data_constructors first rest) (data_deriving classes)))))
   simpa [dataDeclWord, List.append_assoc] using oneRule (id := 153) (by rfl) decl
 
+-- Every retained typed node wraps SyntaxNode and derives qualified Eq and Show.
+def syntaxNodeNewtypeWord : List Symbol :=
+  [.terminal 20, .terminal 118, .terminal 77, .terminal 118, .terminal 122,
+   .terminal 8, .terminal 107, .terminal 122, .terminal 114, .terminal 122, .terminal 108]
+
+theorem syntax_node_newtype :
+    Derives productions [.nonterminal 78] syntaxNodeNewtypeWord := by
+  let node : ConstructorFields := ⟨[[.terminal 122]], fun _ h =>
+    List.mem_singleton.mp h ▸ qualifiedTypeAtom⟩
+  exact data_declaration node [] [true, true]
+
+-- kindVar n = PegRt.SyntaxKind k, where k is a nonnegative kind number.
+theorem syntax_kind_binding :
+    Derives productions [.nonterminal 78] [.terminal 117, .terminal 77, .terminal 122, .terminal 131] := by
+  have name := applyRule (g := productions) (id := 812) (by rfl) (.refl [.terminal 122])
+  have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+    (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
+      (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl) name)))))
+  have number := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+    (applyRule (g := productions) (id := 560) (by rfl) (.refl [.terminal 131])))
+  exact binding_named_infixexp (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
+    (RenderExpressionGHC.application con number)))
+
+#print axioms syntax_node_newtype
+#print axioms syntax_kind_binding
+
 structure DataDeclaration where
   constructors : List ConstructorFields
   classes : List Bool
