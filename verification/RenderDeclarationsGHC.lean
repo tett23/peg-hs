@@ -915,6 +915,21 @@ theorem store_record_fields (first : List Symbol) (rest : List (List Symbol))
     simpa [storeRecordFields, List.append_assoc] using applyRule (id := 472) (by rfl)
       (beside (field (valid first (by simp))) (beside (.refl [.terminal 114]) tail))
 
+def recordStoreWord (first : List Symbol) (rest : List (List Symbol)) : List Symbol :=
+  [.terminal 6, .terminal 118, .terminal 117, .terminal 77, .terminal 118, .terminal 101] ++
+    storeRecordFields first rest ++ [.terminal 102]
+
+theorem record_store_declaration (first : List Symbol) (rest : List (List Symbol))
+    (valid : ∀ ty ∈ first :: rest, Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 78] (recordStoreWord first rest) := by
+  have contents := oneRule (id := 471) (by rfl) (store_record_fields first rest valid)
+  have braces := applyRule (id := 405) (by rfl)
+    (beside (.refl [.terminal 101]) (beside contents (.refl [.terminal 102])))
+  let fields : ConstructorFields := ⟨[ _ ], fun f hf => List.mem_singleton.mp hf ▸ braces⟩
+  simpa [recordStoreWord, fields, ConstructorFields.word, List.append_assoc] using
+    positional_store_declaration fields
+
+#print axioms record_store_declaration
 #print axioms store_record_fields
 
 def pureStoreBindingWord (hasEnv : Bool) : List Symbol :=
