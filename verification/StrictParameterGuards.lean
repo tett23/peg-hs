@@ -191,6 +191,19 @@ theorem invariant2_argcode_at_comma (pre tail : List Char) (env : Env) :
     Derives.star (.loopStop (.seqCarryFail stop))
   exact Derives.call (ctx := ctx) (site := 49) (rule := 51) (env := env) (callee := env) (by rfl) body
 
+theorem invariant2_empty_parameter_before_comma (before xs pre tail : List Char) (initial : Env)
+    (sameInput : before ++ xs = pre ++ ',' :: tail)
+    (comma : afterWhitespace xs = ',' :: tail) :
+    Derives (context false (before ++ xs)) translatedStrictParamChunk xs.length initial
+      (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+  let env := bindHere {initial with resultDepth := 0}
+  have code := invariant2_argcode_at_comma pre tail env
+  have full := invariant2_parameter_rule_reply before xs pre (',' :: tail) sameInput initial _
+    (by simpa only [comma] using code)
+  rw [sameInput]
+  simpa [comma, matchedText, ParameterPredicates.strip] using full
+
+#print axioms invariant2_empty_parameter_before_comma
 #print axioms invariant2_argcode_at_comma
 #print axioms invariant2_parameter_code_throw
 #print axioms invariant2_parameter_rule_reply
