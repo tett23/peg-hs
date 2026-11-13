@@ -159,6 +159,27 @@ theorem fold_escaped_body (chars : List Char) :
 def encodeLiteral (s : String) : String :=
   "\"" ++ encodeBody s.toList ++ "\""
 
+-- Show for String supplies the final double quote as the continuation
+-- of showLitString. Its first character cannot extend either escape.
+theorem quoted_fold (s : String) :
+    "\"" ++ s.toList.foldr prependEscaped "\"" = encodeLiteral s := by
+  have aux (cs : List Char) :
+      cs.foldr prependEscaped "\"" = encodeBody cs ++ "\"" := by
+    induction cs with
+    | nil => rfl
+    | cons c cs ih =>
+      have same : needsEscapeTerminator c (encodeBody cs ++ "\"").toList =
+          needsEscapeTerminator c (encodeBody cs).toList := by
+        simp only [String.toList_append, needsEscapeTerminator]
+        cases (encodeBody cs).toList <;> simp [Char.isDigit]
+      rw [← fold_escaped_body (c :: cs), List.foldr_cons, List.foldr_cons, ih,
+        fold_escaped_body cs]
+      simp only [prependEscaped, same]
+      split <;> simp [String.append_assoc]
+  simp [aux, encodeLiteral, String.append_assoc]
+
+#print axioms quoted_fold
+
 private theorem encodeChar_sound (c : Char) (h : Allowed c) :
     TokenSyntax c (encodeChar c) := by
   by_cases hq : c = quote
