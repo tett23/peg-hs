@@ -619,6 +619,20 @@ structure ConstructorFields where
   fields : List (List Symbol)
   valid : ∀ field ∈ fields, Derives productions [.nonterminal 172] field
 
+-- A parenthesized user type occupies exactly one constructor field, even
+-- when its outermost production is application or a function arrow.
+def ConstructorFields.ofParenthesized (types : List (List Symbol))
+    (valid : ∀ ty ∈ types, Derives productions [.nonterminal 162] ty) :
+    ConstructorFields where
+  fields := types.map fun ty => [.terminal 107] ++ ty ++ [.terminal 108]
+  valid := by
+    intro field member
+    obtain ⟨ty, hty, rfl⟩ := List.mem_map.mp member
+    have inner := beside (.refl [.terminal 107]) (beside (valid ty hty) (.refl [.terminal 108]))
+    simpa [List.append_assoc] using applyRule (id := 412) (by rfl) inner
+
+#print axioms ConstructorFields.ofParenthesized
+
 def ConstructorFields.word (c : ConstructorFields) : List Symbol :=
   [.terminal 118] ++ c.fields.flatten
 
