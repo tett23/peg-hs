@@ -1,6 +1,6 @@
 import RenderExpressionGHC
 import RenderExpressionLexer
-import RenderComposition
+import RenderPrimitiveDoGHC
 
 namespace PegHs.RenderPrimitiveChoice
 
@@ -10,6 +10,13 @@ structure Alternative where
   source : String
   tokens : List Symbol
   valid : Derives productions [.nonterminal 229] tokens
+
+-- A generated alternative always ends with the action's return statement.
+def doAlternative (first : RenderPrimitiveDoGHC.Statement) (rest : List RenderPrimitiveDoGHC.Statement) :
+    Alternative where
+  source := RenderPrimitiveDo.printedDo (first.source :: rest.map RenderPrimitiveDoGHC.Statement.source)
+  tokens := [.terminal 125, .terminal 101] ++ RenderPrimitiveDoGHC.statementTokens first rest ++ [.terminal 102]
+  valid := RenderExpressionGHC.aexp_to_texp (RenderPrimitiveDoGHC.do_tokens_derive first rest)
 
 -- The inner `PegRt.choice` fragment in Codegen.ruleDecl. A parsed hpeg rule
 -- has at least one alternative (Peg.hpeg: Alts <- a:Alt as:MoreAlt*).
@@ -72,6 +79,7 @@ theorem printed_choice_ghc (lex : String → List Symbol) (first : Alternative) 
   rw [printed_choice_fold, ← sourceEq, ← hs, closing, ht, tokensEq]
   exact choice_tokens_derive first rest
 
+#print axioms doAlternative
 #print axioms printed_choice_ghc
 #print axioms printed_choice_fold
 #print axioms choice_tokens_derive
