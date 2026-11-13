@@ -150,6 +150,27 @@ theorem invariant2_modifier_binding_rejected (modifier : Char → Bool) (c : Cha
     (by simp [binderRejected, isModifier]) occurs tops definition
   exact ⟨ds, rejected, fun empty => by simp [empty] at reported⟩
 
+theorem invariant2_parameter_rejected (modifier : Char → Bool) (name rule : String)
+    (templates params : List String) (tops : List Top) (p : Predicates)
+    (annotation : Top.annotationWithParams rule templates params ∈ tops) (member : name ∈ params)
+    (invalid : binderRejected modifier (languageOptions tops) name = true) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+      = .error ds ∧ ds ≠ [] := by
+  apply binder_violation_rejected _ _ ⟨.reservedParameter, name⟩
+  apply List.mem_append_left
+  apply List.mem_map.mpr
+  exact ⟨name, List.mem_filter.mpr ⟨List.mem_flatMap.mpr ⟨_, annotation, member⟩, invalid⟩, rfl⟩
+
+theorem invariant2_modifier_parameter_rejected (modifier : Char → Bool) (c : Char)
+    (tail : List Char) (isModifier : modifier c = true) (rule : String)
+    (templates params : List String) (tops : List Top) (p : Predicates)
+    (annotation : Top.annotationWithParams rule templates params ∈ tops)
+    (member : String.ofList (c :: tail) ∈ params) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+      = .error ds ∧ ds ≠ [] :=
+  invariant2_parameter_rejected _ _ _ _ _ _ _ annotation member (by simp [binderRejected, isModifier])
+
+#print axioms invariant2_modifier_parameter_rejected
 #print axioms invariant2_modifier_binding_rejected
 
 theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : String)
