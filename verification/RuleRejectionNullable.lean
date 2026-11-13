@@ -429,6 +429,30 @@ theorem nullableDeclarationNames_fixed (declarations : List (String × List (Lis
   rw [← fixed]
   exact merged_named_rule_nullable _ _ _ _ _ i
 
+theorem nullableDeclarationNames_iff (declarations : List (String × List (List Expr))) (name : String) :
+    name ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = name ∧
+        directNullable (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+            (mergedNamedRules (indexedDeclarationName declarations) declarations)
+            (declarationNames declarations).length) (.group declaration.2) = true := by
+  constructor
+  · intro member
+    obtain ⟨i, named, _⟩ := (knownRuleNames_member _ _ _).mp member
+    rw [← named]
+    exact (nullableDeclarationNames_fixed declarations i).mp (named ▸ member)
+  · rintro ⟨declaration, member, named, valid⟩
+    have inNames : name ∈ declarationNames declarations := by
+      apply (uniqueRuleNames_member _ _).mpr
+      exact List.mem_map.mpr ⟨declaration, member, named⟩
+    obtain ⟨i, bound, atIndex⟩ := List.getElem_of_mem inNames
+    have eq : indexedDeclarationName declarations ⟨i, bound⟩ = name := atIndex
+    rw [← eq]
+    exact (nullableDeclarationNames_fixed declarations ⟨i, bound⟩).mpr
+      ⟨declaration, member, named.trans eq.symm, valid⟩
+
+#print axioms nullableDeclarationNames_iff
+
 #print axioms nullableDeclarationNames_fixed
 
 def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
