@@ -1,6 +1,7 @@
 import RenderModuleGHC
 import RenderExpressionLexer
 import RenderModuleNames
+import TemplateSubstitution
 import RenderDeclarationsGHC
 
 namespace PegHs.RenderComposition
@@ -433,11 +434,27 @@ def groupedAccessors (bound : List (String × AccessTarget)) : List (String × S
   | [("x", .elements)] => true
   | _ => false
 
+private def directAccess (token inlineRule : String → Bool) (many : Bool) :
+    TemplateSubstitution.Expr → AccessTarget
+  | .ref _ n _ =>
+    if token n then (if many then .manyTokens n else .oneToken n)
+    else if inlineRule n then .elements
+    else if many then .manyNodes n else .oneNode n
+  | _ => .elements
+
+def classifyAccess (token inlineRule : String → Bool) : TemplateSubstitution.Expr → AccessTarget
+  | .opt x => classifyAccess token inlineRule x
+  | .star x | .plus x => directAccess token inlineRule true x
+  | e => directAccess token inlineRule false e
+
+#guard classifyAccess (· == "T") (fun _ => false) (.opt (.star (.ref 0 "T" []))) == .manyTokens "T"
+#guard classifyAccess (· == "T") (fun _ => false) (.star (.opt (.ref 0 "T" []))) == .elements
+
 structure SyntaxRule where
   name : String
   isInline : Bool
   isToken : Bool
-  boundItems : List (String × AccessTarget)
+  alternatives : List (List (Option String × TemplateSubstitution.Expr))
 
 structure SyntaxInputs where
   rules : List SyntaxRule
@@ -452,6 +469,8 @@ private def mapFirst (f : Char → Char) (name : String) : String :=
   | c :: cs => String.ofList (f c :: cs)
 
 def SyntaxInputs.selected (inputs : SyntaxInputs) (keep : String → Bool) : List SyntaxDeclaration :=
+  let token := fun n => inputs.rules.any fun r => r.name == n && r.isToken
+  let inlineRule := fun n => inputs.rules.any fun r => r.name == n && r.isInline
   let kinds := inputs.rules.filter fun r => !r.isInline
   let nodes := kinds.filter fun r => !r.isToken
   let upper := mapFirst inputs.toUpper
@@ -460,10 +479,12 @@ def SyntaxInputs.selected (inputs : SyntaxInputs) (keep : String → Bool) : Lis
     (if keep "nameOfSyntaxKind" then [.names kinds.length] else []) ++
     (if keep "isTriviaSyntaxKind" then [.trivia inputs.trivia.length] else []) ++
     nodes.flatMap fun r =>
+      let bound := r.alternatives.flatten.filterMap fun (b, e) =>
+        b.map fun name => (name, classifyAccess token inlineRule e)
       let ty := RenderModuleNames.generatedTypeName inputs.toUpper inputs.isUpper r.name.toList ++ "Syntax"
       (if keep ty then [.node] else []) ++
       (if keep ("cast" ++ ty) then [.cast] else []) ++
-      ((groupedAccessors r.boundItems).filter fun a => keep (lower r.name ++ upper a.1)).map fun a => .accessor a.2
+      ((groupedAccessors bound).filter fun a => keep (lower r.name ++ upper a.1)).map fun a => .accessor a.2
 
 def syntaxItems (enabled : Bool) (decls : List SyntaxDeclaration) :=
   if enabled then decls.flatMap SyntaxDeclaration.items else []
