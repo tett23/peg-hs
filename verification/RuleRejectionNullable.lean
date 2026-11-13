@@ -156,6 +156,59 @@ theorem directNext_correct {n : Nat} (lookup : RuleLookup n)
   funext i
   exact toPositive_correct lookup recovery known (.group (rules i))
 
+def knownRuleNames {n : Nat} (names : Fin n → String) (known : Fin n → Bool) : List String :=
+  ((List.finRange n).filter fun i => known i).map names
+
+theorem knownRuleNames_member {n : Nat} (names : Fin n → String)
+    (known : Fin n → Bool) (name : String) :
+    name ∈ knownRuleNames names known ↔ ∃ i, names i = name ∧ known i = true := by
+  simp [knownRuleNames, List.mem_map, List.mem_filter, and_comm]
+
+theorem knownRuleNames_lookup {n : Nat} (names : Fin n → String)
+    (lookup : RuleLookup n)
+    (indexed : ∀ name i, lookup name = some i ↔ names i = name)
+    (known : Fin n → Bool) (name : String) :
+    (name ∈ knownRuleNames names known) ↔ (lookup name).any known = true := by
+  rw [knownRuleNames_member]
+  cases found : lookup name with
+  | none =>
+    simp only [Option.any_none, Bool.false_eq_true, iff_false]
+    rintro ⟨i, hi, _⟩
+    have := (indexed name i).mpr hi
+    simp [found] at this
+  | some i =>
+    simp only [Option.any_some]
+    constructor
+    · rintro ⟨j, nameOk, value⟩
+      have same : j = i := Option.some.inj (((indexed name j).mpr nameOk).symm.trans found)
+      simpa [same] using value
+    · intro value
+      exact ⟨i, (indexed name i).mp found, value⟩
+
+theorem knownRuleNames_equality {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (left right : Fin n → Bool) :
+    (∀ name, name ∈ knownRuleNames names left ↔ name ∈ knownRuleNames names right) ↔ left = right := by
+  constructor
+  · intro same
+    funext i
+    have atIndex (known : Fin n → Bool) :
+        names i ∈ knownRuleNames names known ↔ known i = true := by
+      rw [knownRuleNames_member]
+      constructor
+      · rintro ⟨j, eq, value⟩
+        simpa [distinct eq] using value
+      · intro value
+        exact ⟨i, rfl, value⟩
+    have h := same (names i)
+    rw [atIndex left, atIndex right] at h
+    cases hl : left i <;> cases hr : right i <;> simp_all
+  · rintro rfl name
+    rfl
+
+#print axioms knownRuleNames_member
+#print axioms knownRuleNames_lookup
+#print axioms knownRuleNames_equality
+
 def directRounds {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) : Nat → Fin n → Bool
   | 0 => fun _ => false
