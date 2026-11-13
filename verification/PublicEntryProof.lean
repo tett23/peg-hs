@@ -53,34 +53,53 @@ theorem invariant2_assembly_diagnostics {T M G} (bytes : Nat) (tops : T) (d : Fa
     simp [translatedGrammar, translatedRuntime, translatedPublic, translatedAssemble, Except.bind,
       eq_comm]
 
+-- Data.List.sortOn decorates each element with its key, sorts the pairs,
+-- and projects the original elements. Only the length matters to rejection.
+theorem invariant2_sortOn_length {A K} (key : A → K)
+    (sortPairs : List (K × A) → List (K × A))
+    (perm : ∀ pairs, (sortPairs pairs).Perm pairs) (xs : List A) :
+    ((sortPairs (xs.map fun x => (key x, x))).map Prod.snd).length = xs.length := by
+  rw [List.length_map, (perm _).length_eq, List.length_map]
+
+theorem invariant2_sortOn_mergeSort_length {A K} (key : A → K) (le : K → K → Bool)
+    (xs : List A) :
+    (((xs.map fun x => (key x, x)).mergeSort (fun a b => le a.1 b.1)).map Prod.snd).length
+      = xs.length :=
+  invariant2_sortOn_length key _ (fun _ => List.mergeSort_perm ..) xs
+
+#print axioms invariant2_sortOn_mergeSort_length
+#print axioms invariant2_sortOn_length
+
 theorem invariant2_sorted_assembly_error_nonempty {T M G} (bytes : Nat) (tops : T)
     (d : Failure → String) (errors : List String) (name : Option M) (build : M → G)
-    (missing : String) (le : String → String → Bool) (ds : List String)
+    (missing : String) (sortErrors : List String → List String)
+    (length_sort : ∀ es, (sortErrors es).length = es.length) (ds : List String)
     (rejected : translatedGrammar bytes (.ok bytes tops) d (fun _ =>
-      translatedAssemble errors name build missing (fun es => es.mergeSort le)) = .error ds) :
+      translatedAssemble errors name build missing sortErrors) = .error ds) :
     ds ≠ [] := by
   rcases (invariant2_assembly_diagnostics ..).mp rejected with ⟨_, _, rfl⟩ | ⟨hne, rfl⟩
   · simp
   · intro hempty
     apply hne
     apply List.length_eq_zero_iff.mp
-    simpa using congrArg List.length hempty
+    simpa only [length_sort, List.length_nil] using congrArg List.length hempty
 
 #print axioms invariant2_sorted_assembly_error_nonempty
 
 theorem invariant2_translated_grammar_error_nonempty {T M G} (bytes : Nat)
     (start : StartResult T) (d : Failure → String) (errors : T → List String)
     (name : T → Option M) (build : T → M → G) (missing : String)
-    (le : String → String → Bool) (ds : List String)
+    (sortErrors : List String → List String)
+    (length_sort : ∀ es, (sortErrors es).length = es.length) (ds : List String)
     (rejected : translatedGrammar bytes start d (fun t =>
       translatedAssemble (errors t) (name t) (build t) missing
-        (fun es => es.mergeSort le)) = .error ds) : ds ≠ [] := by
+        sortErrors) = .error ds) : ds ≠ [] := by
   cases start with
   | ok pos tops =>
     by_cases full : pos = bytes
     · subst pos
       exact invariant2_sorted_assembly_error_nonempty bytes tops d (errors tops) (name tops)
-        (build tops) missing le ds (by
+        (build tops) missing sortErrors length_sort ds (by
           simpa [translatedGrammar, translatedRuntime, translatedPublic, Except.bind] using rejected)
     · simp [translatedGrammar, translatedRuntime, translatedPublic, Except.bind, full] at rejected
       subst ds
@@ -95,24 +114,25 @@ theorem invariant2_translated_grammar_error_nonempty {T M G} (bytes : Nat)
 open PegHs.Pipeline in
 theorem invariant2_rejected_grammar_visible {T M G} (bytes : Nat) (start : StartResult T)
     (d : Failure → String) (errors : T → List String) (name : T → Option M)
-    (build : T → M → G) (missing : String) (le : String → String → Bool)
+    (build : T → M → G) (missing : String) (sortErrors : List String → List String)
+    (length_sort : ∀ es, (sortErrors es).length = es.length)
     (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics Unit)
     (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
     (warnings : G → G → Diagnostics) (generate : G → Except Diagnostics String)
     (invalid : ¬ ∃ t m, start = .ok bytes t ∧ errors t = [] ∧ name t = some m) :
     let parsed := translatedGrammar bytes start d (fun t =>
-      translatedAssemble (errors t) (name t) (build t) missing (fun es => es.mergeSort le))
+      translatedAssemble (errors t) (name t) (build t) missing sortErrors)
     ∃ msg rest, visible (pipeline parsed resolve expand check notes strip warnings generate)
       = .error (msg :: rest) := by
   dsimp only
   cases hp : translatedGrammar bytes start d (fun t =>
-      translatedAssemble (errors t) (name t) (build t) missing (fun es => es.mergeSort le)) with
+      translatedAssemble (errors t) (name t) (build t) missing sortErrors) with
   | ok g =>
     obtain ⟨t, m, hs, he, hn, _⟩ := (invariant1_translated_grammar_assembled ..).mp hp
     exact False.elim (invalid ⟨t, m, hs, he, hn⟩)
   | error ds =>
     have nonempty := invariant2_translated_grammar_error_nonempty bytes start d errors name
-      build missing le ds hp
+      build missing sortErrors length_sort ds hp
     cases ds with
     | nil => exact False.elim (nonempty rfl)
     | cons msg rest => exact ⟨msg, rest, rfl⟩
