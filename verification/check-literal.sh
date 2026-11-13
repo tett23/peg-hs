@@ -79,3 +79,34 @@ main = do
   putStrLn ("Checked " ++ show (length rows) ++ " GHC string tokens and decoded values.")
 SOURCE
 runghc-9.10.3 -package=ghc "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
+
+# Compare the per-character spelling exhaustively. Buffered batches avoid
+# performing a separate write for each Unicode scalar.
+cat > "$scratch/ScalarSpellings.lean" <<'SOURCE'
+import Literal
+
+def main : IO Unit := do
+  let out ← IO.getStdout
+  for page in [:4352] do
+    let mut rows := ""
+    for offset in [:256] do
+      let n := page * 256 + offset
+      if n < 0xd800 || n > 0xdfff then
+        rows := rows ++ Peg.Verification.encodeLiteral (String.singleton (Char.ofNat n)) ++ "\n"
+    out.putStr rows
+SOURCE
+(cd verification && lean --run "$scratch/ScalarSpellings.lean") > "$scratch/scalar-spellings.txt"
+cat > "$scratch/ScalarSpellings.hs" <<'SOURCE'
+import Control.Monad (unless)
+import Data.Char (chr)
+
+main :: IO ()
+main = do
+  actual <- lines <$> getContents
+  let scalars = [0..0xd7ff] ++ [0xe000..0x10ffff]
+      spelling n = show [chr n]
+  unless (map spelling scalars == actual) $
+    fail "GHC and Lean differ on Unicode scalar spelling"
+SOURCE
+runghc-9.10.3 "$scratch/ScalarSpellings.hs" < "$scratch/scalar-spellings.txt"
+printf 'Compared all 1112064 Unicode scalar spellings with GHC Show.\n'
