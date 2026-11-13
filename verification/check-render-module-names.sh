@@ -12,6 +12,10 @@ for module in Header RenderExpression RenderModuleGHC; do
   }
 done
 mkdir -p "$scratch"
+lexer=${GHC_LEXER_X:-"$LEAN_PATH/Lexer.x"}
+cat verification/CheckModuleNameChars.hs > "$scratch/CheckModuleNameChars.hs"
+sed -n '/^adjustChar ::/,/^[ ]*_other *-> non_graphic/p' "$lexer" >> "$scratch/CheckModuleNameChars.hs"
+runghc-9.10.3 "$scratch/CheckModuleNameChars.hs"
 
 (cd verification && lean -DwarningAsError=true \
   -o "$scratch/RenderModuleNames.olean" RenderModuleNames.lean) \
@@ -98,4 +102,4 @@ for name in QualifiedMdo UnicodeNames UnicodeModule; do
     "$scratch/$name.hs" > "$scratch/$name.ghc.log" 2>&1
 done
 
-printf 'Module names and exports: 4 Lean theorems, 2 invalid inputs rejected, 3 generated modules compiled.\n'
+printf 'Module names and exports: 5 Lean theorems, 1114112 character classifications, 2 invalid inputs rejected, 3 generated modules compiled.\n'

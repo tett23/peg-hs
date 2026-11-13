@@ -1,3 +1,4 @@
+import Literal
 import RenderExpressionGHC
 import RenderExpressionLexer
 import RenderDeclarationsGHC
@@ -348,6 +349,132 @@ theorem plain_syntax_body {body : List Symbol}
       ([.terminal 121, .terminal 107] ++ body ++ [.terminal 108]) :=
   function_expression (RenderExpressionGHC.application_parenthesized
     RenderExpressionGHC.qualified_function valid)
+
+-- exprCode renders both the decoded literal and its original spelling.
+-- The syntax-tree backend wraps that same application in PegRt.plain.
+theorem generated_literal_forms (value original : String) :
+    Peg.Verification.PegLitSyntax
+      ("PegRt.lit " ++ Peg.Verification.showStringModel value ++ " " ++
+        Peg.Verification.showStringModel original) ∧
+    Derives productions [.nonterminal 211] [.terminal 121, .terminal 130, .terminal 130] ∧
+    Derives productions [.nonterminal 211]
+      [.terminal 121, .terminal 107, .terminal 121, .terminal 130, .terminal 130, .terminal 108] := by
+  have body := function_expression (RenderExpressionGHC.application
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument)
+    string_argument)
+  exact ⟨by simpa [Peg.Verification.showStringModel_eq, Peg.Verification.renderPegLit] using
+    Peg.Verification.invariant3_pegLit_sound value original,
+    body, plain_syntax_body (one (id := 596) (by decide) body)⟩
+
+#print axioms generated_literal_forms
+
+private def rangePair : List Symbol :=
+  [.terminal 107, .terminal 129, .terminal 114, .terminal 129, .terminal 108]
+
+private theorem range_pair_expression : Derives productions [.nonterminal 229] rangePair := by
+  have literal : Derives productions [.nonterminal 319] [.terminal 129] :=
+    Derives.production (pre := []) (post := []) (id := 818) (rhs := [.terminal 129])
+      (by decide) (.refl _)
+  have arg := one (id := 551) (lhs := 218) (by decide)
+    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
+  have endpoint := RenderExpressionGHC.aexp_to_texp arg
+  exact RenderExpressionGHC.aexp_to_texp (pair_argument endpoint endpoint)
+
+def classFunctionTokens : Nat → List Symbol
+  | 0 => [.terminal 121, .terminal 105, .terminal 106]
+  | 1 => [.terminal 121, .terminal 105] ++ rangePair ++ [.terminal 106]
+  | n + 2 => [.terminal 121, .terminal 105] ++
+      (List.replicate n rangePair).foldl RenderExpressionGHC.commaAppend
+        (RenderExpressionGHC.commaAppend rangePair rangePair) ++ [.terminal 106]
+
+theorem class_body (ranges : Nat) : Derives productions [.nonterminal 211]
+    (classFunctionTokens ranges ++ [.terminal 130]) := by
+  apply function_expression
+  apply RenderExpressionGHC.application _ string_argument
+  cases ranges with
+  | zero =>
+    have nil : Derives productions [.nonterminal 280] [.terminal 105, .terminal 106] :=
+      Derives.production (pre := []) (post := []) (id := 709) (rhs := [.terminal 105, .terminal 106])
+        (by decide) (.refl _)
+    exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+      (one (id := 551) (by decide) (one (id := 554) (lhs := 219) (by decide)
+        (one (id := 556) (lhs := 220) (by decide) (one (id := 694) (lhs := 274) (by decide) nil))))
+  | succ n =>
+    cases n with
+    | zero => exact RenderExpressionGHC.choice_singleton range_pair_expression
+    | succ n =>
+      apply RenderExpressionGHC.choice_many _ _ _ range_pair_expression range_pair_expression
+      intro item mem
+      obtain rfl := (List.mem_replicate.mp mem).2
+      exact range_pair_expression
+
+-- Each emitted lexeme carries its GHC grammar terminal. Projecting text
+-- and terminals from the same list preserves the order of both endpoints.
+def rangeLexemes (r : Char × Char) : List (String × Symbol) :=
+  [("(", .terminal 107), (Peg.Verification.encodeEndpoint r.1, .terminal 129),
+   (", ", .terminal 114), (Peg.Verification.encodeEndpoint r.2, .terminal 129), (")", .terminal 108)]
+
+private def appendRange (acc : List (String × Symbol)) (r : Char × Char) :=
+  acc ++ [(", ", Symbol.terminal 114)] ++ rangeLexemes r
+
+def classLexemes (ranges : List (Char × Char)) (original : String) : List (String × Symbol) :=
+  let inside := match ranges with
+    | [] => []
+    | r :: rs => rs.foldl appendRange (rangeLexemes r)
+  [("PegRt.cls ", Symbol.terminal 121), ("[", .terminal 105)] ++ inside ++
+    [("] ", .terminal 106), (Peg.Verification.encodeLiteral original, .terminal 130)]
+
+private def rangeText (r : Char × Char) :=
+  "(" ++ Peg.Verification.encodeEndpoint r.1 ++ ", " ++ Peg.Verification.encodeEndpoint r.2 ++ ")"
+
+theorem class_lexemes_text (ranges : List (Char × Char)) (original : String) :
+    String.join ((classLexemes ranges original).map Prod.fst) =
+      "PegRt.cls [" ++ String.intercalate ", " (ranges.map rangeText) ++ "] " ++
+        Peg.Verification.encodeLiteral original := by
+  have fold (rs : List (Char × Char)) (acc : List (String × Symbol)) :
+      String.join ((rs.foldl appendRange acc).map Prod.fst) =
+        (rs.map rangeText).foldl (fun text item => text ++ ", " ++ item)
+          (String.join (acc.map Prod.fst)) := by
+    induction rs generalizing acc with
+    | nil => rfl
+    | cons r rs ih =>
+      simp [ih, appendRange, rangeLexemes, rangeText, String.append_assoc]
+  cases ranges with
+  | nil => simp [classLexemes, ← String.append_assoc]
+  | cons r rs =>
+    simp [classLexemes, RenderExpressionLexer.intercalate_cons, fold, rangeLexemes,
+      rangeText, String.append_assoc]
+    rw [← String.append_assoc]
+    rw [show "PegRt.cls " ++ "[" = "PegRt.cls [" by decide]
+
+#print axioms class_lexemes_text
+
+theorem class_lexemes_derive (ranges : List (Char × Char)) (original : String) :
+    Derives productions [.nonterminal 211] ((classLexemes ranges original).map Prod.snd) := by
+  have fold (rs : List (Char × Char)) (acc : List (String × Symbol)) :
+      (rs.foldl appendRange acc).map Prod.snd =
+        (List.replicate rs.length rangePair).foldl RenderExpressionGHC.commaAppend (acc.map Prod.snd) := by
+    induction rs generalizing acc with
+    | nil => rfl
+    | cons r rs ih =>
+      simp only [List.foldl_cons, List.length_cons, List.replicate_succ, ih]
+      simp [appendRange, RenderExpressionGHC.commaAppend, rangeLexemes, rangePair]
+  have eqn : (classLexemes ranges original).map Prod.snd =
+      classFunctionTokens ranges.length ++ [.terminal 130] := by
+    cases ranges with
+    | nil => rfl
+    | cons r rs =>
+      cases rs with
+      | nil => rfl
+      | cons x xs =>
+        simp [classLexemes, fold, classFunctionTokens, appendRange, rangeLexemes, rangePair,
+          RenderExpressionGHC.commaAppend, List.append_assoc]
+  rw [eqn]
+  exact class_body ranges.length
+
+#print axioms class_lexemes_derive
+
+#print axioms class_body
 
 theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List Symbol}
     (valid : Derives productions [.nonterminal 229] body) :

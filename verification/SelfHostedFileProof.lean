@@ -1,5 +1,5 @@
 import TranslatedStrictFile
-import FileEntry
+import TotalFile
 import VerbatimRule
 
 namespace PegHs.MetaExecution
@@ -146,6 +146,91 @@ theorem invariant1_strict_recursive_file (input : List Char) (reply : Reply) :
     (∃ fuel, runFuel (strictContext input) fuel translatedStrictFile input.length {} = some reply) ↔
       FileResult false input reply := by
   rw [invariant1_strict_context, invariant1_translated_strict_run]
+
+theorem invariant1_strict_public_acceptance (source : String)
+    (format : PublicParsing.Failure → String) :
+    parseFile false source format = .ok () ↔ ∃ env fuel,
+      runFuel (strictContext source.toList) fuel translatedStrictFile source.toList.length {} =
+        some (.ok 0 env) := by
+  rw [invariant1_parseFile_entry, FileEntry.invariant1_public_entry
+    (recognizeFile false source.toList).property]
+  exact exists_congr fun env => (invariant1_strict_recursive_file _ (.ok 0 env)).symm
+
+theorem invariant2_strict_public_rejection (source : String)
+    (format : PublicParsing.Failure → String) :
+    (∃ msg, parseFile false source format = .error [msg]) ↔ ¬ ∃ env fuel,
+      runFuel (strictContext source.toList) fuel translatedStrictFile source.toList.length {} =
+        some (.ok 0 env) := by
+  rw [invariant2_parseFile_rejects_iff]
+  exact not_congr (exists_congr fun env => (invariant1_strict_recursive_file _ (.ok 0 env)).symm)
+
+-- A terminating translated evaluation determines the public outcome,
+-- including the precise trailing-input byte offset or labelled failure.
+theorem invariant1_strict_public_reply (source : String) (fuel : Nat) (reply : Reply)
+    (observed : runFuel (strictContext source.toList) fuel translatedStrictFile
+      source.toList.length {} = some reply)
+    (format : PublicParsing.Failure → String) :
+    parseFile false source format = PublicParsing.entry source.toList.utf8Encode.size
+      (FileEntry.start source.toList reply) format := by
+  have parsed := (invariant1_strict_recursive_file source.toList reply).mp ⟨fuel, observed⟩
+  obtain ⟨_, _, unique⟩ := invariant1_file_result false source.toList
+  have same := (unique _ (recognizeFile false source.toList).property).trans (unique _ parsed).symm
+  rw [invariant1_parseFile_entry, same]
+
+theorem invariant2_strict_public_terminates (source : String) :
+    ∃ bound reply, (∀ limit ≥ bound,
+      runFuel (strictContext source.toList) limit translatedStrictFile
+        source.toList.length {} = some reply) ∧
+      ∀ format, parseFile false source format = PublicParsing.entry source.toList.utf8Encode.size
+        (FileEntry.start source.toList reply) format := by
+  obtain ⟨reply, parsed, _⟩ := invariant1_file_result false source.toList
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file source.toList reply).mpr parsed
+  exact ⟨bound, reply, fun _ enough => invariant1_fuel_stable _ enough observed,
+    invariant1_strict_public_reply source bound reply observed⟩
+
+theorem invariant2_strict_rejection_no_module (source : String)
+    (invalid : ¬ ∃ env fuel, runFuel (strictContext source.toList) fuel translatedStrictFile
+      source.toList.length {} = some (.ok 0 env))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    ∃ bound reply, (∀ limit ≥ bound, runFuel (strictContext source.toList) limit translatedStrictFile
+      source.toList.length {} = some reply) ∧
+      Pipeline.visible (Pipeline.pipeline ((parseFile false source format).bind assemble)
+        resolve expand check notes strip warnings generate) =
+        .error [format (FileEntry.incompleteCause source.toList reply)] := by
+  let result := recognizeFile false source.toList
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file _ _).mpr result.property
+  refine ⟨bound, result.val, fun _ enough => invariant1_fuel_stable _ enough observed, ?_⟩
+  apply (invariant2_parseFile_pipeline_diagnostic false source _ format assemble resolve expand
+    check notes strip warnings generate).2
+  rintro ⟨env, accepted⟩
+  exact invalid ⟨env, (invariant1_strict_recursive_file _ _).mpr accepted⟩
+
+theorem invariant1_strict_generated_module_consumes_file (source moduleText : String)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String)
+    (generated : Pipeline.visible (Pipeline.pipeline ((parseFile false source format).bind assemble)
+      resolve expand check notes strip warnings generate) = .ok moduleText) :
+    ∃ env bound, ∀ limit ≥ bound, runFuel (strictContext source.toList) limit translatedStrictFile
+      source.toList.length {} = some (.ok 0 env) := by
+  obtain ⟨env, parsed⟩ := invariant1_generated_module_requires_complete_parse false source moduleText
+    format assemble resolve expand check notes strip warnings generate generated
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file _ _).mpr parsed
+  exact ⟨env, bound, fun _ enough => invariant1_fuel_stable _ enough observed⟩
+
+#print axioms invariant1_strict_generated_module_consumes_file
+#print axioms invariant2_strict_rejection_no_module
+#print axioms invariant2_strict_public_terminates
+#print axioms invariant1_strict_public_reply
+
+#print axioms invariant1_strict_public_acceptance
+#print axioms invariant2_strict_public_rejection
 
 theorem invariant2_translated_unterminated_block (pre xs : List Char) (env : Env)
     (missing : verbatimRest xs = []) :

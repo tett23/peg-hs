@@ -50,7 +50,27 @@ runghc-9.10.3 "$scratch/LiteralProbe.hs" > "$scratch/haskell-literal.txt"
 diff -u "$scratch/haskell-literal.txt" "$scratch/lean-literal.txt"
 printf 'Compared 134 single-character and 17956 two-character literals with GHC Show.\n'
 
+grep -Fxq 'showT = T.pack . show' packages/peg-codegen/src/Peg/Codegen.hs
+cat > "$scratch/ClassRenderer.hs" <<'SOURCE'
+{-# LANGUAGE OverloadedStrings #-}
+module ClassRenderer (renderClass) where
+import Data.Text (Text)
+import qualified Data.Text as T
+data Expr = EClass [(Char, Char)] Text
+SOURCE
+sed -n '/^showT ::/,/^showT =/p; /^hsString ::/,/^hsString =/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs >> "$scratch/ClassRenderer.hs"
+cat >> "$scratch/ClassRenderer.hs" <<'SOURCE'
+renderClass :: [(Char, Char)] -> Text -> IO Text
+renderClass rs source = case EClass rs source of
+SOURCE
+sed -n '/^  EClass ranges orig ->$/,/^      )$/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs >> "$scratch/ClassRenderer.hs"
+
 cat > "$scratch/LiteralLexer.hs" <<'SOURCE'
+import ClassRenderer (renderClass)
+import Data.List (intercalate)
+import qualified Data.Text as T
 import Control.Monad (forM_)
 import Data.Char (chr)
 import GHC (getSessionDynFlags, runGhc)
@@ -77,5 +97,63 @@ main = do
         PFailed _ -> fail ("lexer rejected " ++ numbers)
     _ -> fail "malformed literal fixture"
   putStrLn ("Checked " ++ show (length rows) ++ " GHC string tokens and decoded values.")
+  let endpoints = [chr 0, chr 39, chr 92, chr 127, chr 128, chr 0x10ffff]
+      pairs = [(a,b) | a <- endpoints, b <- endpoints]
+      original = map chr [39, 34, 128, 48, 14, 72]
+      rangeTokens (a,b) = ["IToparen", "char " ++ show a, "ITcomma", "char " ++ show b, "ITcparen"]
+      describe (ITchar _ c) = "char " ++ show c
+      describe (ITstring _ v) = "string " ++ show (unpackFS v)
+      describe token = show token
+  forM_ ([] : map (:[]) pairs ++ [pairs, reverse pairs]) $ \ranges -> do
+    rendered <- renderClass ranges (T.pack original)
+    let expected = ["ITqvarid (\"PegRt\",\"cls\")", "ITobrack"]
+          ++ intercalate ["ITcomma"] (map rangeTokens ranges) ++ ["ITcbrack", "string " ++ show original]
+    case lexTokenStream opts (stringToStringBuffer (T.unpack rendered)) loc of
+      POk _ tokens | map (describe . unLoc) tokens == expected -> pure ()
+      _ -> fail ("unexpected class application tokens: " ++ show rendered)
+  putStrLn "Checked all tokens and literal values in 39 generated class applications."
+  forM_ ([0..0xd7ff] ++ [0xe000..0x10ffff]) $ \n -> do
+    let c = chr n
+        pair = "(" ++ show c ++ ", " ++ show c ++ ")"
+    case lexTokenStream opts (stringToStringBuffer pair) loc of
+      POk _ tokens -> case map unLoc tokens of
+        [IToparen, ITchar _ lo, ITcomma, ITchar _ hi, ITcparen]
+          | lo == c && hi == c -> pure ()
+        actual -> fail ("unexpected range tokens at " ++ show n ++ ": " ++ show actual)
+      PFailed _ -> fail ("lexer rejected range at " ++ show n)
+  putStrLn "Checked all 1112064 Unicode scalars in both range endpoint positions."
 SOURCE
-runghc-9.10.3 -package=ghc "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
+runghc-9.10.3 -package=ghc -i"$scratch" "$scratch/LiteralLexer.hs" "$(ghc-9.10.3 --print-libdir)" "$scratch/lean-literal.txt"
+
+# Compare the per-character spelling exhaustively. Buffered batches avoid
+# performing a separate write for each Unicode scalar.
+cat > "$scratch/ScalarSpellings.lean" <<'SOURCE'
+import Literal
+
+def main : IO Unit := do
+  let out ← IO.getStdout
+  for page in [:4352] do
+    let mut rows := ""
+    for offset in [:256] do
+      let n := page * 256 + offset
+      if n < 0xd800 || n > 0xdfff then
+        let c := Char.ofNat n
+        rows := rows ++ Peg.Verification.encodeLiteral (String.singleton c) ++ "\t" ++
+          Peg.Verification.encodeEndpoint c ++ "\n"
+    out.putStr rows
+SOURCE
+(cd verification && lean --run "$scratch/ScalarSpellings.lean") > "$scratch/scalar-spellings.txt"
+cat > "$scratch/ScalarSpellings.hs" <<'SOURCE'
+import Control.Monad (unless)
+import Data.Char (chr)
+
+main :: IO ()
+main = do
+  actual <- lines <$> getContents
+  let scalars = [0..0xd7ff] ++ [0xe000..0x10ffff]
+      spelling n = show [chr n] ++ "\t" ++ show (chr n)
+  unless (map spelling scalars == actual) $
+    fail "GHC and Lean differ on Unicode scalar spelling"
+SOURCE
+runghc-9.10.3 "$scratch/ScalarSpellings.hs" < "$scratch/scalar-spellings.txt"
+printf 'Compared all 1112064 Unicode scalar string and character spellings with GHC Show.\n'
