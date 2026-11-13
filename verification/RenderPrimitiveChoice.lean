@@ -77,11 +77,32 @@ def expectWrapper (hasLabel : Bool) : Option (List Symbol) :=
 def treeWrapper (syntaxMode inlineRule : Bool) : Option (List Symbol) :=
   if syntaxMode && !inlineRule then some [.terminal 121, .terminal 117] else none
 
+-- memo and memoLR have the same token classes. memoArg also applies a key.
+inductive MemoCall where
+  | nomemo
+  | table
+  | withKey (wildcards : List Bool)
+
+def MemoCall.tokens : MemoCall → List Symbol
+  | .nomemo => [.terminal 121, .terminal 130]
+  | .table => [.terminal 121, .terminal 117, .terminal 130]
+  | .withKey ps => [.terminal 121, .terminal 117, .terminal 130] ++ RenderDeclarationsGHC.memoKeyWord ps
+
+theorem memo_call_valid (memo : MemoCall) :
+    Derives productions [.nonterminal 217] memo.tokens := by
+  have table := RenderExpressionGHC.application
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+      RenderDeclarationsGHC.varid_argument) RenderExpressionGHC.string_argument
+  cases memo with
+  | nomemo => exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+                        RenderExpressionGHC.string_argument
+  | table => exact table
+  | withKey ps => exact RenderExpressionGHC.application table (RenderDeclarationsGHC.memo_key_argument ps)
+
 theorem rule_body_valid (first : Alternative) (rest : List Alternative)
-    (memo : List Symbol) (hasLabel syntaxMode inlineRule : Bool)
-    (memo_ok : Derives productions [.nonterminal 217] memo) :
+    (memo : MemoCall) (hasLabel syntaxMode inlineRule : Bool) :
     Derives productions [.nonterminal 211]
-      (memo ++ [.terminal 107] ++ wrapChoice (expectWrapper hasLabel)
+      (memo.tokens ++ [.terminal 107] ++ wrapChoice (expectWrapper hasLabel)
         (wrapChoice (treeWrapper syntaxMode inlineRule) (choiceTokens first rest)) ++ [.terminal 108]) := by
   have expect_ok : ∀ fn ∈ expectWrapper hasLabel, Derives productions [.nonterminal 217] fn := by
     intro fn member
@@ -95,7 +116,7 @@ theorem rule_body_valid (first : Alternative) (rest : List Alternative)
     split at member <;> cases member
     exact RenderExpressionGHC.application RenderExpressionGHC.qualified_function
       RenderDeclarationsGHC.varid_argument
-  exact RenderExpressionGHC.fexp_to_exp (RenderExpressionGHC.application_parenthesized memo_ok
+  exact RenderExpressionGHC.fexp_to_exp (RenderExpressionGHC.application_parenthesized (memo_call_valid memo)
     (RenderExpressionGHC.fexp_to_texp (wrap_choice_valid _ expect_ok
       (wrap_choice_valid _ tree_ok (choice_tokens_derive first rest)))))
 

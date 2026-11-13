@@ -98,6 +98,50 @@ theorem varid_argument :
   exact oneRule r551 (oneRule r554 (oneRule r555
     (oneRule r769 (oneRule r773 (applyRule r775 (.refl _))))))
 
+def parameterKeyWord (wildcard : Bool) : List Symbol :=
+  if wildcard then [.terminal 107, .terminal 108] else [.terminal 117]
+
+theorem parameter_key_argument (wildcard : Bool) :
+    Derives productions [.nonterminal 218] (parameterKeyWord wildcard) := by
+  cases wildcard with
+  | false => exact varid_argument
+  | true =>
+    exact oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+      (oneRule (id := 556) (by rfl) (oneRule (id := 694) (by rfl)
+        (applyRule (id := 708) (by rfl) (.refl _)))))
+
+def parameterKeyTail (last : Bool) : List Bool → List Symbol
+  | [] => parameterKeyWord last
+  | next :: rest => parameterKeyWord last ++ [.terminal 114] ++ parameterKeyTail next rest
+
+def memoKeyWord : List Bool → List Symbol
+  | [] => parameterKeyWord true
+  | [p] => parameterKeyWord p
+  | p :: q :: rest => [.terminal 107] ++ parameterKeyWord p ++ [.terminal 114] ++
+      parameterKeyTail q rest ++ [.terminal 108]
+
+theorem memo_key_argument (params : List Bool) :
+    Derives productions [.nonterminal 218] (memoKeyWord params) := by
+  have item (p : Bool) := RenderExpressionGHC.aexp_to_texp (parameter_key_argument p)
+  have comma := applyRule (g := productions) (id := 839) (by rfl) (.refl [.terminal 114])
+  have tail (p : Bool) (ps : List Bool) :
+      Derives productions [.nonterminal 232] (parameterKeyTail p ps) := by
+    induction ps generalizing p with
+    | nil => exact oneRule (id := 606) (by rfl) (item p)
+    | cons q rest ih =>
+      simpa [parameterKeyTail, List.append_assoc] using applyRule (id := 605) (by rfl) (beside (item p)
+        (applyRule (id := 604) (by rfl) (beside comma (ih q))))
+  match params with
+  | [] => exact parameter_key_argument true
+  | [p] => exact parameter_key_argument p
+  | p :: q :: rest =>
+    have tuple := applyRule (id := 600) (by rfl) (beside (item p)
+      (applyRule (id := 604) (by rfl) (beside comma (tail q rest))))
+    have atom := applyRule (id := 563) (by rfl) (beside (.refl [.terminal 107])
+      (beside tuple (.refl [.terminal 108])))
+    simpa [memoKeyWord, List.append_assoc] using
+      oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl) atom)
+
 theorem name_infixexp :
     Derives productions [.nonterminal 212] [.terminal 117] := by
   have r536 : productions 536 = some (217, [.nonterminal 218]) := by decide
