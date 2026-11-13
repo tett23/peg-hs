@@ -140,6 +140,45 @@ TOKENS
 diff -u "$scratch/RenderPrimitiveBinding.expected-tokens" \
   "$scratch/RenderPrimitiveBinding.tokens"
 
+# Exercise the actual renderer definitions with zero, one and multiple children.
+cat > "$scratch/RenderReturnProbe.hs" <<'SOURCE'
+{-# LANGUAGE OverloadedStrings #-}
+import Data.List (intersperse)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+SOURCE
+sed -n '/^doBlock ::/,/^doBlock stmts =/p; /^doReturn ::/,/^kidsExpr ks =/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs >> "$scratch/RenderReturnProbe.hs"
+cat >> "$scratch/RenderReturnProbe.hs" <<'SOURCE'
+main :: IO ()
+main = TIO.putStrLn $ T.unlines
+  ("module LexProbe where" : zipWith render ["x", "y", "z"]
+    [[], ["peg'k0"], ["peg'k0", "peg'k1", "peg'k2"]])
+  where render name kids = name <> " = " <> doReturn [] "peg'v0" kids
+SOURCE
+runghc "$scratch/RenderReturnProbe.hs" > "$scratch/RenderReturnOutput.hs"
+"$scratch/trace-generated-module" "$(ghc-9.10.3 --print-libdir)" \
+  "$scratch/RenderReturnOutput.hs" > "$scratch/RenderReturn.result" 2> "$scratch/RenderReturn.trace"
+[ "$(cat "$scratch/RenderReturn.result")" = parsed-no-diagnostics ]
+sed -n 's/^token: //p' "$scratch/RenderReturn.trace" > "$scratch/RenderReturn.tokens"
+{
+  printf '%s\n' ITmodule 'ITconid "LexProbe"' ITwhere ITvocurly
+  for name in x y z; do
+    printf '%s\n' "ITvarid \"$name\"" ITequal 'ITdo Nothing' ITocurly \
+      'ITqvarid ("PegPrelude","pure")' IToparen "ITvarid \"peg'v0\"" ITcomma
+    case $name in
+      x) printf '%s\n' ITobrack ITcbrack ;;
+      y) printf '%s\n' "ITvarid \"peg'k0\"" ;;
+      z) printf '%s\n' 'ITqvarid ("PegPrelude","concat")' ITobrack \
+           "ITvarid \"peg'k0\"" ITcomma "ITvarid \"peg'k1\"" ITcomma "ITvarid \"peg'k2\"" ITcbrack ;;
+    esac
+    printf '%s\n' ITcparen ITccurly ITsemi
+  done
+  printf '%s\n' ITeof
+} > "$scratch/RenderReturn.expected-tokens"
+diff -u "$scratch/RenderReturn.expected-tokens" "$scratch/RenderReturn.tokens"
+
 sed 's/productions 708 =/productions 709 =/' \
   verification/RenderPrimitiveStatement.lean > "$scratch/RenderPrimitiveStatementInvalid.lean"
 if cmp -s verification/RenderPrimitiveStatement.lean "$scratch/RenderPrimitiveStatementInvalid.lean"; then
@@ -157,4 +196,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 17 Lean theorems, 8 source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 17 Lean theorems, 8 source checks, 85 GHC tokens, 1 rejected mutation.\n'
