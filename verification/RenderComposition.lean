@@ -317,6 +317,27 @@ theorem config_items_valid (kept explicitTabstop positional debug : Bool) (item 
 
 #print axioms config_items_valid
 
+structure MemoTable where
+  params : List (List Symbol)
+  result : List Symbol
+  params_ok : ∀ ty ∈ params, Derives productions [.nonterminal 162] ty
+  result_ok : Derives productions [.nonterminal 172] result
+
+def storeFieldTypes (env : CheckedEnvType) (tables : List MemoTable) : List (List Symbol) :=
+  env.toList.map (fun e => groupedKeyParameter e.val) ++
+    tables.map (fun t => memoTableTypeWord t.params t.result)
+
+theorem store_field_types_valid (env : CheckedEnvType) (tables : List MemoTable)
+    (ty : List Symbol) (member : ty ∈ storeFieldTypes env tables) :
+    Derives productions [.nonterminal 163] ty := by
+  rcases List.mem_append.mp member with h | h
+  · obtain ⟨e, _, rfl⟩ := List.mem_map.mp h
+    exact grouped_field_type e.property
+  · obtain ⟨t, _, rfl⟩ := List.mem_map.mp h
+    exact memo_table_field_type t.params t.params_ok t.result_ok
+
+#print axioms store_field_types_valid
+
 def positionalStoreWord (types : List (List Symbol)) : List Symbol :=
   [.terminal 6, .terminal 118, .terminal 117, .terminal 77, .terminal 118] ++
     (types.map fun ty => [.terminal 107] ++ ty ++ [.terminal 108]).flatten
@@ -508,15 +529,14 @@ theorem generated_module_with_rules
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
-    (userExports verbatimImports storeFieldTypes : List (List Symbol))
+    (userExports verbatimImports : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
-    (dataDecls : List DataDeclaration) (explicitTabstop : Bool) (memoised : Nat)
-    (store_types_ok : ∀ ty ∈ storeFieldTypes, Derives productions [.nonterminal 163] ty)
+    (dataDecls : List DataDeclaration) (explicitTabstop : Bool) (tables : List MemoTable)
     (syntaxInputs : SyntaxInputs)
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
@@ -530,7 +550,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules).foldl semiAppend [])) :
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType tables)) envType tables.length ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -545,7 +565,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules) name_ok
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType tables)) envType tables.length ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
@@ -558,7 +578,7 @@ theorem generated_module_with_rules
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
     · exact syntax_items_valid _ _ item hsyntax
     · exact config_items_valid _ _ _ _ item hconfig
-    · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ store_types_ok) item hstore
+    · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ (store_field_types_valid envType tables)) item hstore
     · exact rule_items_valid rules item hr
   · exact initial
   · exact trace

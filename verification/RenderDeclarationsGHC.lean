@@ -851,6 +851,13 @@ private theorem type_with_state_parameter {w} (atom : Derives productions [.nont
 def groupedKeyParameter (ty : List Symbol) : List Symbol :=
   [.terminal 107] ++ ty ++ [.terminal 108]
 
+theorem grouped_field_type {ty : List Symbol} (valid : Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 163] (groupedKeyParameter ty) := by
+  have atom := applyRule (id := 412) (by rfl) (beside (.refl [.terminal 107])
+    (beside (oneRule (id := 374) (by rfl) valid) (.refl [.terminal 108])))
+  exact oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
+
 def keyParameterTail (first : List Symbol) : List (List Symbol) → List Symbol
   | [] => groupedKeyParameter first
   | next :: rest => groupedKeyParameter first ++ [.terminal 114] ++ keyParameterTail next rest
