@@ -19,6 +19,7 @@ lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.le
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceMemo.olean" StrictWhitespaceMemo.lean
 lean -DwarningAsError=true StrictIdentifierMemo.lean
+lean -DwarningAsError=true StrictCharMemo.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
