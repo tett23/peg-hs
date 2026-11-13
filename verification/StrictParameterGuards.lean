@@ -97,13 +97,25 @@ theorem invariant2_parameter_delimiter (pre suffix : List Char) (env : Env) :
     cases h : ConcreteTerminal.classHas delimiterRanges c <;>
       simp [ConcreteTerminal.matchTerm, parameterDelimiterReply, h]
 
+private def bindHere (env : Env) : Env :=
+  (({env with resultDepth := 0} : Env).put "l" []).putDepth "l" 0
+
+set_option maxRecDepth 8192 in
+private theorem parameter_here (input : List Char) (n : Nat) (env : Env) :
+    Derives (context false input) (.bind 27 "l" (.call 48 3)) n env (.ok n (bindHere env)) := by
+  let ctx := context false input
+  have here : Derives ctx (ctx.rules 3) n env (.ok n {env with resultDepth := 0}) := Derives.eps
+  have call : Derives ctx (.call 48 3) n env (.ok n {env with resultDepth := 0}) :=
+    Derives.call (callee := env) (by rfl) here
+  have bind := Derives.bind (site := 27) (name := "l") call
+  have binds : ctx.hooks.bindValue 27 "l" [] {env with resultDepth := 0} = some (bindHere env) := rfl
+  simpa only [bindResult, matchedText, Nat.sub_self, List.take_zero, binds] using bind
+
 theorem invariant2_parameter_rule_reply (pre suffix : List Char) (start here : Nat)
-    (initial spaced located captured : Env)
+    (initial spaced captured : Env)
     (ws : Derives (context false (pre ++ suffix)) (.call 47 4) start initial (.ok here spaced))
-    (loc : Derives (context false (pre ++ suffix)) (.bind 27 "l" (.call 48 3)) here spaced (.ok here located))
     (code : Derives (context false (pre ++ suffix)) (.bind 28 "c" (.capture (.call 49 51)))
-      here located (.ok suffix.length captured))
-    :
+      here (bindHere spaced) (.ok suffix.length captured)) :
     let text := captured.lookup "c"
     Derives (context false (pre ++ suffix)) translatedStrictParamChunk start initial
       (if (ParameterPredicates.strip GhcPredicates.space text).isEmpty then
@@ -114,7 +126,7 @@ theorem invariant2_parameter_rule_reply (pre suffix : List Char) (start here : N
        | .ok .. => parameterDelimiterReply suffix {captured with resultDepth := 0}) := by
   rw [invariant2_parameter_guard_shape]
   apply Derives.seqOk ws
-  apply Derives.seqOk loc
+  apply Derives.seqOk (parameter_here _ _ spaced)
   apply Derives.seqOk code
   have h := invariant2_parameter_guard_order (pre ++ suffix) suffix.length captured _ _
     (invariant2_parameter_delimiter pre suffix _)
