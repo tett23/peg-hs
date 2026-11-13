@@ -8,6 +8,44 @@ def followingStarts : Nat → List Char → List Nat
 
 def lineIndex (input : List Char) := 0 :: followingStarts 0 input
 
+theorem mem_followingStarts (base pos : Nat) (input : List Char) :
+    pos ∈ followingStarts base input ↔ ∃ pre post : List Char,
+      input = pre ++ '\n' :: post ∧ pos = base + pre.utf8Encode.size + '\n'.utf8Size := by
+  induction input generalizing base with
+  | nil => simp [followingStarts]
+  | cons c cs ih =>
+    constructor
+    · intro member
+      have later (h : pos ∈ followingStarts (base + c.utf8Size) cs) :
+          ∃ pre post : List Char, c :: cs = pre ++ '\n' :: post ∧
+            pos = base + pre.utf8Encode.size + '\n'.utf8Size := by
+        obtain ⟨pre, post, split, offset⟩ := (ih _).mp h
+        exact ⟨c :: pre, post, by simp [split], by
+          rw [List.utf8Encode_cons]; simpa [List.utf8Encode_singleton, Nat.add_assoc] using offset⟩
+      by_cases lf : c = '\n'
+      · subst c
+        rcases List.mem_cons.mp (by simpa [followingStarts] using member) with here | tail
+        · exact ⟨[], cs, rfl, by simpa using here⟩
+        · exact later tail
+      · exact later (by simpa [followingStarts, lf] using member)
+    · rintro ⟨pre, post, split, offset⟩
+      cases pre with
+      | nil =>
+        cases split
+        simp_all [followingStarts]
+      | cons x xs =>
+        cases split
+        have h := (ih (base + c.utf8Size)).mpr
+          ⟨xs, post, rfl, by rw [List.utf8Encode_cons] at offset; simpa [List.utf8Encode_singleton, Nat.add_assoc] using offset⟩
+        by_cases lf : c = '\n' <;> simp [followingStarts, lf] at h ⊢ <;> simp [h]
+
+theorem mem_lineIndex (input : List Char) (pos : Nat) :
+    pos ∈ lineIndex input ↔ pos = 0 ∨ ∃ pre post : List Char,
+      input = pre ++ '\n' :: post ∧ pos = pre.utf8Encode.size + '\n'.utf8Size := by
+  simp [lineIndex, mem_followingStarts]
+
+#print axioms mem_lineIndex
+
 theorem followingStarts_ordered (offset : Nat) (input : List Char) :
     (offset :: followingStarts offset input).Pairwise (· < ·) := by
   induction input generalizing offset with
