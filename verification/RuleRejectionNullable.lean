@@ -189,6 +189,32 @@ theorem direct_least_fixed {n : Nat} (lookup : RuleLookup n)
     rw [directRounds_correct]
     exact Peg.Verification.rounds_below_fixed _ fixed fixedPositive k
 
+theorem direct_rounds_after_fixed {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) (k : Nat)
+    (stable : directNext lookup recovery rules (directRounds lookup recovery rules k) =
+      directRounds lookup recovery rules k) (extra : Nat) :
+    directRounds lookup recovery rules (k + extra) = directRounds lookup recovery rules k := by
+  induction extra with
+  | zero => simp
+  | succ extra ih =>
+    rw [Nat.add_succ, directRounds, ih, stable]
+
+theorem invariant2_language_repeat_stabilizes {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) :
+    ∃ k ≤ n, ∀ (extra location : Nat) (e : Expr),
+      RuleRejectionRepeat.repeatCandidates
+        (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules (k + extra)))
+        location e =
+      RuleRejectionRepeat.repeatCandidates
+        (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules k)) location e := by
+  obtain ⟨k, bound, stable, _⟩ := direct_least_fixed lookup (fun _ => none) rules
+  refine ⟨k, bound, ?_⟩
+  intro extra location e
+  rw [direct_rounds_after_fixed lookup (fun _ => none) rules k stable extra]
+
+#print axioms direct_rounds_after_fixed
+#print axioms invariant2_language_repeat_stabilizes
+
 theorem both_least_fixed {n : Nat} (lookup : RuleLookup n)
     (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) :
     (∃ k ≤ n, directNext lookup (fun _ => none) rules
