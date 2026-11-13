@@ -233,6 +233,33 @@ theorem syntax_action_bindings :
     named_binding_statement (expr (RenderExpressionGHC.application
       RenderExpressionGHC.qualified_function RenderDeclarationsGHC.varid_argument))⟩
 
+theorem syntax_action_block (hasEnv : Bool) (items : List (List Symbol × List Symbol))
+    (fragment : List Symbol)
+    (fragment_ok : Derives productions [.nonterminal 229] fragment)
+    (items_ok : ∀ item ∈ items, Derives productions [.nonterminal 257] item.1 ∧
+      Derives productions [.nonterminal 229] item.2) :
+    let bindCall : List Symbol := [.terminal 117, .terminal 82, .terminal 121, .terminal 117]
+    let start : List Symbol := [.terminal 117, .terminal 82, .terminal 121]
+    let stmts := (if hasEnv then [bindCall] else []) ++ [start] ++ items.map Prod.fst ++ [bindCall]
+    Derives productions [.nonterminal 218] (RenderExpressionGHC.blockTokens
+      (stmts ++ [[.terminal 121, .terminal 107] ++ ([.terminal 107] ++ fragment ++ [.terminal 108]) ++
+        [.terminal 114] ++ kidsTokens (items.map Prod.snd) ++ [.terminal 108]])) := by
+  dsimp only
+  apply doReturn_block
+  · intro stmt mem
+    simp only [List.mem_append, List.mem_singleton, List.mem_map] at mem
+    rcases mem with (((env | rfl) | ⟨item, hi, rfl⟩) | rfl)
+    · cases hasEnv <;> simp_all [syntax_action_bindings.2]
+    · exact syntax_action_bindings.1
+    · exact (items_ok item hi).1
+    · exact syntax_action_bindings.2
+  · exact RenderExpressionGHC.aexp_to_texp (RenderExpressionGHC.parenthesized fragment_ok)
+  · intro child mem
+    obtain ⟨item, hi, rfl⟩ := List.mem_map.mp mem
+    exact (items_ok item hi).2
+
+#print axioms syntax_action_block
+
 theorem syntax_action_names :
     ["peg'start", "_span", "_env", "peg'env"].all RenderExpressionLexer.varId = true ∧
     ["getOffset", "spanFrom", "askStore"].all

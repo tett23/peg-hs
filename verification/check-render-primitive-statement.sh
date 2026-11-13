@@ -39,6 +39,22 @@ diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
 
 grep -Fxq 'doReturn stmts value kids = doBlock (stmts ++ ["PegPrelude.pure (" <> value <> ", " <> kidsExpr kids <> ")"])' packages/peg-codegen/src/Peg/Codegen.hs
 
+cat > "$scratch/SyntaxAction.expected" <<'SOURCE'
+  let envStmt = ["_env <- PegRt.askStore peg'env" | isJust (grammarEnv (envGrammar env))]
+      items = altItems a
+  case altAction a of
+    Just act -> do
+      rs <- mapM (itemStmtS env True) items
+      pure $
+        doReturn
+          (envStmt ++ ["peg'start <- PegRt.getOffset"] ++ map fst rs ++ ["_span <- PegRt.spanFrom peg'start"])
+          ("(" <> fragmentEnv env act <> ")")
+          (map snd rs)
+SOURCE
+sed -n '/^altCodeS env rule a = do$/,/^    Nothing$/{ /^altCodeS /d; /^    Nothing$/d; p; }' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/SyntaxAction.actual"
+diff -u "$scratch/SyntaxAction.expected" "$scratch/SyntaxAction.actual"
+
 cat > "$scratch/KidsExpr.expected" <<'SOURCE'
 kidsExpr [] = "[]"
 kidsExpr [k] = k
@@ -196,4 +212,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 19 Lean theorems, 8 source checks, 85 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 20 Lean theorems, 9 source checks, 85 GHC tokens, 1 rejected mutation.\n'
