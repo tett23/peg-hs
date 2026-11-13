@@ -117,6 +117,69 @@ theorem invariant2_mergeAll_length {A} (gt : A → A → Bool) (runs : List (Lis
 
 #print axioms invariant2_mergeAll_length
 
+private abbrev RunsOf (A : Type) (n : Nat) :=
+  { runs : List (List A) // runs.flatten.length = n ∧ runs ≠ [] }
+
+private def finishRun {A} (run : List A) (rest : RunsOf A n) :
+    RunsOf A (run.length + n) :=
+  ⟨run :: rest.val, by simp [rest.property.1]⟩
+
+mutual
+  private def sequences {A} (gt : A → A → Bool) (xs : List A) : RunsOf A xs.length :=
+    match xs with
+    | a :: b :: rest =>
+      if gt a b then by simpa using descending gt b [a] rest
+      else by
+        have consLength (ys : List A) : (a :: ys).length = ys.length + 1 := rfl
+        simpa using ascending gt b (a :: ·) 1 consLength rest
+    | [] => ⟨[[]], by simp⟩
+    | [a] => ⟨[[a]], by simp⟩
+  termination_by (xs.length, 0)
+
+  private def descending {A} (gt : A → A → Bool) (a : A) (acc xs : List A) :
+      RunsOf A (xs.length + acc.length + 1) :=
+    match xs with
+    | b :: bs =>
+      if gt a b then by simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+                          descending gt b (a :: acc) bs
+      else by simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+                finishRun (a :: acc) (sequences gt (b :: bs))
+    | [] => by simpa using finishRun (a :: acc) (sequences gt [])
+  termination_by (xs.length, 1)
+
+  private def ascending {A} (gt : A → A → Bool) (a : A) (acc : List A → List A)
+      (n : Nat) (h : ∀ ys, (acc ys).length = ys.length + n) (xs : List A) :
+      RunsOf A (xs.length + n + 1) :=
+    match xs with
+    | b :: bs =>
+      if gt a b then by simpa [h, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+                          finishRun (acc [a]) (sequences gt (b :: bs))
+      else by
+        have next (ys : List A) : (acc (a :: ys)).length = ys.length + (n + 1) := by
+          rw [h]; simp; omega
+        simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+          ascending gt b (fun ys => acc (a :: ys)) (n + 1) next bs
+    | [] => by simpa [h, Nat.add_comm] using finishRun (acc [a]) (sequences gt [])
+  termination_by (xs.length, 1)
+end
+
+theorem invariant2_naturalSort_length {A} (gt : A → A → Bool) (xs : List A) :
+    (mergeAllRuns gt (sequences gt xs).val).length = xs.length :=
+  (invariant2_mergeAll_length ..).trans (sequences gt xs).property.1
+
+#print axioms invariant2_naturalSort_length
+
+def diagnosticSortOn {A K} (key : A → K) (gt : K → K → Bool) (xs : List A) : List A :=
+  let pairs := xs.map fun x => (key x, x)
+  let greater := fun (a b : K × A) => gt a.1 b.1
+  (mergeAllRuns greater (sequences greater pairs).val).map Prod.snd
+
+theorem invariant2_diagnosticSortOn_length {A K} (key : A → K) (gt : K → K → Bool)
+    (xs : List A) : (diagnosticSortOn key gt xs).length = xs.length := by
+  simp only [diagnosticSortOn, List.length_map, invariant2_naturalSort_length]
+
+#print axioms invariant2_diagnosticSortOn_length
+
 -- Data.List.sortOn decorates each element with its key, sorts the pairs,
 -- and projects the original elements. Only the length matters to rejection.
 theorem invariant2_sortOn_length {A K} (key : A → K)
