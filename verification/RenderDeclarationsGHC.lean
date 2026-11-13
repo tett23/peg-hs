@@ -588,6 +588,37 @@ private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.ter
   oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
     (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
 
+private theorem qualified_type_arrow {tail : List Symbol}
+    (valid : Derives productions [.nonterminal 163] tail) :
+    Derives productions [.nonterminal 163] ([.terminal 122, .terminal 83] ++ tail) := by
+  have arg := oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+    (oneRule (id := 390) (by rfl) qualifiedTypeAtom))
+  simpa [List.append_assoc] using oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
+    (beside arg (beside (.refl [.terminal 83]) valid)))
+
+-- Config comes first, followed by the optional parenthesized environment,
+-- then Text. The result is the statistics-bearing tuple of the chosen entry.
+def debugTypeWord (envType : Option (List Symbol)) (result : List Symbol) :=
+  [.terminal 122, .terminal 83] ++ parameterArrows envType.toList
+    ([.terminal 122, .terminal 83] ++ result)
+
+theorem debug_signature (envType : Option { ty : List Symbol //
+    Derives productions [.nonterminal 163] ty }) {result : List Symbol}
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 78] ([.terminal 117, .terminal 76] ++
+      debugTypeWord (envType.map Subtype.val) result) := by
+  apply signature_named_ctype
+  apply qualified_type_arrow
+  apply parameter_arrows _ _ _ (qualified_type_arrow result_ok)
+  cases envType with
+  | none => simp
+  | some e =>
+    simp only [Option.map_some, Option.toList_some, List.mem_singleton]
+    intro ty h
+    exact h ▸ e.property
+
+#print axioms debug_signature
+
 def recoverTypeWord (syntaxTree : Bool) (result : List Symbol) : List Symbol :=
   let value := if syntaxTree then [.terminal 122]
     else [.terminal 122, .terminal 107] ++ result ++ [.terminal 108]
