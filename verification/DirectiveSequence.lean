@@ -4,6 +4,30 @@ import DirectiveAssembly
 namespace PegHs.MetaExecution
 open EnvironmentEval AssembleValidation
 
+set_option maxRecDepth 8192 in
+theorem invariant1_closed_block_item (pre xs tail : List Char)
+    (closed : verbatimRest xs = '}' :: '%' :: tail) :
+    Derives (context false (pre ++ '%' :: '{' :: xs)) (.call 1 1) (xs.length + 2) {}
+      (.ok (afterWhitespace tail).length {}) ∧ (afterWhitespace tail).length < xs.length + 2 := by
+  obtain ⟨body, split⟩ := verbatim_rest_suffix xs
+  rw [closed] at split
+  let before := pre ++ ['%', '{'] ++ body ++ ['}', '%']
+  have source : before ++ tail = pre ++ '%' :: '{' :: xs := by
+    rw [split]; simp [before, List.append_assoc]
+  have ws := invariant1_strict_whitespace_scan before tail {}
+  rw [source] at ws
+  let ctx := context false (pre ++ '%' :: '{' :: xs)
+  have enter : ctx.hooks.enterCall 3 {} = some {} := rfl
+  have call : Derives ctx (.call 3 4) tail.length {} (.ok (afterWhitespace tail).length {}) :=
+    Derives.call (rule := 4) enter ws
+  refine ⟨invariant1_verbatim_top_item false pre xs tail _ closed call, ?_⟩
+  have le := invariant1_success_remaining_le ws _ _ rfl
+  have lengths := congrArg List.length split
+  simp only [List.length_append, List.length_cons] at lengths
+  omega
+
+#print axioms invariant1_closed_block_item
+
 def directiveValues : List Char → Option (List Top)
   | [] => some []
   | '%' :: c :: cs => if CharRule.identStart.accepts c then do

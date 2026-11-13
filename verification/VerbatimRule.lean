@@ -61,7 +61,7 @@ theorem invariant2_unterminated_verbatim (mode : Bool) (pre xs : List Char) (env
   right
   exact ⟨.lit ['}', '%'], by cases mode <;> rfl, by simp⟩
 
-private theorem rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ verbatimRest xs := by
+theorem verbatim_rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ verbatimRest xs := by
   induction xs with
   | nil => exact ⟨[], rfl⟩
   | cons c cs ih =>
@@ -76,7 +76,7 @@ private theorem rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ ve
 theorem invariant1_verbatim_capture_split (pre xs : List Char) (env : Env) :
     let captured := (afterCapture (pre ++ '%' :: '{' :: xs) xs env).lookup "b"
     xs = captured ++ verbatimRest xs := by
-  obtain ⟨body, split⟩ := rest_suffix xs
+  obtain ⟨body, split⟩ := verbatim_rest_suffix xs
   have lengths := congrArg List.length split
   simp only [List.length_append] at lengths
   have width : xs.length - (verbatimRest xs).length = body.length := by omega
@@ -132,7 +132,7 @@ theorem invariant1_closed_verbatim_call (mode : Bool) (pre xs tail : List Char) 
   let ctx := context mode input
   let captured := afterCapture input xs env
   have found : ctx.terms (if mode then 12 else 11) = some (.lit ['}', '%']) := by cases mode <;> rfl
-  obtain ⟨consumed, eq⟩ := rest_suffix xs
+  obtain ⟨consumed, eq⟩ := verbatim_rest_suffix xs
   rw [closed] at eq
   have src : ctx.input = ((pre ++ ['%', '{']) ++ consumed) ++ ('}' :: '%' :: tail) := by
     have source : ctx.input = input := by cases mode <;> rfl
