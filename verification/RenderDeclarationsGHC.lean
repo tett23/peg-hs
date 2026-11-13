@@ -932,6 +932,28 @@ theorem store_accessor_binding (prior later : Nat) :
     simpa [storeAccessorPattern, List.append_assoc] using pat
   · exact oneRule (id := 520) (by rfl) name_infixexp
 
+-- Each field contributes its signature and binding before the next field.
+def storeAccessors (prior : Nat) : List (List Symbol) → List (List Symbol)
+  | [] => []
+  | ty :: rest =>
+    storeAccessorSignatureWord ty ::
+      (argumentsWord [storeAccessorPattern prior rest.length] ++ [.terminal 77] ++ [.terminal 117]) ::
+      storeAccessors (prior + 1) rest
+
+theorem store_accessors_valid (types : List (List Symbol))
+    (valid : ∀ ty ∈ types, Derives productions [.nonterminal 163] ty)
+    (prior : Nat) (item : List Symbol) (member : item ∈ storeAccessors prior types) :
+    Derives productions [.nonterminal 78] item := by
+  induction types generalizing prior with
+  | nil => simp [storeAccessors] at member
+  | cons ty rest ih =>
+    simp only [storeAccessors, List.mem_cons] at member
+    rcases member with rfl | rfl | tail
+    · exact store_accessor_signature (valid ty (by simp))
+    · exact store_accessor_binding prior rest.length
+    · exact ih (fun t ht => valid t (by simp [ht])) _ tail
+
+#print axioms store_accessors_valid
 #print axioms store_accessor_binding
 
 open RenderExpressionGHC in
