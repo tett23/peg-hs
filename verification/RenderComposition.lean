@@ -1,5 +1,6 @@
 import RenderModuleGHC
 import RenderExpressionLexer
+import RenderModuleNames
 import RenderDeclarationsGHC
 
 namespace PegHs.RenderComposition
@@ -406,24 +407,37 @@ def SyntaxDeclaration.items : SyntaxDeclaration → List (List Symbol)
       argumentsWord [[.terminal 107, .terminal 118, .terminal 117, .terminal 108]] ++
         [.terminal 77] ++ syntaxAccessorBody k]
 
-structure SyntaxNodeNames where
-  typeName : String
-  castName : String
+structure SyntaxRule where
+  name : String
+  isInline : Bool
+  isToken : Bool
   accessors : List (String × SyntaxAccessorKind)
 
 structure SyntaxInputs where
-  kindVariables : List String
+  rules : List SyntaxRule
   trivia : List String
-  nodes : List SyntaxNodeNames
+  toUpper : Char → Char
+  toLower : Char → Char
+  isUpper : Char → Bool
+
+private def mapFirst (f : Char → Char) (name : String) : String :=
+  match name.toList with
+  | [] => name
+  | c :: cs => String.ofList (f c :: cs)
 
 def SyntaxInputs.selected (inputs : SyntaxInputs) (keep : String → Bool) : List SyntaxDeclaration :=
-  (inputs.kindVariables.filter keep).map (fun _ => .kind) ++
-    (if keep "nameOfSyntaxKind" then [.names inputs.kindVariables.length] else []) ++
+  let kinds := inputs.rules.filter fun r => !r.isInline
+  let nodes := kinds.filter fun r => !r.isToken
+  let upper := mapFirst inputs.toUpper
+  let lower := mapFirst inputs.toLower
+  (kinds.filter fun r => keep ("syntaxKind" ++ upper r.name)).map (fun _ => .kind) ++
+    (if keep "nameOfSyntaxKind" then [.names kinds.length] else []) ++
     (if keep "isTriviaSyntaxKind" then [.trivia inputs.trivia.length] else []) ++
-    inputs.nodes.flatMap fun n =>
-      (if keep n.typeName then [.node] else []) ++
-      (if keep n.castName then [.cast] else []) ++
-      (n.accessors.filter fun a => keep a.1).map fun a => .accessor a.2
+    nodes.flatMap fun r =>
+      let ty := RenderModuleNames.generatedTypeName inputs.toUpper inputs.isUpper r.name.toList ++ "Syntax"
+      (if keep ty then [.node] else []) ++
+      (if keep ("cast" ++ ty) then [.cast] else []) ++
+      (r.accessors.filter fun a => keep (lower r.name ++ upper a.1)).map fun a => .accessor a.2
 
 def syntaxItems (enabled : Bool) (decls : List SyntaxDeclaration) :=
   if enabled then decls.flatMap SyntaxDeclaration.items else []
