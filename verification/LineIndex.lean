@@ -45,7 +45,7 @@ termination_by b - a
 decreasing_by all_goals omega
 
 theorem lineOf_last_start (start : Nat → Nat) (off a b : Nat)
-    (ordered : ∀ i j, i ≤ j → start i ≤ start j)
+    (ordered : ∀ i j, i ≤ j → j ≤ b → start i ≤ start j)
     (bounds : a ≤ b) (initial : start a ≤ off) :
     let l := lineOf start off a b
     a ≤ l ∧ l ≤ b ∧ start l ≤ off ∧ ∀ j, l < j → j ≤ b → off < start j := by
@@ -60,16 +60,37 @@ theorem lineOf_last_start (start : Nat → Nat) (off a b : Nat)
       exact ⟨by omega, hi, ok, last⟩
     · rename_i after
       obtain ⟨lo, hi, ok, last⟩ :=
-        lineOf_last_start start off a ((a + b + 1) / 2 - 1) ordered (by omega) initial
+        lineOf_last_start start off a ((a + b + 1) / 2 - 1) (fun i j hij hj => ordered i j hij (by omega)) (by omega) initial
       refine ⟨lo, by omega, ok, ?_⟩
       intro j hj _
       by_cases h : j < (a + b + 1) / 2
       · exact last j hj (by omega)
-      · have step := ordered ((a + b + 1) / 2) j (by omega)
+      · have step := ordered ((a + b + 1) / 2) j (by omega) (by assumption)
         omega
   · exact ⟨Nat.le_refl _, bounds, initial, by omega⟩
 termination_by b - a
 decreasing_by all_goals omega
 
+theorem lookup_lineIndex (input : List Char) (off : Nat) :
+    let starts := lineIndex input
+    let read := fun i => starts[i]?.getD 0
+    let last := starts.length - 1
+    let l := lineOf read off 0 last
+    l ≤ last ∧ read l ≤ off ∧ ∀ j, l < j → j ≤ last → off < read j := by
+  let starts := lineIndex input
+  have positive : 0 < starts.length := by simp [starts, lineIndex]
+  have ordered (i j : Nat) (le : i ≤ j) (hj : j ≤ starts.length - 1) :
+      starts[i]?.getD 0 ≤ starts[j]?.getD 0 := by
+    by_cases same : i = j
+    · simp [same]
+    · have hi : i < starts.length := by omega
+      have hlast : j < starts.length := by omega
+      have earlier := List.pairwise_iff_getElem.mp (lineIndex_ordered input)
+        i j hi hlast (by omega)
+      simpa [List.getElem?_eq_getElem, hi, hlast] using Nat.le_of_lt earlier
+  exact (lineOf_last_start (fun i => starts[i]?.getD 0) off 0 (starts.length - 1)
+    ordered (Nat.zero_le _) (by simp [starts, lineIndex])).2
+
+#print axioms lookup_lineIndex
 #print axioms lineOf_last_start
 end PegHs.LineIndex
