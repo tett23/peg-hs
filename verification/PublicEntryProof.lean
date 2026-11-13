@@ -68,6 +68,30 @@ theorem invariant2_sorted_assembly_error_nonempty {T M G} (bytes : Nat) (tops : 
 
 #print axioms invariant2_sorted_assembly_error_nonempty
 
+theorem invariant2_translated_grammar_error_nonempty {T M G} (bytes : Nat)
+    (start : StartResult T) (d : Failure → String) (errors : T → List String)
+    (name : T → Option M) (build : T → M → G) (missing : String)
+    (le : String → String → Bool) (ds : List String)
+    (rejected : translatedGrammar bytes start d (fun t =>
+      translatedAssemble (errors t) (name t) (build t) missing
+        (fun es => es.mergeSort le)) = .error ds) : ds ≠ [] := by
+  cases start with
+  | ok pos tops =>
+    by_cases full : pos = bytes
+    · subst pos
+      exact invariant2_sorted_assembly_error_nonempty bytes tops d (errors tops) (name tops)
+        (build tops) missing le ds (by
+          simpa [translatedGrammar, translatedRuntime, translatedPublic, Except.bind] using rejected)
+    · simp [translatedGrammar, translatedRuntime, translatedPublic, Except.bind, full] at rejected
+      subst ds
+      simp
+  | fail | throwLabel =>
+    simp [translatedGrammar, translatedRuntime, translatedPublic, Except.bind] at rejected
+    subst ds
+    simp
+
+#print axioms invariant2_translated_grammar_error_nonempty
+
 theorem invariant1_translated_module_selection {T L G} (bytes : Nat) (start : StartResult T)
     (d : Failure → String) (errors : T → List String) (library : T → Option L)
     (single : T → String → Option (L × String)) (build : T → (L × String) → G)
