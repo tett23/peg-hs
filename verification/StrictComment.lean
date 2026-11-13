@@ -1,3 +1,4 @@
+import Lexical
 import SelfHostedFileProof
 import TerminalCursor
 
@@ -99,6 +100,34 @@ theorem invariant1_strict_comment_missing_hash (pre suffix : List Char) (env : E
     simp only [runFuel, hash, step, Option.map_none]
   exact .seqCarryFail (invariant1_runFuel_sound failed)
 
+theorem invariant1_comment_lexical_reply (pre suffix : List Char) (env : Env) (reply : Reply) :
+    let ctx := context false (pre ++ suffix)
+    (∃ fuel, runFuel ctx fuel (ctx.rules 6) suffix.length env = some reply) ↔
+      reply = (match PegVerification.run PegVerification.comment suffix with
+        | .ok rest => .ok rest.length {env with resultDepth := 0}
+        | .error _ => .fail) := by
+  let ctx := context false (pre ++ suffix)
+  have derived : Derives ctx translatedStrictComment suffix.length env
+      (match PegVerification.run PegVerification.comment suffix with
+        | .ok rest => .ok rest.length {env with resultDepth := 0}
+        | .error _ => .fail) := by
+    cases suffix with
+    | nil => exact invariant1_strict_comment_missing_hash pre [] env (by decide)
+    | cons c tail =>
+      by_cases hash : c = '#'
+      · subst c
+        rw [PegVerification.invariant1_comment]
+        exact invariant1_strict_comment pre tail env
+      · rw [PegVerification.invariant1_comment_no_marker c tail hash]
+        exact invariant1_strict_comment_missing_hash pre _ env (by simpa using hash)
+  obtain ⟨fuel, exactRun⟩ := invariant1_derivation_has_fuel derived
+  constructor
+  · rintro ⟨other, observed⟩
+    exact invariant1_result_unique ctx observed exactRun
+  · rintro rfl
+    exact ⟨fuel, exactRun⟩
+
+#print axioms invariant1_comment_lexical_reply
 #print axioms invariant1_strict_comment_missing_hash
 #print axioms invariant1_strict_comment
 end PegHs.MetaExecution
