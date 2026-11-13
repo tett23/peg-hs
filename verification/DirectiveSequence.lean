@@ -10,7 +10,7 @@ def directiveValues : List Char → Option (List Top)
       let tail ← directiveValues (afterDirectiveItem cs)
       let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
       let raw := (cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
-      return .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) :: tail
+      return translatedDirectiveValue Top.directive DirectiveArgument.argument name (raw.takeWhile (· != '\n')) :: tail
     else none
   | _ => none
 termination_by xs => xs.length

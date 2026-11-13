@@ -9,7 +9,7 @@ open EnvironmentEval ConcreteTerminal AssembleValidation
 def capturedDirective (input : List Char) (nameStart nameEnd rawStart rawEnd : Nat) : Top :=
   let name := String.ofList (matchedText input nameStart nameEnd)
   let raw := matchedText input rawStart rawEnd
-  .directive name (String.ofList (DirectiveArgument.argument name raw))
+  translatedDirectiveValue Top.directive DirectiveArgument.argument name raw
 
 theorem directiveRawCapture (pre arg : List Char) :
     matchedText (pre ++ arg) arg.length (arg.dropWhile (· != '\n')).length =
@@ -35,7 +35,7 @@ theorem invariant2_directive_captures_at (before : List Char) (c : Char) (cs : L
       (raw.dropWhile (· != '\n')).length =
       .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
   dsimp only
-  unfold capturedDirective
+  unfold capturedDirective translatedDirectiveValue
   have name := invariant1_identifier_capture (before ++ ['%']) c cs
   simp only [List.append_assoc, List.cons_append, List.nil_append] at name
   dsimp only
