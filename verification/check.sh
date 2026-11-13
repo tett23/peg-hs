@@ -16,7 +16,7 @@ export LEAN_PATH="$work"
 runghc-9.10.3 -Werror ExtractReservedWords.hs ../packages/peg-grammar/src/Peg/Grammar.hs > "$work/GrammarReservedWords.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/GrammarReservedWords.olean" "$work/GrammarReservedWords.lean"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard LineIndex Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
@@ -33,6 +33,9 @@ verification/check-expression-depth.sh
 verification/check-escape-predicates.sh
 verification/check-parameter-predicates.sh
 verification/check-semantic-predicates.sh "$work"
+# The line lookup proof follows the inclusive upper-midpoint binary search.
+sed -n '/^lineOf arr off =/,/^$/p' packages/peg-runtime/src/Peg/Runtime/Position.hs |
+  diff -u - verification/line-of.source
 verification/check-header.sh
 verification/check-lexical.sh
 verification/check-whitespace.sh

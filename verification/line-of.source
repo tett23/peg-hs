@@ -1,0 +1,9 @@
+lineOf arr off = go lo hi
+  where
+    (lo, hi) = bounds arr
+    go a b
+      | a >= b = a
+      | otherwise =
+          let m = (a + b + 1) `div` 2
+           in if arr ! m <= off then go m b else go a (m - 1)
+
