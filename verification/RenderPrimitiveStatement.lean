@@ -62,11 +62,11 @@ theorem pure_value_statement {value : List Symbol}
   exact one r658 (one r661 (one r520 (one r523 (one r528 applied))))
 
 -- The syntax-tree backend returns the semantic value and its children as a pair.
-theorem pure_pair_statement {value kids : List Symbol}
+theorem pair_argument {value kids : List Symbol}
     (v : Derives productions [.nonterminal 229] value)
     (k : Derives productions [.nonterminal 229] kids) :
-    Derives productions [.nonterminal 257]
-      ([.terminal 121, .terminal 107] ++ value ++ [.terminal 114] ++ kids ++ [.terminal 108]) := by
+    Derives productions [.nonterminal 218]
+      ([.terminal 107] ++ value ++ [.terminal 114] ++ kids ++ [.terminal 108]) := by
   have comma : Derives productions [.nonterminal 322] [.terminal 114] := by
     exact Derives.production (pre := []) (post := []) (id := 839) (rhs := [.terminal 114]) (by decide) (.refl _)
   have tail := one (id := 606) (lhs := 232) (by decide) k
@@ -82,8 +82,17 @@ theorem pure_pair_statement {value kids : List Symbol}
     exact after [.terminal 108] (before [.terminal 107] pair)
   have atom := one (id := 551) (lhs := 218) (by decide)
     (one (id := 554) (lhs := 219) (by decide) arg)
-  simpa [List.append_assoc] using pure_value_statement atom
+  simpa [List.append_assoc] using atom
 
+theorem pure_pair_statement {value kids : List Symbol}
+    (v : Derives productions [.nonterminal 229] value)
+    (k : Derives productions [.nonterminal 229] kids) :
+    Derives productions [.nonterminal 257]
+      ([.terminal 121, .terminal 107] ++ value ++ [.terminal 114] ++ kids ++ [.terminal 108]) := by
+  simpa [List.append_assoc] using pure_value_statement (pair_argument v k)
+
+
+#print axioms pair_argument
 #print axioms pure_pair_statement
 
 def kidsTokens : List (List Symbol) → List Symbol
@@ -198,6 +207,27 @@ theorem binding_statement {pattern body : List Symbol}
       (pattern ++ [.terminal 82] ++ body) := by
     simpa using (Derives.production (pre := []) (post := []) r660 children)
   exact one r658 qual
+
+-- Both the discarded-value pattern in itemStmtS and the pass-through
+-- pattern bind the second component to the fresh child-list variable.
+theorem syntax_item_pair_binding (discard : Bool) {body : List Symbol}
+    (body_ok : Derives productions [.nonterminal 211] body) :
+    Derives productions [.nonterminal 257]
+      ([.terminal 107, if discard then .terminal 2 else .terminal 117,
+        .terminal 114, .terminal 117, .terminal 108, .terminal 82] ++ body) := by
+  have first : Derives productions [.nonterminal 218]
+      [if discard then .terminal 2 else .terminal 117] := by
+    cases discard
+    · exact RenderDeclarationsGHC.varid_argument
+    · exact RenderDeclarationsGHC.wildcard_argument
+  have pair := pair_argument (RenderExpressionGHC.aexp_to_texp first)
+    (RenderExpressionGHC.aexp_to_texp RenderDeclarationsGHC.varid_argument)
+  have pattern := one (id := 520) (lhs := 211) (by decide)
+    (one (id := 523) (lhs := 212) (by decide) (one (id := 528) (lhs := 214) (by decide)
+      (one (id := 536) (lhs := 217) (by decide) pair)))
+  exact binding_statement pattern body_ok
+
+#print axioms syntax_item_pair_binding
 
 theorem named_binding_statement {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 211] body) :
