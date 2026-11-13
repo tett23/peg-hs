@@ -1,6 +1,7 @@
 import RenderExpressionGHC
 import RenderExpressionLexer
 import RenderDeclarationsGHC
+import RenderPrimitiveChoice
 
 namespace PegHs.RenderPrimitiveStatement
 
@@ -137,6 +138,36 @@ theorem wildcard_binding_statement {body : List Symbol}
       RenderDeclarationsGHC.wildcard_argument)))
   simpa using binding_statement wildcard body_ok
 
+-- The surrounding lexer bridge checks the bound name token. The caller supplies the
+-- expression derivation for exprCodeU's output.
+def itemStatement (source : String) (tokens : List Symbol)
+    (expression : Derives productions [.nonterminal 211] tokens)
+    (hasValue honorBind : Bool) (binding : Option String) : RenderPrimitiveDoGHC.Statement :=
+  if hasValue then
+    match binding.filter (fun _ => honorBind) with
+    | some name => ⟨name ++ " <- " ++ source, [.terminal 117, .terminal 82] ++ tokens,
+        named_binding_statement expression⟩
+    | none => ⟨"_ <- " ++ source, [.terminal 2, .terminal 82] ++ tokens,
+        wildcard_binding_statement expression⟩
+  else
+    have r661 : productions 661 = some (258, [.nonterminal 211]) := by decide
+    have r658 : productions 658 = some (257, [.nonterminal 258]) := by decide
+    ⟨source, tokens, one r658 (one r661 expression)⟩
+
+def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
+  let unit : RenderPrimitiveDoGHC.Statement :=
+    ⟨"PegPrelude.pure ()", [.terminal 121, .terminal 107, .terminal 108], pure_unit_statement⟩
+  match stmts with
+  | [] => RenderPrimitiveChoice.doAlternative unit []
+  | first :: rest => RenderPrimitiveChoice.doAlternative first (rest ++ [unit])
+
+theorem unitAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) :
+    (unitAlternative stmts).source =
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure ()"]) := by
+  cases stmts <;> simp [unitAlternative, RenderPrimitiveChoice.doAlternative]
+
+#print axioms itemStatement
+#print axioms unitAlternative_source
 #print axioms pure_name_lexeme
 #print axioms pure_value_statement
 #print axioms pure_unit_statement
