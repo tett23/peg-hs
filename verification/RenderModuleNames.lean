@@ -18,6 +18,35 @@ def ghcConId (large tail : Char → Bool) (name : String) : Bool :=
   | [] => false
   | c :: cs => large c && cs.all tail
 
+-- Peg.Grammar.Types.generatedTypeName capitalizes the first character when
+-- its uppercase mapping is uppercase, and otherwise prefixes the entire name.
+def generatedTypeName (toUpper : Char → Char) (upper : Char → Bool) (name : List Char) : String :=
+  match name with
+  | [] => "Rule'"
+  | c :: cs =>
+    if upper (toUpper c) then String.ofList (toUpper c :: cs)
+    else "Rule'" ++ String.ofList (c :: cs)
+
+theorem generated_type_name_conid (toUpper : Char → Char) (upper large tail : Char → Bool)
+    (upper_ok : ∀ c, upper c = true → large c = true)
+    (fallback : ghcConId large tail "Rule'" = true)
+    (name : List Char) (chars : name.all tail = true) :
+    ghcConId large tail (generatedTypeName toUpper upper name) = true := by
+  cases name with
+  | nil => exact fallback
+  | cons c cs =>
+    simp only [generatedTypeName]
+    split
+    next h =>
+      simp_all [ghcConId, upper_ok _ h]
+    next =>
+      change (large 'R' && ['u', 'l', 'e', '\''].all tail) = true at fallback
+      simpa [ghcConId, String.toList_append, List.all_append, Bool.and_assoc] using
+        (show ((large 'R' && ['u', 'l', 'e', '\''].all tail) && (c :: cs).all tail) = true by
+          rw [fallback, chars]; decide)
+
+#print axioms generated_type_name_conid
+
 -- Classify an isolated qualified variable, in Lexer.x rule order. The
 -- module part is already separated from the final identifier.
 inductive QualifiedVariableToken where

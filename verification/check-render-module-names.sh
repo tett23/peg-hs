@@ -40,6 +40,15 @@ sed -n '/^ruleVar ::/,/^ruleVar n =/p' \
   packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderModuleNames.actual"
 diff -u "$scratch/RenderModuleNames.expected" "$scratch/RenderModuleNames.actual"
 
+cat > "$scratch/GeneratedTypeName.expected" <<'SOURCE'
+generatedTypeName n = case T.uncons n of
+  Just (c, rest) | isUpper (toUpper c) -> T.cons (toUpper c) rest
+  _ -> "Rule'" <> n
+SOURCE
+sed -n '/^generatedTypeName n =/,/^  _ ->/p' \
+  packages/peg-grammar/src/Peg/Grammar/Types.hs > "$scratch/GeneratedTypeName.actual"
+diff -u "$scratch/GeneratedTypeName.expected" "$scratch/GeneratedTypeName.actual"
+
 cat > "$scratch/InvalidQdo.hpeg" <<'SOURCE'
 %module Probe.InvalidQdo
 %export Q.do
@@ -102,4 +111,4 @@ for name in QualifiedMdo UnicodeNames UnicodeModule; do
     "$scratch/$name.hs" > "$scratch/$name.ghc.log" 2>&1
 done
 
-printf 'Module names and exports: 5 Lean theorems, 1114112 character classifications, 2 invalid inputs rejected, 3 generated modules compiled.\n'
+printf 'Module names and exports: 7 Lean declarations, 1114112 character classifications, 2 invalid inputs rejected, 3 generated modules compiled.\n'
