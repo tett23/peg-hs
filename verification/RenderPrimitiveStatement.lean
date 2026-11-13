@@ -628,6 +628,37 @@ private theorem returningAlternative_source (stmts : List RenderPrimitiveDoGHC.S
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ [ret.source]) := by
   cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative, RenderPrimitiveChoice.Alternative.source]
 
+def printedKids (children : List String) : String :=
+  match children with
+  | [] => "[]"
+  | [k] => k
+  | ks => "PegPrelude.concat [" ++ String.intercalate ", " ks ++ "]"
+
+-- Each child reference is the name returned by freshK for that item.
+def syntaxAlternative (stmts : List RenderPrimitiveDoGHC.Statement)
+    (value : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (children : List Nat) : RenderPrimitiveChoice.Alternative :=
+  let names := children.map fun n => "peg'k" ++ n.repr
+  let childTokens := children.map fun _ => [Symbol.terminal 117]
+  have child_ok : ∀ t ∈ childTokens, Derives productions [.nonterminal 229] t := by
+    intro t mem
+    obtain ⟨_, _, rfl⟩ := List.mem_map.mp mem
+    exact RenderExpressionGHC.aexp_to_texp RenderDeclarationsGHC.varid_argument
+  returningAlternative stmts
+    ⟨"PegPrelude.pure (" ++ value ++ ", " ++ printedKids names ++ ")",
+      _, kids_return_statement childTokens valid child_ok⟩
+
+theorem syntaxAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement)
+    (value : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (children : List Nat) :
+    (syntaxAlternative stmts value tokens valid children).source =
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++
+        ["PegPrelude.pure (" ++ value ++ ", " ++ printedKids (children.map fun n => "peg'k" ++ n.repr) ++ ")"]) :=
+  returningAlternative_source stmts _
+
+#print axioms syntaxAlternative_source
+#print axioms syntaxAlternative
+
 def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
   returningAlternative stmts
     ⟨"PegPrelude.pure ()", [.terminal 121, .terminal 107, .terminal 108], pure_unit_statement⟩
