@@ -74,6 +74,35 @@ theorem invariant2_parameter_capture_tests (input : List Char) (env : Env) :
     site 6 .paramType (by change (context false []).sites 6 = _; decide +kernel)]
   exact ⟨rfl, rfl, rfl⟩
 
+theorem invariant2_parameter_rule_reply (input : List Char) (start here stop : Nat)
+    (initial spaced located captured : Env) (r : Reply)
+    (ws : Derives (context false input) (.call 47 4) start initial (.ok here spaced))
+    (loc : Derives (context false input) (.bind 27 "l" (.call 48 3)) here spaced (.ok here located))
+    (code : Derives (context false input) (.bind 28 "c" (.capture (.call 49 51)))
+      here located (.ok stop captured))
+    (delimiter : Derives (context false input) (.label "argcode" none (.ahead (.terminal 29)))
+      stop {captured with resultDepth := 0} r) :
+    let text := captured.lookup "c"
+    Derives (context false input) translatedStrictParamChunk start initial
+      (if (ParameterPredicates.strip GhcPredicates.space text).isEmpty then
+        .throwLabel stop "argument" (some "expected an argument")
+       else match ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum text with
+       | .formError => .throwLabel stop "paramform" (some "expected a parameter of the form name :: Type")
+       | .typeError => .throwLabel stop "paramtype" (some "expected a parameter type")
+       | .ok .. => r) := by
+  rw [invariant2_parameter_guard_shape]
+  apply Derives.seqOk ws
+  apply Derives.seqOk loc
+  apply Derives.seqOk code
+  have h := invariant2_parameter_guard_order input stop captured _ r delimiter
+  obtain ⟨a, b, c⟩ := invariant2_parameter_capture_tests input captured
+  dsimp only at h ⊢
+  rw [a, b, c] at h
+  cases empty : (ParameterPredicates.strip GhcPredicates.space (captured.lookup "c")).isEmpty <;>
+    cases result : ParameterPredicates.classify GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum
+      (captured.lookup "c") <;> simpa [empty, result] using h
+
+#print axioms invariant2_parameter_rule_reply
 #print axioms invariant2_parameter_capture_tests
 #print axioms invariant2_parameter_guard_order
 end PegHs.MetaExecution
