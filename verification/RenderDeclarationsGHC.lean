@@ -449,6 +449,43 @@ private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.ter
   oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
     (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
 
+def recoverTypeWord (syntaxTree : Bool) (result : List Symbol) : List Symbol :=
+  let value := if syntaxTree then [.terminal 122]
+    else [.terminal 122, .terminal 107] ++ result ++ [.terminal 108]
+  [.terminal 122, .terminal 83, .terminal 107] ++ value ++
+    [.terminal 114, .terminal 105, .terminal 122, .terminal 106, .terminal 108]
+
+theorem recover_entry_type (syntaxTree : Bool) {result : List Symbol}
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 163] (recoverTypeWord syntaxTree result) := by
+  have base {w} (app : Derives productions [.nonterminal 169] w) :=
+    oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)
+  have ctype {w} (app : Derives productions [.nonterminal 169] w) :=
+    oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl) (base app))
+  have con := oneRule (id := 390) (by rfl) qualifiedTypeAtom
+  have errorType := oneRule (id := 374) (by rfl) (ctype con)
+  have errors := applyRule (id := 411) (by rfl)
+    (beside (.refl [.terminal 105]) (beside errorType (.refl [.terminal 106])))
+  have tail := oneRule (id := 433) (by rfl) (oneRule (id := 374) (by rfl)
+    (ctype (oneRule (id := 390) (by rfl) errors)))
+  have value : Derives productions [.nonterminal 169]
+      (if syntaxTree then [.terminal 122] else
+        [.terminal 122, .terminal 107] ++ result ++ [.terminal 108]) := by
+    cases syntaxTree
+    · have paren := applyRule (id := 412) (by rfl) (beside (.refl [.terminal 107])
+        (beside (oneRule (id := 374) (by rfl) result_ok) (.refl [.terminal 108])))
+      simpa [List.append_assoc] using applyRule (id := 392) (by rfl)
+        (beside con (oneRule (id := 394) (by rfl) paren))
+    · exact con
+  have pair := applyRule (id := 407) (by rfl) (beside (.refl [.terminal 107])
+    (beside (oneRule (id := 374) (by rfl) (ctype value))
+      (beside (.refl [.terminal 114]) (beside tail (.refl [.terminal 108])))))
+  have rhs := ctype (oneRule (id := 390) (by rfl) pair)
+  simpa [recoverTypeWord, List.append_assoc] using oneRule (id := 379) (by rfl)
+    (applyRule (id := 382) (by rfl) (beside (base con) (beside (.refl [.terminal 83]) rhs)))
+
+#print axioms recover_entry_type
+
 private theorem entry_arrow {word : List Symbol}
     (arg : Derives productions [.nonterminal 172] word) :
     Derives productions [.nonterminal 163]
