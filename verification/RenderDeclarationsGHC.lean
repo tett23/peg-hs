@@ -619,15 +619,16 @@ theorem debug_signature (envType : Option { ty : List Symbol //
 
 #print axioms debug_signature
 
-def recoverTypeWord (syntaxTree : Bool) (result : List Symbol) : List Symbol :=
+def recoveryTupleWord (syntaxTree stats : Bool) (result : List Symbol) : List Symbol :=
   let value := if syntaxTree then [.terminal 122]
     else [.terminal 122, .terminal 107] ++ result ++ [.terminal 108]
-  [.terminal 122, .terminal 83, .terminal 107] ++ value ++
-    [.terminal 114, .terminal 105, .terminal 122, .terminal 106, .terminal 108]
+  [.terminal 107] ++ value ++
+    [.terminal 114, .terminal 105, .terminal 122, .terminal 106] ++
+    (if stats then [.terminal 114, .terminal 122] else []) ++ [.terminal 108]
 
-theorem recover_entry_type (syntaxTree : Bool) {result : List Symbol}
+private theorem recovery_tuple_type (syntaxTree stats : Bool) {result : List Symbol}
     (result_ok : Derives productions [.nonterminal 163] result) :
-    Derives productions [.nonterminal 163] (recoverTypeWord syntaxTree result) := by
+    Derives productions [.nonterminal 163] (recoveryTupleWord syntaxTree stats result) := by
   have base {w} (app : Derives productions [.nonterminal 169] w) :=
     oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)
   have ctype {w} (app : Derives productions [.nonterminal 169] w) :=
@@ -636,8 +637,13 @@ theorem recover_entry_type (syntaxTree : Bool) {result : List Symbol}
   have errorType := oneRule (id := 374) (by rfl) (ctype con)
   have errors := applyRule (id := 411) (by rfl)
     (beside (.refl [.terminal 105]) (beside errorType (.refl [.terminal 106])))
-  have tail := oneRule (id := 433) (by rfl) (oneRule (id := 374) (by rfl)
-    (ctype (oneRule (id := 390) (by rfl) errors)))
+  have errList := oneRule (id := 374) (by rfl) (ctype (oneRule (id := 390) (by rfl) errors))
+  have tail : Derives productions [.nonterminal 176] ([.terminal 105, .terminal 122, .terminal 106] ++
+      (if stats then [.terminal 114, .terminal 122] else [])) := by
+    cases stats
+    · exact oneRule (id := 433) (by rfl) errList
+    · exact applyRule (id := 434) (by rfl) (beside errList
+        (beside (.refl [.terminal 114]) (oneRule (id := 433) (by rfl) errorType)))
   have value : Derives productions [.nonterminal 169]
       (if syntaxTree then [.terminal 122] else
         [.terminal 122, .terminal 107] ++ result ++ [.terminal 108]) := by
@@ -651,9 +657,24 @@ theorem recover_entry_type (syntaxTree : Bool) {result : List Symbol}
     (beside (oneRule (id := 374) (by rfl) (ctype value))
       (beside (.refl [.terminal 114]) (beside tail (.refl [.terminal 108])))))
   have rhs := ctype (oneRule (id := 390) (by rfl) pair)
-  simpa [recoverTypeWord, List.append_assoc] using oneRule (id := 379) (by rfl)
-    (applyRule (id := 382) (by rfl) (beside (base con) (beside (.refl [.terminal 83]) rhs)))
+  simpa [recoveryTupleWord, List.append_assoc] using rhs
 
+def recoverTypeWord (syntaxTree : Bool) (result : List Symbol) :=
+  [.terminal 122, .terminal 83] ++ recoveryTupleWord syntaxTree false result
+
+theorem recover_entry_type (syntaxTree : Bool) {result : List Symbol}
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 163] (recoverTypeWord syntaxTree result) :=
+  qualified_type_arrow (recovery_tuple_type syntaxTree false result_ok)
+
+theorem debug_recovery_signature (syntaxTree : Bool) (envType : Option { ty : List Symbol //
+    Derives productions [.nonterminal 163] ty }) {result : List Symbol}
+    (result_ok : Derives productions [.nonterminal 163] result) :
+    Derives productions [.nonterminal 78] ([.terminal 117, .terminal 76] ++
+      debugTypeWord (envType.map Subtype.val) (recoveryTupleWord syntaxTree true result)) :=
+  debug_signature envType (recovery_tuple_type syntaxTree true result_ok)
+
+#print axioms debug_recovery_signature
 #print axioms recover_entry_type
 
 private theorem entry_arrow {word : List Symbol}
