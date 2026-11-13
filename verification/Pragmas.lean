@@ -269,6 +269,26 @@ theorem textLines_unlines (lines : List String)
       simp [ih (fun x h => clean x (by simp [h]))]
   simp [textLines, fields]
 
+theorem renderLine_single_line (n : Nat) (path : String) : '\n' ∉ (renderLine n path).toList := by
+  have digits := decimal_single_line n
+  have literal := (invariant3_literal_sound path).single_line
+  simpa [renderLine, String.toList_append] using And.intro digits literal
+
+theorem finalizeText_lines (marker path : String) (lines : List String)
+    (clean : ∀ line ∈ lines, '\n' ∉ line.toList) :
+    textLines (finalizeText marker path (textUnlines lines)) = finalizeLines marker path lines := by
+  rw [finalizeText, textLines_unlines lines clean]
+  apply textLines_unlines
+  intro line member
+  obtain ⟨⟨input, idx⟩, hi, rfl⟩ := List.mem_map.mp member
+  change '\n' ∉ (finalizeLine marker (idx + 1) path input).toList
+  unfold finalizeLine
+  split
+  · exact renderLine_single_line _ _
+  · exact clean _ (by simpa using List.mem_map_of_mem (f := Prod.fst) hi)
+
+#print axioms finalizeText_lines
+
 #print axioms textLines_unlines
 
 theorem invariant3_finalize_lines_at (marker path : String) (lines : List String)
