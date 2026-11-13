@@ -1,5 +1,7 @@
 import StrictWhitespaceScan
 import Whitespace
+import FileEnd
+import FileEntry
 
 namespace PegHs.MetaExecution
 
@@ -56,6 +58,24 @@ theorem invariant1_file_initial_ws_lexical (input : List Char) :
   have entered : ctx.hooks.enterCall 0 {} = some {} := rfl
   exact ⟨suffix, lexical, EnvironmentEval.Derives.call (ctx := ctx) (rule := 4) entered parsed⟩
 
+theorem invariant1_whitespace_only_file (input : List Char)
+    (consumed : PegVerification.run PegVerification.whitespaceExpr input = .ok []) :
+    FileResult false input (.ok 0 {}) := by
+  obtain ⟨suffix, lexical, ws⟩ := invariant1_file_initial_ws_lexical input
+  rw [consumed] at lexical
+  cases lexical
+  exact invariant1_file_from_top_items false input ws
+    (invariant1_top_items_end false input {}) (invariant1_eof_terminal _ _)
+
+theorem invariant1_whitespace_only_public (input : List Char)
+    (consumed : PegVerification.run PegVerification.whitespaceExpr input = .ok [])
+    (diagnostic : PublicParsing.Failure → String) :
+    PublicParsing.translatedPublic diagnostic (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input (.ok 0 {}))) = .ok () := by
+  have parsed := invariant1_whitespace_only_file input consumed
+  exact (FileEntry.invariant1_translated_public_entry parsed diagnostic).2 ⟨{}, parsed⟩
+
+#print axioms invariant1_whitespace_only_public
 #print axioms invariant1_file_initial_ws_lexical
 #print axioms invariant1_strict_ws_lexical_reply
 end PegHs.MetaExecution
