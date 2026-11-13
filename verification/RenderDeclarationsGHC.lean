@@ -1121,6 +1121,38 @@ theorem trivia_binding (count : Nat) :
       (oneRule (id := 528) (by rfl) (application (application qualified_function varid_argument) list)))
 
 #print axioms trivia_binding
+inductive SyntaxAccessorKind where
+  | oneNode | manyNodes | oneToken | manyTokens | elements
+
+def syntaxAccessorResult : SyntaxAccessorKind → List Symbol
+  | .oneNode => [.terminal 122, .terminal 118]
+  | .manyNodes => [.terminal 105, .terminal 118, .terminal 106]
+  | .oneToken => [.terminal 122, .terminal 122]
+  | .manyTokens | .elements => [.terminal 105, .terminal 122, .terminal 106]
+
+theorem syntax_accessor_signature (kind : SyntaxAccessorKind) :
+    Derives productions [.nonterminal 78]
+      ([.terminal 117, .terminal 76, .terminal 118, .terminal 83] ++ syntaxAccessorResult kind) := by
+  have appType {w} (app : Derives productions [.nonterminal 169] w) :=
+    oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+      (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)))
+  have maybeTy {w} (atom : Derives productions [.nonterminal 172] w) :=
+    appType (applyRule (id := 392) (by rfl) (beside (oneRule (id := 390) (by rfl) qualifiedTypeAtom)
+      (oneRule (id := 394) (by rfl) atom)))
+  have listTy {w} (atom : Derives productions [.nonterminal 172] w) :=
+    appType (oneRule (id := 390) (by rfl) (FieldType.list (.atomic atom)).atomValid)
+  have result : Derives productions [.nonterminal 163] (syntaxAccessorResult kind) := by
+    cases kind with
+    | oneNode => exact maybeTy unqualifiedTypeAtom
+    | manyNodes => exact listTy unqualifiedTypeAtom
+    | oneToken => exact maybeTy qualifiedTypeAtom
+    | manyTokens | elements => exact listTy qualifiedTypeAtom
+  have arg := oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+    (oneRule (id := 390) (by rfl) unqualifiedTypeAtom))
+  exact signature_named_ctype (oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
+    (beside arg (beside (.refl [.terminal 83]) result))))
+
+#print axioms syntax_accessor_signature
 #print axioms syntax_node_newtype
 #print axioms syntax_kind_binding
 
