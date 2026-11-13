@@ -199,6 +199,20 @@ structure RecoveryEntry extends EntryFragment where
   syntaxTree : Bool
   parserClose : Bool
 
+structure RecoveryCandidate extends EntryFragment where
+  suffix : String
+  valueClose : Bool
+  syntaxClose : Bool
+
+def selectRecoveryEntries (recovering syntaxMode : Bool) (keep : String → Bool)
+    (entries : List RecoveryCandidate) : List RecoveryEntry :=
+  if recovering then entries.flatMap fun e =>
+    (if keep ("parseRecover" ++ e.suffix) then
+      [⟨e.toEntryFragment, false, e.valueClose⟩] else []) ++
+    (if syntaxMode && keep ("parseSyntaxRecover" ++ e.suffix) then
+      [⟨e.toEntryFragment, true, e.syntaxClose⟩] else [])
+  else []
+
 open RenderDeclarationsGHC in
 def recoveryItems (syntaxMode : Bool) (envType : CheckedEnvType) (entries : List RecoveryEntry) :=
   entries.flatMap fun e => generatedPair
@@ -229,7 +243,8 @@ theorem generated_module_with_rules
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
     (envType : CheckedEnvType) (entries : List EntryFragment)
-    (syntaxEntryCount : Nat) (recoveryEntries : List RecoveryEntry) (rules : List RuleFragment)
+    (syntaxEntryCount : Nat) (recovering : Bool) (keep : String → Bool)
+    (candidates : List RecoveryCandidate) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -244,7 +259,8 @@ theorem generated_module_with_rules
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType recoveryEntries ++
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType
+          (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
@@ -256,7 +272,8 @@ theorem generated_module_with_rules
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
     (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType recoveryEntries ++
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType
+          (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
@@ -265,7 +282,7 @@ theorem generated_module_with_rules
     · exact data_ok item hd
     · exact entry_items_valid syntaxMode envType entries item he
     · exact syntax_entry_items_valid syntaxMode envType syntaxEntryCount item hs
-    · exact recovery_items_valid syntaxMode envType recoveryEntries item hc
+    · exact recovery_items_valid syntaxMode envType _ item hc
     · exact other_ok item ho
     · exact rule_items_valid rules item hr
   · exact initial
