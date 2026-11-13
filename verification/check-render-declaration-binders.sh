@@ -20,6 +20,13 @@ sed -n '/^    binderKeyword name =/,/^    known =/p' "$source" |
   grep -Fq 'extensionKeyword recursiveDoEnabled arrowsEnabled name'
 sed -n '/^extensionKeyword recursiveDoEnabled arrowsEnabled name =/,/^$/p' "$source" |
   grep -Fq 'recursiveDoEnabled && name `elem` ["mdo", "rec"]'
+sed -n '/^    unqualifiedName name =/,/^    isTypeName/p' "$source" |
+  head -n 2 > "$scratch/UnqualifiedExportName.actual"
+cat > "$scratch/UnqualifiedExportName.expected" <<'SOURCE'
+    unqualifiedName name = isValidIdent name && name `notElem` reservedWords
+      && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
+SOURCE
+diff -u "$scratch/UnqualifiedExportName.expected" "$scratch/UnqualifiedExportName.actual"
 sed -n '/^    errors =/,/^-- | Whether a text is a path/p' "$source" |
   grep -Fq ', binderKeyword name'
 sed -n '/^    errors =/,/^-- | Whether a text is a path/p' "$source" |

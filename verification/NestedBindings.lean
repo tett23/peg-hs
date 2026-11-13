@@ -112,10 +112,26 @@ example : extensionEnabled ["RecursiveDo", "DoRec"] ["NoDoRec", "Arrows", "Recur
 def languageOptions (tops : List Top) : List String :=
   (args (directives tops) "language").flatMap AssembleValidationHelpers.splitExports
 
-def binderKeyword (words options : List String) (name : String) : Bool :=
-  (name != "_" && words.contains name) ||
+def extensionKeyword (options : List String) (name : String) : Bool :=
     (extensionEnabled ["RecursiveDo", "DoRec"] options && ["mdo", "rec"].contains name) ||
     (extensionEnabled ["Arrows"] options && ["proc", "rec"].contains name)
+
+def binderKeyword (words options : List String) (name : String) : Bool :=
+  (name != "_" && words.contains name) || extensionKeyword options name
+
+def unqualifiedExportName (validIdent : String → Bool) (options : List String) (name : String) : Bool :=
+  validIdent name && !grammarReservedWords.contains name && !extensionKeyword options name
+
+theorem invariant3_unqualified_export_iff (validIdent : String → Bool) (options : List String)
+    (name : String) :
+    unqualifiedExportName validIdent options name = true ↔
+      validIdent name = true ∧ name ∉ grammarReservedWords ∧
+      (name ∈ ["mdo", "rec"] → extensionEnabled ["RecursiveDo", "DoRec"] options = false) ∧
+      (name ∈ ["proc", "rec"] → extensionEnabled ["Arrows"] options = false) := by
+  simp [unqualifiedExportName, extensionKeyword]
+  grind
+
+#print axioms invariant3_unqualified_export_iff
 
 theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
@@ -136,7 +152,7 @@ theorem invariant2_forall_reserved (options : List String) :
 
 theorem invariant2_wildcard_not_reserved (options : List String) :
     binderKeyword grammarReservedWords options "_" = false := by
-  simp [binderKeyword]
+  simp [binderKeyword, extensionKeyword]
 
 theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
@@ -150,7 +166,7 @@ theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule :
   apply invariant2_nested_binder_reported tree name rule templates _ _ occurs tops definition
   change binderKeyword grammarReservedWords (languageOptions tops) name = true
   rcases enabled with ⟨member, flag⟩ | ⟨member, flag⟩ <;>
-    simp [binderKeyword, invariant2_extension_last_setting, flag, member]
+    simp [binderKeyword, extensionKeyword, invariant2_extension_last_setting, flag, member]
 
 #print axioms invariant2_extension_binder_diagnostic
 #print axioms invariant2_extension_last_setting
