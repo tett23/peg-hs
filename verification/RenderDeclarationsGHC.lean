@@ -501,12 +501,15 @@ theorem recover_let (hasEnv withKind projectValue : Bool) {close : List Symbol}
   exact layout_let (recover_pattern false) (runtime_call hasEnv withKind)
     (recover_result projectValue) close_ok
 
+def debugValueLetWord (hasEnv noTraditionalRecordSyntax : Bool) (close : List Symbol) : List Symbol :=
+  [.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
+        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13] ++
+        recoverResultWord true
+
 theorem debug_value_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List Symbol}
     (close_ok : Derives productions [.nonterminal 320] close) :
     Derives productions [.nonterminal 218]
-      ([.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
-        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13] ++
-        recoverResultWord true) := by
+      (debugValueLetWord hasEnv noTraditionalRecordSyntax close) := by
   have pattern := oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
     (oneRule (id := 536) (by rfl) (recover_result false)))
   apply layout_let pattern _ (recover_result true) close_ok
@@ -514,13 +517,16 @@ theorem debug_value_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List 
   · exact debug_record_call hasEnv false
   · exact debug_tabstop_call hasEnv false
 
+def debugSyntaxLetWord (hasEnv noTraditionalRecordSyntax : Bool) (close : List Symbol) : List Symbol :=
+  [.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
+        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13,
+          .terminal 107] ++ syntaxMapWord ++ [.terminal 117, .terminal 114,
+          .terminal 117, .terminal 108]
+
 theorem debug_syntax_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List Symbol}
     (close_ok : Derives productions [.nonterminal 320] close) :
     Derives productions [.nonterminal 218]
-      ([.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
-        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13,
-          .terminal 107] ++ syntaxMapWord ++ [.terminal 117, .terminal 114,
-          .terminal 117, .terminal 108]) := by
+      (debugSyntaxLetWord hasEnv noTraditionalRecordSyntax close) := by
   have pattern := oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
     (oneRule (id := 536) (by rfl) (recover_result false)))
   have mapped := RenderExpressionGHC.application syntax_map varid_argument
@@ -532,20 +538,23 @@ theorem debug_syntax_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List
     cases noTraditionalRecordSyntax
     · exact debug_record_call hasEnv false
     · exact debug_tabstop_call hasEnv false
-  simpa [List.append_assoc] using layout_let pattern call pair close_ok
+  simpa [debugSyntaxLetWord, List.append_assoc] using layout_let pattern call pair close_ok
+
+def debugRecoverLetWord (hasEnv syntaxMode noTraditionalRecordSyntax : Bool) (close : List Symbol) : List Symbol :=
+  [.terminal 18, .terminal 103] ++ recoverPatternWord true ++ [.terminal 77] ++
+        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13, .terminal 107] ++
+        (if syntaxMode then [.terminal 121, .terminal 121] else []) ++
+        [.terminal 117, .terminal 114, .terminal 117, .terminal 114, .terminal 117, .terminal 108]
 
 theorem debug_recover_let (hasEnv syntaxMode noTraditionalRecordSyntax : Bool) {close : List Symbol}
     (close_ok : Derives productions [.nonterminal 320] close) :
     Derives productions [.nonterminal 218]
-      ([.terminal 18, .terminal 103] ++ recoverPatternWord true ++ [.terminal 77] ++
-        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13, .terminal 107] ++
-        (if syntaxMode then [.terminal 121, .terminal 121] else []) ++
-        [.terminal 117, .terminal 114, .terminal 117, .terminal 114, .terminal 117, .terminal 108]) := by
+      (debugRecoverLetWord hasEnv syntaxMode noTraditionalRecordSyntax close) := by
   have call : Derives productions [.nonterminal 217] (debugCallWord hasEnv false noTraditionalRecordSyntax) := by
     cases noTraditionalRecordSyntax
     · exact debug_record_call hasEnv false
     · exact debug_tabstop_call hasEnv false
-  simpa [List.append_assoc] using layout_let (recover_pattern true) call
+  simpa [debugRecoverLetWord, List.append_assoc] using layout_let (recover_pattern true) call
     (recovery_triple (recover_value syntaxMode) varid_argument) close_ok
 
 #print axioms debug_recover_let
@@ -723,6 +732,55 @@ theorem debug_value_signature (syntaxTree : Bool) (envType : Option { ty : List 
   simpa [debugResultWord, List.append_assoc] using ctype pair
 
 #print axioms debug_value_signature
+
+inductive DebugEntryKind where
+  | value | syntaxTree | recoverValue | recoverSyntax
+
+def DebugEntryKind.body (kind : DebugEntryKind) (env syntaxMode noRecord : Bool)
+    (close : List Symbol) : List Symbol :=
+  match kind with
+  | .value => if syntaxMode then debugValueLetWord env noRecord close else debugCallWord env false noRecord
+  | .syntaxTree => debugSyntaxLetWord env noRecord close
+  | .recoverValue => debugRecoverLetWord env syntaxMode noRecord close
+  | .recoverSyntax => debugCallWord env true noRecord
+
+def DebugEntryKind.resultType (kind : DebugEntryKind) (result : List Symbol) :=
+  match kind with
+  | .value => debugResultWord false result
+  | .syntaxTree => debugResultWord true result
+  | .recoverValue => recoveryTupleWord false true result
+  | .recoverSyntax => recoveryTupleWord true true result
+
+theorem debug_pair_valid (kind : DebugEntryKind) (env : Option { ty : List Symbol //
+    Derives productions [.nonterminal 163] ty }) (syntaxMode noRecord : Bool)
+    {close result : List Symbol} (hc : Derives productions [.nonterminal 320] close)
+    (hr : Derives productions [.nonterminal 163] result) :
+    ∀ item ∈ generatedPair (debugTypeWord (env.map Subtype.val) (kind.resultType result))
+      (List.replicate (if env.isSome then 3 else 2) [.terminal 117])
+      (kind.body env.isSome syntaxMode noRecord close), Derives productions [.nonterminal 78] item := by
+  intro item member
+  simp only [generatedPair, List.mem_cons, List.mem_nil_iff, or_false] at member
+  rcases member with rfl | rfl
+  · cases kind with
+    | value => exact debug_value_signature false env hr
+    | syntaxTree => exact debug_value_signature true env hr
+    | recoverValue => exact debug_recovery_signature false env hr
+    | recoverSyntax => exact debug_recovery_signature true env hr
+  · have fromAtom {w} (atom : Derives productions [.nonterminal 218] w) :=
+      binding_named_arguments (List.replicate (if env.isSome then 3 else 2) [.terminal 117])
+        (fun _ h => List.eq_of_mem_replicate h ▸ varid_argument)
+        (oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl)
+          (oneRule (id := 528) (by rfl) (oneRule (id := 536) (by rfl) atom))))
+    cases kind with
+    | value =>
+      cases syntaxMode
+      · exact debug_direct_binding _ false _
+      · exact fromAtom (debug_value_let _ _ hc)
+    | syntaxTree => exact fromAtom (debug_syntax_let _ _ hc)
+    | recoverValue => exact fromAtom (debug_recover_let _ _ _ hc)
+    | recoverSyntax => exact debug_direct_binding _ true _
+
+#print axioms debug_pair_valid
 
 theorem entry_type {result : List Symbol}
     (valid : Derives productions [.nonterminal 163] result) :
