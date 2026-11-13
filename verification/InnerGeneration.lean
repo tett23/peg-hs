@@ -114,6 +114,32 @@ theorem success_iff {G A : Type} (bad valid : Bool) (name : String) (g0 : G)
         all_goals exact eq_comm
       | cons x xs => simp [innerGenerate, he, hc, hm]
 
+theorem invariant3_public_render_iff {G A : Type} (parse : Except Diagnostics G)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (bad : Bool) (valid : G → Bool) (name : G → String)
+    (missing : G → A → List String) (render : G → A → String → String)
+    (freshMarker : String → String) (finalize : String → String → String) (code : String) :
+    let generate := fun target => innerGenerate bad (valid target) (name target) target
+      expand check notes missing render freshMarker finalize
+    Pipeline.visible (Pipeline.pipeline parse resolve expand (fun g => (check g).map (fun _ => ()))
+      notes strip warnings generate) = .ok code ↔
+      ∃ p r g, parse = .ok p ∧ resolve p = .ok r ∧ expand r = .ok g ∧
+        (∃ a, check g = .ok a) ∧
+        (let target := match strip with | none => g | some change => change g
+         bad = false ∧ valid target = true ∧ ∃ final analysis,
+           expand target = .ok final ∧ check final = .ok analysis ∧ missing final analysis = [] ∧
+           code = (let marker := freshMarker (render final analysis "")
+                   finalize marker (render final analysis marker))) := by
+  dsimp only
+  rw [Pipeline.invariant3_visible_success_iff]
+  have checked (g : G) : (check g).map (fun _ => ()) = .ok () ↔ ∃ a, check g = .ok a := by
+    cases check g <;> simp [Except.map]
+  simp only [checked, success_iff]
+  cases strip <;> rfl
+
+#print axioms invariant3_public_render_iff
+
 theorem failureNonempty {G A : Type} (bad valid : Bool) (name : String) (g0 : G)
     (expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
     (notes : G → Diagnostics → Diagnostics) (missing : G → A → List String)
