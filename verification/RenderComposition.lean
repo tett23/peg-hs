@@ -255,6 +255,21 @@ def debugKinds (enabled recovering syntaxMode : Bool) : List DebugEntryKind :=
     [.value] ++ (if syntaxMode then [.syntaxTree] else [])
   else []
 
+-- debugNames emits the ordinary entries before the recovering entries.
+def debugExportKinds (enabled recovering syntaxMode : Bool) : List DebugEntryKind :=
+  if enabled then
+    [.value] ++ (if syntaxMode then [.syntaxTree] else []) ++
+    (if recovering then [.recoverValue] ++ (if syntaxMode then [.recoverSyntax] else []) else [])
+  else []
+
+theorem debug_export_declarations (enabled recovering syntaxMode : Bool) :
+    (debugExportKinds enabled recovering syntaxMode).Perm (debugKinds enabled recovering syntaxMode) := by
+  cases enabled <;> cases recovering <;> cases syntaxMode <;>
+    first | exact List.Perm.refl _ | exact @List.perm_append_comm DebugEntryKind ([_] : List DebugEntryKind) [_]
+          | exact @List.perm_append_comm DebugEntryKind ([_, _] : List DebugEntryKind) [_, _]
+
+#print axioms debug_export_declarations
+
 def debugItems (debug : DebugSettings) (recovering syntaxMode : Bool) (env : CheckedEnvType)
     (start : EntryFragment) :=
   (debugKinds debug.enabled recovering syntaxMode).flatMap fun kind =>
@@ -283,7 +298,7 @@ theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
-    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
+    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
@@ -298,7 +313,7 @@ theorem generated_module_with_rules
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
       ([.terminal 19] ++ [.terminal (if qualifiedName then 122 else 118)] ++ exportWord
-        (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
+        (RenderModuleGHC.moduleExports selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
@@ -313,12 +328,12 @@ theorem generated_module_with_rules
     · exact module_name_simple
     · exact module_name_qualified
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
-    usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
+    usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length) verbatimImports
     (dataDecls ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ otherDecls ++ ruleItems rules) name_ok
-    (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
+    (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
     rcases member with (((((hd | he) | hs) | hc) | hdebug) | ho) | hr
