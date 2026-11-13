@@ -198,6 +198,28 @@ theorem invariant3_finalize_lines_at (marker path : String) (lines : List String
       some (if lines[i] = marker then renderLine (i + 2) path else lines[i]) := by
   simp [finalizeLines, inside, finalizeLine]
 
+theorem invariant3_finalize_preserves_original_lines (original : List String) :
+    let occupied := original.filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+    ∃ marker, firstUnused occupied ((List.range (occupied.length + 1)).map markerCandidate) = some marker ∧
+      ∀ (path : String) (rendered : List String) (i : Nat) (hi : i < rendered.length),
+        rendered[i] ∈ original → (finalizeLines marker path rendered)[i]? = some rendered[i] := by
+  dsimp only
+  let occupied := original.filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+  obtain ⟨marker, found, fresh⟩ := invariant3_finite_marker_selection occupied
+  refine ⟨marker, found, ?_⟩
+  intro path rendered i hi member
+  rw [invariant3_finalize_lines_at marker path rendered i hi]
+  have differs : rendered[i] ≠ marker := by
+    intro eq
+    apply fresh
+    obtain ⟨n, _, hc⟩ := List.mem_map.mp (firstUnused_member occupied _ marker found)
+    apply List.mem_filter.mpr
+    refine ⟨eq ▸ member, ?_⟩
+    rw [← hc]
+    simp [markerCandidate, String.toList_append]
+  simp [differs]
+
+#print axioms invariant3_finalize_preserves_original_lines
 #print axioms invariant3_finalize_lines_at
 
 #print axioms invariant3_line_sound
