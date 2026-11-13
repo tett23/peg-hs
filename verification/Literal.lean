@@ -134,6 +134,28 @@ theorem encoded_suffix_prefix (cs : List Char) :
 
 #print axioms encoded_suffix_prefix
 
+-- Fold from the right, testing the first character of the already
+-- rendered suffix as a ShowS-style escape printer does.
+def prependEscaped (c : Char) (suffix : String) : String :=
+  if needsEscapeTerminator c suffix.toList then encodeChar c ++ "\\&" ++ suffix
+  else encodeChar c ++ suffix
+
+theorem fold_escaped_body (chars : List Char) :
+    chars.foldr prependEscaped "" = encodeBody chars := by
+  induction chars with
+  | nil => rfl
+  | cons c cs ih =>
+    let check (p : Option (Bool × Bool)) :=
+      p.any fun flags => (c.toNat == 14 && flags.1) || (127 < c.toNat && flags.2)
+    have classify (xs : List Char) :
+        check (xs.head?.map escapePrefix) = needsEscapeTerminator c xs := by
+      cases xs <;> rfl
+    have same := congrArg check (encoded_suffix_prefix cs)
+    rw [classify, classify] at same
+    simp only [List.foldr_cons, ih, prependEscaped, same, encodeBody]
+
+#print axioms fold_escaped_body
+
 def encodeLiteral (s : String) : String :=
   "\"" ++ encodeBody s.toList ++ "\""
 
