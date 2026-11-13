@@ -76,6 +76,14 @@ theorem invariant1_parameter_diagnostics (env : SemanticPredicates.Env) (loc : �
   cases h : translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc env.captured <;>
     simp [translatedParamError, h]
 
+theorem invariant1_guarded_parameter_value (env : SemanticPredicates.Env) (loc : α × Nat × Nat)
+    (guard : SemanticPredicates.eval GhcPredicates.classes .paramType env = true) :
+    translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc env.captured =
+      .ok (translatedParam loc env.captured) := by
+  obtain ⟨v, accepted⟩ := (invariant1_toParam_guards env loc).2.mp guard
+  simp [translatedParam, accepted]
+
+#print axioms invariant1_guarded_parameter_value
 #print axioms invariant1_parameter_diagnostics
 #print axioms invariant1_toParam_guards
 #print axioms invariant1_toParam_result

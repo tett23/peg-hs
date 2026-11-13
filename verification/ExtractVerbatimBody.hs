@@ -15,6 +15,7 @@ main = do
           Just _ -> True
           Nothing -> False
     unless (matches "paramFormMessage =" "paramFormMessage = T.pack \"expected a parameter of the form name :: Type\"" &&
+            matches "param l c =" "param l c = either (const (Param T.empty (Located l c))) id (toParam (Located l c))" &&
             matches "paramError l c =" "paramError l c = either Just (const Nothing) (toParam (Located l c))") $
       die ("unsupported parameter diagnostics in " ++ parser)
   source <- lines <$> readFile path
@@ -72,5 +73,9 @@ main = do
             , "  match translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc src with"
             , "  | .error message => some message"
             , "  | .ok _ => none"
+            , "def translatedParam (loc : α × Nat × Nat) (src : List Char) : List Char × (α × Nat × Nat) × List Char :="
+            , "  match translatedToParam GhcPredicates.space GhcPredicates.alpha GhcPredicates.alnum loc src with"
+            , "  | .error _ => ([], loc, src)"
+            , "  | .ok value => value"
             , "end PegHs.MetaExecution" ]
     _ -> die "unsupported verbatimBody"
