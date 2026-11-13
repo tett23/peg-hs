@@ -208,6 +208,48 @@ theorem direct_rounds_rule_count_fixed {n : Nat} (lookup : RuleLookup n)
   rw [Nat.add_sub_of_le bound] at same
   rw [same, stable]
 
+-- The loop tests equality before continuing, as nullableRulesWith.go does.
+def nullableUntilStable {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr))
+    (k : Nat) (bound : k ≤ n) : Fin n → Bool :=
+  let known := directRounds lookup recovery rules k
+  let next := directNext lookup recovery rules known
+  if same : ∀ i, next i = known i then known
+  else
+    have less : k < n := by
+      apply Nat.lt_of_le_of_ne bound
+      intro eq
+      subst k
+      exact same (congrFun (direct_rounds_rule_count_fixed lookup recovery rules))
+    nullableUntilStable lookup recovery rules (k + 1) (by omega)
+termination_by n - k
+
+theorem nullableUntilStable_correct {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr))
+    (k : Nat) (bound : k ≤ n) :
+    nullableUntilStable lookup recovery rules k bound = directRounds lookup recovery rules n := by
+  rw [nullableUntilStable]
+  split
+  next same =>
+    have stable := funext same
+    have eventual := direct_rounds_after_fixed lookup recovery rules k stable (n - k)
+    rw [Nat.add_sub_of_le bound] at eventual
+    exact eventual.symm
+  next different =>
+    apply nullableUntilStable_correct
+termination_by n - k
+decreasing_by
+  have different : ¬ ∀ i, directNext lookup recovery rules (directRounds lookup recovery rules k) i =
+      directRounds lookup recovery rules k i := by assumption
+  have less : k < n := by
+    apply Nat.lt_of_le_of_ne bound
+    intro eq
+    subst k
+    exact different (congrFun (direct_rounds_rule_count_fixed lookup recovery rules))
+  omega
+
+#print axioms nullableUntilStable_correct
+
 def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
     (rules : Fin n → List (List Expr)) : Expr → Bool :=
   directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules n)
