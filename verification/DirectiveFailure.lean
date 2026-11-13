@@ -45,6 +45,40 @@ private theorem bad_item (xs : List Char)
   have item : Derives ctx (ctx.rules 1) n {} err := .seqCarryThrow oneCall
   exact Derives.call (callee := {}) (by rfl) item
 
+private theorem file_item_throw (input : List Char) (stopPos : Nat) (ends : List Nat)
+    (items : ItemStepsTo (context false input) stopPos (afterWhitespace input).length ends)
+    (failed : Derives (context false input) (.call 1 1) stopPos {} (.throwLabel pos name msg)) :
+    FileResult false input (.throwLabel pos name msg) := by
+  let ctx := context false input
+  have scan : Derives ctx (ctx.rules 4) input.length {} (.ok (afterWhitespace input).length {}) :=
+    invariant1_strict_whitespace_scan [] input {}
+  have leading : Derives ctx (.call 0 4) input.length {} (.ok (afterWhitespace input).length {}) :=
+    Derives.call (callee := {}) (by rfl) scan
+  exact Derives.seqOk leading (.seqCarryThrow (.star (invariant2_steps_to_throw _ _ _ ends items failed)))
+
+theorem invariant2_unterminated_block_file (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends) :
+    FileResult false (pre ++ '%' :: '{' :: xs) (.throwLabel 0 "verbatim" (some "unterminated %{ block")) :=
+  file_item_throw _ _ ends items (invariant2_unterminated_verbatim_item pre xs {} missing)
+
+theorem invariant2_unterminated_block_public (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends)
+    (reply : Reply) (parsed : FileResult false (pre ++ '%' :: '{' :: xs) reply)
+    (format : PublicParsing.Failure → String) :
+    let input := pre ++ '%' :: '{' :: xs
+    PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input reply)) = .error [format (.labelled "verbatim" (some "unterminated %{ block"))] := by
+  obtain ⟨_, _, unique⟩ := invariant1_file_result false _
+  have eq := (unique _ parsed).trans (unique _ (invariant2_unterminated_block_file pre xs ends missing items)).symm
+  subst reply
+  rfl
+
+#print axioms invariant2_unterminated_block_public
+
 theorem invariant2_missing_directive_after_items (pre xs : List Char) (ends : List Nat)
     (notBlock : xs.head? ≠ some '{')
     (bad : xs.head?.all (fun c => !(CharRule.identStart.accepts c)) = true)
@@ -58,11 +92,7 @@ theorem invariant2_missing_directive_after_items (pre xs : List Char) (ends : Li
   have full := invariant1_prepend_derivation pre failure (by rw [src]; exact Nat.le_refl _)
   have same : {context false ('%' :: xs) with input := pre ++ (context false ('%' :: xs)).input} = ctx := rfl
   rw [same] at full
-  have scan : Derives ctx (ctx.rules 4) input.length {} (.ok (afterWhitespace input).length {}) :=
-    invariant1_strict_whitespace_scan [] input {}
-  have leading : Derives ctx (.call 0 4) input.length {} (.ok (afterWhitespace input).length {}) :=
-    Derives.call (callee := {}) (by rfl) scan
-  exact Derives.seqOk leading (.seqCarryThrow (.star (invariant2_steps_to_throw _ _ _ ends items full)))
+  exact file_item_throw input _ ends items full
 
 theorem invariant2_missing_directive_file (xs : List Char)
     (notBlock : xs.head? ≠ some '{')
