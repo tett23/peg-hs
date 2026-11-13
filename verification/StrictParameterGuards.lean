@@ -203,6 +203,31 @@ theorem invariant2_empty_parameter_before_comma (before xs pre tail : List Char)
   rw [sameInput]
   simpa [comma, matchedText, ParameterPredicates.strip] using full
 
+private theorem loop_ne_fail (ctx : Inputs) (body : Body) (n : Nat) (env : Env) :
+    ¬ Derives ctx (.starLoop body) n env .fail := by
+  induction n using Nat.strongRecOn generalizing env with
+  | ind n ih =>
+    intro evaluated
+    cases evaluated with
+    | loopMore step smaller rest => exact ih _ smaller _ rest
+
+set_option maxRecDepth 8192 in
+theorem invariant2_argcode_ne_fail (input : List Char) (n : Nat) (env : Env) :
+    ¬ Derives (context false input) (.call 49 51) n env .fail := by
+  intro evaluated
+  generalize eq : Reply.fail = reply at evaluated
+  cases evaluated with
+  | callMissing missing =>
+    have enter : (context false input).hooks.enterCall 49 env = some env := rfl
+    simp [enter] at missing
+  | call enter body =>
+    rename_i inner
+    cases inner <;> try contradiction
+    change Derives _ (.star _) _ _ .fail at body
+    cases body with
+    | star loop => exact loop_ne_fail _ _ _ _ loop
+
+#print axioms invariant2_argcode_ne_fail
 #print axioms invariant2_empty_parameter_before_comma
 #print axioms invariant2_argcode_at_comma
 #print axioms invariant2_parameter_code_throw
