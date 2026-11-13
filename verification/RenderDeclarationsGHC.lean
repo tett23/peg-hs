@@ -615,6 +615,34 @@ theorem data_constructor (fields : List (List Symbol))
   simpa using applyRule (id := 463) (by rfl)
     (beside (applyRule (g := productions) (id := 465) (by rfl) (.refl [])) stuff)
 
+structure ConstructorFields where
+  fields : List (List Symbol)
+  valid : ∀ field ∈ fields, Derives productions [.nonterminal 172] field
+
+def ConstructorFields.word (c : ConstructorFields) : List Symbol :=
+  [.terminal 118] ++ c.fields.flatten
+
+def constructorTail (initial : List Symbol) (rest : List ConstructorFields) :=
+  rest.foldl (fun acc c => acc ++ [.terminal 81] ++ c.word) initial
+
+theorem data_constructors (first : ConstructorFields) (rest : List ConstructorFields) :
+    Derives productions [.nonterminal 189]
+      ([.terminal 77] ++ constructorTail first.word rest) := by
+  have extend (cs : List ConstructorFields) (initial : List Symbol)
+      (valid : Derives productions [.nonterminal 190] initial) :
+      Derives productions [.nonterminal 190] (constructorTail initial cs) := by
+    induction cs generalizing initial with
+    | nil => exact valid
+    | cons c cs ih =>
+      apply ih
+      have next := beside valid (beside (.refl [.terminal 81]) (data_constructor c.fields c.valid))
+      simpa [List.append_assoc, ConstructorFields.word] using
+        applyRule (id := 460) (by rfl) next
+  have list := extend rest first.word (oneRule (id := 461) (by rfl)
+    (data_constructor first.fields first.valid))
+  exact applyRule (id := 459) (by rfl) (beside (.refl [.terminal 77]) list)
+
+#print axioms data_constructors
 #print axioms data_constructor
 
 private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.terminal 122] :=
