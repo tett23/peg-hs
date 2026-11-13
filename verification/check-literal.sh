@@ -25,7 +25,7 @@ cat > "$scratch/LiteralProbe.lean" <<'SOURCE'
 import Literal
 
 def main : IO Unit := do
-  let numbers := [9, 10] ++ (List.range 95).map (· + 32)
+  let numbers := [7, 8, 9, 10, 11, 12, 13] ++ (List.range 95).map (· + 32)
   for n in numbers do
     let c := Char.ofNat n
     IO.println s!"{n}\t{Peg.Verification.encodeLiteral (String.singleton c)}"
@@ -41,11 +41,11 @@ import Data.Char (chr, ord)
 
 main :: IO ()
 main = do
-  let chars = map chr ([9, 10] ++ [32 .. 126])
+  let chars = map chr ([7, 8, 9, 10, 11, 12, 13] ++ [32 .. 126])
   mapM_ (\c -> putStrLn (show (ord c) ++ "\t" ++ show [c])) chars
   mapM_ (\c -> mapM_ (\d -> putStrLn
     (show (ord c) ++ "," ++ show (ord d) ++ "\t" ++ show [c, d])) chars) chars
 SOURCE
 runghc-9.10.3 "$scratch/LiteralProbe.hs" > "$scratch/haskell-literal.txt"
 diff -u "$scratch/haskell-literal.txt" "$scratch/lean-literal.txt"
-printf 'Compared 97 single-character and 9409 two-character literals with GHC Show.\n'
+printf 'Compared 102 single-character and 10404 two-character literals with GHC Show.\n'

@@ -6,8 +6,18 @@ private def slash : Char := '\\'
 def Plain (c : Char) : Prop :=
   32 ≤ c.toNat ∧ c.toNat ≤ 126 ∧ c ≠ quote ∧ c ≠ slash
 
+-- The remaining single-letter control escapes emitted by GHC's Show Char.
+private def controlEscape (c : Char) : Option String :=
+  match c.toNat with
+  | 7 => some "\\a"
+  | 8 => some "\\b"
+  | 11 => some "\\v"
+  | 12 => some "\\f"
+  | 13 => some "\\r"
+  | _ => none
+
 def Allowed (c : Char) : Prop :=
-  Plain c ∨ c = quote ∨ c = slash ∨ c = '\n' ∨ c = '\t'
+  Plain c ∨ c = quote ∨ c = slash ∨ c = '\n' ∨ c = '\t' ∨ (controlEscape c).isSome = true
 
 inductive TokenSyntax : Char → String → Prop where
   | plain (c : Char) (h : Plain c) : TokenSyntax c (String.singleton c)
@@ -15,6 +25,8 @@ inductive TokenSyntax : Char → String → Prop where
   | slash : TokenSyntax slash "\\\\"
   | newline : TokenSyntax '\n' "\\n"
   | tab : TokenSyntax '\t' "\\t"
+
+  | control (c : Char) (text : String) (h : controlEscape c = some text) : TokenSyntax c text
 
 inductive BodySyntax : List Char → String → Prop where
   | nil : BodySyntax [] ""
@@ -32,7 +44,7 @@ def encodeChar (c : Char) : String :=
   else if c == slash then "\\\\"
   else if c == '\n' then "\\n"
   else if c == '\t' then "\\t"
-  else String.singleton c
+  else (controlEscape c).getD (String.singleton c)
 
 def encodeBody : List Char → String
   | [] => ""
@@ -59,14 +71,12 @@ private theorem encodeChar_sound (c : Char) (h : Allowed c) :
   · subst c
     simp [encodeChar, hq, hs]
     exact TokenSyntax.tab
-  have hp : Plain c := by
-    rcases h with hp | hq' | hs' | hn' | ht'
-    · exact hp
-    · exact False.elim (hq hq')
-    · exact False.elim (hs hs')
-    · exact False.elim (hn hn')
-    · exact False.elim (ht ht')
-  simpa [encodeChar, hq, hs, hn, ht] using TokenSyntax.plain c hp
+  cases he : controlEscape c with
+  | some text =>
+    simpa [encodeChar, hq, hs, hn, ht, he] using TokenSyntax.control c text he
+  | none =>
+    have plain : Plain c := by simpa [Allowed, hq, hs, hn, ht, he] using h
+    simpa [encodeChar, hq, hs, hn, ht, he] using TokenSyntax.plain c plain
 
 private theorem encodeBody_sound (chars : List Char)
     (allowed : ∀ c ∈ chars, Allowed c) :
