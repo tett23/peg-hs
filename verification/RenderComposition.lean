@@ -323,10 +323,22 @@ structure MemoTable where
   params_ok : ∀ ty ∈ params, Derives productions [.nonterminal 162] ty
   result_ok : Derives productions [.nonterminal 172] result
 
-structure RenderRule extends RuleFragment where
+structure RenderRule where
+  params : List (List Symbol × Bool)
+  body : List Symbol
+  types_ok : ∀ p ∈ params, Derives productions [.nonterminal 163] p.1
+  body_ok : Derives productions [.nonterminal 211] body
   name : String
   valueType : List Symbol
   value_ok : Derives productions [.nonterminal 163] valueType
+
+def RenderRule.fragment (syntaxMode : Bool) (r : RenderRule) : RuleFragment where
+  params := r.params
+  body := r.body
+  types_ok := r.types_ok
+  body_ok := r.body_ok
+  result := parserResultWord syntaxMode r.valueType
+  result_ok := parser_result_type syntaxMode r.value_ok
 
 def RenderRule.memoTable (syntaxMode : Bool) (r : RenderRule) : MemoTable where
   params := r.params.map fun p => if p.2 then [.terminal 107, .terminal 108] else p.1
@@ -573,7 +585,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)).foldl semiAppend [])) :
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map (RenderRule.fragment syntaxMode))).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -588,7 +600,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)) name_ok
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map (RenderRule.fragment syntaxMode))) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member

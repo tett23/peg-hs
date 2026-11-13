@@ -881,6 +881,28 @@ theorem rule_value_argument (syntaxMode : Bool) {ty : List Symbol}
 
 #print axioms rule_value_argument
 
+def parserResultWord (syntaxMode : Bool) (ty : List Symbol) : List Symbol :=
+  [.terminal 122, .terminal 107, .terminal 118, .terminal 117, .terminal 108, .terminal 117] ++
+    ruleValueWord syntaxMode ty
+
+theorem parser_result_type (syntaxMode : Bool) {ty : List Symbol}
+    (valid : Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 163] (parserResultWord syntaxMode ty) := by
+  have appendArg {w a} (f : Derives productions [.nonterminal 169] w)
+      (arg : Derives productions [.nonterminal 172] a) :=
+    applyRule (id := 392) (by rfl) (beside f (oneRule (id := 394) (by rfl) arg))
+  have store := field_application_type (type_with_state_parameter unqualifiedTypeAtom)
+  have grouped := applyRule (id := 412) (by rfl)
+    (beside (.refl [.terminal 107]) (beside store (.refl [.terminal 108])))
+  have state := oneRule (id := 401) (by rfl) (oneRule (id := 760) (by rfl)
+    (applyRule (g := productions) (id := 762) (by rfl) (.refl [.terminal 117])))
+  have parser := appendArg (oneRule (id := 390) (by rfl) qualifiedTypeAtom) grouped
+  have result := appendArg (appendArg parser state) (rule_value_argument syntaxMode valid)
+  exact oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) result)))
+
+#print axioms parser_result_type
+
 def keyParameterTail (first : List Symbol) : List (List Symbol) → List Symbol
   | [] => groupedKeyParameter first
   | next :: rest => groupedKeyParameter first ++ [.terminal 114] ++ keyParameterTail next rest
