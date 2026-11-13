@@ -5,6 +5,18 @@ import AssembleValidation
 namespace PegHs.MetaExecution
 open EnvironmentEval ConcreteTerminal AssembleValidation
 
+-- Projection of the generated TDef action onto the definition fields used
+-- by assembly. Binding extraction still depends on the alternatives.
+theorem invariant2_definition_value_fields (loc : ι) (name : String) (params : Option (List τ))
+    (paramName : τ → String) (alts : β) (bindings : β → List String) :
+    let top := translatedDefinitionValue
+      (fun _ n ts as => Top.definitionWithBindings n ts (bindings as)) paramName loc name params alts
+    definitions [top] = [(name, (params.getD []).map paramName)] ∧
+      top = .definitionWithBindings name ((params.getD []).map paramName) (bindings alts) := by
+  cases params <;> exact ⟨rfl, rfl⟩
+
+#print axioms invariant2_definition_value_fields
+
 -- Both binders use remaining-input lengths, as in the generated Directive rule.
 def capturedDirective (input : List Char) (nameStart nameEnd rawStart rawEnd : Nat) : Top :=
   let name := String.ofList (matchedText input nameStart nameEnd)
