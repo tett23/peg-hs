@@ -188,6 +188,18 @@ theorem invariant3_selected_user_lines_unchanged
   exact invariant3_first_unused_fresh occupied _ marker found
     (covered marker member ⟨n, equals.symm⟩)
 
+-- zipWith fix [1..] (T.lines t), with one-based physical line numbers.
+def finalizeLines (marker path : String) (lines : List String) : List String :=
+  lines.zipIdx.map fun (line, index) => finalizeLine marker (index + 1) path line
+
+theorem invariant3_finalize_lines_at (marker path : String) (lines : List String)
+    (i : Nat) (inside : i < lines.length) :
+    (finalizeLines marker path lines)[i]? =
+      some (if lines[i] = marker then renderLine (i + 2) path else lines[i]) := by
+  simp [finalizeLines, inside, finalizeLine]
+
+#print axioms invariant3_finalize_lines_at
+
 #print axioms invariant3_line_sound
 #print axioms invariant3_column_sound
 #print axioms invariant3_fragment_frame_sound
