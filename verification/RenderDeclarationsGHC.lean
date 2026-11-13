@@ -347,6 +347,33 @@ theorem pair_argument {value errors : List Symbol}
   simpa [List.append_assoc] using
     oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl) atom)
 
+-- Recovery binds the value, error list and either a discarded or named stats value.
+def recoverPatternWord (keepStats : Bool) : List Symbol :=
+  [.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 114,
+    if keepStats then .terminal 117 else .terminal 2, .terminal 108]
+
+theorem recover_pattern (keepStats : Bool) :
+    Derives productions [.nonterminal 212] (recoverPatternWord keepStats) := by
+  have last : Derives productions [.nonterminal 218]
+      [if keepStats then .terminal 117 else .terminal 2] := by
+    cases keepStats
+    · exact wildcard_argument
+    · exact varid_argument
+  have comma := applyRule (g := productions) (id := 839) (by rfl) (.refl _)
+  have var := RenderExpressionGHC.aexp_to_texp varid_argument
+  have tail := applyRule (id := 604) (by rfl) (beside comma
+    (oneRule (id := 606) (by rfl) (RenderExpressionGHC.aexp_to_texp last)))
+  have middle := applyRule (id := 605) (by rfl) (beside var tail)
+  have triple := applyRule (id := 600) (by rfl)
+    (beside var (applyRule (id := 604) (by rfl) (beside comma middle)))
+  have atom := applyRule (id := 563) (by rfl)
+    (beside (.refl [.terminal 107]) (beside triple (.refl [.terminal 108])))
+  exact oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
+    (oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+      (oneRule (id := 554) (by rfl) atom))))
+
+#print axioms recover_pattern
+
 def recoverResultWord (projectValue : Bool) : List Symbol :=
   [.terminal 107] ++ (if projectValue then [.terminal 121, .terminal 121] else []) ++
     [.terminal 117, .terminal 114, .terminal 117, .terminal 108]
@@ -364,6 +391,29 @@ theorem recover_result (projectValue : Bool) :
     have term := oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
       (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) value)))
     exact pair_argument term name
+
+-- close is either a virtual closing brace or Happy's parser-directed close.
+theorem recover_let (hasEnv withKind projectValue : Bool) {close : List Symbol}
+    (close_ok : Derives productions [.nonterminal 320] close) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 18, .terminal 103] ++ recoverPatternWord false ++ [.terminal 77] ++
+        runtimeCallWord hasEnv withKind ++ close ++ [.terminal 13] ++
+        recoverResultWord projectValue) := by
+  have expression {w} (app : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) app))
+  have rhs := applyRule (id := 491) (by rfl) (beside (.refl [.terminal 77])
+    (beside (expression (runtime_call hasEnv withKind))
+      (applyRule (g := productions) (id := 300) (by rfl) (.refl []))))
+  have decl := applyRule (id := 486) (by rfl) (beside (recover_pattern false)
+    (beside (applyRule (g := productions) (id := 359) (by rfl) (.refl [])) rhs))
+  have decls := oneRule (id := 292) (by rfl) (oneRule (id := 489) (by rfl) decl)
+  have binds := oneRule (id := 296) (by rfl) (applyRule (id := 295) (by rfl)
+    (beside (.refl [.terminal 103]) (beside decls close_ok)))
+  have body := expression (oneRule (id := 536) (by rfl) (recover_result projectValue))
+  simpa [List.append_assoc] using applyRule (id := 541) (by rfl)
+    (beside (.refl [.terminal 18]) (beside binds (beside (.refl [.terminal 13]) body)))
+
+#print axioms recover_let
 
 #print axioms recover_result
 
