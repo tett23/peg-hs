@@ -67,6 +67,10 @@ import Pragmas
 
 def main : IO Unit := do
   let path := "a\"\\\n\tZ"
+  let marker := Peg.Verification.exampleMarker
+  for input in ["", "\n", "\n\n", "x", "x\n", "x\r\n", marker,
+      marker ++ "\n\n" ++ marker ++ "\n", "x\n" ++ marker ++ "\ny"] do
+    IO.println ((Peg.Verification.finalizeText marker path input).toList.map Char.toNat)
   for n in [0, 1, 9, 10, 99, 100, 65535] do
     IO.println (Peg.Verification.renderLine n path)
     IO.println (Peg.Verification.renderColumn n)
@@ -77,9 +81,19 @@ SOURCE
 (cd verification && lean --run "$scratch/PragmasProbe.lean") > "$scratch/lean-pragmas.txt"
 
 cat > "$scratch/PragmasProbe.hs" <<'SOURCE'
+{-# LANGUAGE OverloadedStrings #-}
+import qualified Data.Text as T
+import Data.List (intercalate)
 main :: IO ()
 main = do
-  let path = "a\"\\\n\tZ"
+  let path :: String
+      path = "a\"\\\n\tZ"
+  let marker = "{-# PEG'RESTORE_ #-}"
+      finalize t = T.unlines (zipWith fix [1 :: Int ..] (T.lines t))
+      fix n line | line == marker = T.pack ("{-# LINE " ++ show (n + 1) ++ " " ++ show path ++ " #-}")
+                 | otherwise = line
+  mapM_ (\t -> putStrLn ("[" ++ intercalate ", " (map (show . fromEnum) (T.unpack (finalize t))) ++ "]"))
+    ["", "\n", "\n\n", "x", "x\n", "x\r\n", marker, marker <> "\n\n" <> marker <> "\n", "x\n" <> marker <> "\ny"]
   mapM_ (\n -> do
     let line = "{-# LINE " ++ show n ++ " " ++ show path ++ " #-}"
         col = "{-# COLUMN " ++ show n ++ " #-}"

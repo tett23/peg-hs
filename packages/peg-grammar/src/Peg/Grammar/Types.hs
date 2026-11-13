@@ -367,39 +367,48 @@ sameType a b = key a == key b
 
 -- | A type as the user reads it: @Text@, @[Expr]@, @Maybe Text@.
 typeText :: ValueType -> Text
-typeText = render "Text" "Maybe"
+typeText = render "Text" "Maybe" T.strip
 
 -- | A type as the generated module writes it, with the names of the
 -- runtime and of the qualified Prelude.
 typeCode :: ValueType -> Text
-typeCode = render "PegRt.Text" "PegPrelude.Maybe"
+typeCode = render "PegRt.Text" "PegPrelude.Maybe" named
+  where
+    -- A line comment in an annotation must end before generated delimiters.
+    named raw
+      | "--" `T.isInfixOf` t = t <> "\n    "
+      | otherwise = t
+      where
+        t = T.strip raw
 
-render :: Text -> Text -> ValueType -> Text
-render text maybe' = go
+render :: Text -> Text -> (Text -> Text) -> ValueType -> Text
+render text maybe' named = go
   where
     go = \case
       TText -> text
       TList t -> "[" <> go t <> "]"
       TMaybe t -> maybe' <> " " <> atom t
-      TNamed t -> T.strip t
+      TNamed t -> named t
     atom t = parens (go t)
 
--- | A type in parentheses when it has a space outside brackets, so that
+-- | Parenthesize types with top-level whitespace or a function arrow so that
 -- it can be an argument of a type or a constructor.
 typeAtom :: Text -> Text
 typeAtom = parens
 
 parens :: Text -> Text
 parens t
-  | spaced (0 :: Int) (T.unpack t) = "(" <> t <> ")"
+  | needsParens (0 :: Int) (T.unpack t) = "(" <> t <> ")"
   | otherwise = t
   where
-    spaced _ [] = False
-    spaced d (c : cs)
-      | c `elem` ("([" :: String) = spaced (d + 1) cs
-      | c `elem` (")]" :: String) = spaced (d - 1) cs
+    needsParens _ [] = False
+    needsParens d ('-' : '>' : _) | d <= 0 = True
+    needsParens d ('→' : _) | d <= 0 = True
+    needsParens d (c : cs)
+      | c `elem` ("([" :: String) = needsParens (d + 1) cs
+      | c `elem` (")]" :: String) = needsParens (d - 1) cs
       | isSpace c && d <= 0 = True
-      | otherwise = spaced d cs
+      | otherwise = needsParens d cs
 
 -- | The declaration of a generated type as the user reads it, with its
 -- @deriving@ clause on a second line when it derives classes:

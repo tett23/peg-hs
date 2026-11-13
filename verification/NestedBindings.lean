@@ -112,10 +112,66 @@ example : extensionEnabled ["RecursiveDo", "DoRec"] ["NoDoRec", "Arrows", "Recur
 def languageOptions (tops : List Top) : List String :=
   (args (directives tops) "language").flatMap AssembleValidationHelpers.splitExports
 
-def binderKeyword (words options : List String) (name : String) : Bool :=
-  (name != "_" && words.contains name) ||
+def extensionKeyword (options : List String) (name : String) : Bool :=
     (extensionEnabled ["RecursiveDo", "DoRec"] options && ["mdo", "rec"].contains name) ||
     (extensionEnabled ["Arrows"] options && ["proc", "rec"].contains name)
+
+def binderKeyword (words options : List String) (name : String) : Bool :=
+  (name != "_" && words.contains name) || extensionKeyword options name
+
+def unqualifiedExportName (validIdent : String → Bool) (options : List String) (name : String) : Bool :=
+  validIdent name && !grammarReservedWords.contains name && !extensionKeyword options name
+
+theorem invariant3_unqualified_export_iff (validIdent : String → Bool) (options : List String)
+    (name : String) :
+    unqualifiedExportName validIdent options name = true ↔
+      validIdent name = true ∧ name ∉ grammarReservedWords ∧
+      (name ∈ ["mdo", "rec"] → extensionEnabled ["RecursiveDo", "DoRec"] options = false) ∧
+      (name ∈ ["proc", "rec"] → extensionEnabled ["Arrows"] options = false) := by
+  simp [unqualifiedExportName, extensionKeyword]
+  grind
+
+#print axioms invariant3_unqualified_export_iff
+
+-- The host supplies Data.Char.generalCategory's ModifierLetter test.
+def binderRejected (modifier : Char → Bool) (options : List String) (name : String) : Bool :=
+  binderKeyword grammarReservedWords options name || name.toList.head?.any modifier
+
+theorem invariant2_modifier_binding_rejected (modifier : Char → Bool) (c : Char)
+    (tail : List Char) (isModifier : modifier c = true) (tree : BindingTree)
+    (rule : String) (templates : List String) (tops : List Top) (p : Predicates)
+    (occurs : tree.Binds (String.ofList (c :: tail)))
+    (definition : Top.definitionWithBindings rule templates tree.names ∈ tops) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+        = .error ds ∧ ds ≠ [] := by
+  obtain ⟨ds, rejected, reported⟩ := invariant2_nested_binder_reported tree
+    (String.ofList (c :: tail)) rule templates
+    {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+    (by simp [binderRejected, isModifier]) occurs tops definition
+  exact ⟨ds, rejected, fun empty => by simp [empty] at reported⟩
+
+theorem invariant2_parameter_rejected (modifier : Char → Bool) (name rule : String)
+    (templates params : List String) (tops : List Top) (p : Predicates)
+    (annotation : Top.annotationWithParams rule templates params ∈ tops) (member : name ∈ params)
+    (invalid : binderRejected modifier (languageOptions tops) name = true) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+      = .error ds ∧ ds ≠ [] := by
+  apply binder_violation_rejected _ _ ⟨.reservedParameter, name⟩
+  apply List.mem_append_left
+  apply List.mem_map.mpr
+  exact ⟨name, List.mem_filter.mpr ⟨List.mem_flatMap.mpr ⟨_, annotation, member⟩, invalid⟩, rfl⟩
+
+theorem invariant2_modifier_parameter_rejected (modifier : Char → Bool) (c : Char)
+    (tail : List Char) (isModifier : modifier c = true) (rule : String)
+    (templates params : List String) (tops : List Top) (p : Predicates)
+    (annotation : Top.annotationWithParams rule templates params ∈ tops)
+    (member : String.ofList (c :: tail) ∈ params) :
+    ∃ ds, assemble tops {p with reservedBinder := binderRejected modifier (languageOptions tops)}
+      = .error ds ∧ ds ≠ [] :=
+  invariant2_parameter_rejected _ _ _ _ _ _ _ annotation member (by simp [binderRejected, isModifier])
+
+#print axioms invariant2_modifier_parameter_rejected
+#print axioms invariant2_modifier_binding_rejected
 
 theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
@@ -127,9 +183,16 @@ theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : St
   change binderKeyword grammarReservedWords (languageOptions tops) name = true
   simp [binderKeyword, word, notWildcard]
 
+theorem invariant2_forall_reserved (options : List String) :
+    binderKeyword grammarReservedWords options "forall" = true := by
+  have member : "forall" ∈ grammarReservedWords := by decide
+  simp [binderKeyword, member]
+
+#print axioms invariant2_forall_reserved
+
 theorem invariant2_wildcard_not_reserved (options : List String) :
     binderKeyword grammarReservedWords options "_" = false := by
-  simp [binderKeyword]
+  simp [binderKeyword, extensionKeyword]
 
 theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
@@ -143,7 +206,7 @@ theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule :
   apply invariant2_nested_binder_reported tree name rule templates _ _ occurs tops definition
   change binderKeyword grammarReservedWords (languageOptions tops) name = true
   rcases enabled with ⟨member, flag⟩ | ⟨member, flag⟩ <;>
-    simp [binderKeyword, invariant2_extension_last_setting, flag, member]
+    simp [binderKeyword, extensionKeyword, invariant2_extension_last_setting, flag, member]
 
 #print axioms invariant2_extension_binder_diagnostic
 #print axioms invariant2_extension_last_setting

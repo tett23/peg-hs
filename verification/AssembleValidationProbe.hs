@@ -84,6 +84,10 @@ main = do
       TDef l "P" [] [Alt l [] Nothing Nothing]])
   assertFailure "invariant2_reserved_binding" "binding name case is a Haskell reserved word"
     (assemble [modM, TDef l "S" [] [Alt l [Item l (Just "case") (ELit "a" "'a'")] Nothing Nothing]])
+  assertFailure "invariant2_modifier_parameter" "starts with a Unicode modifier letter"
+    (assemble [modM, TAnnot l "S" [Param "ʰ" (Located l "()")] [] (Located l "()"), defS])
+  assertFailure "invariant2_modifier_binding" "starts with a Unicode modifier letter"
+    (assemble [modM, TDef l "S" [] [Alt l [Item l (Just "ʰ") (ELit "a" "'a'")] Nothing Nothing]])
   let bindingLoc = Loc 0 3 9
       nested = Item bindingLoc (Just "case") (ELit "a" "'a'")
       grouped = Item l Nothing (EStar (EGroup [[], [nested]]))

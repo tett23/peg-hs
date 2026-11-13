@@ -30,6 +30,11 @@ generatedTypeTests =
     "types of rules without type annotations and actions (ADR 0075)"
     [ classificationTests
     , fixpointTests
+    , testCase "ADR 0097 invariant 3: compact function types stay one constructor field" $ do
+        typeAtom "Int->Int" @?= "(Int->Int)"
+        typeAtom "Int→Int" @?= "(Int→Int)"
+        typeAtom "(Int->Int)" @?= "(Int->Int)"
+        typeAtom "[Int->Int]" @?= "[Int->Int]"
     , comparisonTests
     , errorTests
     , notationTests

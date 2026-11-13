@@ -24,7 +24,7 @@ module Peg.Grammar.Assemble
   ) where
 
 import Control.Monad (foldM)
-import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
+import Data.Char (GeneralCategory (ModifierLetter), generalCategory, chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -249,8 +249,11 @@ assemble items =
     arrowsEnabled = extensionEnabled ["Arrows"]
     binderKeyword name =
       (name /= "_" && name `elem` reservedWords)
-        || (recursiveDoEnabled && name `elem` ["mdo", "rec"])
-        || (arrowsEnabled && name `elem` ["proc", "rec"])
+        || extensionKeyword recursiveDoEnabled arrowsEnabled name
+    binderError name
+      | binderKeyword name = Just " is a Haskell reserved word"
+      | startsWithModifier name = Just " starts with a Unicode modifier letter"
+      | otherwise = Nothing
     known = ["module", "start", "entry", "export", "env", "tabstop", "nomemo", "language", "syntax", "token", "trivia", "inline", "recover", "safe", "deriving", "expect", "message", "import", "library"]
     -- ADR 0092
     libraryLoc = case [l | (l, "library", _) <- directives] of
@@ -379,18 +382,18 @@ assemble items =
            , c > 1
            , (l, _, _) : _ <- [drop 1 [d | d@(_, n', _) <- defs, n' == n]]
            ]
-        ++ [ Diagnostic (itemLoc i) ("binding name " <> name <> " is a Haskell reserved word")
+        ++ [ Diagnostic (itemLoc i) ("binding name " <> name <> reason)
            | (_, _, alts) <- defs
            , alt <- alts
            , i <- concatMap nestedItems (altItems alt)
            , Just name <- [itemBind i]
-           , binderKeyword name
+           , Just reason <- [binderError name]
            ]
-        ++ [ Diagnostic al ("parameter name " <> paramName p <> " is a Haskell reserved word")
+        ++ [ Diagnostic al ("parameter name " <> paramName p <> reason)
            | annotations <- M.elems annots
            , (al, ps, _, _) <- annotations
            , p <- ps
-           , binderKeyword (paramName p)
+           , Just reason <- [binderError (paramName p)]
            ]
         ++ [Diagnostic (Loc 0 1 1) "the grammar has no rules" | null defs, isJust moduleName]
         -- ADR 0031
@@ -462,6 +465,15 @@ isClassName t = not (T.null t) && all part (T.splitOn "." t)
 isModuleName :: Text -> Bool
 isModuleName = isClassName
 
+-- GHC Lexer.x maps ModifierLetter to $uniidchar, which is tail-only.
+startsWithModifier :: Text -> Bool
+startsWithModifier = maybe False ((== ModifierLetter) . generalCategory . fst) . T.uncons
+
+extensionKeyword :: Bool -> Bool -> Text -> Bool
+extensionKeyword recursiveDoEnabled arrowsEnabled name =
+  (recursiveDoEnabled && name `elem` ["mdo", "rec"])
+    || (arrowsEnabled && name `elem` ["proc", "rec"])
+
 -- The lexical form of an item of an export list (ADR 0014, ADR 0080): a
 -- name that may be qualified, a type name followed by @(..)@ or by names
 -- and operators in parentheses, an operator in parentheses, any of them
@@ -491,13 +503,16 @@ isExportItem recursiveDoEnabled arrowsEnabled t = not (any (`T.isInfixOf` t) ["-
         _ -> Nothing
     member = \case
       "(" : op : ")" : rest | isOperator op -> Just rest
-      n : rest | isValidIdent (T.pack n) && T.pack n `notElem` reservedWords -> Just rest
+      n : rest | unqualifiedName (T.pack n) -> Just rest
       _ -> Nothing
+    exportIdent name = isValidIdent name && not (startsWithModifier name)
+    unqualifiedName name = exportIdent name && name `notElem` reservedWords
+      && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
     isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))
     -- A variable or a type name, after a module name and a dot.
     isQualifiedName n = case T.breakOnEnd "." (T.pack n) of
-      ("", name) -> isValidIdent name && name `notElem` reservedWords
-      (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
+      ("", name) -> unqualifiedName name
+      (qual, name) -> isModuleName (T.dropEnd 1 qual) && exportIdent name
         && name /= "do" && (not recursiveDoEnabled || name /= "mdo")
     -- GHC 9.10.3's reservedSymsFM gives these their own tokens, which the
     -- export-name productions do not accept. The arrow tokens are enabled

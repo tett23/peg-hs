@@ -64,6 +64,35 @@ theorem invariant2_nullableRepeat_candidate (nullable : Expr → Bool) (location
     simp only [repeatCandidates, List.mem_flatMap]
     exact ⟨_, hitems, _, hx, ih⟩
 
+theorem invariant2_candidate_has_nullable_repeat (nullable : Expr → Bool) (location : Nat)
+    (e : Expr) (found : (location, true) ∈ repeatCandidates nullable location e) :
+    HasNullableRepeat nullable e := by
+  cases eq : e with
+  | star x | plus x =>
+    simp only [eq, repeatCandidates, List.mem_cons, Prod.mk.injEq, true_and] at found
+    rcases found with here | child
+    · first | exact .starHere here.symm | exact .plusHere here.symm
+    · have nested := invariant2_candidate_has_nullable_repeat nullable location x child
+      first | exact .starChild nested | exact .plusChild nested
+  | opt x | and x | not x | capture x | label _ x _ | discard x =>
+    simp only [eq, repeatCandidates] at found
+    constructor
+    exact invariant2_candidate_has_nullable_repeat nullable location x found
+  | group alts =>
+    simp only [eq, repeatCandidates, List.mem_flatMap] at found
+    obtain ⟨items, hi, x, hx, child⟩ := found
+    exact .group hi hx (invariant2_candidate_has_nullable_repeat nullable location x child)
+  | _ => simp [eq, repeatCandidates] at found
+termination_by sizeOf e
+decreasing_by
+  all_goals subst_vars <;> simp_wf
+  all_goals try omega
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  omega
+
+#print axioms invariant2_candidate_has_nullable_repeat
+
 theorem invariant2_nullableRepeatVisible {G : Type}
     (parsed g0 g : G)
     (resolve expand : G → Except RuleRejection.Diagnostics G)
@@ -87,6 +116,35 @@ theorem invariant2_nullableRepeatVisible {G : Type}
     notes strip warningFor generate undefined before after
     (repeatCandidates nullable location expression) location hr he hn
   exact invariant2_nullableRepeat_candidate nullable location expression found
+
+theorem invariant2_nullable_repeat_outer_diagnostic {G : Type}
+    (parsed resolved expanded : G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (nullable : G → Expr → Bool) (items : G → List (Nat × Expr))
+    (undefined before after : G → List RuleRejection.Diagnostic)
+    (note : G → String → String) (strip : Option (G → G))
+    (warn : G → G → Pipeline.Diagnostics) (generate : G → Except Pipeline.Diagnostics String)
+    (hr : resolve parsed = .ok resolved) (he : expand resolved = .ok expanded)
+    (location : Nat) (e : Expr) (item : (location, e) ∈ items expanded)
+    (found : HasNullableRepeat (nullable expanded) e) :
+    let repeats := fun g => (items g).flatMap fun (l, x) => repeatCandidates (nullable g) l x
+    let check := fun g => RuleRejection.checkRoot (undefined g) (RuleRejection.repetitionFromNullable (repeats g))
+      (before g) (after g)
+    ∃ ds, Pipeline.pipeline (.ok parsed) resolve expand check (fun g => TemplateQueue.templateNotes (note g))
+      strip warn generate = .error ds ∧
+      note resolved "the repeated expression can match the empty string, which would loop forever" ∈ ds := by
+  dsimp only
+  have candidate := invariant2_nullableRepeat_candidate _ location e found
+  have allCandidates : (location, true) ∈ (items expanded).flatMap (fun (l, x) => repeatCandidates (nullable expanded) l x) := List.mem_flatMap.mpr ⟨(location, e), item, candidate⟩
+  have member := RuleRejection.invariant2_nullableRepeatProducesError _ _ allCandidates
+    (show (location, "the repeated expression can match the empty string, which would loop forever") ∈ RuleRejection.nullableRepeat location true by simp [RuleRejection.nullableRepeat])
+  obtain ⟨raw, rejected, included⟩ := RuleRejection.checkRoot_error_contains (undefined expanded) _
+    (before expanded) (after expanded) _ (by
+      unfold RuleRejection.allErrors
+      exact List.mem_append_left _ (List.mem_append_right _ member))
+  refine ⟨TemplateQueue.templateNotes (note resolved) raw, ?_, List.mem_eraseDups.mpr (List.mem_map.mpr ⟨_, included, rfl⟩)⟩
+  simp [Pipeline.pipeline, hr, he, rejected, Pipeline.withNotes]
+
+#print axioms invariant2_nullable_repeat_outer_diagnostic
 
 theorem invariant2_predicateDirectNoRepetition
     (nullable : Expr → Bool) (location : Nat) (polarity : Bool) (code : String) :

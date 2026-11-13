@@ -70,6 +70,56 @@ def renderFragment (marker : String) (line col : Nat) (path body : String) : Str
   "\n" ++ renderLine line path ++ "\n " ++ renderColumn col ++ body ++
     "\n" ++ marker ++ "\n    "
 
+theorem invariant3_fragment_marker_slot (before after path body : String) (line col n : Nat) :
+    ∃ left right : List (List Char), ∀ marker ∈ ["", markerCandidate n],
+      (before ++ renderFragment marker line col path body ++ after).toList.splitOn '\n' =
+        left ++ [marker.toList] ++ right := by
+  let head := before ++ "\n" ++ renderLine line path ++ "\n " ++ renderColumn col ++ body
+  let tail := "    " ++ after
+  refine ⟨head.toList.splitOn '\n', tail.toList.splitOn '\n', ?_⟩
+  intro marker member
+  have noLF : '\n' ∉ marker.toList := by
+    simp only [List.mem_cons, List.mem_nil_iff, or_false] at member
+    rcases member with rfl | rfl <;> simp [markerCandidate, String.toList_append]
+  have parts : (before ++ renderFragment marker line col path body ++ after).toList =
+      head.toList ++ '\n' :: (marker.toList ++ '\n' :: tail.toList) := by
+    simp [renderFragment, head, tail, String.toList_append, List.append_assoc]
+  rw [parts, List.splitOn_append_cons_self, List.splitOn_append_cons_self,
+    List.splitOn_eq_singleton noLF, List.append_assoc]
+
+#print axioms invariant3_fragment_marker_slot
+
+-- Each adjacent pair of chunks encloses one generated restore line.
+def renderRestoreSlots (marker : String) : List String → String
+  | [] => ""
+  | [last] => last
+  | first :: second :: rest =>
+    first ++ "\n" ++ marker ++ "\n" ++ renderRestoreSlots marker (second :: rest)
+
+def restoreLineSlots : List String → List (Option (List Char))
+  | [] => [some []]
+  | [last] => (last.toList.splitOn '\n').map some
+  | first :: second :: rest =>
+    (first.toList.splitOn '\n').map some ++ none :: restoreLineSlots (second :: rest)
+
+theorem invariant3_multiple_restore_slots (chunks : List String) (marker : String)
+    (singleLine : '\n' ∉ marker.toList) :
+    (renderRestoreSlots marker chunks).toList.splitOn '\n' =
+      (restoreLineSlots chunks).map (fun slot => slot.getD marker.toList) := by
+  induction chunks using renderRestoreSlots.induct with
+  | case1 => rfl
+  | case2 last => simp [renderRestoreSlots, restoreLineSlots, List.map_map, Function.comp_def]
+  | case3 first second rest ih =>
+    have chars : (renderRestoreSlots marker (first :: second :: rest)).toList =
+        first.toList ++ '\n' :: (marker.toList ++ '\n' ::
+          (renderRestoreSlots marker (second :: rest)).toList) := by
+      simp [renderRestoreSlots, String.toList_append, List.append_assoc]
+    rw [chars, List.splitOn_append_cons_self, List.splitOn_append_cons_self,
+      List.splitOn_eq_singleton singleLine, ih]
+    simp [restoreLineSlots, List.map_map, Function.comp_def]
+
+#print axioms invariant3_multiple_restore_slots
+
 def finalizeLine (marker : String) (line : Nat) (path input : String) : String :=
   if input == marker then renderLine (line + 1) path else input
 
@@ -187,6 +237,134 @@ theorem invariant3_selected_user_lines_unchanged
   obtain ⟨n, _, equals⟩ := List.mem_map.mp selected
   exact invariant3_first_unused_fresh occupied _ marker found
     (covered marker member ⟨n, equals.symm⟩)
+
+-- zipWith fix [1..] (T.lines t), with one-based physical line numbers.
+def finalizeLines (marker path : String) (lines : List String) : List String :=
+  lines.zipIdx.map fun (line, index) => finalizeLine marker (index + 1) path line
+
+-- Data.Text.lines drops exactly the final empty field of a terminated input.
+def textLines (source : String) : List String :=
+  let fields := (source.toList.splitOn '\n').map String.ofList
+  match fields.reverse with
+  | "" :: rest => rest.reverse
+  | _ => fields
+
+def textUnlines : List String → String
+  | [] => ""
+  | line :: rest => line ++ "\n" ++ textUnlines rest
+
+def finalizeText (marker path source : String) : String :=
+  textUnlines (finalizeLines marker path (textLines source))
+
+theorem textLines_unlines (lines : List String)
+    (clean : ∀ line ∈ lines, '\n' ∉ line.toList) : textLines (textUnlines lines) = lines := by
+  have fields : ((textUnlines lines).toList.splitOn '\n').map String.ofList = lines ++ [""] := by
+    induction lines with
+    | nil => rfl
+    | cons line rest ih =>
+      have chars : (textUnlines (line :: rest)).toList =
+          line.toList ++ '\n' :: (textUnlines rest).toList := by
+        simp [textUnlines, String.toList_append, List.append_assoc]
+      rw [chars, List.splitOn_append_cons_self, List.splitOn_eq_singleton (clean line (by simp))]
+      simp [ih (fun x h => clean x (by simp [h]))]
+  simp [textLines, fields]
+
+theorem renderLine_single_line (n : Nat) (path : String) : '\n' ∉ (renderLine n path).toList := by
+  have digits := decimal_single_line n
+  have literal := (invariant3_literal_sound path).single_line
+  simpa [renderLine, String.toList_append] using And.intro digits literal
+
+theorem textLines_single_line (source line : String) (member : line ∈ textLines source) :
+    '\n' ∉ line.toList := by
+  have parts (xs acc : List Char) (clean : '\n' ∉ acc) :
+      ∀ field ∈ List.splitOnPPrepend (· == '\n') xs acc, '\n' ∉ field := by
+    induction xs generalizing acc with
+    | nil => simpa using clean
+    | cons c rest ih =>
+      rw [List.splitOnPPrepend_cons_eq_ite]
+      split
+      · intro field mem
+        rcases List.mem_cons.mp mem with rfl | more
+        · simpa using clean
+        · exact ih [] (by simp) field more
+      · apply ih
+        simp_all
+        exact Ne.symm (by assumption)
+  let fields := (source.toList.splitOn '\n').map String.ofList
+  have retained : line ∈ fields := by
+    change line ∈ (match fields.reverse with | "" :: tail => tail.reverse | _ => fields) at member
+    split at member
+    next tail eq =>
+      apply List.mem_reverse.mp
+      rw [eq]
+      exact List.mem_cons_of_mem _ (List.mem_reverse.mp member)
+    next => exact member
+  obtain ⟨field, mem, rfl⟩ := List.mem_map.mp retained
+  simpa using parts source.toList [] (by simp) field mem
+
+theorem finalizeText_lines (marker path source : String) :
+    textLines (finalizeText marker path source) = finalizeLines marker path (textLines source) := by
+  unfold finalizeText
+  apply textLines_unlines
+  intro line member
+  obtain ⟨⟨input, idx⟩, hi, rfl⟩ := List.mem_map.mp member
+  change '\n' ∉ (finalizeLine marker (idx + 1) path input).toList
+  unfold finalizeLine
+  split
+  · exact renderLine_single_line _ _
+  · exact textLines_single_line source _ (by simpa using List.mem_map_of_mem (f := Prod.fst) hi)
+
+#print axioms finalizeText_lines
+
+#print axioms textLines_unlines
+
+theorem invariant3_finalize_lines_at (marker path : String) (lines : List String)
+    (i : Nat) (inside : i < lines.length) :
+    (finalizeLines marker path lines)[i]? =
+      some (if lines[i] = marker then renderLine (i + 2) path else lines[i]) := by
+  simp [finalizeLines, inside, finalizeLine]
+
+theorem invariant3_finalize_preserves_original_lines (original : List String) :
+    let occupied := original.filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+    ∃ marker, firstUnused occupied ((List.range (occupied.length + 1)).map markerCandidate) = some marker ∧
+      ∀ (path : String) (rendered : List String) (i : Nat) (hi : i < rendered.length),
+        rendered[i] ∈ original → (finalizeLines marker path rendered)[i]? = some rendered[i] := by
+  dsimp only
+  let occupied := original.filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+  obtain ⟨marker, found, fresh⟩ := invariant3_finite_marker_selection occupied
+  refine ⟨marker, found, ?_⟩
+  intro path rendered i hi member
+  rw [invariant3_finalize_lines_at marker path rendered i hi]
+  have differs : rendered[i] ≠ marker := by
+    intro eq
+    apply fresh
+    obtain ⟨n, _, hc⟩ := List.mem_map.mp (firstUnused_member occupied _ marker found)
+    apply List.mem_filter.mpr
+    refine ⟨eq ▸ member, ?_⟩
+    rw [← hc]
+    simp [markerCandidate, String.toList_append]
+  simp [differs]
+
+def occupiedMarkerLines (source : String) : List String :=
+  (textLines source).filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+
+def selectMarker (source : String) : String :=
+  let occupied := occupiedMarkerLines source
+  (firstUnused occupied ((List.range (occupied.length + 1)).map markerCandidate)).getD ""
+
+theorem selected_marker_preserves_text_line (unmarked rendered path : String)
+    (i : Nat) (inside : i < (textLines rendered).length)
+    (original : (textLines rendered)[i] ∈ textLines unmarked) :
+    (textLines (finalizeText (selectMarker unmarked) path rendered))[i]? =
+      some (textLines rendered)[i] := by
+  obtain ⟨marker, found, preserved⟩ := invariant3_finalize_preserves_original_lines (textLines unmarked)
+  rw [finalizeText_lines]
+  have chosen : selectMarker unmarked = marker := congrArg (fun opt => opt.getD "") found
+  rw [chosen]
+  exact preserved path (textLines rendered) i inside original
+
+#print axioms invariant3_finalize_preserves_original_lines
+#print axioms invariant3_finalize_lines_at
 
 #print axioms invariant3_line_sound
 #print axioms invariant3_column_sound

@@ -208,6 +208,29 @@ theorem invariant2_diagnosticOrModule {G : Type}
       notesNonempty generateNonempty ds h, rfl⟩
   | ok code => exact Or.inr ⟨code, rfl⟩
 
+theorem invariant3_visible_success_iff {G : Type} (parse : Except Diagnostics G)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics Unit)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (generate : G → Except Diagnostics String) (code : String) :
+    visible (pipeline parse resolve expand check notes strip warnings generate) = .ok code ↔
+      ∃ parsed resolved checked, parse = .ok parsed ∧ resolve parsed = .ok resolved ∧
+        expand resolved = .ok checked ∧ check checked = .ok () ∧
+        generate (match strip with | none => checked | some change => change checked) = .ok code := by
+  cases hp : parse with
+  | error ds => simp [pipeline, visible]
+  | ok p =>
+    cases hr : resolve p with
+    | error ds => simp [pipeline, visible, hr]
+    | ok r =>
+      cases he : expand r with
+      | error ds => simp [pipeline, visible, withNotes, hr, he]
+      | ok g =>
+        cases hc : check g with
+        | error ds => simp [pipeline, visible, withNotes, hr, he, hc]
+        | ok u => cases u; simp [pipeline, visible, withNotes, hr, he, hc]
+
+#print axioms invariant3_visible_success_iff
+
 -- Invariant 2: outer and inner failures are both visible.
 example : visible (Grammar := Unit) (.error ["parse"]) = .error ["parse"] := by rfl
 example : visible (.ok { grammar := (), warnings := [], moduleResult := fun _ => .error ["render"] }) =

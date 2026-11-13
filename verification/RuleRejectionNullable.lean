@@ -144,6 +144,21 @@ def positiveRules {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n
     (rules : Fin n → List (List Expr)) : Fin n → Peg.Verification.PositiveExpr n :=
   fun i => toPositive lookup recovery (.group (rules i))
 
+-- Multiple declarations of a name contribute alternatives to the same set member.
+def mergedNamedRules {n : Nat} (names : Fin n → String)
+    (declarations : List (String × List (List Expr))) (i : Fin n) : List (List Expr) :=
+  (declarations.filter fun declaration => declaration.1 == names i).flatMap Prod.snd
+
+theorem merged_named_rule_nullable {n : Nat} (names : Fin n → String)
+    (declarations : List (String × List (List Expr))) (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (known : Fin n → Bool) (i : Fin n) :
+    directNullable lookup recovery known (.group (mergedNamedRules names declarations i)) = true ↔
+      ∃ declaration ∈ declarations, declaration.1 = names i ∧
+        directNullable lookup recovery known (.group declaration.2) = true := by
+  simp [directNullable, mergedNamedRules, List.any_eq_true]
+
+#print axioms merged_named_rule_nullable
+
 def directNext {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) (known : Fin n → Bool) : Fin n → Bool :=
   fun i => directNullable lookup recovery known (.group (rules i))
@@ -155,6 +170,247 @@ theorem directNext_correct {n : Nat} (lookup : RuleLookup n)
       directNext lookup recovery rules known := by
   funext i
   exact toPositive_correct lookup recovery known (.group (rules i))
+
+def uniqueRuleNames : List String → List String
+  | [] => []
+  | name :: rest =>
+    let tail := uniqueRuleNames rest
+    if name ∈ tail then tail else name :: tail
+
+theorem uniqueRuleNames_nodup (names : List String) : (uniqueRuleNames names).Nodup := by
+  induction names with
+  | nil => simp [uniqueRuleNames]
+  | cons name rest ih =>
+    simp only [uniqueRuleNames]
+    split
+    · exact ih
+    · exact List.nodup_cons.mpr ⟨by assumption, ih⟩
+
+theorem uniqueRuleNames_member (names : List String) (name : String) :
+    name ∈ uniqueRuleNames names ↔ name ∈ names := by
+  induction names generalizing name with
+  | nil => simp [uniqueRuleNames]
+  | cons first rest ih =>
+    simp only [uniqueRuleNames]
+    split <;> simp_all
+
+def declarationNames (declarations : List (String × List (List Expr))) : List String :=
+  uniqueRuleNames (declarations.map Prod.fst)
+
+def indexedDeclarationName (declarations : List (String × List (List Expr)))
+    (i : Fin (declarationNames declarations).length) : String :=
+  (declarationNames declarations)[i]
+
+theorem indexedDeclarationName_injective (declarations : List (String × List (List Expr))) :
+    Function.Injective (indexedDeclarationName declarations) := by
+  intro i j same
+  apply Fin.ext
+  exact (uniqueRuleNames_nodup (declarations.map Prod.fst)).getElem_inj.mp same
+
+#print axioms uniqueRuleNames_member
+#print axioms indexedDeclarationName_injective
+
+def knownRuleNames {n : Nat} (names : Fin n → String) (known : Fin n → Bool) : List String :=
+  ((List.finRange n).filter fun i => known i).map names
+
+theorem knownRuleNames_member {n : Nat} (names : Fin n → String)
+    (known : Fin n → Bool) (name : String) :
+    name ∈ knownRuleNames names known ↔ ∃ i, names i = name ∧ known i = true := by
+  simp [knownRuleNames, List.mem_map, List.mem_filter, and_comm]
+
+def lookupRuleNames {n : Nat} (names : Fin n → String) : RuleLookup n :=
+  fun name => (List.finRange n).find? fun i => names i == name
+
+theorem lookupRuleNames_correct {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (name : String) (i : Fin n) :
+    lookupRuleNames names name = some i ↔ names i = name := by
+  constructor
+  · intro found
+    exact beq_iff_eq.mp (List.find?_some (p := fun k => names k == name) found)
+  · intro target
+    have existsResult : ∃ j, lookupRuleNames names name = some j := by
+      cases result : lookupRuleNames names name with
+      | some j => exact ⟨j, rfl⟩
+      | none =>
+        have absent := List.find?_eq_none.mp result
+        have impossible := absent i (by simp)
+        simp [target] at impossible
+    obtain ⟨j, found⟩ := existsResult
+    have named : names j = name := beq_iff_eq.mp (List.find?_some (p := fun k => names k == name) found)
+    have same := distinct (named.trans target.symm)
+    simpa [same] using found
+
+#print axioms lookupRuleNames_correct
+
+theorem knownRuleNames_lookup {n : Nat} (names : Fin n → String)
+    (lookup : RuleLookup n)
+    (indexed : ∀ name i, lookup name = some i ↔ names i = name)
+    (known : Fin n → Bool) (name : String) :
+    (name ∈ knownRuleNames names known) ↔ (lookup name).any known = true := by
+  rw [knownRuleNames_member]
+  cases found : lookup name with
+  | none =>
+    simp only [Option.any_none, Bool.false_eq_true, iff_false]
+    rintro ⟨i, hi, _⟩
+    have := (indexed name i).mpr hi
+    simp [found] at this
+  | some i =>
+    simp only [Option.any_some]
+    constructor
+    · rintro ⟨j, nameOk, value⟩
+      have same : j = i := Option.some.inj (((indexed name j).mpr nameOk).symm.trans found)
+      simpa [same] using value
+    · intro value
+      exact ⟨i, (indexed name i).mp found, value⟩
+
+theorem knownRuleNames_equality {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (left right : Fin n → Bool) :
+    (∀ name, name ∈ knownRuleNames names left ↔ name ∈ knownRuleNames names right) ↔ left = right := by
+  constructor
+  · intro same
+    funext i
+    have atIndex (known : Fin n → Bool) :
+        names i ∈ knownRuleNames names known ↔ known i = true := by
+      rw [knownRuleNames_member]
+      constructor
+      · rintro ⟨j, eq, value⟩
+        simpa [distinct eq] using value
+      · intro value
+        exact ⟨i, rfl, value⟩
+    have h := same (names i)
+    rw [atIndex left, atIndex right] at h
+    cases hl : left i <;> cases hr : right i <;> simp_all
+  · rintro rfl name
+    rfl
+
+#print axioms knownRuleNames_member
+#print axioms knownRuleNames_lookup
+#print axioms knownRuleNames_equality
+
+def namedLanguageNullable (known : List String) : Expr → Bool
+  | .lit value _ => value.isEmpty
+  | .charClass _ => false
+  | .any => false
+  | .ref _ name _ => known.contains name
+  | .group alts => (alts.map fun items =>
+      (items.map (namedLanguageNullable known)).all id).any id
+  | .star _ => true
+  | .plus x => namedLanguageNullable known x
+  | .opt _ => true
+  | .and _ => true
+  | .not _ => true
+  | .capture x => namedLanguageNullable known x
+  | .label _ x _ =>
+    namedLanguageNullable known x
+  | .predicate _ _ => true
+  | .template _ _ _ _ => true
+  | .discard x => namedLanguageNullable known x
+termination_by e => sizeOf e
+decreasing_by
+  all_goals simp_wf
+  all_goals try omega
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  omega
+
+theorem namedLanguageNullable_congr (left right : List String)
+    (same : ∀ name, name ∈ left ↔ name ∈ right) (e : Expr) :
+    namedLanguageNullable left e = namedLanguageNullable right e := by
+  have contains (name : String) : left.contains name = right.contains name := by
+    have h := same name
+    cases hl : left.contains name <;> cases hr : right.contains name <;> simp_all
+  induction e using namedLanguageNullable.induct with
+  | _ =>
+    try simp_all [namedLanguageNullable]
+    all_goals
+      rename_i alts ih
+      apply any_eq_of_mem
+      intro items hi
+      apply all_eq_of_mem
+      intro x hx
+      exact ih items hi x hx
+
+theorem namedLanguageNullable_duplicate (names : List String) (name : String) (e : Expr) :
+    namedLanguageNullable (name :: name :: names) e = namedLanguageNullable (name :: names) e :=
+  namedLanguageNullable_congr _ _ (by simp) e
+
+theorem namedLanguageNullable_permutation (left right : List String) (same : left.Perm right) (e : Expr) :
+    namedLanguageNullable left e = namedLanguageNullable right e :=
+  namedLanguageNullable_congr left right (fun _ => same.mem_iff) e
+
+#print axioms namedLanguageNullable_congr
+#print axioms namedLanguageNullable_duplicate
+#print axioms namedLanguageNullable_permutation
+
+theorem namedLanguageNullable_correct {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (known : Fin n → Bool) (e : Expr) :
+    namedLanguageNullable (knownRuleNames names known) e =
+      directNullable (lookupRuleNames names) (fun _ => none) known e := by
+  have reference (name : String) :
+      (knownRuleNames names known).contains name = (lookupRuleNames names name).any known := by
+    have h := knownRuleNames_lookup names (lookupRuleNames names)
+      (lookupRuleNames_correct names distinct) known name
+    cases result : (lookupRuleNames names name).any known <;> simp_all
+  induction e using namedLanguageNullable.induct with
+  | _ =>
+    try simp_all [namedLanguageNullable, directNullable]
+    all_goals try (rw [reference])
+    all_goals try (rename_i loc name arity; cases lookupRuleNames names name <;> rfl)
+    all_goals
+      rename_i alts ih
+      apply any_eq_of_mem
+      intro items hi
+      apply all_eq_of_mem
+      intro x hx
+      exact ih items hi x hx
+
+#print axioms namedLanguageNullable_correct
+
+def namedNullableNext (declarations : List (String × List (List Expr))) (known : List String) : List String :=
+  (declarations.filter fun declaration => namedLanguageNullable known (.group declaration.2)).map Prod.fst
+
+theorem namedNullableNext_member (declarations : List (String × List (List Expr)))
+    (known : List String) (name : String) :
+    name ∈ namedNullableNext declarations known ↔ ∃ declaration ∈ declarations,
+      declaration.1 = name ∧ namedLanguageNullable known (.group declaration.2) = true := by
+  simp [namedNullableNext, List.mem_map, List.mem_filter, and_comm, and_left_comm]
+
+theorem namedNullableNext_indexed (declarations : List (String × List (List Expr)))
+    (known : Fin (declarationNames declarations).length → Bool)
+    (i : Fin (declarationNames declarations).length) :
+    indexedDeclarationName declarations i ∈ namedNullableNext declarations
+      (knownRuleNames (indexedDeclarationName declarations) known) ↔
+      directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+        (mergedNamedRules (indexedDeclarationName declarations) declarations) known i = true := by
+  rw [namedNullableNext_member]
+  simp only [namedLanguageNullable_correct _ (indexedDeclarationName_injective declarations)]
+  exact (merged_named_rule_nullable _ _ _ _ _ i).symm
+
+#print axioms namedNullableNext_member
+#print axioms namedNullableNext_indexed
+
+theorem namedNullableNext_represents (declarations : List (String × List (List Expr)))
+    (known : Fin (declarationNames declarations).length → Bool) (name : String) :
+    name ∈ namedNullableNext declarations (knownRuleNames (indexedDeclarationName declarations) known) ↔
+      name ∈ knownRuleNames (indexedDeclarationName declarations)
+        (directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations) known) := by
+  constructor
+  · intro member
+    obtain ⟨declaration, hd, named, _⟩ := (namedNullableNext_member _ _ _).mp member
+    have present : name ∈ declarationNames declarations :=
+      (uniqueRuleNames_member _ _).mpr (List.mem_map.mpr ⟨declaration, hd, named⟩)
+    obtain ⟨i, bound, atIndex⟩ := List.getElem_of_mem present
+    have equal : indexedDeclarationName declarations ⟨i, bound⟩ = name := atIndex
+    exact (knownRuleNames_member _ _ _).mpr ⟨⟨i, bound⟩, equal,
+      (namedNullableNext_indexed _ known ⟨i, bound⟩).mp (equal ▸ member)⟩
+  · intro member
+    obtain ⟨i, named, updated⟩ := (knownRuleNames_member _ _ _).mp member
+    exact named ▸ (namedNullableNext_indexed _ known i).mpr updated
+
+def namedNullableRounds (declarations : List (String × List (List Expr))) : Nat → List String
+  | 0 => []
+  | k + 1 => namedNullableNext declarations (namedNullableRounds declarations k)
 
 def directRounds {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) : Nat → Fin n → Bool
@@ -188,6 +444,348 @@ theorem direct_least_fixed {n : Nat} (lookup : RuleLookup n)
       exact hfixed
     rw [directRounds_correct]
     exact Peg.Verification.rounds_below_fixed _ fixed fixedPositive k
+
+theorem namedNullableRounds_correct (declarations : List (String × List (List Expr))) (k : Nat) :
+    ∀ name, name ∈ namedNullableRounds declarations k ↔
+      name ∈ knownRuleNames (indexedDeclarationName declarations)
+        (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations) k) := by
+  induction k with
+  | zero => simp [namedNullableRounds, knownRuleNames, directRounds]
+  | succ k ih =>
+    intro name
+    rw [namedNullableRounds, namedNullableNext_member]
+    simp only [namedLanguageNullable_congr _ _ ih]
+    rw [← namedNullableNext_member, namedNullableNext_represents]
+    rfl
+
+#print axioms namedNullableNext_represents
+#print axioms namedNullableRounds_correct
+
+theorem direct_rounds_after_fixed {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) (k : Nat)
+    (stable : directNext lookup recovery rules (directRounds lookup recovery rules k) =
+      directRounds lookup recovery rules k) (extra : Nat) :
+    directRounds lookup recovery rules (k + extra) = directRounds lookup recovery rules k := by
+  induction extra with
+  | zero => simp
+  | succ extra ih =>
+    rw [Nat.add_succ, directRounds, ih, stable]
+
+theorem direct_rounds_rule_count_fixed {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) :
+    directNext lookup recovery rules (directRounds lookup recovery rules n) =
+      directRounds lookup recovery rules n := by
+  obtain ⟨k, bound, stable, _⟩ := direct_least_fixed lookup recovery rules
+  have same := direct_rounds_after_fixed lookup recovery rules k stable (n - k)
+  rw [Nat.add_sub_of_le bound] at same
+  rw [same, stable]
+
+theorem namedNullableRounds_stable (declarations : List (String × List (List Expr))) (extra : Nat) :
+    ∀ name, name ∈ namedNullableRounds declarations ((declarationNames declarations).length + extra) ↔
+      name ∈ namedNullableRounds declarations (declarationNames declarations).length := by
+  intro name
+  rw [namedNullableRounds_correct, namedNullableRounds_correct]
+  rw [direct_rounds_after_fixed _ _ _ _ (direct_rounds_rule_count_fixed _ _ _) extra]
+
+#print axioms namedNullableRounds_stable
+
+def stableNamedRound (declarations : List (String × List (List Expr)))
+    (k : Nat) (bound : k ≤ (declarationNames declarations).length) :
+    {round : Nat // round ≤ (declarationNames declarations).length ∧
+      (namedNullableRounds declarations (round + 1) ⊆ namedNullableRounds declarations round ∧
+       namedNullableRounds declarations round ⊆ namedNullableRounds declarations (round + 1))} :=
+  if same : namedNullableRounds declarations (k + 1) ⊆ namedNullableRounds declarations k ∧
+      namedNullableRounds declarations k ⊆ namedNullableRounds declarations (k + 1) then
+    ⟨k, bound, same⟩
+  else
+    have less : k < (declarationNames declarations).length := by
+      apply Nat.lt_of_le_of_ne bound
+      intro equal
+      subst k
+      have stable := namedNullableRounds_stable declarations 1
+      exact same ⟨fun name member => (stable name).mp member,
+        fun name member => (stable name).mpr member⟩
+    stableNamedRound declarations (k + 1) (by omega)
+termination_by (declarationNames declarations).length - k
+
+def namedNullableUntilStable (declarations : List (String × List (List Expr))) : List String :=
+  namedNullableRounds declarations (stableNamedRound declarations 0 (by omega)).val
+
+theorem namedNullableUntilStable_fixed (declarations : List (String × List (List Expr))) :
+    ∀ name, name ∈ namedNullableNext declarations (namedNullableUntilStable declarations) ↔
+      name ∈ namedNullableUntilStable declarations := by
+  intro name
+  have stable := (stableNamedRound declarations 0 (by omega)).property.2
+  exact ⟨fun member => stable.1 member, fun member => stable.2 member⟩
+
+#print axioms namedNullableUntilStable_fixed
+
+-- The loop tests equality before continuing, as nullableRulesWith.go does.
+def nullableUntilStable {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr))
+    (k : Nat) (bound : k ≤ n) : Fin n → Bool :=
+  let known := directRounds lookup recovery rules k
+  let next := directNext lookup recovery rules known
+  if same : ∀ i, next i = known i then known
+  else
+    have less : k < n := by
+      apply Nat.lt_of_le_of_ne bound
+      intro eq
+      subst k
+      exact same (congrFun (direct_rounds_rule_count_fixed lookup recovery rules))
+    nullableUntilStable lookup recovery rules (k + 1) (by omega)
+termination_by n - k
+
+theorem nullableUntilStable_correct {n : Nat} (lookup : RuleLookup n)
+    (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr))
+    (k : Nat) (bound : k ≤ n) :
+    nullableUntilStable lookup recovery rules k bound = directRounds lookup recovery rules n := by
+  rw [nullableUntilStable]
+  split
+  next same =>
+    have stable := funext same
+    have eventual := direct_rounds_after_fixed lookup recovery rules k stable (n - k)
+    rw [Nat.add_sub_of_le bound] at eventual
+    exact eventual.symm
+  next different =>
+    apply nullableUntilStable_correct
+termination_by n - k
+decreasing_by
+  have different : ¬ ∀ i, directNext lookup recovery rules (directRounds lookup recovery rules k) i =
+      directRounds lookup recovery rules k i := by assumption
+  have less : k < n := by
+    apply Nat.lt_of_le_of_ne bound
+    intro eq
+    subst k
+    exact different (congrFun (direct_rounds_rule_count_fixed lookup recovery rules))
+  omega
+
+#print axioms nullableUntilStable_correct
+
+theorem invariant2_named_nullable_result {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (recovery : RecoveryLookup n)
+    (rules : Fin n → List (List Expr)) :
+    let lookup := lookupRuleNames names
+    let result := nullableUntilStable lookup recovery rules 0 (Nat.zero_le n)
+    (∀ name, name ∈ knownRuleNames names result ↔
+      (lookup name).any (directRounds lookup recovery rules n) = true) ∧
+    (∀ name, name ∈ knownRuleNames names (directNext lookup recovery rules result) ↔
+      name ∈ knownRuleNames names result) := by
+  dsimp only
+  rw [nullableUntilStable_correct]
+  constructor
+  · intro name
+    exact knownRuleNames_lookup names (lookupRuleNames names)
+      (lookupRuleNames_correct names distinct) _ name
+  · rw [direct_rounds_rule_count_fixed]
+    intro name
+    rfl
+
+#print axioms invariant2_named_nullable_result
+
+def nullableDeclarationNames (declarations : List (String × List (List Expr))) : List String :=
+  let names := indexedDeclarationName declarations
+  let rules := mergedNamedRules names declarations
+  knownRuleNames names (nullableUntilStable (lookupRuleNames names) (fun _ => none) rules 0 (by omega))
+
+theorem namedNullableUntilStable_correct (declarations : List (String × List (List Expr))) :
+    ∀ name, name ∈ namedNullableUntilStable declarations ↔ name ∈ nullableDeclarationNames declarations := by
+  let names := indexedDeclarationName declarations
+  let lookup := lookupRuleNames names
+  let rules := mergedNamedRules names declarations
+  let result := stableNamedRound declarations 0 (by omega)
+  let k := result.val
+  have bound : k ≤ (declarationNames declarations).length := result.property.1
+  have stable : directNext lookup (fun _ => none) rules (directRounds lookup (fun _ => none) rules k) =
+      directRounds lookup (fun _ => none) rules k := by
+    change directRounds lookup (fun _ => none) rules (k + 1) = directRounds lookup (fun _ => none) rules k
+    apply (knownRuleNames_equality names (indexedDeclarationName_injective declarations) _ _).mp
+    intro name
+    rw [← namedNullableRounds_correct declarations (k + 1), ← namedNullableRounds_correct declarations k]
+    exact ⟨fun member => result.property.2.1 member, fun member => result.property.2.2 member⟩
+  have equal := direct_rounds_after_fixed lookup (fun _ => none) rules k stable
+    ((declarationNames declarations).length - k)
+  rw [Nat.add_sub_of_le bound] at equal
+  intro name
+  unfold namedNullableUntilStable nullableDeclarationNames
+  dsimp only
+  rw [namedNullableRounds_correct, nullableUntilStable_correct]
+  rw [show directRounds lookup (fun _ => none) rules (declarationNames declarations).length =
+    directRounds lookup (fun _ => none) rules result.val from equal]
+
+#print axioms namedNullableUntilStable_correct
+
+theorem nullableDeclarationNames_fixed (declarations : List (String × List (List Expr))) :
+    let names := indexedDeclarationName declarations
+    let lookup := lookupRuleNames names
+    let rules := mergedNamedRules names declarations
+    ∀ i, names i ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = names i ∧
+        directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules
+          (declarationNames declarations).length) (.group declaration.2) = true := by
+  dsimp only
+  intro i
+  unfold nullableDeclarationNames
+  dsimp only
+  rw [nullableUntilStable_correct, knownRuleNames_lookup _ _ (lookupRuleNames_correct _
+    (indexedDeclarationName_injective declarations))]
+  rw [(lookupRuleNames_correct _ (indexedDeclarationName_injective declarations) _ i).mpr rfl]
+  simp only [Option.any_some]
+  have fixed := congrFun (direct_rounds_rule_count_fixed
+    (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+    (mergedNamedRules (indexedDeclarationName declarations) declarations)) i
+  rw [← fixed]
+  exact merged_named_rule_nullable _ _ _ _ _ i
+
+theorem nullableDeclarationNames_iff (declarations : List (String × List (List Expr))) (name : String) :
+    name ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = name ∧
+        directNullable (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+            (mergedNamedRules (indexedDeclarationName declarations) declarations)
+            (declarationNames declarations).length) (.group declaration.2) = true := by
+  constructor
+  · intro member
+    obtain ⟨i, named, _⟩ := (knownRuleNames_member _ _ _).mp member
+    rw [← named]
+    exact (nullableDeclarationNames_fixed declarations i).mp (named ▸ member)
+  · rintro ⟨declaration, member, named, valid⟩
+    have inNames : name ∈ declarationNames declarations := by
+      apply (uniqueRuleNames_member _ _).mpr
+      exact List.mem_map.mpr ⟨declaration, member, named⟩
+    obtain ⟨i, bound, atIndex⟩ := List.getElem_of_mem inNames
+    have eq : indexedDeclarationName declarations ⟨i, bound⟩ = name := atIndex
+    rw [← eq]
+    exact (nullableDeclarationNames_fixed declarations ⟨i, bound⟩).mpr
+      ⟨declaration, member, named.trans eq.symm, valid⟩
+
+theorem namedDeclarationNullable_correct (declarations : List (String × List (List Expr))) (e : Expr) :
+    namedLanguageNullable (nullableDeclarationNames declarations) e =
+      directNullable (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+        (directRounds (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+          (mergedNamedRules (indexedDeclarationName declarations) declarations)
+          (declarationNames declarations).length) e := by
+  unfold nullableDeclarationNames
+  dsimp only
+  rw [namedLanguageNullable_correct _ (indexedDeclarationName_injective declarations),
+    nullableUntilStable_correct]
+
+theorem nullableDeclarationNames_named_fixed (declarations : List (String × List (List Expr))) (name : String) :
+    name ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = name ∧
+        namedLanguageNullable (nullableDeclarationNames declarations) (.group declaration.2) = true := by
+  simp only [namedDeclarationNullable_correct]
+  exact nullableDeclarationNames_iff declarations name
+
+theorem invariant2_declaration_repeat_candidates (declarations : List (String × List (List Expr)))
+    (location : Nat) (e : Expr) :
+    (location, true) ∈ RuleRejectionRepeat.repeatCandidates
+      (namedLanguageNullable (nullableDeclarationNames declarations)) location e ↔
+    RuleRejectionRepeat.HasNullableRepeat
+      (namedLanguageNullable (nullableDeclarationNames declarations)) e :=
+  ⟨RuleRejectionRepeat.invariant2_candidate_has_nullable_repeat _ _ e,
+    RuleRejectionRepeat.invariant2_nullableRepeat_candidate _ _ e⟩
+
+#print axioms namedDeclarationNullable_correct
+#print axioms nullableDeclarationNames_named_fixed
+#print axioms invariant2_declaration_repeat_candidates
+
+def declarationRepetitionErrors (declarations : List (String × List (List Expr)))
+    (items : List (Nat × Expr)) : List RuleRejection.Diagnostic :=
+  let nullable := namedLanguageNullable (nullableDeclarationNames declarations)
+  RuleRejection.repetitionFromNullable (items.flatMap fun (location, e) =>
+    RuleRejectionRepeat.repeatCandidates nullable location e)
+
+theorem invariant2_declaration_repeat_diagnostic
+    (declarations : List (String × List (List Expr))) (items : List (Nat × Expr))
+    (location : Nat) (e : Expr) (item : (location, e) ∈ items)
+    (found : RuleRejectionRepeat.HasNullableRepeat
+      (namedLanguageNullable (nullableDeclarationNames declarations)) e)
+    (undefined before after : List RuleRejection.Diagnostic) :
+    ∃ ds, RuleRejection.checkRoot undefined (declarationRepetitionErrors declarations items)
+      before after = .error ds ∧
+      "the repeated expression can match the empty string, which would loop forever" ∈ ds := by
+  have candidate := (invariant2_declaration_repeat_candidates declarations location e).mpr found
+  have member : (location, true) ∈ items.flatMap (fun (l, x) =>
+      RuleRejectionRepeat.repeatCandidates (namedLanguageNullable (nullableDeclarationNames declarations)) l x) :=
+    List.mem_flatMap.mpr ⟨(location, e), item, candidate⟩
+  have diagnostic := RuleRejection.invariant2_nullableRepeatProducesError _ _ member
+    (show (location, "the repeated expression can match the empty string, which would loop forever") ∈
+      RuleRejection.nullableRepeat location true by simp [RuleRejection.nullableRepeat])
+  exact RuleRejection.checkRoot_error_contains undefined (declarationRepetitionErrors declarations items) before after
+    (location, "the repeated expression can match the empty string, which would loop forever")
+    (by
+      unfold RuleRejection.allErrors
+      exact List.mem_append_left _ (List.mem_append_right _ diagnostic))
+
+#print axioms invariant2_declaration_repeat_diagnostic
+
+theorem nullableDeclarationNames_least (declarations : List (String × List (List Expr)))
+    (candidate : Fin (declarationNames declarations).length → Bool)
+    (closed : directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+      (mergedNamedRules (indexedDeclarationName declarations) declarations) candidate = candidate) :
+    ∀ name ∈ nullableDeclarationNames declarations,
+      name ∈ knownRuleNames (indexedDeclarationName declarations) candidate := by
+  let lookup := lookupRuleNames (indexedDeclarationName declarations)
+  let rules := mergedNamedRules (indexedDeclarationName declarations) declarations
+  have positiveFixed : Peg.Verification.next (positiveRules lookup (fun _ => none) rules) candidate = candidate := by
+    rw [directNext_correct]
+    exact closed
+  have below := Peg.Verification.rounds_below_fixed
+    (positiveRules lookup (fun _ => none) rules) candidate positiveFixed (declarationNames declarations).length
+  intro name member
+  unfold nullableDeclarationNames at member
+  dsimp only at member
+  rw [nullableUntilStable_correct, knownRuleNames_member] at member
+  obtain ⟨i, named, nullable⟩ := member
+  apply (knownRuleNames_member _ _ _).mpr
+  refine ⟨i, named, ?_⟩
+  exact below i (by simpa [directRounds_correct] using nullable)
+
+#print axioms nullableDeclarationNames_least
+
+#print axioms nullableDeclarationNames_iff
+
+#print axioms nullableDeclarationNames_fixed
+
+def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) : Expr → Bool :=
+  directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules n)
+
+theorem invariant2_computed_language_repeat {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) (location extra : Nat) (e : Expr) :
+    ((location, true) ∈ RuleRejectionRepeat.repeatCandidates
+      (computedLanguageNullable lookup rules) location e ↔
+      RuleRejectionRepeat.HasNullableRepeat (computedLanguageNullable lookup rules) e) ∧
+    RuleRejectionRepeat.repeatCandidates
+      (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules (n + extra))) location e =
+      RuleRejectionRepeat.repeatCandidates (computedLanguageNullable lookup rules) location e := by
+  constructor
+  · exact ⟨RuleRejectionRepeat.invariant2_candidate_has_nullable_repeat _ _ e,
+      RuleRejectionRepeat.invariant2_nullableRepeat_candidate _ _ e⟩
+  · rw [direct_rounds_after_fixed lookup (fun _ => none) rules n
+      (direct_rounds_rule_count_fixed lookup (fun _ => none) rules) extra]
+    rfl
+
+#print axioms direct_rounds_rule_count_fixed
+#print axioms invariant2_computed_language_repeat
+
+theorem invariant2_language_repeat_stabilizes {n : Nat} (lookup : RuleLookup n)
+    (rules : Fin n → List (List Expr)) :
+    ∃ k ≤ n, ∀ (extra location : Nat) (e : Expr),
+      RuleRejectionRepeat.repeatCandidates
+        (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules (k + extra)))
+        location e =
+      RuleRejectionRepeat.repeatCandidates
+        (directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules k)) location e := by
+  obtain ⟨k, bound, stable, _⟩ := direct_least_fixed lookup (fun _ => none) rules
+  refine ⟨k, bound, ?_⟩
+  intro extra location e
+  rw [direct_rounds_after_fixed lookup (fun _ => none) rules k stable extra]
+
+#print axioms direct_rounds_after_fixed
+#print axioms invariant2_language_repeat_stabilizes
 
 theorem both_least_fixed {n : Nat} (lookup : RuleLookup n)
     (recovery : RecoveryLookup n) (rules : Fin n → List (List Expr)) :

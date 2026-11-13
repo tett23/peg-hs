@@ -72,7 +72,23 @@ Start :: Char
 Start <- . { [qq|anything|] }
 SOURCE
 
-for name in Comment ArgComment TypeComment Pragma Layout Quasiquote; do
+cat > "$scratch/FunctionField.hpeg" <<'SOURCE'
+%module Probe.FunctionField
+%deriving
+Pair <- F F
+F :: Int->Int
+F <- 'x' { id }
+SOURCE
+
+cat > "$scratch/FieldComment.hpeg" <<'SOURCE'
+%module Probe.FieldComment
+%deriving
+Pair <- F F
+F :: Int -- field comment
+F <- 'x' { 1 }
+SOURCE
+
+for name in Comment ArgComment TypeComment Pragma Layout Quasiquote FunctionField FieldComment; do
   "$peg" gen "$scratch/$name.hpeg" -o "$scratch/$name.hs" \
     > "$scratch/$name.generate.log"
   ghc-9.10.3 -fno-code -fforce-recomp \
@@ -100,4 +116,4 @@ grep -q 'parse error on input' "$scratch/ArgCommentBroken.ghc.log" || {
   cat "$scratch/ArgCommentBroken.ghc.log" >&2
   exit 1
 }
-printf 'Fragment boundaries: 3 Lean theorems, 6 GHC compilations, 1 rejected newline mutation.\n'
+printf 'Fragment boundaries: 5 Lean theorems, 8 GHC compilations, 1 rejected newline mutation.\n'

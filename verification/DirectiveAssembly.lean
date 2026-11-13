@@ -50,24 +50,38 @@ theorem directiveRawCapture (pre arg : List Char) :
   conv => lhs; rw [← parts]
   simp
 
-theorem invariant2_directive_captures_at (before : List Char) (c : Char) (cs : List Char) :
+theorem invariant1_located_directive_captures (build : ι → String → ι → String → α)
+    (loc argLoc : ι) (before : List Char) (c : Char) (cs : List Char) :
     let tail := cs.dropWhile CharRule.identChar.accepts
     let raw := tail.dropWhile PegVerification.isInlineSpace
     let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
-    capturedDirective (before ++ '%' :: c :: cs) (c :: cs).length tail.length raw.length
-      (raw.dropWhile (· != '\n')).length =
-      .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
+    let input := before ++ '%' :: c :: cs
+    translatedLocatedDirective build DirectiveArgument.argument loc
+      (String.ofList (matchedText input (c :: cs).length tail.length)) argLoc
+      (matchedText input raw.length (raw.dropWhile (· != '\n')).length) =
+      build loc name argLoc (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
   dsimp only
-  unfold capturedDirective translatedDirectiveValue
+  unfold translatedLocatedDirective
   have name := invariant1_identifier_capture (before ++ ['%']) c cs
   simp only [List.append_assoc, List.cons_append, List.nil_append] at name
-  dsimp only
   rw [name]
   let pre := before ++ ['%', c] ++ cs.takeWhile CharRule.identChar.accepts ++
     (cs.dropWhile CharRule.identChar.accepts).takeWhile PegVerification.isInlineSpace
   have split : pre ++ ((cs.dropWhile CharRule.identChar.accepts).dropWhile
       PegVerification.isInlineSpace) = before ++ '%' :: c :: cs := by simp [pre, List.append_assoc]
   rw [← split, directiveRawCapture]
+
+#print axioms invariant1_located_directive_captures
+
+theorem invariant2_directive_captures_at (before : List Char) (c : Char) (cs : List Char) :
+    let tail := cs.dropWhile CharRule.identChar.accepts
+    let raw := tail.dropWhile PegVerification.isInlineSpace
+    let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
+    capturedDirective (before ++ '%' :: c :: cs) (c :: cs).length tail.length raw.length
+      (raw.dropWhile (· != '\n')).length =
+      .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) :=
+  invariant1_located_directive_captures (fun (_ : Unit) n _ a => Top.directive n a)
+    () () before c cs
 
 theorem invariant2_directive_captures (c : Char) (cs : List Char) :
     let tail := cs.dropWhile CharRule.identChar.accepts

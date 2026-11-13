@@ -1,4 +1,5 @@
 import Pipeline
+import Pragmas
 
 namespace PegHs.InnerGeneration
 
@@ -113,6 +114,32 @@ theorem success_iff {G A : Type} (bad valid : Bool) (name : String) (g0 : G)
         simp [innerGenerate, he, hc, hm]
         all_goals exact eq_comm
       | cons x xs => simp [innerGenerate, he, hc, hm]
+
+theorem invariant3_public_render_iff {G A : Type} (parse : Except Diagnostics G)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (bad : Bool) (valid : G → Bool) (name : G → String)
+    (missing : G → A → List String) (render : G → A → String → String)
+    (freshMarker : String → String) (finalize : String → String → String) (code : String) :
+    let generate := fun target => innerGenerate bad (valid target) (name target) target
+      expand check notes missing render freshMarker finalize
+    Pipeline.visible (Pipeline.pipeline parse resolve expand (fun g => (check g).map (fun _ => ()))
+      notes strip warnings generate) = .ok code ↔
+      ∃ p r g, parse = .ok p ∧ resolve p = .ok r ∧ expand r = .ok g ∧
+        (∃ a, check g = .ok a) ∧
+        (let target := match strip with | none => g | some change => change g
+         bad = false ∧ valid target = true ∧ ∃ final analysis,
+           expand target = .ok final ∧ check final = .ok analysis ∧ missing final analysis = [] ∧
+           code = (let marker := freshMarker (render final analysis "")
+                   finalize marker (render final analysis marker))) := by
+  dsimp only
+  rw [Pipeline.invariant3_visible_success_iff]
+  have checked (g : G) : (check g).map (fun _ => ()) = .ok () ↔ ∃ a, check g = .ok a := by
+    cases check g <;> simp [Except.map]
+  simp only [checked, success_iff]
+  cases strip <;> rfl
+
+#print axioms invariant3_public_render_iff
 
 theorem failureNonempty {G A : Type} (bad valid : Bool) (name : String) (g0 : G)
     (expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
@@ -345,6 +372,53 @@ example : fileNameBad [0x7f] [] = true := by decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A.A0" = true := by native_decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A..A" = false := by native_decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "" = false := by native_decide
+
+open Peg.Verification in
+theorem successful_output_preserves_original_lines {G A : Type} (bad valid : Bool)
+    (name path : String) (g0 : G) (expand : G → Except Diagnostics G)
+    (check : G → Except Diagnostics A) (notes : G → Diagnostics → Diagnostics)
+    (missing : G → A → List String) (render : G → A → String → String) (code : String)
+    (success : innerGenerate bad valid name g0 expand check notes missing render selectMarker
+      (fun marker => finalizeText marker path) = .ok code) :
+    ∃ g a, expand g0 = .ok g ∧ check g = .ok a ∧ missing g a = [] ∧
+      let unmarked := render g a ""
+      let lines := textLines (render g a (selectMarker unmarked))
+      ∀ (i : Nat) (inside : i < lines.length), lines[i] ∈ textLines unmarked →
+        (textLines code)[i]? = some lines[i] := by
+  obtain ⟨_, _, g, a, he, hc, hm, rfl⟩ := (success_iff ..).mp success
+  exact ⟨g, a, he, hc, hm, selected_marker_preserves_text_line _ _ _⟩
+
+#print axioms successful_output_preserves_original_lines
+
+open Peg.Verification in
+theorem invariant3_public_output_lines {G A : Type} (parse : Except Diagnostics G)
+    (resolve expand : G → Except Diagnostics G) (check : G → Except Diagnostics A)
+    (notes : G → Diagnostics → Diagnostics) (strip : Option (G → G))
+    (warnings : G → G → Diagnostics) (bad : Bool) (valid : G → Bool) (name : G → String)
+    (missing : G → A → List String) (render : G → A → String → String) (path code : String)
+    (success : Pipeline.visible (Pipeline.pipeline parse resolve expand (fun g => (check g).map (fun _ => ()))
+      notes strip warnings (fun t => innerGenerate bad (valid t) (name t) t expand check notes missing
+        render selectMarker (fun marker => finalizeText marker path))) = .ok code) :
+    ∃ p r g final a, parse = .ok p ∧ resolve p = .ok r ∧ expand r = .ok g ∧
+      expand (match strip with | none => g | some change => change g) = .ok final ∧
+      check final = .ok a ∧ missing final a = [] ∧
+      let unmarked := render final a ""
+      let marker := selectMarker unmarked
+      let lines := textLines (render final a marker)
+      ∀ (i : Nat) (inside : i < lines.length),
+        (textLines code)[i]? = some (if lines[i] = marker then renderLine (i + 2) path else lines[i]) ∧
+        (lines[i] ∈ textLines unmarked → (textLines code)[i]? = some lines[i]) := by
+  obtain ⟨_, _, _, hp, hr, he, _, _, _, final, a, hf, hc, hm, rfl⟩ :=
+    (invariant3_public_render_iff ..).mp success
+  refine ⟨_, _, _, final, a, hp, hr, he, hf, hc, hm, ?_⟩
+  dsimp only
+  intro i inside
+  constructor
+  · rw [finalizeText_lines]
+    exact invariant3_finalize_lines_at _ _ _ i inside
+  · exact selected_marker_preserves_text_line _ _ _ i inside
+
+#print axioms invariant3_public_output_lines
 
 end PegHs.InnerGeneration
 

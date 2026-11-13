@@ -6,18 +6,9 @@ namespace PegHs.RenderPrimitiveDoGHC
 
 open PegHs.CFG PegHs.GHCGrammar
 
-structure Statement where
-  source : String
-  tokens : List Symbol
-  valid : Derives productions [.nonterminal 257] tokens
-
 def chunks (rest : List Statement) : List RenderComposition.Chunk :=
   rest.map fun statement =>
     ⟨statement.source, [.terminal 113] ++ statement.tokens⟩
-
-def statementTokens (first : Statement) (rest : List Statement) : List Symbol :=
-  rest.foldl (fun acc statement =>
-    RenderExpressionGHC.semicolonAppend acc statement.tokens) first.tokens
 
 private theorem render_tail_prefix (lead separator first : String)
     (rest : List RenderComposition.Chunk) :
@@ -55,19 +46,6 @@ theorem token_tail_eq (first : Statement) (rest : List Statement) :
         RenderExpressionGHC.semicolonAppend, List.append_assoc] using
         ih (initial ++ [.terminal 113] ++ statement.tokens)
   exact general first.tokens rest
-
-theorem do_tokens_derive (first : Statement) (rest : List Statement) :
-    Derives productions [.nonterminal 218]
-      ([.terminal 125, .terminal 101] ++ statementTokens first rest ++
-        [.terminal 102]) := by
-  have rest_ok : ∀ tokens ∈ rest.map Statement.tokens,
-      Derives productions [.nonterminal 257] tokens := by
-    intro tokens member
-    obtain ⟨statement, _, equal⟩ := List.mem_map.mp member
-    exact equal ▸ statement.valid
-  have h := RenderExpressionGHC.do_many first.tokens (rest.map Statement.tokens)
-    first.valid rest_ok
-  simpa [statementTokens, List.foldl_map] using h
 
 -- Each lexical premise is for a prefix after exactly one statement is
 -- appended. This leaves the GHC lexer bridge visible without assuming the
