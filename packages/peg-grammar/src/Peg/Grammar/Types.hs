@@ -367,21 +367,28 @@ sameType a b = key a == key b
 
 -- | A type as the user reads it: @Text@, @[Expr]@, @Maybe Text@.
 typeText :: ValueType -> Text
-typeText = render "Text" "Maybe"
+typeText = render "Text" "Maybe" T.strip
 
 -- | A type as the generated module writes it, with the names of the
 -- runtime and of the qualified Prelude.
 typeCode :: ValueType -> Text
-typeCode = render "PegRt.Text" "PegPrelude.Maybe"
+typeCode = render "PegRt.Text" "PegPrelude.Maybe" named
+  where
+    -- A line comment in an annotation must end before generated delimiters.
+    named raw
+      | "--" `T.isInfixOf` t = t <> "\n    "
+      | otherwise = t
+      where
+        t = T.strip raw
 
-render :: Text -> Text -> ValueType -> Text
-render text maybe' = go
+render :: Text -> Text -> (Text -> Text) -> ValueType -> Text
+render text maybe' named = go
   where
     go = \case
       TText -> text
       TList t -> "[" <> go t <> "]"
       TMaybe t -> maybe' <> " " <> atom t
-      TNamed t -> T.strip t
+      TNamed t -> named t
     atom t = parens (go t)
 
 -- | Parenthesize types with top-level whitespace or a function arrow so that
