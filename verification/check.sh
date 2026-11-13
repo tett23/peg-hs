@@ -13,7 +13,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
 
-for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
