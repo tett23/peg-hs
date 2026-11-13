@@ -452,25 +452,50 @@ theorem recover_result (projectValue : Bool) :
     exact pair_argument term name
 
 -- close is either a virtual closing brace or Happy's parser-directed close.
+private theorem layout_let {pattern call result close : List Symbol}
+    (pattern_ok : Derives productions [.nonterminal 212] pattern)
+    (call_ok : Derives productions [.nonterminal 217] call)
+    (result_ok : Derives productions [.nonterminal 218] result)
+    (close_ok : Derives productions [.nonterminal 320] close) :
+    Derives productions [.nonterminal 218] ([.terminal 18, .terminal 103] ++ pattern ++
+      [.terminal 77] ++ call ++ close ++ [.terminal 13] ++ result) := by
+  have expression {w} (app : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) app))
+  have rhs := applyRule (id := 491) (by rfl) (beside (.refl [.terminal 77])
+    (beside (expression call_ok)
+      (applyRule (g := productions) (id := 300) (by rfl) (.refl []))))
+  have decl := applyRule (id := 486) (by rfl) (beside pattern_ok
+    (beside (applyRule (g := productions) (id := 359) (by rfl) (.refl [])) rhs))
+  have decls := oneRule (id := 292) (by rfl) (oneRule (id := 489) (by rfl) decl)
+  have binds := oneRule (id := 296) (by rfl) (applyRule (id := 295) (by rfl)
+    (beside (.refl [.terminal 103]) (beside decls close_ok)))
+  have body := expression (oneRule (id := 536) (by rfl) result_ok)
+  simpa [List.append_assoc] using applyRule (id := 541) (by rfl)
+    (beside (.refl [.terminal 18]) (beside binds (beside (.refl [.terminal 13]) body)))
+
 theorem recover_let (hasEnv withKind projectValue : Bool) {close : List Symbol}
     (close_ok : Derives productions [.nonterminal 320] close) :
     Derives productions [.nonterminal 218]
       ([.terminal 18, .terminal 103] ++ recoverPatternWord false ++ [.terminal 77] ++
         runtimeCallWord hasEnv withKind ++ close ++ [.terminal 13] ++
         recoverResultWord projectValue) := by
-  have expression {w} (app : Derives productions [.nonterminal 217] w) :=
-    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) app))
-  have rhs := applyRule (id := 491) (by rfl) (beside (.refl [.terminal 77])
-    (beside (expression (runtime_call hasEnv withKind))
-      (applyRule (g := productions) (id := 300) (by rfl) (.refl []))))
-  have decl := applyRule (id := 486) (by rfl) (beside (recover_pattern false)
-    (beside (applyRule (g := productions) (id := 359) (by rfl) (.refl [])) rhs))
-  have decls := oneRule (id := 292) (by rfl) (oneRule (id := 489) (by rfl) decl)
-  have binds := oneRule (id := 296) (by rfl) (applyRule (id := 295) (by rfl)
-    (beside (.refl [.terminal 103]) (beside decls close_ok)))
-  have body := expression (oneRule (id := 536) (by rfl) (recover_result projectValue))
-  simpa [List.append_assoc] using applyRule (id := 541) (by rfl)
-    (beside (.refl [.terminal 18]) (beside binds (beside (.refl [.terminal 13]) body)))
+  exact layout_let (recover_pattern false) (runtime_call hasEnv withKind)
+    (recover_result projectValue) close_ok
+
+theorem debug_value_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List Symbol}
+    (close_ok : Derives productions [.nonterminal 320] close) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
+        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13] ++
+        recoverResultWord true) := by
+  have pattern := oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
+    (oneRule (id := 536) (by rfl) (recover_result false)))
+  apply layout_let pattern _ (recover_result true) close_ok
+  cases noTraditionalRecordSyntax
+  · exact debug_record_call hasEnv false
+  · exact debug_tabstop_call hasEnv false
+
+#print axioms debug_value_let
 
 def recoverBodyWord (hasEnv syntaxMode syntaxTree parserClose : Bool) : List Symbol :=
   [.terminal 18, .terminal 103] ++ recoverPatternWord false ++ [.terminal 77] ++
