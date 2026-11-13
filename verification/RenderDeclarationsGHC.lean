@@ -1242,6 +1242,39 @@ theorem syntax_query_signature (cast : Bool) :
       (beside head (oneRule (id := 394) (by rfl) unqualifiedTypeAtom))
     exact signature_named_ctype (qualified_type_arrow (liftApp app))
 
+def syntaxCastBody : List Symbol :=
+  [.terminal 11, .terminal 121, .terminal 117, .terminal 123, .terminal 117,
+   .terminal 23, .terminal 122, .terminal 107, .terminal 118, .terminal 117,
+   .terminal 108, .terminal 9, .terminal 122]
+
+open RenderExpressionGHC in
+theorem syntax_cast_binding :
+    Derives productions [.nonterminal 78]
+      (argumentsWord [[.terminal 117]] ++ [.terminal 77] ++ syntaxCastBody) := by
+  have operand {w} (f : Derives productions [.nonterminal 217] w) := oneRule (id := 528) (by rfl) f
+  have expr {w} (f : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (operand f))
+  have op := oneRule (id := 749) (by rfl) (oneRule (id := 756) (by rfl)
+    (oneRule (id := 783) (by rfl) (applyRule (g := productions) (id := 786) (by rfl) (.refl [.terminal 123]))))
+  have lhs := oneRule (id := 523) (by rfl) (operand (application qualified_function varid_argument))
+  have rhs := oneRule (id := 525) (by rfl) (operand (oneRule (id := 536) (by rfl) varid_argument))
+  have cond := oneRule (id := 520) (by rfl) (applyRule (id := 524) (by rfl) (beside lhs (beside op rhs)))
+  have name := applyRule (g := productions) (id := 812) (by rfl) (.refl [.terminal 122])
+  have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+    (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
+      (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl) name)))))
+  have wrapped := parenthesized (oneRule (id := 596) (by rfl)
+    (expr (application store_constructor_expr varid_argument)))
+  have sep := applyRule (g := productions) (id := 530) (by rfl) (.refl [])
+  have branch := applyRule (id := 545) (by rfl) (beside (.refl [.terminal 11]) (beside cond
+    (beside sep (beside (.refl [.terminal 23]) (beside (expr (application con wrapped))
+      (beside sep (beside (.refl [.terminal 9]) (expr con))))))))
+  apply binding_named_arguments
+  · intro a h
+    exact List.mem_singleton.mp h ▸ varid_argument
+  · exact expr (oneRule (id := 536) (by rfl) branch)
+
+#print axioms syntax_cast_binding
 #print axioms syntax_query_signature
 
 theorem with_tabstop_signature :
