@@ -1,4 +1,5 @@
 import StrictWhitespaceScan
+import StrictInlineSpace
 import MemoTrace
 
 namespace PegHs.MetaExecution
@@ -48,5 +49,26 @@ theorem invariant1_strict_ws_memo_trace (input : List Char) (effects : Nat → E
     rw [← valid call member]
     exact (invariant1_strict_ws_memo_reply _ _ _ _).2 rfl
 
+theorem invariant1_strict_inline_memo_trace (input : List Char) (effects : Nat → Entry Unit)
+    (enabled : Bool) (state : State) (calls : List (List Char × List Char × Env))
+    (valid : ∀ call ∈ calls, call.1 ++ call.2.1 = input) :
+    let endAt := fun xs : List Char => Utf8Terminals.byteOffset input
+      (input.length - (xs.dropWhile PegVerification.isInlineSpace).length)
+    let run := runMemo enabled (suffixEntry input (fun xs => Result.ok (endAt xs) ()) effects)
+      (calls.map fun call => call.1.utf8Encode.size) state
+    run.results = calls.map (fun call => Result.ok (endAt call.2.1) ()) ∧
+    ∀ call ∈ calls, ∃ suffix fuel,
+      PegVerification.run PegVerification.inlineSp call.2.1 = .ok suffix ∧
+      runFuel (context false input) fuel ((context false input).rules 7) call.2.1.length
+        call.2.2 = some (.ok suffix.length { call.2.2 with resultDepth := 0 }) ∧
+      endAt call.2.1 = Utf8Terminals.byteOffset input (input.length - suffix.length) := by
+  refine ⟨suffix_trace input _ effects enabled state calls valid, ?_⟩
+  intro call member
+  rw [← valid call member]
+  obtain ⟨fuel, observed⟩ := invariant1_derivation_has_fuel
+    (invariant1_strict_inline_space call.1 call.2.1 call.2.2)
+  exact ⟨_, fuel, PegVerification.invariant1_inlineSp _, observed, rfl⟩
+
+#print axioms invariant1_strict_inline_memo_trace
 #print axioms invariant1_strict_ws_memo_trace
 end PegHs.MetaExecution
