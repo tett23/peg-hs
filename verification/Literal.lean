@@ -130,12 +130,6 @@ private theorem encodeBody_sound (chars : List Char)
       · exact .separated _ _ _ _ token rest
       · exact .cons _ _ _ _ token rest
 
-theorem invariant3_literal_sound
-    (s : String) (allowed : ∀ c ∈ s.toList, Allowed c) :
-    LiteralSyntax (encodeLiteral s) := by
-  exact LiteralSyntax.string s.toList (encodeBody s.toList)
-    (encodeBody_sound s.toList allowed)
-
 theorem allCharsAllowed (c : Char) : Allowed c := by
   by_cases high : 127 < c.toNat
   · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr high)))))
@@ -145,10 +139,9 @@ theorem allCharsAllowed (c : Char) : Allowed c := by
   have bound : c.toNat < 128 := by omega
   simpa using ascii ⟨c.toNat, bound⟩
 
-theorem literal_sound (s : String) : LiteralSyntax (encodeLiteral s) :=
-  invariant3_literal_sound s (fun c _ => allCharsAllowed c)
+theorem invariant3_literal_sound (s : String) : LiteralSyntax (encodeLiteral s) :=
+  .string s.toList (encodeBody s.toList) (encodeBody_sound s.toList (fun c _ => allCharsAllowed c))
 
-#print axioms literal_sound
 
 inductive PegLitSyntax : String → Prop where
   | application (value source : String)
@@ -159,13 +152,11 @@ inductive PegLitSyntax : String → Prop where
 def renderPegLit (value source : String) : String :=
   "PegRt.lit " ++ encodeLiteral value ++ " " ++ encodeLiteral source
 
-theorem invariant3_pegLit_sound (value source : String)
-    (valueAllowed : ∀ c ∈ value.toList, Allowed c)
-    (sourceAllowed : ∀ c ∈ source.toList, Allowed c) :
+theorem invariant3_pegLit_sound (value source : String) :
     PegLitSyntax (renderPegLit value source) := by
   exact PegLitSyntax.application (encodeLiteral value) (encodeLiteral source)
-    (invariant3_literal_sound value valueAllowed)
-    (invariant3_literal_sound source sourceAllowed)
+    (invariant3_literal_sound value)
+    (invariant3_literal_sound source)
 
 #print axioms invariant3_literal_sound
 #print axioms invariant3_pegLit_sound

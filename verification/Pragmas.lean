@@ -132,27 +132,24 @@ theorem invariant3_finite_marker_selection (occupied : List String) :
   obtain ⟨marker, found⟩ := firstUnused_complete occupied _ ⟨markerCandidate n, member, absent⟩
   exact ⟨marker, found, invariant3_first_unused_fresh occupied _ marker found⟩
 
-theorem invariant3_line_sound (line : Nat) (path : String)
-    (allowed : ∀ c ∈ path.toList, Allowed c) :
+theorem invariant3_line_sound (line : Nat) (path : String) :
     LinePragmaSyntax (renderLine line path) := by
   exact LinePragmaSyntax.line line (encodeLiteral path)
-    (invariant3_literal_sound path allowed)
+    (invariant3_literal_sound path)
 
 theorem invariant3_column_sound (col : Nat) :
     ColumnPragmaSyntax (renderColumn col) := by
   exact ColumnPragmaSyntax.column col
 
-theorem invariant3_fragment_frame_sound (marker : String) (line col : Nat) (path body : String)
-    (allowed : ∀ c ∈ path.toList, Allowed c) :
+theorem invariant3_fragment_frame_sound (marker : String) (line col : Nat) (path body : String) :
     FragmentFrameSyntax marker (renderFragment marker line col path body) := by
   exact FragmentFrameSyntax.frame (renderLine line path) (renderColumn col) body
-    (invariant3_line_sound line path allowed)
+    (invariant3_line_sound line path)
     (invariant3_column_sound col)
 
-theorem invariant3_restore_line_sound (marker : String) (line : Nat) (path : String)
-    (allowed : ∀ c ∈ path.toList, Allowed c) :
+theorem invariant3_restore_line_sound (marker : String) (line : Nat) (path : String) :
     LinePragmaSyntax (finalizeLine marker line path marker) := by
-  simpa [finalizeLine] using invariant3_line_sound (line + 1) path allowed
+  simpa [finalizeLine] using invariant3_line_sound (line + 1) path
 
 theorem invariant3_finalize_other_line (marker : String) (line : Nat) (path input : String)
     (different : input ≠ marker) :
