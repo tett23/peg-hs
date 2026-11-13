@@ -428,6 +428,22 @@ theorem invariant1_declaration_optional_parameters_absent (before xs : List Char
     Derives.call (ctx := ctx) (site := 31) (rule := 17) (env := env) (callee := env) (by rfl) missing
   exact ⟨.altRetry (Derives.bind annotation) .eps, .altRetry fallback .eps⟩
 
+set_option maxRecDepth 8192 in
+theorem invariant2_declaration_optional_parameters_throw (input : List Char) (n pos : Nat) (env : Env)
+    (label : String) (msg : Option String)
+    (bad : Derives (context false input) translatedStrictParamList n env (.throwLabel pos label msg)) :
+    let ctx := context false input
+    let err := Reply.throwLabel pos label msg
+    Derives ctx (.alt (.bind 12 "ps" (.call 19 17)) .eps) n env err ∧
+      Derives ctx (.alt (.call 31 17) .eps) n env err := by
+  let ctx := context false input
+  have annotation : Derives ctx (.call 19 17) n env (.throwLabel pos label msg) :=
+    Derives.call (ctx := ctx) (site := 19) (rule := 17) (env := env) (callee := env) (by rfl) bad
+  have fallback : Derives ctx (.call 31 17) n env (.throwLabel pos label msg) :=
+    Derives.call (ctx := ctx) (site := 31) (rule := 17) (env := env) (callee := env) (by rfl) bad
+  exact ⟨.altLeft (Derives.bind annotation) (by simp), .altLeft fallback (by simp)⟩
+
+#print axioms invariant2_declaration_optional_parameters_throw
 #print axioms invariant1_declaration_optional_parameters_absent
 #print axioms invariant1_parameter_list_absent
 #print axioms invariant1_parameter_list_reply
