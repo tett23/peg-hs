@@ -345,6 +345,24 @@ theorem invariant3_finalize_preserves_original_lines (original : List String) :
     simp [markerCandidate, String.toList_append]
   simp [differs]
 
+def occupiedMarkerLines (source : String) : List String :=
+  (textLines source).filter fun line => "{-# PEG'RESTORE_".toList.isPrefixOf line.toList
+
+def selectMarker (source : String) : String :=
+  let occupied := occupiedMarkerLines source
+  (firstUnused occupied ((List.range (occupied.length + 1)).map markerCandidate)).getD ""
+
+theorem selected_marker_preserves_text_line (unmarked rendered path : String)
+    (i : Nat) (inside : i < (textLines rendered).length)
+    (original : (textLines rendered)[i] ∈ textLines unmarked) :
+    (textLines (finalizeText (selectMarker unmarked) path rendered))[i]? =
+      some (textLines rendered)[i] := by
+  obtain ⟨marker, found, preserved⟩ := invariant3_finalize_preserves_original_lines (textLines unmarked)
+  rw [finalizeText_lines]
+  have chosen : selectMarker unmarked = marker := congrArg (fun opt => opt.getD "") found
+  rw [chosen]
+  exact preserved path (textLines rendered) i inside original
+
 #print axioms invariant3_finalize_preserves_original_lines
 #print axioms invariant3_finalize_lines_at
 

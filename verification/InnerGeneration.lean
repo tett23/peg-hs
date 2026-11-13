@@ -1,4 +1,5 @@
 import Pipeline
+import Pragmas
 
 namespace PegHs.InnerGeneration
 
@@ -371,6 +372,23 @@ example : fileNameBad [0x7f] [] = true := by decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A.A0" = true := by native_decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A..A" = false := by native_decide
 example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "" = false := by native_decide
+
+open Peg.Verification in
+theorem successful_output_preserves_original_lines {G A : Type} (bad valid : Bool)
+    (name path : String) (g0 : G) (expand : G → Except Diagnostics G)
+    (check : G → Except Diagnostics A) (notes : G → Diagnostics → Diagnostics)
+    (missing : G → A → List String) (render : G → A → String → String) (code : String)
+    (success : innerGenerate bad valid name g0 expand check notes missing render selectMarker
+      (fun marker => finalizeText marker path) = .ok code) :
+    ∃ g a, expand g0 = .ok g ∧ check g = .ok a ∧ missing g a = [] ∧
+      let unmarked := render g a ""
+      let lines := textLines (render g a (selectMarker unmarked))
+      ∀ (i : Nat) (inside : i < lines.length), lines[i] ∈ textLines unmarked →
+        (textLines code)[i]? = some lines[i] := by
+  obtain ⟨_, _, g, a, he, hc, hm, rfl⟩ := (success_iff ..).mp success
+  exact ⟨g, a, he, hc, hm, selected_marker_preserves_text_line _ _ _⟩
+
+#print axioms successful_output_preserves_original_lines
 
 end PegHs.InnerGeneration
 
