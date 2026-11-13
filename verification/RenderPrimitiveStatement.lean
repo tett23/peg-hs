@@ -116,6 +116,27 @@ theorem kids_return_statement {value : List Symbol} (children : List (List Symbo
     exact one (id := 596) (by decide) (one (id := 520) (lhs := 211) (by decide)
       (one (id := 523) (lhs := 212) (by decide) (one (id := 528) (lhs := 214) (by decide) app)))
 
+theorem doReturn_block (stmts children : List (List Symbol)) (value : List Symbol)
+    (stmts_ok : ∀ stmt ∈ stmts, Derives productions [.nonterminal 257] stmt)
+    (value_ok : Derives productions [.nonterminal 229] value)
+    (child_ok : ∀ child ∈ children, Derives productions [.nonterminal 229] child) :
+    Derives productions [.nonterminal 218] (RenderExpressionGHC.blockTokens
+      (stmts ++ [[.terminal 121, .terminal 107] ++ value ++ [.terminal 114] ++
+        kidsTokens children ++ [.terminal 108]])) := by
+  have ret := kids_return_statement children value_ok child_ok
+  cases stmts with
+  | nil => exact RenderExpressionGHC.do_many _ [] ret (by simp)
+  | cons head tail =>
+    apply RenderExpressionGHC.do_many
+    · exact stmts_ok head (by simp)
+    · intro stmt mem
+      rcases List.mem_append.mp mem with earlier | last
+      · exact stmts_ok stmt (List.mem_cons_of_mem _ earlier)
+      · obtain rfl := List.mem_singleton.mp last
+        exact ret
+
+#print axioms doReturn_block
+
 theorem concat_name_lexeme :
     RenderExpressionLexer.qualifiedVarId "PegPrelude" "concat" = true := by decide
 
