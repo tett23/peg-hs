@@ -703,6 +703,46 @@ theorem valueAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) (s
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure " ++ source]) :=
   returningAlternative_source stmts _
 
+def actionStatements (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement) :
+    List RenderPrimitiveDoGHC.Statement :=
+  let env : RenderPrimitiveDoGHC.Statement :=
+    ⟨"_env <- PegRt.askStore peg'env", _, syntax_action_bindings.2⟩
+  let start : RenderPrimitiveDoGHC.Statement :=
+    ⟨"peg'start <- PegRt.getOffset", _, syntax_action_bindings.1⟩
+  let span : RenderPrimitiveDoGHC.Statement :=
+    ⟨"_span <- PegRt.spanFrom peg'start", _, syntax_action_bindings.2⟩
+  (if hasEnv then [env] else []) ++ [start] ++ items ++ [span]
+
+def actionAlternative (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (fragment : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (syntaxChildren : Option (List Nat)) : RenderPrimitiveChoice.Alternative :=
+  let stmts := actionStatements hasEnv items
+  match syntaxChildren with
+  | none => valueAlternative stmts ("(" ++ fragment ++ ")") _ (RenderExpressionGHC.parenthesized valid)
+  | some children => syntaxAlternative stmts (.action fragment tokens valid) children
+
+theorem actionAlternative_source (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (fragment : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (syntaxChildren : Option (List Nat)) :
+    (actionAlternative hasEnv items fragment tokens valid syntaxChildren).source =
+      RenderPrimitiveDo.printedDo ((if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++
+        ["peg'start <- PegRt.getOffset"] ++ items.map RenderPrimitiveDoGHC.Statement.source ++
+        ["_span <- PegRt.spanFrom peg'start", match syntaxChildren with
+          | none => "PegPrelude.pure (" ++ fragment ++ ")"
+          | some ks => "PegPrelude.pure ((" ++ fragment ++ "), " ++
+              printedKids (ks.map fun n => "peg'k" ++ n.repr) ++ ")"]) := by
+  have combine (a b tail : String) : a ++ (b ++ tail) = (a ++ b) ++ tail :=
+    (String.append_assoc ..).symm
+  cases syntaxChildren <;> cases hasEnv <;>
+    simp [actionAlternative, valueAlternative_source, syntaxAlternative_source, actionStatements,
+      SyntaxReturnValue.source, List.append_assoc, String.append_assoc] <;>
+    first
+    | rw [combine "PegPrelude.pure " "(", show "PegPrelude.pure " ++ "(" = "PegPrelude.pure (" by decide]
+    | rw [combine "PegPrelude.pure (" "(", show "PegPrelude.pure (" ++ "(" = "PegPrelude.pure ((" by decide]
+
+#print axioms actionAlternative_source
+#print axioms actionAlternative
+
 -- passThroughOf binds the chosen item and returns that same name after
 -- the remaining statements have run.
 def passThroughAlternative (lead rest : List RenderPrimitiveDoGHC.Statement)
