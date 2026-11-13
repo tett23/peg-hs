@@ -177,6 +177,18 @@ theorem invariant1_strict_public_reply (source : String) (fuel : Nat) (reply : R
   have same := (unique _ (recognizeFile false source.toList).property).trans (unique _ parsed).symm
   rw [invariant1_parseFile_entry, same]
 
+theorem invariant2_strict_public_terminates (source : String) :
+    ∃ bound reply, (∀ limit ≥ bound,
+      runFuel (strictContext source.toList) limit translatedStrictFile
+        source.toList.length {} = some reply) ∧
+      ∀ format, parseFile false source format = PublicParsing.entry source.toList.utf8Encode.size
+        (FileEntry.start source.toList reply) format := by
+  obtain ⟨reply, parsed, _⟩ := invariant1_file_result false source.toList
+  obtain ⟨bound, observed⟩ := (invariant1_strict_recursive_file source.toList reply).mpr parsed
+  exact ⟨bound, reply, fun _ enough => invariant1_fuel_stable _ enough observed,
+    invariant1_strict_public_reply source bound reply observed⟩
+
+#print axioms invariant2_strict_public_terminates
 #print axioms invariant1_strict_public_reply
 
 #print axioms invariant1_strict_public_acceptance
