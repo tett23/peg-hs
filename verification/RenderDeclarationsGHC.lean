@@ -679,6 +679,22 @@ private theorem field_application_type {w} (h : Derives productions [.nontermina
   oneRule (id := 374) (by rfl) (oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
     (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) h))))
 
+-- peg'config :: PegRt.Config, followed by the default binding when the
+-- grammar has no explicit tabstop.
+theorem config_signature :
+    Derives productions [.nonterminal 78] [.terminal 117, .terminal 76, .terminal 122] :=
+  signature_named_ctype (oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+      (oneRule (id := 390) (by rfl) qualifiedTypeAtom)))))
+
+theorem default_config_binding :
+    Derives productions [.nonterminal 78] [.terminal 117, .terminal 77, .terminal 121] :=
+  binding_named_infixexp (oneRule (id := 523) (by rfl)
+    (oneRule (id := 528) (by rfl) RenderExpressionGHC.qualified_function))
+
+#print axioms config_signature
+#print axioms default_config_binding
+
 def FieldType.atomic {w} (h : Derives productions [.nonterminal 172] w) : FieldType :=
   ⟨w, w, field_application_type (oneRule (id := 390) (by rfl) h), h⟩
 
