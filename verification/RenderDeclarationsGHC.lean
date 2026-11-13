@@ -886,6 +886,44 @@ private theorem qualified_type_arrow {tail : List Symbol}
   simpa [List.append_assoc] using oneRule (id := 379) (by rfl) (applyRule (id := 382) (by rfl)
     (beside arg (beside (.refl [.terminal 83]) valid)))
 
+theorem with_tabstop_signature :
+    Derives productions [.nonterminal 78]
+      [.terminal 117, .terminal 76, .terminal 122, .terminal 83,
+       .terminal 122, .terminal 83, .terminal 122] := by
+  apply signature_named_ctype
+  apply qualified_type_arrow
+  apply qualified_type_arrow
+  exact oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+      (oneRule (id := 390) (by rfl) qualifiedTypeAtom))))
+
+def configProjectionWord : List Symbol :=
+  [.terminal 107, .terminal 121, .terminal 117, .terminal 108]
+
+def withTabstopBindingWord : List Symbol :=
+  [.terminal 117, .terminal 117, .terminal 117, .terminal 77, .terminal 122] ++
+    (List.replicate 4 configProjectionWord).flatten ++ [.terminal 117] ++ configProjectionWord
+
+open RenderExpressionGHC in
+theorem with_tabstop_binding :
+    Derives productions [.nonterminal 78] withTabstopBindingWord := by
+  have expr {ts} (f : Derives productions [.nonterminal 217] ts) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have get := parenthesized (oneRule (id := 596) (by rfl)
+    (expr (application qualified_function varid_argument)))
+  have name := applyRule (g := productions) (id := 812) (by rfl) (.refl [.terminal 122])
+  have con := oneRule (id := 536) (by rfl) (oneRule (id := 551) (by rfl)
+    (oneRule (id := 554) (by rfl) (oneRule (id := 556) (by rfl)
+      (oneRule (id := 693) (by rfl) (oneRule (id := 695) (by rfl) name)))))
+  have four := application (application (application (application con get) get) get) get
+  apply binding_named_arguments (List.replicate 2 [.terminal 117])
+  · intro arg member
+    exact List.eq_of_mem_replicate member ▸ varid_argument
+  · exact expr (application (application four varid_argument) get)
+
+#print axioms with_tabstop_signature
+#print axioms with_tabstop_binding
+
 -- Config comes first, followed by the optional parenthesized environment,
 -- then Text. The result is the statistics-bearing tuple of the chosen entry.
 def debugTypeWord (envType : Option (List Symbol)) (result : List Symbol) :=
