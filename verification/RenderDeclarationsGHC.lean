@@ -841,15 +841,37 @@ private theorem data_header : Derives productions [.nonterminal 105] [.terminal 
 
 -- Peg'Store has one type parameter even when it has no fields. In the
 -- positional form, data is retained for any number of constructor fields.
-private theorem store_header :
-    Derives productions [.nonterminal 105] [.terminal 118, .terminal 117] := by
+private theorem type_with_state_parameter {w} (atom : Derives productions [.nonterminal 172] w) :
+    Derives productions [.nonterminal 169] (w ++ [.terminal 117]) := by
   have param := oneRule (id := 401) (by rfl) (oneRule (id := 760) (by rfl)
     (applyRule (g := productions) (id := 762) (by rfl) (.refl [.terminal 117])))
-  have app := applyRule (id := 392) (by rfl)
-    (beside (oneRule (id := 390) (by rfl) unqualifiedTypeAtom)
-      (oneRule (id := 394) (by rfl) param))
-  exact oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
-    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)))
+  exact applyRule (id := 392) (by rfl)
+    (beside (oneRule (id := 390) (by rfl) atom) (oneRule (id := 394) (by rfl) param))
+
+private theorem store_header :
+    Derives productions [.nonterminal 105] [.terminal 118, .terminal 117] :=
+  oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+      (type_with_state_parameter unqualifiedTypeAtom))))
+
+def newStoreSignatureWord (env : Option (List Symbol)) : List Symbol :=
+  [.terminal 117, .terminal 76] ++ parameterArrows env.toList
+    [.terminal 122, .terminal 117, .terminal 107, .terminal 118, .terminal 117, .terminal 108]
+
+theorem new_store_signature (env : Option (List Symbol))
+    (valid : ∀ ty ∈ env.toList, Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 78] (newStoreSignatureWord env) := by
+  have store := field_application_type (type_with_state_parameter unqualifiedTypeAtom)
+  have grouped := applyRule (id := 412) (by rfl)
+    (beside (.refl [.terminal 107]) (beside store (.refl [.terminal 108])))
+  have st := applyRule (id := 392) (by rfl) (beside (type_with_state_parameter qualifiedTypeAtom)
+    (oneRule (id := 394) (by rfl) grouped))
+  apply signature_named_ctype
+  apply parameter_arrows _ _ valid
+  exact oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) st)))
+
+#print axioms new_store_signature
 
 theorem positional_store_declaration (fields : ConstructorFields) :
     Derives productions [.nonterminal 78]
