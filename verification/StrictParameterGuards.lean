@@ -338,6 +338,35 @@ theorem invariant2_parameter_chunks_tail_throw (pre tail : List Char) (start pos
     Derives.call (ctx := ctx) (site := 45) (rule := 18) (env := next) (callee := next) (by rfl) rest
   exact .altLeft (.seqOk first (.seqOk (invariant1_runFuel_sound comma) (Derives.bind call))) (by simp)
 
+set_option maxRecDepth 8192 in
+theorem invariant1_parameter_chunks_last (pre tail : List Char) (start : Nat) (env inner : Env)
+    (chunk : Derives (context false (pre ++ ')' :: tail)) translatedStrictParamChunk start env
+      (.ok (')' :: tail).length inner)) :
+    ∃ finalEnv, Derives (context false (pre ++ ')' :: tail)) translatedStrictParamChunks start env
+      (.ok tail.length finalEnv) := by
+  let ctx := context false (pre ++ ')' :: tail)
+  let n := (')' :: tail).length
+  let caller := {env with resultDepth := inner.resultDepth}
+  let bound := (caller.put "p" (matchedText ctx.input start n)).putDepth "p" caller.resultDepth
+  have first : Derives ctx (.bind 24 "p" (.call 44 19)) start env (.ok n bound) :=
+    Derives.bind (Derives.call (ctx := ctx) (site := 44) (rule := 19) (env := env) (callee := env) (by rfl) chunk)
+  have last : Derives ctx (.bind 26 "p" (.call 46 19)) start env (.ok n bound) :=
+    Derives.bind (Derives.call (ctx := ctx) (site := 46) (rule := 19) (env := env) (callee := env) (by rfl) chunk)
+  have comma : ctx.terms 27 = some (.lit [',']) := rfl
+  have close : ctx.terms 28 = some (.lit [')']) := rfl
+  have oracle (c : Char) : ConcreteTerminal.terminalOracle (.lit [c]) ctx.input n =
+      (ConcreteTerminal.matchTerm (.lit [c]) (')' :: tail)).map List.length :=
+    ConcreteTerminal.invariant1_oracle_suffix _ pre _
+  have miss : ConcreteTerminal.terminalOracle (.lit [',']) ctx.input n = none := (oracle ',').trans rfl
+  have hit : ConcreteTerminal.terminalOracle (.lit [')']) ctx.input n = some tail.length := (oracle ')').trans rfl
+  have retry : runFuel ctx 1 (.terminal 27) n bound = some .fail := by simp only [runFuel, comma, miss]
+  have finish : runFuel ctx 1 (.terminal 28) n bound = some (.ok tail.length {bound with resultDepth := 0}) := by
+    simp only [runFuel, close, hit]
+    simp [n]
+  exact ⟨_, .altRetry (.seqOk first (.seqCarryFail (invariant1_runFuel_sound retry)))
+    (.seqOk last (invariant1_runFuel_sound finish))⟩
+
+#print axioms invariant1_parameter_chunks_last
 #print axioms invariant2_parameter_chunks_tail_throw
 #print axioms invariant2_parameter_list_first_throw
 #print axioms invariant2_parameter_list_empty_first
