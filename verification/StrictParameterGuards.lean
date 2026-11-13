@@ -443,6 +443,19 @@ theorem invariant2_declaration_optional_parameters_throw (input : List Char) (n 
     Derives.call (ctx := ctx) (site := 31) (rule := 17) (env := env) (callee := env) (by rfl) bad
   exact ⟨.altLeft (Derives.bind annotation) (by simp), .altLeft fallback (by simp)⟩
 
+set_option maxRecDepth 8192 in
+theorem invariant2_declaration_parameter_throw (input : List Char) (start named params pos : Nat)
+    (initial located nameEnv paramEnv : Env) (label : String) (msg : Option String)
+    (here : Derives (context false input) (.bind 9 "l" (.call 16 3)) start initial (.ok start located))
+    (name : Derives (context false input) (.bind 10 "n" (.call 17 8)) start located (.ok named nameEnv))
+    (templates : Derives (context false input) (.alt (.bind 11 "tps" (.call 18 14)) .eps)
+      named nameEnv (.ok params paramEnv))
+    (bad : Derives (context false input) translatedStrictParamList params paramEnv (.throwLabel pos label msg)) :
+    Derives (context false input) translatedStrictDeclaration start initial (.throwLabel pos label msg) := by
+  have parameter := (invariant2_declaration_optional_parameters_throw input params pos paramEnv label msg bad).1
+  exact .altLeft (.seqOk here (.seqOk name (.seqOk templates (.seqCarryThrow parameter)))) (by simp)
+
+#print axioms invariant2_declaration_parameter_throw
 #print axioms invariant2_declaration_optional_parameters_throw
 #print axioms invariant1_declaration_optional_parameters_absent
 #print axioms invariant1_parameter_list_absent
