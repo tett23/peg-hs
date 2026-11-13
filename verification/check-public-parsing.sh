@@ -45,3 +45,9 @@ if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/Em
   echo 'entry translation accepted discarding assembly diagnostics' >&2
   exit 1
 fi
+
+sed 's/Nothing -> single "module"/Nothing -> single "start"/' "$assembly" > "$work/ChangedModuleSelection.hs"
+if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/ChangedModuleSelection.hs" > /dev/null; then
+  echo 'entry translation accepted selecting the start rule as the module' >&2
+  exit 1
+fi

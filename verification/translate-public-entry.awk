@@ -41,6 +41,22 @@ assemblyStage == 5 && /^      Nothing ->/ {
   assemblyStage++; next
 }
 assemblyStage == 6 { if ($0 != "    es -> Left (sortOn diagLoc es)") reject(); assemblyStage++; next }
+/^    moduleName = case libraryLoc of$/ {
+  if (moduleBranch++) reject()
+  emit("def translatedModuleName {L} (libraryLoc : Option L) (single : String → Option (L × String)) : Option (L × String) :=")
+  emit("  match libraryLoc with")
+  next
+}
+moduleBranch == 1 {
+  if ($0 != "      Just l -> Just (Located l \"\")") reject()
+  emit("  | some l => some (l, \"\")")
+  moduleBranch++; next
+}
+moduleBranch == 2 {
+  if ($0 != "      Nothing -> single \"module\"") reject()
+  emit("  | none => single \"module\"")
+  moduleBranch++; next
+}
 !active { next }
 $0 == "  s <- readSTRef (ctxStats ctx)" {
   if (stage != 6) reject()
@@ -64,7 +80,7 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3) exit 1
   emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
   emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
   emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")

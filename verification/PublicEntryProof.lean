@@ -53,6 +53,31 @@ theorem invariant2_assembly_diagnostics {T M G} (bytes : Nat) (tops : T) (d : Fa
     simp [translatedGrammar, translatedRuntime, translatedPublic, translatedAssemble, Except.bind,
       eq_comm]
 
+theorem invariant1_translated_module_selection {T L G} (bytes : Nat) (start : StartResult T)
+    (d : Failure → String) (errors : T → List String) (library : T → Option L)
+    (single : T → String → Option (L × String)) (build : T → (L × String) → G)
+    (missing : String) (sortErrors : List String → List String) (g : G) :
+    translatedGrammar bytes start d (fun t => translatedAssemble (errors t)
+      (translatedModuleName (library t) (single t)) (build t) missing sortErrors) = .ok g ↔
+      ∃ t, start = .ok bytes t ∧ errors t = [] ∧
+        ((∃ l, library t = some l ∧ build t (l, "") = g) ∨
+         (library t = none ∧ ∃ m, single t "module" = some m ∧ build t m = g)) := by
+  rw [invariant1_translated_grammar_assembled]
+  constructor
+  · rintro ⟨t, m, hs, he, hm, hg⟩
+    refine ⟨t, hs, he, ?_⟩
+    cases hl : library t with
+    | none => exact Or.inr ⟨rfl, m, by simpa [translatedModuleName, hl] using hm, hg⟩
+    | some l =>
+      have eq : (l, "") = m := by simpa [translatedModuleName, hl] using hm
+      exact Or.inl ⟨l, rfl, eq ▸ hg⟩
+  · rintro ⟨t, hs, he, lib | mod⟩
+    · obtain ⟨l, hl, hg⟩ := lib
+      exact ⟨t, _, hs, he, by simp [translatedModuleName, hl], hg⟩
+    · obtain ⟨hl, m, hm, hg⟩ := mod
+      exact ⟨t, m, hs, he, by simpa [translatedModuleName, hl] using hm, hg⟩
+
+#print axioms invariant1_translated_module_selection
 #print axioms invariant2_assembly_diagnostics
 #print axioms invariant1_translated_grammar_assembled
 #print axioms invariant1_translated_grammar
