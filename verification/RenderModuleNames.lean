@@ -45,6 +45,33 @@ theorem generated_type_name_conid (toUpper : Char → Char) (upper large tail : 
         (show ((large 'R' && ['u', 'l', 'e', '\''].all tail) && (c :: cs).all tail) = true by
           rw [fallback, chars]; decide)
 
+-- Scan the large idchar* pattern from the current cursor.
+def scanConId (large tail : Char → Bool) : List Char → Option (List Char × List Char)
+  | [] => none
+  | c :: cs => if large c then some (c :: cs.takeWhile tail, cs.dropWhile tail) else none
+
+theorem scan_conid_boundary (large tail : Char → Bool) (name : String)
+    (valid : ghcConId large tail name = true) (sep : Char) (rest : List Char)
+    (boundary : tail sep = false) :
+    scanConId large tail (name.toList ++ sep :: rest) = some (name.toList, sep :: rest) := by
+  unfold ghcConId at valid
+  cases h : name.toList with
+  | nil => simp [h] at valid
+  | cons c cs =>
+    simp [h] at valid
+    obtain ⟨first, allTail⟩ := valid
+    have span (xs : List Char) (ok : ∀ x ∈ xs, tail x = true) :
+        (xs ++ sep :: rest).takeWhile tail = xs ∧
+        (xs ++ sep :: rest).dropWhile tail = sep :: rest := by
+      induction xs with
+      | nil => simp [boundary]
+      | cons x xs ih =>
+        have next := ih (fun y hy => ok y (by simp [hy]))
+        simp [ok x (by simp), next.1, next.2]
+    obtain ⟨take, drop⟩ := span cs allTail
+    simp [scanConId, first, take, drop]
+
+#print axioms scan_conid_boundary
 #print axioms generated_type_name_conid
 
 -- Classify an isolated qualified variable, in Lexer.x rule order. The
