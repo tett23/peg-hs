@@ -162,6 +162,7 @@ repositoryGrammarTests files =
       , "%module M\n数式 :: Int\n数式 <- 値:項 '+' 次の値:項 { 値 + 次の値 }\n項 :: Int\n項 <- 'n' { 1 }\n"
       , "%module M\nÄußerung :: Text\nÄußerung\x3000<-\x3000größe:$'a'\x3000{ größe }\n"
       , "%module M\nA :: Int\nA <- 'a' { let é' = 'x' in length [é'] }\n"
+      , "%module M\n%export aʰbc\nS <- 'a'\n"
       , "%module M\n%language Arrows, NoArrows\n%export proc\nS <- 'a'\n"
       ]
     invalidSnippets =
@@ -171,6 +172,8 @@ repositoryGrammarTests files =
       , "A :: ()\nA <- 'a' { () }\n"
       , "%module M\nA :: ()\nA <- { ( }\n"
       , "%module M\n%language Arrows\n%export proc\nS <- 'a'\n"
+      , "%module M\n%export ʰabc\nS <- 'a'\n"
+      , "%module M\n%export Q.ʰabc\nS <- 'a'\n"
       , "%module M\n%language RecursiveDo\n%export T(rec)\nS <- 'a'\n"
       ]
 

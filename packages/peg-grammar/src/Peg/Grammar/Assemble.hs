@@ -24,7 +24,7 @@ module Peg.Grammar.Assemble
   ) where
 
 import Control.Monad (foldM)
-import Data.Char (chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
+import Data.Char (GeneralCategory (ModifierLetter), generalCategory, chr, digitToInt, isAlpha, isAlphaNum, isAscii, isAsciiUpper, isDigit, isHexDigit, isSpace, isUpper)
 import Data.List (sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
@@ -497,13 +497,15 @@ isExportItem recursiveDoEnabled arrowsEnabled t = not (any (`T.isInfixOf` t) ["-
       "(" : op : ")" : rest | isOperator op -> Just rest
       n : rest | unqualifiedName (T.pack n) -> Just rest
       _ -> Nothing
-    unqualifiedName name = isValidIdent name && name `notElem` reservedWords
+    -- GHC Lexer.x maps ModifierLetter to $uniidchar, which is tail-only.
+    exportIdent name = isValidIdent name && maybe False ((/= ModifierLetter) . generalCategory . fst) (T.uncons name)
+    unqualifiedName name = exportIdent name && name `notElem` reservedWords
       && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
     isTypeName n = isQualifiedName n && maybe False isUpper (fmap fst (T.uncons (T.takeWhileEnd (/= '.') (T.pack n))))
     -- A variable or a type name, after a module name and a dot.
     isQualifiedName n = case T.breakOnEnd "." (T.pack n) of
       ("", name) -> unqualifiedName name
-      (qual, name) -> isModuleName (T.dropEnd 1 qual) && isValidIdent name
+      (qual, name) -> isModuleName (T.dropEnd 1 qual) && exportIdent name
         && name /= "do" && (not recursiveDoEnabled || name /= "mdo")
     -- GHC 9.10.3's reservedSymsFM gives these their own tokens, which the
     -- export-name productions do not accept. The arrow tokens are enabled

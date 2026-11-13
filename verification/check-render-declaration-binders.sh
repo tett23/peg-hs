@@ -23,7 +23,7 @@ sed -n '/^extensionKeyword recursiveDoEnabled arrowsEnabled name =/,/^$/p' "$sou
 sed -n '/^    unqualifiedName name =/,/^    isTypeName/p' "$source" |
   head -n 2 > "$scratch/UnqualifiedExportName.actual"
 cat > "$scratch/UnqualifiedExportName.expected" <<'SOURCE'
-    unqualifiedName name = isValidIdent name && name `notElem` reservedWords
+    unqualifiedName name = exportIdent name && name `notElem` reservedWords
       && not (extensionKeyword recursiveDoEnabled arrowsEnabled name)
 SOURCE
 diff -u "$scratch/UnqualifiedExportName.expected" "$scratch/UnqualifiedExportName.actual"
