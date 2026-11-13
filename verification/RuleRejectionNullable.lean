@@ -313,6 +313,35 @@ decreasing_by
   apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
   omega
 
+theorem namedLanguageNullable_congr (left right : List String)
+    (same : ∀ name, name ∈ left ↔ name ∈ right) (e : Expr) :
+    namedLanguageNullable left e = namedLanguageNullable right e := by
+  have contains (name : String) : left.contains name = right.contains name := by
+    have h := same name
+    cases hl : left.contains name <;> cases hr : right.contains name <;> simp_all
+  induction e using namedLanguageNullable.induct with
+  | _ =>
+    try simp_all [namedLanguageNullable]
+    all_goals
+      rename_i alts ih
+      apply any_eq_of_mem
+      intro items hi
+      apply all_eq_of_mem
+      intro x hx
+      exact ih items hi x hx
+
+theorem namedLanguageNullable_duplicate (names : List String) (name : String) (e : Expr) :
+    namedLanguageNullable (name :: name :: names) e = namedLanguageNullable (name :: names) e :=
+  namedLanguageNullable_congr _ _ (by simp) e
+
+theorem namedLanguageNullable_permutation (left right : List String) (same : left.Perm right) (e : Expr) :
+    namedLanguageNullable left e = namedLanguageNullable right e :=
+  namedLanguageNullable_congr left right (fun _ => same.mem_iff) e
+
+#print axioms namedLanguageNullable_congr
+#print axioms namedLanguageNullable_duplicate
+#print axioms namedLanguageNullable_permutation
+
 theorem namedLanguageNullable_correct {n : Nat} (names : Fin n → String)
     (distinct : Function.Injective names) (known : Fin n → Bool) (e : Expr) :
     namedLanguageNullable (knownRuleNames names known) e =
