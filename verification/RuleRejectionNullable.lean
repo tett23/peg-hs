@@ -287,6 +287,56 @@ theorem knownRuleNames_equality {n : Nat} (names : Fin n → String)
 #print axioms knownRuleNames_lookup
 #print axioms knownRuleNames_equality
 
+def namedLanguageNullable (known : List String) : Expr → Bool
+  | .lit value _ => value.isEmpty
+  | .charClass _ => false
+  | .any => false
+  | .ref _ name _ => known.contains name
+  | .group alts => (alts.map fun items =>
+      (items.map (namedLanguageNullable known)).all id).any id
+  | .star _ => true
+  | .plus x => namedLanguageNullable known x
+  | .opt _ => true
+  | .and _ => true
+  | .not _ => true
+  | .capture x => namedLanguageNullable known x
+  | .label _ x _ =>
+    namedLanguageNullable known x
+  | .predicate _ _ => true
+  | .template _ _ _ _ => true
+  | .discard x => namedLanguageNullable known x
+termination_by e => sizeOf e
+decreasing_by
+  all_goals simp_wf
+  all_goals try omega
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  omega
+
+theorem namedLanguageNullable_correct {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (known : Fin n → Bool) (e : Expr) :
+    namedLanguageNullable (knownRuleNames names known) e =
+      directNullable (lookupRuleNames names) (fun _ => none) known e := by
+  have reference (name : String) :
+      (knownRuleNames names known).contains name = (lookupRuleNames names name).any known := by
+    have h := knownRuleNames_lookup names (lookupRuleNames names)
+      (lookupRuleNames_correct names distinct) known name
+    cases result : (lookupRuleNames names name).any known <;> simp_all
+  induction e using namedLanguageNullable.induct with
+  | _ =>
+    try simp_all [namedLanguageNullable, directNullable]
+    all_goals try (rw [reference])
+    all_goals try (rename_i loc name arity; cases lookupRuleNames names name <;> rfl)
+    all_goals
+      rename_i alts ih
+      apply any_eq_of_mem
+      intro items hi
+      apply all_eq_of_mem
+      intro x hx
+      exact ih items hi x hx
+
+#print axioms namedLanguageNullable_correct
+
 def directRounds {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) : Nat → Fin n → Bool
   | 0 => fun _ => false
