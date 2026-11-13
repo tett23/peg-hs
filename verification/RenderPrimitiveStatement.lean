@@ -308,6 +308,36 @@ private theorem function_expression {tokens : List Symbol}
   one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
     (one (id := 528) (lhs := 214) (by decide) f))
 
+def recoveryTokens (valued : Option Bool) : List Symbol :=
+  match valued with
+  | none => [.terminal 122]
+  | some true => [.terminal 107, .terminal 122, .terminal 117, .terminal 108]
+  | some false => [.terminal 107, .terminal 122, .terminal 107, .terminal 121,
+      .terminal 117, .terminal 108, .terminal 108]
+
+theorem recovery_argument (valued : Option Bool) :
+    Derives productions [.nonterminal 218] (recoveryTokens valued) := by
+  have name : Derives productions [.nonterminal 315] [.terminal 122] :=
+    Derives.production (pre := []) (post := []) (id := 812) (rhs := [.terminal 122])
+      (by decide) (.refl _)
+  have con := one (id := 551) (lhs := 218) (by decide) (one (id := 554) (lhs := 219) (by decide)
+    (one (id := 556) (lhs := 220) (by decide) (one (id := 693) (lhs := 274) (by decide)
+      (one (id := 695) (lhs := 275) (by decide) name))))
+  have just := one (id := 536) (lhs := 217) (by decide) con
+  have paren {ts : List Symbol} (f : Derives productions [.nonterminal 217] ts) :=
+    RenderExpressionGHC.parenthesized (one (id := 596) (by decide) (function_expression f))
+  cases valued with
+  | none => exact con
+  | some keep =>
+    cases keep with
+    | true => exact paren (RenderExpressionGHC.application just RenderDeclarationsGHC.varid_argument)
+    | false =>
+      have discarded := RenderExpressionGHC.application RenderExpressionGHC.qualified_function
+        RenderDeclarationsGHC.varid_argument
+      exact paren (RenderExpressionGHC.application just (paren discarded))
+
+#print axioms recovery_argument
+
 theorem plain_syntax_body {body : List Symbol}
     (valid : Derives productions [.nonterminal 229] body) :
     Derives productions [.nonterminal 211]
