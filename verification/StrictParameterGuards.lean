@@ -316,6 +316,20 @@ theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (
     invariant2_empty_parameter_before_comma (before ++ ['(']) xs pre tail {initial with resultDepth := 0} sameInput comma
 
 set_option maxRecDepth 8192 in
+private theorem parameter_comma (pre tail : List Char) (bound : Env) :
+    runFuel (context false (pre ++ ',' :: tail)) 1 (.terminal 27) (',' :: tail).length bound =
+      some (.ok tail.length {bound with resultDepth := 0}) := by
+  let ctx := context false (pre ++ ',' :: tail)
+  have term : ctx.terms 27 = some (.lit [',']) := rfl
+  have hit : ConcreteTerminal.terminalOracle (.lit [',']) ctx.input (',' :: tail).length = some tail.length := by
+    change ConcreteTerminal.terminalOracle _ (pre ++ ',' :: tail) _ = _
+    rw [ConcreteTerminal.invariant1_oracle_suffix]
+    rfl
+  change runFuel ctx 1 _ _ _ = _
+  simp only [runFuel, term, hit]
+  simp
+
+set_option maxRecDepth 8192 in
 theorem invariant2_parameter_chunks_tail_throw (pre tail : List Char) (start pos : Nat)
     (env bound : Env) (label : String) (msg : Option String)
     (first : Derives (context false (pre ++ ',' :: tail)) (.bind 24 "p" (.call 44 19))
@@ -326,17 +340,24 @@ theorem invariant2_parameter_chunks_tail_throw (pre tail : List Char) (start pos
       (.throwLabel pos label msg) := by
   let ctx := context false (pre ++ ',' :: tail)
   let next := {bound with resultDepth := 0}
-  have term : ctx.terms 27 = some (.lit [',']) := rfl
-  have hit : ConcreteTerminal.terminalOracle (.lit [',']) ctx.input (',' :: tail).length = some tail.length := by
-    change ConcreteTerminal.terminalOracle _ (pre ++ ',' :: tail) _ = _
-    rw [ConcreteTerminal.invariant1_oracle_suffix]
-    rfl
-  have comma : runFuel ctx 1 (.terminal 27) (',' :: tail).length bound = some (.ok tail.length next) := by
-    simp only [runFuel, term, hit]
-    simp [next]
   have call : Derives ctx (.call 45 18) tail.length next (.throwLabel pos label msg) :=
     Derives.call (ctx := ctx) (site := 45) (rule := 18) (env := next) (callee := next) (by rfl) rest
-  exact .altLeft (.seqOk first (.seqOk (invariant1_runFuel_sound comma) (Derives.bind call))) (by simp)
+  exact .altLeft (.seqOk first (.seqOk (invariant1_runFuel_sound (parameter_comma pre tail bound)) (Derives.bind call))) (by simp)
+
+set_option maxRecDepth 8192 in
+theorem invariant1_parameter_chunks_tail_success (pre tail : List Char) (start stop : Nat)
+    (env bound inner : Env)
+    (first : Derives (context false (pre ++ ',' :: tail)) (.bind 24 "p" (.call 44 19))
+      start env (.ok (',' :: tail).length bound))
+    (rest : Derives (context false (pre ++ ',' :: tail)) translatedStrictParamChunks tail.length
+      {bound with resultDepth := 0} (.ok stop inner)) :
+    ∃ finalEnv, Derives (context false (pre ++ ',' :: tail)) translatedStrictParamChunks start env
+      (.ok stop finalEnv) := by
+  let ctx := context false (pre ++ ',' :: tail)
+  let next := {bound with resultDepth := 0}
+  have call : Derives ctx (.call 45 18) tail.length next (.ok stop {next with resultDepth := inner.resultDepth}) :=
+    Derives.call (ctx := ctx) (site := 45) (rule := 18) (env := next) (callee := next) (by rfl) rest
+  exact ⟨_, .altLeft (.seqOk first (.seqOk (invariant1_runFuel_sound (parameter_comma pre tail bound)) (Derives.bind call))) (by simp)⟩
 
 set_option maxRecDepth 8192 in
 theorem invariant1_parameter_chunks_last (pre tail : List Char) (start : Nat) (env inner : Env)
@@ -366,6 +387,7 @@ theorem invariant1_parameter_chunks_last (pre tail : List Char) (start : Nat) (e
   exact ⟨_, .altRetry (.seqOk first (.seqCarryFail (invariant1_runFuel_sound retry)))
     (.seqOk last (invariant1_runFuel_sound finish))⟩
 
+#print axioms invariant1_parameter_chunks_tail_success
 #print axioms invariant1_parameter_chunks_last
 #print axioms invariant2_parameter_chunks_tail_throw
 #print axioms invariant2_parameter_list_first_throw
