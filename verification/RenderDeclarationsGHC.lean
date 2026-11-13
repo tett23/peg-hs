@@ -698,6 +698,28 @@ def ConstructorFields.ofTypes (types : List FieldType) : ConstructorFields where
     obtain ⟨t, _, rfl⟩ := List.mem_map.mp member
     exact t.atomValid
 
+-- Token-level rendering of Peg.Grammar.Types.ValueType. Named leaves carry
+-- the two lexical contexts supplied by the annotation or generated name.
+inductive ValueType (name : Type) where
+  | text
+  | list (inner : ValueType name)
+  | maybe (inner : ValueType name)
+  | named (n : name)
+
+def ValueType.field (resolve : name → FieldType) : ValueType name → FieldType
+  | .text => .atomic qualifiedTypeAtom
+  | .list inner => (inner.field resolve).list
+  | .maybe inner => (inner.field resolve).maybe
+  | .named n => resolve n
+
+theorem value_type_constructor (resolve : name → FieldType) (types : List (ValueType name)) :
+    Derives productions [.nonterminal 191]
+      ([.terminal 118] ++ (types.map fun t => (t.field resolve).atom).flatten) := by
+  let fields := ConstructorFields.ofTypes (types.map (ValueType.field resolve))
+  simpa [fields, ConstructorFields.ofTypes, List.map_map, Function.comp_def] using
+    data_constructor fields.fields fields.valid
+
+#print axioms value_type_constructor
 #print axioms FieldType.list
 #print axioms FieldType.maybe
 #print axioms ConstructorFields.ofTypes
