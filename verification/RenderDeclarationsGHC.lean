@@ -593,6 +593,30 @@ def entryTypeWord (result : List Symbol) : List Symbol :=
   [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 107] ++
     result ++ [.terminal 108]
 
+-- dataDecl emits an unqualified constructor followed by typeAtom for each field.
+theorem data_constructor (fields : List (List Symbol))
+    (field_ok : ∀ field ∈ fields, Derives productions [.nonterminal 172] field) :
+    Derives productions [.nonterminal 191] ([.terminal 118] ++ fields.flatten) := by
+  have name := oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
+    (oneRule (id := 723) (by rfl) (oneRule (id := 732) (by rfl)
+      (applyRule (g := productions) (id := 733) (by rfl) (.refl _)))))
+  have appendFields (args : List (List Symbol)) (head : List Symbol)
+      (h : Derives productions [.nonterminal 169] head)
+      (ok : ∀ x ∈ args, Derives productions [.nonterminal 172] x) :
+      Derives productions [.nonterminal 169] (head ++ args.flatten) := by
+    induction args generalizing head with
+    | nil => simpa using h
+    | cons x xs ih =>
+      have app := applyRule (id := 392) (by rfl)
+        (beside h (oneRule (id := 394) (by rfl) (ok x (by simp))))
+      simpa [List.append_assoc] using ih _ app (fun y hy => ok y (by simp [hy]))
+  have applied := appendFields fields _ (oneRule (id := 390) (by rfl) name) field_ok
+  have stuff := oneRule (id := 466) (by rfl) (oneRule (id := 387) (by rfl) applied)
+  simpa using applyRule (id := 463) (by rfl)
+    (beside (applyRule (g := productions) (id := 465) (by rfl) (.refl [])) stuff)
+
+#print axioms data_constructor
+
 private theorem qualifiedTypeAtom : Derives productions [.nonterminal 172] [.terminal 122] :=
   oneRule (id := 400) (by rfl) (oneRule (id := 718) (by rfl)
     (oneRule (id := 723) (by rfl) (applyRule (id := 731) (by rfl) (.refl _))))
