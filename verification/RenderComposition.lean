@@ -407,11 +407,37 @@ def SyntaxDeclaration.items : SyntaxDeclaration → List (List Symbol)
       argumentsWord [[.terminal 107, .terminal 118, .terminal 117, .terminal 108]] ++
         [.terminal 77] ++ syntaxAccessorBody k]
 
+-- Keep the referenced rule name through conflict detection: two node
+-- references can have the same shape but different generated result types.
+inductive AccessTarget where
+  | oneNode (rule : String) | manyNodes (rule : String)
+  | oneToken (rule : String) | manyTokens (rule : String) | elements
+  deriving DecidableEq
+
+def AccessTarget.shape : AccessTarget → SyntaxAccessorKind
+  | .oneNode _ => .oneNode
+  | .manyNodes _ => .manyNodes
+  | .oneToken _ => .oneToken
+  | .manyTokens _ => .manyTokens
+  | .elements => .elements
+
+def groupedAccessors (bound : List (String × AccessTarget)) : List (String × SyntaxAccessorKind) :=
+  let names := ((bound.map Prod.fst).eraseDups).mergeSort
+  names.filterMap fun b =>
+    match (bound.filter (fun a => a.1 == b)).map Prod.snd with
+    | [] => none
+    | first :: rest => some (b, if rest.all (· == first) then first.shape else .elements)
+
+#guard (groupedAccessors [("z", .elements), ("a", .elements)]).map Prod.fst == ["a", "z"]
+#guard match groupedAccessors [("x", .oneNode "A"), ("x", .oneNode "B")] with
+  | [("x", .elements)] => true
+  | _ => false
+
 structure SyntaxRule where
   name : String
   isInline : Bool
   isToken : Bool
-  accessors : List (String × SyntaxAccessorKind)
+  boundItems : List (String × AccessTarget)
 
 structure SyntaxInputs where
   rules : List SyntaxRule
@@ -437,7 +463,7 @@ def SyntaxInputs.selected (inputs : SyntaxInputs) (keep : String → Bool) : Lis
       let ty := RenderModuleNames.generatedTypeName inputs.toUpper inputs.isUpper r.name.toList ++ "Syntax"
       (if keep ty then [.node] else []) ++
       (if keep ("cast" ++ ty) then [.cast] else []) ++
-      (r.accessors.filter fun a => keep (lower r.name ++ upper a.1)).map fun a => .accessor a.2
+      ((groupedAccessors r.boundItems).filter fun a => keep (lower r.name ++ upper a.1)).map fun a => .accessor a.2
 
 def syntaxItems (enabled : Bool) (decls : List SyntaxDeclaration) :=
   if enabled then decls.flatMap SyntaxDeclaration.items else []
