@@ -606,6 +606,20 @@ example : FileResult false "S <- .\nRule( # comment\n ,)".toList
   apply invariant1_runFuel_sound (fuel := 512)
   decide +kernel
 
+set_option maxRecDepth 20000 in
+example : FileResult false "Rule(123 :: Int) :: Int".toList
+    (.throwLabel 8 "paramform" (some "expected a parameter of the form name :: Type")) := by
+  apply invariant1_runFuel_sound (fuel := 512)
+  decide +kernel
+
+-- The comma inside the tuple belongs to the first type. Only the second
+-- parameter has an empty type, at the closing parenthesis.
+set_option maxRecDepth 20000 in
+example : FileResult false "Rule(x :: (Int, Int), y :: ) :: Int".toList
+    (.throwLabel 8 "paramtype" (some "expected a parameter type")) := by
+  apply invariant1_runFuel_sound (fuel := 512)
+  decide +kernel
+
 #print axioms invariant2_empty_parameter_no_module
 #print axioms invariant2_file_empty_parameter
 #print axioms invariant2_top_item_declaration_throw
