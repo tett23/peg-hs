@@ -1,5 +1,6 @@
 import GHCGrammar
 import RenderModuleGHC
+import RenderExpressionGHC
 
 namespace PegHs.RenderDeclarationsGHC
 
@@ -249,6 +250,42 @@ theorem parameter_arrows (params : List (List Symbol)) (result : List Symbol)
     have tail := ih (fun x hx => valid x (List.mem_cons_of_mem _ hx))
     have rhs := beside (oneRule base (oneRule infixTy (oneRule app lhs))) (beside (.refl [.terminal 83]) tail)
     simpa [parameterArrows, List.append_assoc] using oneRule ctype (applyRule arrow rhs)
+
+-- fst (PegRt.runParser config (newStore [env]) rule input), optionally
+-- wrapped in PegPrelude.fmap PegPrelude.fst for lossless syntax mode.
+def entryBodyWord (hasEnv syntaxMode : Bool) : List Symbol :=
+  let store := [.terminal 117] ++ (if hasEnv then [.terminal 117] else [])
+  let run := [.terminal 121, .terminal 117, .terminal 107] ++ store ++
+    [.terminal 108, .terminal 117, .terminal 117]
+  let project := [.terminal 121, .terminal 107] ++ run ++ [.terminal 108]
+  if syntaxMode then [.terminal 121, .terminal 121, .terminal 107] ++ project ++ [.terminal 108]
+  else project
+
+open RenderExpressionGHC in
+theorem entry_body (hasEnv syntaxMode : Bool) :
+    Derives productions [.nonterminal 211] (entryBodyWord hasEnv syntaxMode) := by
+  have expr {w} (f : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have parens {w} (f : Derives productions [.nonterminal 217] w) :=
+    parenthesized (oneRule (id := 596) (by rfl) (expr f))
+  have store : Derives productions [.nonterminal 217]
+      ([.terminal 117] ++ (if hasEnv then [.terminal 117] else [])) := by
+    have name := oneRule (id := 536) (by rfl) varid_argument
+    cases hasEnv
+    · exact name
+    · exact application name varid_argument
+  have run := application (application (application (application qualified_function varid_argument)
+    (parens store)) varid_argument) varid_argument
+  have project := application qualified_function (parens run)
+  cases syntaxMode
+  · simpa [entryBodyWord, List.append_assoc] using expr project
+  · have fstArg := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+      (oneRule (id := 555) (by rfl) (oneRule (id := 769) (by rfl)
+        (applyRule (g := productions) (id := 774) (by rfl) (.refl _)))))
+    simpa [entryBodyWord, List.append_assoc] using
+      expr (application (application qualified_function fstArg) (parens project))
+
+#print axioms entry_body
 
 -- PegRt.Text -> PegPrelude.Either PegRt.ParseError (resultType)
 def entryTypeWord (result : List Symbol) : List Symbol :=
