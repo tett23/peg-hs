@@ -39,6 +39,14 @@ diff -u "$scratch/RenderPrimitiveStatementItem.expected" \
 
 grep -Fxq 'doReturn stmts value kids = doBlock (stmts ++ ["PegPrelude.pure (" <> value <> ", " <> kidsExpr kids <> ")"])' packages/peg-codegen/src/Peg/Codegen.hs
 
+cat > "$scratch/KidsExpr.expected" <<'SOURCE'
+kidsExpr [] = "[]"
+kidsExpr [k] = k
+kidsExpr ks = "PegPrelude.concat [" <> T.intercalate ", " ks <> "]"
+SOURCE
+sed -n '/^kidsExpr \[\] =/,/^kidsExpr ks =/p' packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/KidsExpr.actual"
+diff -u "$scratch/KidsExpr.expected" "$scratch/KidsExpr.actual"
+
 cat > "$scratch/FreshNames.expected" <<'SOURCE'
 fresh = Gen $ \n -> ("peg'v" <> showT n, n + 1)
 freshK = Gen $ \n -> ("peg'k" <> showT n, n + 1)
@@ -149,4 +157,4 @@ grep -Fq 'Tactic `decide` proved that' "$scratch/RenderPrimitiveStatementInvalid
   exit 1
 }
 
-printf 'Generated statements: 14 Lean theorems, 7 source checks, 36 GHC tokens, 1 rejected mutation.\n'
+printf 'Generated statements: 16 Lean theorems, 8 source checks, 36 GHC tokens, 1 rejected mutation.\n'

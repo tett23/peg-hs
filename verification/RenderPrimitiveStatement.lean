@@ -86,6 +86,42 @@ theorem pure_pair_statement {value kids : List Symbol}
 
 #print axioms pure_pair_statement
 
+def kidsTokens : List (List Symbol) → List Symbol
+  | [] => [.terminal 105, .terminal 106]
+  | [child] => child
+  | first :: second :: rest =>
+    [.terminal 121, .terminal 105] ++ rest.foldl RenderExpressionGHC.commaAppend
+      (RenderExpressionGHC.commaAppend first second) ++ [.terminal 106]
+
+theorem kids_return_statement {value : List Symbol} (children : List (List Symbol))
+    (value_ok : Derives productions [.nonterminal 229] value)
+    (child_ok : ∀ child ∈ children, Derives productions [.nonterminal 229] child) :
+    Derives productions [.nonterminal 257]
+      ([.terminal 121, .terminal 107] ++ value ++ [.terminal 114] ++
+        kidsTokens children ++ [.terminal 108]) := by
+  apply pure_pair_statement value_ok
+  match children with
+  | [] =>
+    have nil : Derives productions [.nonterminal 280] [.terminal 105, .terminal 106] :=
+      Derives.production (pre := []) (post := []) (id := 709)
+        (rhs := [.terminal 105, .terminal 106]) (by decide) (.refl _)
+    exact RenderExpressionGHC.aexp_to_texp
+      (one (id := 551) (by decide) (one (id := 554) (lhs := 219) (by decide)
+        (one (id := 556) (lhs := 220) (by decide) (one (id := 694) (lhs := 274) (by decide) nil))))
+  | [child] => exact child_ok child (by simp)
+  | first :: second :: rest =>
+    have app := RenderExpressionGHC.choice_many first second rest
+      (child_ok first (by simp)) (child_ok second (by simp))
+      (fun item mem => child_ok item (by simp [mem]))
+    exact one (id := 596) (by decide) (one (id := 520) (lhs := 211) (by decide)
+      (one (id := 523) (lhs := 212) (by decide) (one (id := 528) (lhs := 214) (by decide) app)))
+
+theorem concat_name_lexeme :
+    RenderExpressionLexer.qualifiedVarId "PegPrelude" "concat" = true := by decide
+
+#print axioms kids_return_statement
+#print axioms concat_name_lexeme
+
 -- Codegen.altCode emits this exact final statement when a unit rule has no
 -- action. The source checker pins that branch, and the GHC lexer probe checks
 -- QVARID LPAREN RPAREN independently of this CFG derivation.
