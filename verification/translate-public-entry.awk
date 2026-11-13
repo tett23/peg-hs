@@ -41,6 +41,16 @@ assemblyStage == 5 && /^      Nothing ->/ {
   assemblyStage++; next
 }
 assemblyStage == 6 { if ($0 != "    es -> Left (sortOn diagLoc es)") reject(); assemblyStage++; next }
+/^    directives =/ {
+  if (directivesSeen++ || $0 != "    directives = [(l, n, a) | TDirective l n _ a <- items]") reject()
+  emit("-- Non-directive constructors are erased because this projection discards all of them.")
+  emit("inductive AssemblyItem (L : Type) where")
+  emit("  | directive (loc : L) (name : String) (argLoc : L) (arg : String)")
+  emit("  | other")
+  emit("def translatedDirectives {L} (items : List (AssemblyItem L)) : List (L × String × String) :=")
+  emit("  items.filterMap fun | .directive l n _ a => some (l, n, a) | .other => none")
+  next
+}
 /^    libraryLoc =/ {
   if (librarySeen++ || $0 != "    libraryLoc = case [l | (l, \"library\", _) <- directives] of") reject()
   if (getline <= 0 || $0 != "      l : _ -> Just l") reject()
@@ -96,7 +106,7 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3 || librarySeen != 1 || singleSeen != 1) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3 || librarySeen != 1 || singleSeen != 1 || directivesSeen != 1) exit 1
   emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
   emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
   emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")

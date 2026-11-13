@@ -57,3 +57,9 @@ if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/Ch
   echo 'entry translation accepted a changed library directive lookup' >&2
   exit 1
 fi
+
+sed 's/TDirective l n _ a <- items/TDirective l n _ a <- reverse items/' "$assembly" > "$work/ReversedDirectives.hs"
+if awk -f verification/translate-public-entry.awk "$runtime" "$parser" "$work/ReversedDirectives.hs" > /dev/null; then
+  echo 'entry translation accepted reversing top-level items' >&2
+  exit 1
+fi

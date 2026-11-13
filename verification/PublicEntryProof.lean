@@ -97,6 +97,25 @@ theorem invariant2_missing_module_iff {L} (ds : List (L × String × String)) :
     have hn := libraryAbsent.mpr (fun d hd => (both d hd).1)
     simp [h] at hn
 
+theorem invariant2_missing_module_items {L} (items : List (AssemblyItem L)) :
+    let ds := translatedDirectives items
+    translatedModuleName (translatedLibraryLoc ds) (translatedSingle ds) = none ↔
+      ∀ l n al a, AssemblyItem.directive l n al a ∈ items → n ≠ "library" ∧ n ≠ "module" := by
+  dsimp only
+  rw [invariant2_missing_module_iff]
+  constructor
+  · intro h l n al a member
+    apply h (l, n, a)
+    exact List.mem_filterMap.mpr ⟨_, member, rfl⟩
+  · intro h d member
+    obtain ⟨item, hi, eq⟩ := List.mem_filterMap.mp member
+    cases item with
+    | other => contradiction
+    | directive l n al a =>
+      cases eq
+      exact h l n al a hi
+
+#print axioms invariant2_missing_module_items
 #print axioms invariant2_missing_module_iff
 #print axioms invariant1_translated_module_selection
 #print axioms invariant2_assembly_diagnostics
