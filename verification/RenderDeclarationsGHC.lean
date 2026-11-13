@@ -295,19 +295,22 @@ theorem rule_from_params_valid (params : List (List Symbol × Bool)) (result bod
 #print axioms rule_from_params_valid
 
 theorem module_with_rules (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
-    (exports imports beforeRules afterRules : List (List Symbol)) (rules : List RuleTokens)
+    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
+    (userExports imports beforeRules afterRules : List (List Symbol)) (rules : List RuleTokens)
     (name_ok : Derives productions [.nonterminal 321] name)
-    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (imports_ok : ∀ item ∈ imports, Derives productions [.nonterminal 59] item)
     (other_ok : ∀ item ∈ beforeRules ++ afterRules, Derives productions [.nonterminal 78] item)
     (rules_ok : ∀ r ∈ rules, r.Valid) :
     let decls := beforeRules ++ rules.flatMap RuleTokens.declarations ++ afterRules
     Derives (layoutGrammar productions) [.nonterminal 32]
-      (sourceSymbols ([.terminal 19] ++ name ++ RenderModuleGHC.exportWord exports ++
+      (sourceSymbols ([.terminal 19] ++ name ++ RenderModuleGHC.exportWord
+        (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) ++
         [.terminal 25, .terminal 103] ++
         (RenderModuleGHC.generatedImports usesPegPrelude importsPrelude ++ imports).foldl
           RenderModuleGHC.semiAppend [] ++ decls.foldl RenderModuleGHC.semiAppend [])) := by
-  apply RenderModuleGHC.generated_with_imports _ _ _ _ _ _ name_ok exports_ok imports_ok
+  apply RenderModuleGHC.generated_with_imports _ _ _ _ _ _ name_ok
+    (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) imports_ok
   intro item member
   rcases List.mem_append.mp member with earlier | last
   · rcases List.mem_append.mp earlier with first | rule
