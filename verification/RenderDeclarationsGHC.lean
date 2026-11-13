@@ -251,15 +251,41 @@ theorem parameter_arrows (params : List (List Symbol)) (result : List Symbol)
     have rhs := beside (oneRule base (oneRule infixTy (oneRule app lhs))) (beside (.refl [.terminal 83]) tail)
     simpa [parameterArrows, List.append_assoc] using oneRule ctype (applyRule arrow rhs)
 
+-- runParser, runParserRecover and runSyntaxRecover take the same initial
+-- arguments. runSyntaxRecover additionally receives the rule's syntax kind.
+def runtimeCallWord (hasEnv withKind : Bool) : List Symbol :=
+  let store := [.terminal 117] ++ (if hasEnv then [.terminal 117] else [])
+  [.terminal 121, .terminal 117, .terminal 107] ++ store ++
+    [.terminal 108, .terminal 117] ++
+    (if withKind then [.terminal 117] else []) ++ [.terminal 117]
+
 -- fst (PegRt.runParser config (newStore [env]) rule input), optionally
 -- wrapped in PegPrelude.fmap PegPrelude.fst for lossless syntax mode.
 def entryBodyWord (hasEnv syntaxMode : Bool) : List Symbol :=
-  let store := [.terminal 117] ++ (if hasEnv then [.terminal 117] else [])
-  let run := [.terminal 121, .terminal 117, .terminal 107] ++ store ++
-    [.terminal 108, .terminal 117, .terminal 117]
+  let run := runtimeCallWord hasEnv false
   let project := [.terminal 121, .terminal 107] ++ run ++ [.terminal 108]
   if syntaxMode then [.terminal 121, .terminal 121, .terminal 107] ++ project ++ [.terminal 108]
   else project
+
+open RenderExpressionGHC in
+theorem runtime_call (hasEnv withKind : Bool) :
+    Derives productions [.nonterminal 217] (runtimeCallWord hasEnv withKind) := by
+  have store : Derives productions [.nonterminal 217]
+      ([.terminal 117] ++ (if hasEnv then [.terminal 117] else [])) := by
+    have name := oneRule (id := 536) (by rfl) varid_argument
+    cases hasEnv
+    · exact name
+    · exact application name varid_argument
+  have nested := parenthesized (oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+    (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) store))))
+  have partialCall := application (application (application qualified_function varid_argument)
+    nested) varid_argument
+  cases withKind
+  · simpa [runtimeCallWord, List.append_assoc] using application partialCall varid_argument
+  · simpa [runtimeCallWord, List.append_assoc] using
+      application (application partialCall varid_argument) varid_argument
+
+#print axioms runtime_call
 
 open RenderExpressionGHC in
 theorem entry_body (hasEnv syntaxMode : Bool) :
@@ -268,14 +294,7 @@ theorem entry_body (hasEnv syntaxMode : Bool) :
     oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
   have parens {w} (f : Derives productions [.nonterminal 217] w) :=
     parenthesized (oneRule (id := 596) (by rfl) (expr f))
-  have store : Derives productions [.nonterminal 217]
-      ([.terminal 117] ++ (if hasEnv then [.terminal 117] else [])) := by
-    have name := oneRule (id := 536) (by rfl) varid_argument
-    cases hasEnv
-    · exact name
-    · exact application name varid_argument
-  have run := application (application (application (application qualified_function varid_argument)
-    (parens store)) varid_argument) varid_argument
+  have run := runtime_call hasEnv false
   have project := application qualified_function (parens run)
   cases syntaxMode
   · simpa [entryBodyWord, List.append_assoc] using expr project
