@@ -408,6 +408,47 @@ theorem class_body (ranges : Nat) : Derives productions [.nonterminal 211]
       obtain rfl := (List.mem_replicate.mp mem).2
       exact range_pair_expression
 
+-- Each emitted lexeme carries its GHC grammar terminal. Projecting text
+-- and terminals from the same list preserves the order of both endpoints.
+def rangeLexemes (r : Char × Char) : List (String × Symbol) :=
+  [("(", .terminal 107), (Peg.Verification.encodeEndpoint r.1, .terminal 129),
+   (", ", .terminal 114), (Peg.Verification.encodeEndpoint r.2, .terminal 129), (")", .terminal 108)]
+
+private def appendRange (acc : List (String × Symbol)) (r : Char × Char) :=
+  acc ++ [(", ", Symbol.terminal 114)] ++ rangeLexemes r
+
+def classLexemes (ranges : List (Char × Char)) (original : String) : List (String × Symbol) :=
+  let inside := match ranges with
+    | [] => []
+    | r :: rs => rs.foldl appendRange (rangeLexemes r)
+  [("PegRt.cls ", Symbol.terminal 121), ("[", .terminal 105)] ++ inside ++
+    [("] ", .terminal 106), (Peg.Verification.encodeLiteral original, .terminal 130)]
+
+theorem class_lexemes_derive (ranges : List (Char × Char)) (original : String) :
+    Derives productions [.nonterminal 211] ((classLexemes ranges original).map Prod.snd) := by
+  have fold (rs : List (Char × Char)) (acc : List (String × Symbol)) :
+      (rs.foldl appendRange acc).map Prod.snd =
+        (List.replicate rs.length rangePair).foldl RenderExpressionGHC.commaAppend (acc.map Prod.snd) := by
+    induction rs generalizing acc with
+    | nil => rfl
+    | cons r rs ih =>
+      simp only [List.foldl_cons, List.length_cons, List.replicate_succ, ih]
+      simp [appendRange, RenderExpressionGHC.commaAppend, rangeLexemes, rangePair]
+  have eqn : (classLexemes ranges original).map Prod.snd =
+      classFunctionTokens ranges.length ++ [.terminal 130] := by
+    cases ranges with
+    | nil => rfl
+    | cons r rs =>
+      cases rs with
+      | nil => rfl
+      | cons x xs =>
+        simp [classLexemes, fold, classFunctionTokens, appendRange, rangeLexemes, rangePair,
+          RenderExpressionGHC.commaAppend, List.append_assoc]
+  rw [eqn]
+  exact class_body ranges.length
+
+#print axioms class_lexemes_derive
+
 #print axioms class_body
 
 theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List Symbol}
