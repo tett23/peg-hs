@@ -908,6 +908,32 @@ private theorem store_constructor_expr : Derives productions [.nonterminal 217] 
         (oneRule (id := 811) (by rfl) (applyRule (g := productions) (id := 813)
           (by rfl) (.refl [.terminal 118]))))))))
 
+def storeAccessorPattern (prior later : Nat) : List Symbol :=
+  [.terminal 107, .terminal 118] ++ List.replicate prior (.terminal 2) ++
+    [.terminal 117] ++ List.replicate later (.terminal 2) ++ [.terminal 108]
+
+open RenderExpressionGHC in
+theorem store_accessor_binding (prior later : Nat) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord [storeAccessorPattern prior later] ++ [.terminal 77] ++ [.terminal 117]) := by
+  have skips (n : Nat) {w} (head : Derives productions [.nonterminal 217] w) :
+      Derives productions [.nonterminal 217] (w ++ List.replicate n (.terminal 2)) := by
+    induction n generalizing w with
+    | zero => simpa using head
+    | succ n ih =>
+      simpa [List.replicate_succ, List.append_assoc] using ih (application head wildcard_argument)
+  have selected := application (skips prior store_constructor_expr) varid_argument
+  have inner := skips later selected
+  have pat := parenthesized (oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+    (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) inner))))
+  apply binding_named_arguments
+  · intro arg member
+    obtain rfl := List.mem_singleton.mp member
+    simpa [storeAccessorPattern, List.append_assoc] using pat
+  · exact oneRule (id := 520) (by rfl) name_infixexp
+
+#print axioms store_accessor_binding
+
 open RenderExpressionGHC in
 theorem new_store_without_tables (hasEnv : Bool) :
     Derives productions [.nonterminal 78] (pureStoreBindingWord hasEnv) := by
