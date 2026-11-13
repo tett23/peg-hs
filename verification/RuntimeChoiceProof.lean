@@ -170,4 +170,17 @@ theorem invariant1_runtime_site_predicate (mode : Bool) (input : List Char)
   apply invariant1_runtime_predicate
   simp [predicateTest, found]
 
+theorem invariant1_runtime_anyChar (before : List Char) (c : Char) (after : List Char) :
+    translatedAnyChar (before ++ c :: after).utf8Encode.size before.utf8Encode.size c.utf8Size =
+      some (before ++ [c]).utf8Encode.size := by
+  have width : (c :: after).utf8Encode.size = c.utf8Size + after.utf8Encode.size := by
+    rw [List.utf8Encode_cons, ByteArray.size_append]
+    simp [List.utf8Encode_singleton]
+  have pos := c.utf8Size_pos
+  simp [translatedAnyChar, List.utf8Encode_append, List.utf8Encode_singleton, width, Nat.ne_of_gt pos]
+
+theorem invariant1_runtime_anyChar_eof (input : List Char) (width : Nat) :
+    translatedAnyChar input.utf8Encode.size input.utf8Encode.size width = none := by
+  simp [translatedAnyChar]
+
 end PegHs.EnvironmentEval
