@@ -848,6 +848,37 @@ private theorem type_with_state_parameter {w} (atom : Derives productions [.nont
   exact applyRule (id := 392) (by rfl)
     (beside (oneRule (id := 390) (by rfl) atom) (oneRule (id := 394) (by rfl) param))
 
+def groupedKeyParameter (ty : List Symbol) : List Symbol :=
+  [.terminal 107] ++ ty ++ [.terminal 108]
+
+def keyParameterTail (first : List Symbol) : List (List Symbol) → List Symbol
+  | [] => groupedKeyParameter first
+  | next :: rest => groupedKeyParameter first ++ [.terminal 114] ++ keyParameterTail next rest
+
+theorem tuple_key_argument (first second : List Symbol) (rest : List (List Symbol))
+    (valid : ∀ ty ∈ first :: second :: rest, Derives productions [.nonterminal 162] ty) :
+    Derives productions [.nonterminal 172]
+      ([.terminal 107] ++ keyParameterTail first (second :: rest) ++ [.terminal 108]) := by
+  have group {ty} (h : Derives productions [.nonterminal 162] ty) :=
+    field_application_type (oneRule (id := 390) (by rfl) (applyRule (id := 412) (by rfl)
+      (beside (.refl [.terminal 107]) (beside h (.refl [.terminal 108])))))
+  have tail (x : List Symbol) (xs : List (List Symbol))
+      (ok : ∀ t ∈ x :: xs, Derives productions [.nonterminal 162] t) :
+      Derives productions [.nonterminal 176] (keyParameterTail x xs) := by
+    induction xs generalizing x with
+    | nil => simpa [keyParameterTail, groupedKeyParameter, List.append_assoc] using
+        oneRule (id := 433) (by rfl) (group (ok x (by simp)))
+    | cons y ys ih =>
+      have remain := ih y (fun t ht => ok t (List.mem_cons_of_mem _ ht))
+      simpa [keyParameterTail, groupedKeyParameter, List.append_assoc] using
+        applyRule (id := 434) (by rfl) (beside (group (ok x (by simp))) (beside (.refl [.terminal 114]) remain))
+  have remain := tail second rest (fun t ht => valid t (List.mem_cons_of_mem _ ht))
+  simpa [keyParameterTail, groupedKeyParameter, List.append_assoc] using
+    applyRule (id := 407) (by rfl) (beside (.refl [.terminal 107]) (beside (group (valid first (by simp)))
+      (beside (.refl [.terminal 114]) (beside remain (.refl [.terminal 108])))))
+
+#print axioms tuple_key_argument
+
 def memoTableTypeWord (key : Option (List Symbol)) (result : List Symbol) : List Symbol :=
   [.terminal 122, .terminal 117] ++
     (match key with
