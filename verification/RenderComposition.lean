@@ -383,12 +383,52 @@ theorem store_items_valid (kept : Bool) (decls : List (List Symbol)) (env : Chec
 
 #print axioms store_items_valid
 
+-- The retained syntax declarations, in the order chosen by syntaxDecls.
+inductive SyntaxDeclaration where
+  | kind
+  | names (kinds : Nat)
+  | trivia (count : Nat)
+  | node
+  | cast
+  | accessor (shape : SyntaxAccessorKind)
+
+def SyntaxDeclaration.items : SyntaxDeclaration → List (List Symbol)
+  | .kind => [[.terminal 117, .terminal 76, .terminal 122],
+              [.terminal 117, .terminal 77, .terminal 122, .terminal 131]]
+  | .names n => [syntaxQuerySignatureWord false,
+      argumentsWord [[.terminal 117]] ++ [.terminal 77] ++ kindNameBody n]
+  | .trivia n => [syntaxQuerySignatureWord false,
+      argumentsWord [[.terminal 117]] ++ [.terminal 77] ++ ([.terminal 121, .terminal 117] ++ triviaListWord n)]
+  | .node => [syntaxNodeNewtypeWord]
+  | .cast => [syntaxQuerySignatureWord true,
+      argumentsWord [[.terminal 117]] ++ [.terminal 77] ++ syntaxCastBody]
+  | .accessor k => [[.terminal 117, .terminal 76, .terminal 118, .terminal 83] ++ syntaxAccessorResult k,
+      argumentsWord [[.terminal 107, .terminal 118, .terminal 117, .terminal 108]] ++
+        [.terminal 77] ++ syntaxAccessorBody k]
+
+def syntaxItems (enabled : Bool) (decls : List SyntaxDeclaration) :=
+  if enabled then decls.flatMap SyntaxDeclaration.items else []
+
+theorem syntax_items_valid (enabled : Bool) (decls : List SyntaxDeclaration) (item : List Symbol)
+    (member : item ∈ syntaxItems enabled decls) : Derives productions [.nonterminal 78] item := by
+  cases enabled with
+  | false => simp [syntaxItems] at member
+  | true =>
+    obtain ⟨decl, _, h⟩ := List.mem_flatMap.mp member
+    cases decl <;> simp only [SyntaxDeclaration.items, List.mem_cons, List.mem_nil_iff, or_false] at h <;>
+      repeat' first | obtain rfl | h := h | subst item | exact config_signature | exact syntax_kind_binding
+                    | exact syntax_query_signature _ | exact kind_name_binding _ | exact trivia_binding _
+                    | exact syntax_node_newtype | exact syntax_cast_binding | exact syntax_accessor_signature _
+                    | exact syntax_accessor_binding _
+
+#print axioms syntax_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (qualifiedName syntaxMode : Bool) (usesPegPrelude importsPrelude : Bool)
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
-    (userExports verbatimImports syntaxDecls storeFieldTypes : List (List Symbol))
+    (userExports verbatimImports storeFieldTypes : List (List Symbol))
     (envType : CheckedEnvType) (recovering : Bool) (keep : String → Bool)
     (debug : DebugSettings) (start : EntryFragment)
     (candidates : List EntryCandidate) (rules : List RuleFragment)
@@ -397,8 +437,7 @@ theorem generated_module_with_rules
       Derives productions [.nonterminal 59] item)
     (dataDecls : List DataDeclaration) (explicitTabstop : Bool) (memoised : Nat)
     (store_types_ok : ∀ ty ∈ storeFieldTypes, Derives productions [.nonterminal 163] ty)
-    (syntax_ok : ∀ item ∈ syntaxDecls,
-      Derives productions [.nonterminal 78] item)
+    (syntaxDecls : List SyntaxDeclaration)
     (initial : lex first = firstTokens)
     (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
@@ -409,7 +448,7 @@ theorem generated_module_with_rules
           semiAppend [] ++ (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
+        debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode syntaxDecls ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
         storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
@@ -424,7 +463,7 @@ theorem generated_module_with_rules
     (dataDecls.map DataDeclaration.word ++ entryItems syntaxMode envType (selectedValueEntries keep candidates) ++
         syntaxEntryItems syntaxMode envType (selectedSyntaxCount keep candidates) ++ recoveryItems syntaxMode envType
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
-        debugItems debug recovering syntaxMode envType start ++ syntaxDecls ++
+        debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode syntaxDecls ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
         storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax storeFieldTypes) envType memoised ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
@@ -437,7 +476,7 @@ theorem generated_module_with_rules
     · exact syntax_entry_items_valid syntaxMode envType (selectedSyntaxCount keep candidates) item hs
     · exact recovery_items_valid syntaxMode envType _ item hc
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
-    · exact syntax_ok item hsyntax
+    · exact syntax_items_valid _ _ item hsyntax
     · exact config_items_valid _ _ _ _ item hconfig
     · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ store_types_ok) item hstore
     · exact rule_items_valid rules item hr
