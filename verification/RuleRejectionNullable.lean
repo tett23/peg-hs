@@ -366,6 +366,29 @@ theorem namedLanguageNullable_correct {n : Nat} (names : Fin n → String)
 
 #print axioms namedLanguageNullable_correct
 
+def namedNullableNext (declarations : List (String × List (List Expr))) (known : List String) : List String :=
+  (declarations.filter fun declaration => namedLanguageNullable known (.group declaration.2)).map Prod.fst
+
+theorem namedNullableNext_member (declarations : List (String × List (List Expr)))
+    (known : List String) (name : String) :
+    name ∈ namedNullableNext declarations known ↔ ∃ declaration ∈ declarations,
+      declaration.1 = name ∧ namedLanguageNullable known (.group declaration.2) = true := by
+  simp [namedNullableNext, List.mem_map, List.mem_filter, and_comm, and_left_comm]
+
+theorem namedNullableNext_indexed (declarations : List (String × List (List Expr)))
+    (known : Fin (declarationNames declarations).length → Bool)
+    (i : Fin (declarationNames declarations).length) :
+    indexedDeclarationName declarations i ∈ namedNullableNext declarations
+      (knownRuleNames (indexedDeclarationName declarations) known) ↔
+      directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+        (mergedNamedRules (indexedDeclarationName declarations) declarations) known i = true := by
+  rw [namedNullableNext_member]
+  simp only [namedLanguageNullable_correct _ (indexedDeclarationName_injective declarations)]
+  exact (merged_named_rule_nullable _ _ _ _ _ i).symm
+
+#print axioms namedNullableNext_member
+#print axioms namedNullableNext_indexed
+
 def directRounds {n : Nat} (lookup : RuleLookup n) (recovery : RecoveryLookup n)
     (rules : Fin n → List (List Expr)) : Nat → Fin n → Bool
   | 0 => fun _ => false
