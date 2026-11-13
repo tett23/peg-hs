@@ -322,6 +322,26 @@ theorem debug_record_call (hasEnv withKind : Bool) :
     (beside (.refl [.terminal 101]) (beside fields (.refl [.terminal 102]))))
   exact runtime_call hasEnv withKind _ (oneRule (id := 551) (by rfl) update)
 
+def debugCallWord (hasEnv withKind noTraditionalRecordSyntax : Bool) : List Symbol :=
+  runtimeCallWord hasEnv withKind
+    (if noTraditionalRecordSyntax then tabstopConfigWord else recordConfigWord)
+
+theorem debug_direct_binding (hasEnv withKind noTraditionalRecordSyntax : Bool) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord (List.replicate (if hasEnv then 3 else 2) [.terminal 117]) ++
+        [.terminal 77] ++ debugCallWord hasEnv withKind noTraditionalRecordSyntax) := by
+  have call : Derives productions [.nonterminal 217]
+      (debugCallWord hasEnv withKind noTraditionalRecordSyntax) := by
+    cases noTraditionalRecordSyntax
+    · exact debug_record_call hasEnv withKind
+    · exact debug_tabstop_call hasEnv withKind
+  apply binding_named_arguments
+  · intro arg member
+    exact List.eq_of_mem_replicate member ▸ varid_argument
+  · exact oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl)
+      (oneRule (id := 528) (by rfl) call))
+
+#print axioms debug_direct_binding
 #print axioms debug_record_call
 #print axioms debug_tabstop_call
 #print axioms runtime_call
