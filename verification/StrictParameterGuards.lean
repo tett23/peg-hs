@@ -524,6 +524,35 @@ theorem invariant2_declaration_empty_parameter (pre : List Char) (c : Char) (cs 
     apply invariant2_parameter_list_empty_first namePrefix xs (((namePrefix ++ ['(']) ++ ws)) tail _ _ comma
     simp only [List.append_assoc, splitXs]
 
+set_option maxRecDepth 8192 in
+theorem invariant2_top_item_declaration_throw (pre : List Char) (c : Char) (cs : List Char)
+    (ordinary : '%' ≠ c) (pos : Nat) (label : String) (msg : Option String)
+    (decl : Derives (context false (pre ++ c :: cs)) translatedStrictDeclaration (c :: cs).length {}
+      (.throwLabel pos label msg)) :
+    Derives (context false (pre ++ c :: cs)) (.call 1 1) (c :: cs).length {} (.throwLabel pos label msg) := by
+  let ctx := context false (pre ++ c :: cs)
+  let n := (c :: cs).length
+  let err := Reply.throwLabel pos label msg
+  have miss (site : Nat) (tail : List Char) (env : Env)
+      (term : ctx.terms site = some (.lit ('%' :: tail))) : Derives ctx (.terminal site) n env .fail := by
+    have oracle := ConcreteTerminal.invariant1_oracle_suffix (.lit ('%' :: tail)) pre (c :: cs)
+    simp [ConcreteTerminal.matchTerm, ConcreteTerminal.matchLiteral, ordinary] at oracle
+    apply invariant1_runFuel_sound (fuel := 1)
+    have src : ctx.input = pre ++ c :: cs := rfl
+    simp [runFuel, term, src, n, oracle]
+  have block : Derives ctx (ctx.rules 11) n {} .fail := .seqCarryFail (miss 8 ['{'] {} rfl)
+  have here : Derives ctx (ctx.rules 3) n {} (.ok n {}) := Derives.eps
+  have call : Derives ctx (.call 12 3) n {} (.ok n {}) := Derives.call (callee := {}) (by rfl) here
+  have directive : Derives ctx (ctx.rules 12) n {} .fail :=
+    .seqOk (Derives.bind call) (.seqCarryFail (miss 12 [] _ rfl))
+  have one : Derives ctx (ctx.rules 2) n {} err :=
+    .altRetry (Derives.call (callee := {}) (by rfl) block)
+      (.altRetry (Derives.call (callee := {}) (by rfl) directive) (Derives.call (ctx := ctx) (site := 6) (rule := 13) (env := {}) (callee := {}) (by rfl) decl))
+  have top : Derives ctx (.call 2 2) n {} err := Derives.call (callee := {}) (by rfl) one
+  have item : Derives ctx (ctx.rules 1) n {} err := .seqCarryThrow top
+  exact Derives.call (callee := {}) (by rfl) item
+
+#print axioms invariant2_top_item_declaration_throw
 #print axioms invariant2_declaration_empty_parameter
 #print axioms invariant1_declaration_name
 #print axioms invariant2_declaration_parameter_throw
