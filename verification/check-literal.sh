@@ -103,7 +103,9 @@ def main : IO Unit := do
     for offset in [:256] do
       let n := page * 256 + offset
       if n < 0xd800 || n > 0xdfff then
-        rows := rows ++ Peg.Verification.encodeLiteral (String.singleton (Char.ofNat n)) ++ "\n"
+        let c := Char.ofNat n
+        rows := rows ++ Peg.Verification.encodeLiteral (String.singleton c) ++ "\t" ++
+          Peg.Verification.encodeEndpoint c ++ "\n"
     out.putStr rows
 SOURCE
 (cd verification && lean --run "$scratch/ScalarSpellings.lean") > "$scratch/scalar-spellings.txt"
@@ -115,9 +117,9 @@ main :: IO ()
 main = do
   actual <- lines <$> getContents
   let scalars = [0..0xd7ff] ++ [0xe000..0x10ffff]
-      spelling n = show [chr n]
+      spelling n = show [chr n] ++ "\t" ++ show (chr n)
   unless (map spelling scalars == actual) $
     fail "GHC and Lean differ on Unicode scalar spelling"
 SOURCE
 runghc-9.10.3 "$scratch/ScalarSpellings.hs" < "$scratch/scalar-spellings.txt"
-printf 'Compared all 1112064 Unicode scalar spellings with GHC Show.\n'
+printf 'Compared all 1112064 Unicode scalar string and character spellings with GHC Show.\n'

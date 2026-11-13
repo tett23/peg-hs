@@ -264,6 +264,27 @@ theorem showStringModel_eq (s : String) : showStringModel s = encodeLiteral s :=
 
 #print axioms showStringModel_eq
 
+-- The closing apostrophe cannot trigger protectEsc. In a character
+-- literal a double quote is plain and the apostrophe itself is escaped.
+def encodeEndpoint (c : Char) : String :=
+  "'" ++ (if c.toNat = 39 then "\\'" else if c == '"' then "\"" else encodeChar c) ++ "'"
+
+private def showEndpoint (c : Char) : String :=
+  if c.toNat = 39 then "'\\''"
+  else if c == '"' then "'\"'"
+  else "'" ++ showStringStep c "'"
+
+theorem showEndpoint_eq (c : Char) : showEndpoint c = encodeEndpoint c := by
+  rw [showEndpoint, encodeEndpoint]
+  by_cases apostrophe : c.toNat = 39
+  · simp [apostrophe]
+  · by_cases doubleQuote : c == '"'
+    · simp [apostrophe, doubleQuote]
+    · simp [apostrophe, doubleQuote, showStringStep_eq, prependEscaped,
+        needsEscapeTerminator, Char.isDigit, String.append_assoc]
+
+#print axioms showEndpoint_eq
+
 private theorem encodeChar_sound (c : Char) (h : Allowed c) :
     TokenSyntax c (encodeChar c) := by
   by_cases hq : c = quote
