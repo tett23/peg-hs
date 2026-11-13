@@ -92,6 +92,26 @@ theorem invariant2_whitespace_only_assembly (input : List Char)
   exact ⟨invariant1_whitespace_only_file input consumed,
     invariant1_top_item_at_end false input {}, rfl⟩
 
+-- After the item actions have supplied their values, both public wrappers
+-- preserve the list, and an assembly diagnostic survives all later stages.
+theorem invariant2_file_values_rejected (input : List Char) (items : List AssembleValidation.Top)
+    (p : AssembleValidation.Predicates) (diagnostic : PublicParsing.Failure → String)
+    (ds : Pipeline.Diagnostics) (rejected : AssembleValidation.assemble items p = .error ds)
+    (resolve expand check : Unit → Except Pipeline.Diagnostics Unit)
+    (notes : Unit → Pipeline.Diagnostics → Pipeline.Diagnostics) (strip : Option (Unit → Unit))
+    (warnings : Unit → Unit → Pipeline.Diagnostics) (generate : Unit → Except Pipeline.Diagnostics String) :
+    let values := translatedFileReturn (EnvironmentEval.translatedManyStop
+      (items.foldl EnvironmentEval.translatedManyPush EnvironmentEval.translatedManyInitial))
+    let tops := PublicParsing.translatedPublic diagnostic (PublicParsing.translatedRuntime input.utf8Encode.size
+      (.ok input.utf8Encode.size values))
+    Pipeline.visible (Pipeline.pipeline (AssembleValidation.parseGrammar tops p)
+      resolve expand check notes strip warnings generate) = .error ds ∧ ds ≠ [] := by
+  dsimp only
+  rw [invariant1_file_return_values, PublicParsing.invariant1_translated_entry]
+  simpa [PublicParsing.entry] using AssembleValidation.public_assemble_failure items p ds rejected
+    resolve expand check notes strip warnings generate
+
+#print axioms invariant2_file_values_rejected
 #print axioms invariant2_whitespace_only_assembly
 #print axioms invariant1_whitespace_only_public
 #print axioms invariant1_file_initial_ws_lexical
