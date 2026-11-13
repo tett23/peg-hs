@@ -413,6 +413,22 @@ theorem invariant1_parameter_list_absent (before xs : List Char) (initial : Env)
     simp only [runFuel, term, src, miss, Option.map_none]
   exact .seqCarryFail (invariant1_runFuel_sound run)
 
+set_option maxRecDepth 8192 in
+theorem invariant1_declaration_optional_parameters_absent (before xs : List Char) (env : Env)
+    (absent : xs.head? ≠ some '(') :
+    let ctx := context false (before ++ xs)
+    let next := Reply.ok xs.length {env with resultDepth := 0}
+    Derives ctx (.alt (.bind 12 "ps" (.call 19 17)) .eps) xs.length env next ∧
+      Derives ctx (.alt (.call 31 17) .eps) xs.length env next := by
+  let ctx := context false (before ++ xs)
+  have missing := invariant1_parameter_list_absent before xs env absent
+  have annotation : Derives ctx (.call 19 17) xs.length env .fail :=
+    Derives.call (ctx := ctx) (site := 19) (rule := 17) (env := env) (callee := env) (by rfl) missing
+  have fallback : Derives ctx (.call 31 17) xs.length env .fail :=
+    Derives.call (ctx := ctx) (site := 31) (rule := 17) (env := env) (callee := env) (by rfl) missing
+  exact ⟨.altRetry (Derives.bind annotation) .eps, .altRetry fallback .eps⟩
+
+#print axioms invariant1_declaration_optional_parameters_absent
 #print axioms invariant1_parameter_list_absent
 #print axioms invariant1_parameter_list_reply
 #print axioms invariant1_parameter_chunks_tail_success
