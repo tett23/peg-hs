@@ -32,17 +32,48 @@ inductive BindingTree.Binds (name : String) : BindingTree → Prop where
   | argument {children : List BindingTree} : child ∈ children → Binds name child → Binds name (.templateArgs children)
   | grouped {child : BindingTree} : items ∈ groups → child ∈ items → Binds name child → Binds name (.group groups)
 
-theorem invariant2_nested_binder_reported (tree : BindingTree) (name rule : String)
-    (templates : List String) (p : Predicates) (reserved : p.reservedBinder name = true)
-    (occurs : tree.Binds name) :
-    ∃ ds, assemble [.definitionWithBindings rule templates tree.names] p = .error ds ∧ ds ≠ [] := by
-  have member : name ∈ tree.names := by
+theorem invariant2_nested_names_iff (tree : BindingTree) (name : String) :
+    name ∈ tree.names ↔ tree.Binds name := by
+  constructor
+  · intro member
+    induction tree using (measure (fun t : BindingTree => sizeOf t)).wf.induction with
+    | h tree ih =>
+      cases tree with
+      | leaf => simp [BindingTree.names] at member
+      | unary child => exact .unary (ih child (by change sizeOf _ < sizeOf (BindingTree.unary child); simp +arith) (by simpa [BindingTree.names] using member))
+      | item binder expr =>
+        rw [BindingTree.names, List.mem_append] at member
+        rcases member with bound | nested
+        · cases binder with
+          | none => contradiction
+          | some b => simp at bound; subst b; exact .here
+        · exact .expression (ih expr (by change sizeOf _ < sizeOf (BindingTree.item binder expr); simp +arith) nested)
+      | templateArgs children =>
+        rw [BindingTree.names, List.mem_flatMap] at member
+        obtain ⟨child, inside, nested⟩ := member
+        exact .argument inside (ih child (by have := List.sizeOf_lt_of_mem inside; change sizeOf child < sizeOf (BindingTree.templateArgs children); simp; omega) nested)
+      | group groups =>
+        rw [BindingTree.names, List.mem_flatMap] at member
+        obtain ⟨items, groupMem, inside⟩ := member
+        obtain ⟨child, childMem, nested⟩ := List.mem_flatMap.mp inside
+        exact .grouped groupMem childMem (ih child (by
+          have := List.sizeOf_lt_of_mem groupMem
+          have := List.sizeOf_lt_of_mem childMem
+          change sizeOf child < sizeOf (BindingTree.group groups)
+          simp; omega) nested)
+  · intro occurs
     induction occurs with
     | here => simp [BindingTree.names]
     | expression _ ih => simpa only [BindingTree.names] using List.mem_append_right _ ih
     | unary _ ih => simpa only [BindingTree.names] using ih
     | argument child _ ih => simp only [BindingTree.names]; exact List.mem_flatMap.mpr ⟨_, child, ih⟩
     | grouped group item _ ih => simp only [BindingTree.names]; exact List.mem_flatMap.mpr ⟨_, group, List.mem_flatMap.mpr ⟨_, item, ih⟩⟩
+
+theorem invariant2_nested_binder_reported (tree : BindingTree) (name rule : String)
+    (templates : List String) (p : Predicates) (reserved : p.reservedBinder name = true)
+    (occurs : tree.Binds name) :
+    ∃ ds, assemble [.definitionWithBindings rule templates tree.names] p = .error ds ∧ ds ≠ [] := by
+  have member := (invariant2_nested_names_iff tree name).2 occurs
   apply binder_violation_rejected _ p ⟨.reservedBinding, name⟩
   simp [binderViolations, emit, member, reserved]
 
