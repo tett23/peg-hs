@@ -854,6 +854,20 @@ private theorem store_header :
     (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
       (type_with_state_parameter unqualifiedTypeAtom))))
 
+def storeAccessorSignatureWord (fieldType : List Symbol) : List Symbol :=
+  [.terminal 117, .terminal 76, .terminal 118, .terminal 117, .terminal 83] ++ fieldType
+
+theorem store_accessor_signature {fieldType : List Symbol}
+    (result : Derives productions [.nonterminal 163] fieldType) :
+    Derives productions [.nonterminal 78] (storeAccessorSignatureWord fieldType) := by
+  have store := oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl)
+    (type_with_state_parameter unqualifiedTypeAtom))
+  have arrow := applyRule (id := 382) (by rfl)
+    (beside store (beside (.refl [.terminal 83]) result))
+  exact signature_named_ctype (oneRule (id := 379) (by rfl) arrow)
+
+#print axioms store_accessor_signature
+
 def newStoreSignatureWord (env : Option (List Symbol)) : List Symbol :=
   [.terminal 117, .terminal 76] ++ parameterArrows env.toList
     [.terminal 122, .terminal 117, .terminal 107, .terminal 118, .terminal 117, .terminal 108]
