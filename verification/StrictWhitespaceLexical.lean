@@ -86,6 +86,15 @@ theorem invariant1_file_return_values (items : List α) :
       (items.foldl EnvironmentEval.translatedManyPush EnvironmentEval.translatedManyInitial)) = items :=
   EnvironmentEval.invariant1_runtime_many_values items
 
+theorem invariant1_generated_directive_projection {L} (loc argLoc : L) (name : String)
+    (raw : List Char) (argument : String → List Char → List Char)
+    (rest : List (PublicParsing.AssemblyItem L)) :
+    PublicParsing.translatedDirectives
+      (translatedLocatedDirective PublicParsing.AssemblyItem.directive argument loc name argLoc raw :: rest) =
+      (loc, name, String.ofList (argument name raw)) :: PublicParsing.translatedDirectives rest := rfl
+
+#print axioms invariant1_generated_directive_projection
+
 theorem invariant2_file_missing_module {L G} (input : List Char)
     (items : List (PublicParsing.AssemblyItem L)) (diagnostic : PublicParsing.Failure → String)
     (build : (L × String) → G) (sortErrors : List String → List String)

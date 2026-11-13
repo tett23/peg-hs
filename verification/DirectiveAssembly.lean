@@ -58,7 +58,7 @@ theorem invariant2_directive_captures_at (before : List Char) (c : Char) (cs : L
       (raw.dropWhile (· != '\n')).length =
       .directive name (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n')))) := by
   dsimp only
-  unfold capturedDirective translatedDirectiveValue
+  unfold capturedDirective translatedDirectiveValue translatedLocatedDirective
   have name := invariant1_identifier_capture (before ++ ['%']) c cs
   simp only [List.append_assoc, List.cons_append, List.nil_append] at name
   dsimp only
