@@ -53,6 +53,21 @@ theorem invariant2_assembly_diagnostics {T M G} (bytes : Nat) (tops : T) (d : Fa
     simp [translatedGrammar, translatedRuntime, translatedPublic, translatedAssemble, Except.bind,
       eq_comm]
 
+theorem invariant2_sorted_assembly_error_nonempty {T M G} (bytes : Nat) (tops : T)
+    (d : Failure → String) (errors : List String) (name : Option M) (build : M → G)
+    (missing : String) (le : String → String → Bool) (ds : List String)
+    (rejected : translatedGrammar bytes (.ok bytes tops) d (fun _ =>
+      translatedAssemble errors name build missing (fun es => es.mergeSort le)) = .error ds) :
+    ds ≠ [] := by
+  rcases (invariant2_assembly_diagnostics ..).mp rejected with ⟨_, _, rfl⟩ | ⟨hne, rfl⟩
+  · simp
+  · intro hempty
+    apply hne
+    apply List.length_eq_zero_iff.mp
+    simpa using congrArg List.length hempty
+
+#print axioms invariant2_sorted_assembly_error_nonempty
+
 theorem invariant1_translated_module_selection {T L G} (bytes : Nat) (start : StartResult T)
     (d : Failure → String) (errors : T → List String) (library : T → Option L)
     (single : T → String → Option (L × String)) (build : T → (L × String) → G)
