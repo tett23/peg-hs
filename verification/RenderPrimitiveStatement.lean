@@ -186,6 +186,23 @@ theorem valueAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) (s
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure " ++ source]) :=
   returningAlternative_source stmts _
 
+-- passThroughOf binds the chosen item and returns that same name after
+-- the remaining statements have run.
+def passThroughAlternative (lead rest : List RenderPrimitiveDoGHC.Statement)
+    (name source : String) (tokens : List Symbol)
+    (body : Derives productions [.nonterminal 211] tokens) : RenderPrimitiveChoice.Alternative :=
+  valueAlternative (lead ++ itemStatement source tokens body true true (some name) :: rest)
+    name [.terminal 117] RenderDeclarationsGHC.varid_argument
+
+theorem passThroughAlternative_source (lead rest : List RenderPrimitiveDoGHC.Statement)
+    (name source : String) (tokens : List Symbol) (body : Derives productions [.nonterminal 211] tokens) :
+    (passThroughAlternative lead rest name source tokens body).source =
+      RenderPrimitiveDo.printedDo (lead.map RenderPrimitiveDoGHC.Statement.source ++
+        (name ++ " <- " ++ source) :: (rest.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure " ++ name])) := by
+  rw [passThroughAlternative, valueAlternative_source]
+  simp [itemStatement, Option.filter, List.append_assoc]
+
+#print axioms passThroughAlternative_source
 #print axioms valueAlternative_source
 #print axioms itemStatement
 #print axioms unitAlternative_source
