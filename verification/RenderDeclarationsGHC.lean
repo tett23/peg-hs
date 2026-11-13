@@ -365,15 +365,16 @@ theorem entry_body (hasEnv syntaxMode : Bool) :
 
 #print axioms entry_body
 
-def syntaxEntryBodyWord (hasEnv : Bool) : List Symbol :=
+def syntaxMapWord : List Symbol :=
   [.terminal 121, .terminal 107, .terminal 78, .terminal 117, .terminal 83,
    .terminal 121, .terminal 117, .terminal 117, .terminal 107, .terminal 121,
-   .terminal 117, .terminal 108, .terminal 108, .terminal 107] ++
-    entryBodyWord hasEnv false ++ [.terminal 108]
+   .terminal 117, .terminal 108, .terminal 108]
+
+def syntaxEntryBodyWord (hasEnv : Bool) : List Symbol :=
+  syntaxMapWord ++ [.terminal 107] ++ entryBodyWord hasEnv false ++ [.terminal 108]
 
 open RenderExpressionGHC in
-theorem syntax_entry_body (hasEnv : Bool) :
-    Derives productions [.nonterminal 211] (syntaxEntryBodyWord hasEnv) := by
+private theorem syntax_map : Derives productions [.nonterminal 217] syntaxMapWord := by
   have expr {w} (f : Derives productions [.nonterminal 217] w) :=
     oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
   have parens {w} (e : Derives productions [.nonterminal 211] w) :=
@@ -386,9 +387,15 @@ theorem syntax_entry_body (hasEnv : Bool) :
     (applyRule (g := productions) (id := 645) (by rfl) (.refl [])))
   have callback := applyRule (id := 542) (by rfl) (beside (.refl [.terminal 78])
     (beside pats (beside (.refl [.terminal 83]) root)))
-  have mapped := application qualified_function (parenthesized (aexp_to_texp callback))
-  simpa [syntaxEntryBodyWord, List.append_assoc] using
-    expr (application mapped (parens (entry_body hasEnv false)))
+  exact application qualified_function (parenthesized (aexp_to_texp callback))
+
+open RenderExpressionGHC in
+theorem syntax_entry_body (hasEnv : Bool) :
+    Derives productions [.nonterminal 211] (syntaxEntryBodyWord hasEnv) := by
+  have arg := parenthesized (oneRule (id := 596) (by rfl) (entry_body hasEnv false))
+  have call := application syntax_map arg
+  simpa [syntaxEntryBodyWord, List.append_assoc] using oneRule (id := 520) (by rfl)
+    (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) call))
 
 #print axioms syntax_entry_body
 
@@ -495,6 +502,27 @@ theorem debug_value_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List 
   · exact debug_record_call hasEnv false
   · exact debug_tabstop_call hasEnv false
 
+theorem debug_syntax_let (hasEnv noTraditionalRecordSyntax : Bool) {close : List Symbol}
+    (close_ok : Derives productions [.nonterminal 320] close) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 18, .terminal 103] ++ recoverResultWord false ++ [.terminal 77] ++
+        debugCallWord hasEnv false noTraditionalRecordSyntax ++ close ++ [.terminal 13,
+          .terminal 107] ++ syntaxMapWord ++ [.terminal 117, .terminal 114,
+          .terminal 117, .terminal 108]) := by
+  have pattern := oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
+    (oneRule (id := 536) (by rfl) (recover_result false)))
+  have mapped := RenderExpressionGHC.application syntax_map varid_argument
+  have tree := oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+    (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) mapped)))
+  have pair := pair_argument tree (RenderExpressionGHC.aexp_to_texp varid_argument)
+  have call : Derives productions [.nonterminal 217]
+      (debugCallWord hasEnv false noTraditionalRecordSyntax) := by
+    cases noTraditionalRecordSyntax
+    · exact debug_record_call hasEnv false
+    · exact debug_tabstop_call hasEnv false
+  simpa [List.append_assoc] using layout_let pattern call pair close_ok
+
+#print axioms debug_syntax_let
 #print axioms debug_value_let
 
 def recoverBodyWord (hasEnv syntaxMode syntaxTree parserClose : Bool) : List Symbol :=
