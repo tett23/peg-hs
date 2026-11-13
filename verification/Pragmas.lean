@@ -242,6 +242,35 @@ theorem invariant3_selected_user_lines_unchanged
 def finalizeLines (marker path : String) (lines : List String) : List String :=
   lines.zipIdx.map fun (line, index) => finalizeLine marker (index + 1) path line
 
+-- Data.Text.lines drops exactly the final empty field of a terminated input.
+def textLines (source : String) : List String :=
+  let fields := (source.toList.splitOn '\n').map String.ofList
+  match fields.reverse with
+  | "" :: rest => rest.reverse
+  | _ => fields
+
+def textUnlines : List String → String
+  | [] => ""
+  | line :: rest => line ++ "\n" ++ textUnlines rest
+
+def finalizeText (marker path source : String) : String :=
+  textUnlines (finalizeLines marker path (textLines source))
+
+theorem textLines_unlines (lines : List String)
+    (clean : ∀ line ∈ lines, '\n' ∉ line.toList) : textLines (textUnlines lines) = lines := by
+  have fields : ((textUnlines lines).toList.splitOn '\n').map String.ofList = lines ++ [""] := by
+    induction lines with
+    | nil => rfl
+    | cons line rest ih =>
+      have chars : (textUnlines (line :: rest)).toList =
+          line.toList ++ '\n' :: (textUnlines rest).toList := by
+        simp [textUnlines, String.toList_append, List.append_assoc]
+      rw [chars, List.splitOn_append_cons_self, List.splitOn_eq_singleton (clean line (by simp))]
+      simp [ih (fun x h => clean x (by simp [h]))]
+  simp [textLines, fields]
+
+#print axioms textLines_unlines
+
 theorem invariant3_finalize_lines_at (marker path : String) (lines : List String)
     (i : Nat) (inside : i < lines.length) :
     (finalizeLines marker path lines)[i]? =
