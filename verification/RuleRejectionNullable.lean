@@ -171,6 +171,45 @@ theorem directNext_correct {n : Nat} (lookup : RuleLookup n)
   funext i
   exact toPositive_correct lookup recovery known (.group (rules i))
 
+def uniqueRuleNames : List String → List String
+  | [] => []
+  | name :: rest =>
+    let tail := uniqueRuleNames rest
+    if name ∈ tail then tail else name :: tail
+
+theorem uniqueRuleNames_nodup (names : List String) : (uniqueRuleNames names).Nodup := by
+  induction names with
+  | nil => simp [uniqueRuleNames]
+  | cons name rest ih =>
+    simp only [uniqueRuleNames]
+    split
+    · exact ih
+    · exact List.nodup_cons.mpr ⟨by assumption, ih⟩
+
+theorem uniqueRuleNames_member (names : List String) (name : String) :
+    name ∈ uniqueRuleNames names ↔ name ∈ names := by
+  induction names generalizing name with
+  | nil => simp [uniqueRuleNames]
+  | cons first rest ih =>
+    simp only [uniqueRuleNames]
+    split <;> simp_all
+
+def declarationNames (declarations : List (String × List (List Expr))) : List String :=
+  uniqueRuleNames (declarations.map Prod.fst)
+
+def indexedDeclarationName (declarations : List (String × List (List Expr)))
+    (i : Fin (declarationNames declarations).length) : String :=
+  (declarationNames declarations)[i]
+
+theorem indexedDeclarationName_injective (declarations : List (String × List (List Expr))) :
+    Function.Injective (indexedDeclarationName declarations) := by
+  intro i j same
+  apply Fin.ext
+  exact (uniqueRuleNames_nodup (declarations.map Prod.fst)).getElem_inj.mp same
+
+#print axioms uniqueRuleNames_member
+#print axioms indexedDeclarationName_injective
+
 def knownRuleNames {n : Nat} (names : Fin n → String) (known : Fin n → Bool) : List String :=
   ((List.finRange n).filter fun i => known i).map names
 
@@ -362,6 +401,35 @@ theorem invariant2_named_nullable_result {n : Nat} (names : Fin n → String)
     rfl
 
 #print axioms invariant2_named_nullable_result
+
+def nullableDeclarationNames (declarations : List (String × List (List Expr))) : List String :=
+  let names := indexedDeclarationName declarations
+  let rules := mergedNamedRules names declarations
+  knownRuleNames names (nullableUntilStable (lookupRuleNames names) (fun _ => none) rules 0 (by omega))
+
+theorem nullableDeclarationNames_fixed (declarations : List (String × List (List Expr))) :
+    let names := indexedDeclarationName declarations
+    let lookup := lookupRuleNames names
+    let rules := mergedNamedRules names declarations
+    ∀ i, names i ∈ nullableDeclarationNames declarations ↔
+      ∃ declaration ∈ declarations, declaration.1 = names i ∧
+        directNullable lookup (fun _ => none) (directRounds lookup (fun _ => none) rules
+          (declarationNames declarations).length) (.group declaration.2) = true := by
+  dsimp only
+  intro i
+  unfold nullableDeclarationNames
+  dsimp only
+  rw [nullableUntilStable_correct, knownRuleNames_lookup _ _ (lookupRuleNames_correct _
+    (indexedDeclarationName_injective declarations))]
+  rw [(lookupRuleNames_correct _ (indexedDeclarationName_injective declarations) _ i).mpr rfl]
+  simp only [Option.any_some]
+  have fixed := congrFun (direct_rounds_rule_count_fixed
+    (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
+    (mergedNamedRules (indexedDeclarationName declarations) declarations)) i
+  rw [← fixed]
+  exact merged_named_rule_nullable _ _ _ _ _ i
+
+#print axioms nullableDeclarationNames_fixed
 
 def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
     (rules : Fin n → List (List Expr)) : Expr → Bool :=
