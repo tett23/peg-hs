@@ -52,6 +52,11 @@ theorem invariant2_invalid_file_no_module {mode input reply} (result : FileResul
     simpa only [h] using invariant2_parseFailure_no_module _ _ _ _ h assemble resolve expand
       check notes strip warnings generate
 
+noncomputable def incompleteCause (input : List Char) : Reply → Failure
+  | .fail => .ordinary
+  | .throwLabel _ label msg => .labelled label msg
+  | .ok rest _ => .expectedEnd (Utf8Terminals.byteOffset input (input.length - rest))
+
 theorem invariant2_incomplete_file_diagnostic {mode input reply}
     (parsed : FileResult mode input reply)
     (invalid : ¬ ∃ env, FileResult mode input (.ok 0 env))
@@ -62,10 +67,7 @@ theorem invariant2_incomplete_file_diagnostic {mode input reply}
     (generate : G → Except Pipeline.Diagnostics String) :
     let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
       (start input reply))
-    let cause := match reply with
-      | .fail => Failure.ordinary
-      | .throwLabel _ label msg => .labelled label msg
-      | .ok rest _ => .expectedEnd (Utf8Terminals.byteOffset input (input.length - rest))
+    let cause := incompleteCause input reply
     let diagnostic := [format cause]
     tops = .error diagnostic ∧
       Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
@@ -78,7 +80,7 @@ theorem invariant2_incomplete_file_diagnostic {mode input reply}
     have partialEnd := mt (invariant1_file_end_bytes parsed).mp remaining
     dsimp only
     rw [invariant1_translated_entry]
-    simp [start, entry, partialEnd]
+    simp [start, entry, partialEnd, incompleteCause]
     rfl
 
 #print axioms invariant2_incomplete_file_diagnostic
