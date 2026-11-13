@@ -71,4 +71,4 @@ grep -Fq 'error: Type mismatch' "$scratch/RenderCompositionInvalid.log" || {
   exit 1
 }
 
-printf 'Render composition: 8 Lean theorems, 2 exact source checks, 1 rejected mutation, 0 sorry axioms.\n'
+printf 'Render composition: 9 Lean theorems, 2 exact source checks, 1 rejected mutation, 0 sorry axioms.\n'
