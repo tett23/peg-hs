@@ -230,6 +230,40 @@ theorem showSpelling_eq (c : Char) : showSpelling c = encodeChar c := by
 
 #print axioms showSpelling_eq
 
+private def protectEsc (p : Char → Bool) (suffix : String) : String :=
+  if suffix.toList.head?.any p then "\\&" ++ suffix else suffix
+
+private def showStringStep (c : Char) (suffix : String) : String :=
+  showSpelling c ++
+    (if 127 < c.toNat then protectEsc Char.isDigit suffix
+     else if c.toNat = 14 then protectEsc (· == 'H') suffix
+     else suffix)
+
+private theorem showStringStep_eq (c : Char) (suffix : String) :
+    showStringStep c suffix = prependEscaped c suffix := by
+  unfold showStringStep prependEscaped needsEscapeTerminator protectEsc
+  rw [showSpelling_eq]
+  cases h : suffix.toList.head? with
+  | none => simp
+  | some next =>
+    by_cases high : 127 < c.toNat
+    · have ne : c.toNat ≠ 14 := by omega
+      simp [high, ne, String.append_assoc]
+      split <;> rfl
+    · by_cases so : c.toNat = 14
+      · simp [so, String.append_assoc]
+        split <;> rfl
+      · simp [high, so]
+
+def showStringModel (s : String) : String :=
+  "\"" ++ s.toList.foldr showStringStep "\""
+
+theorem showStringModel_eq (s : String) : showStringModel s = encodeLiteral s := by
+  have step : showStringStep = prependEscaped := funext fun c => funext (showStringStep_eq c)
+  simpa [showStringModel, step] using quoted_fold s
+
+#print axioms showStringModel_eq
+
 private theorem encodeChar_sound (c : Char) (h : Allowed c) :
     TokenSyntax c (encodeChar c) := by
   by_cases hq : c = quote
