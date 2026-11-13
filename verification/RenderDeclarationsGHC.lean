@@ -256,6 +256,48 @@ theorem generated_rule_signature (params : List (List Symbol)) (result : List Sy
     Derives productions [.nonterminal 78] ([.terminal 117, .terminal 76] ++ parameterArrows params result) :=
   signature_named_ctype (parameter_arrows params result valid result_ok)
 
+structure RuleTokens where
+  params : List (List Symbol)
+  result : List Symbol
+  arguments : List (List Symbol)
+  body : List Symbol
+
+def RuleTokens.declarations (r : RuleTokens) :=
+  generatedPair (parameterArrows r.params r.result) r.arguments r.body
+
+def RuleTokens.Valid (r : RuleTokens) : Prop :=
+  (∀ p ∈ r.params, Derives productions [.nonterminal 163] p) ∧
+  Derives productions [.nonterminal 163] r.result ∧
+  (∀ a ∈ r.arguments, Derives productions [.nonterminal 218] a) ∧
+  Derives productions [.nonterminal 211] r.body
+
+theorem module_with_rules (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
+    (exports imports beforeRules afterRules : List (List Symbol)) (rules : List RuleTokens)
+    (name_ok : Derives productions [.nonterminal 321] name)
+    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (imports_ok : ∀ item ∈ imports, Derives productions [.nonterminal 59] item)
+    (other_ok : ∀ item ∈ beforeRules ++ afterRules, Derives productions [.nonterminal 78] item)
+    (rules_ok : ∀ r ∈ rules, r.Valid) :
+    let decls := beforeRules ++ rules.flatMap RuleTokens.declarations ++ afterRules
+    Derives (layoutGrammar productions) [.nonterminal 32]
+      (sourceSymbols ([.terminal 19] ++ name ++ RenderModuleGHC.exportWord exports ++
+        [.terminal 25, .terminal 103] ++
+        (RenderModuleGHC.generatedImports usesPegPrelude importsPrelude ++ imports).foldl
+          RenderModuleGHC.semiAppend [] ++ decls.foldl RenderModuleGHC.semiAppend [])) := by
+  apply RenderModuleGHC.generated_with_imports _ _ _ _ _ _ name_ok exports_ok imports_ok
+  intro item member
+  rcases List.mem_append.mp member with earlier | last
+  · rcases List.mem_append.mp earlier with first | rule
+    · exact other_ok item (List.mem_append_left _ first)
+    · obtain ⟨r, hr, hd⟩ := List.mem_flatMap.mp rule
+      obtain ⟨params, result, args, body⟩ := rules_ok r hr
+      simp only [RuleTokens.declarations, generatedPair, List.mem_cons, List.mem_nil_iff, or_false] at hd
+      rcases hd with rfl | rfl
+      · exact generated_rule_signature _ _ params result
+      · exact binding_named_arguments _ args body
+  · exact other_ok item (List.mem_append_right _ last)
+
+#print axioms module_with_rules
 #print axioms generated_rule_signature
 #print axioms generated_pair_varid_arguments
 #print axioms signature
