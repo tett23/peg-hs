@@ -193,6 +193,35 @@ theorem syntax_entry_items_valid (syntaxMode : Bool) (envType : CheckedEnvType) 
 
 #print axioms syntax_entry_items_valid
 
+-- The retained list follows the generator's per-entry order. Each binding has
+-- its own layout close, supplied by the parser trace.
+structure RecoveryEntry extends EntryFragment where
+  syntaxTree : Bool
+  parserClose : Bool
+
+open RenderDeclarationsGHC in
+def recoveryItems (syntaxMode : Bool) (envType : CheckedEnvType) (entries : List RecoveryEntry) :=
+  entries.flatMap fun e => generatedPair
+    (parameterArrows (envType.toList.map Subtype.val) (recoverTypeWord e.syntaxTree e.resultType))
+    (List.replicate (if envType.isSome then 2 else 1) [.terminal 117])
+    (recoverBodyWord envType.isSome syntaxMode e.syntaxTree e.parserClose)
+
+open RenderDeclarationsGHC in
+theorem recovery_items_valid (syntaxMode : Bool) (envType : CheckedEnvType)
+    (entries : List RecoveryEntry) (item : List Symbol)
+    (member : item ∈ recoveryItems syntaxMode envType entries) :
+    Derives productions [.nonterminal 78] item := by
+  obtain ⟨e, _, inside⟩ := List.mem_flatMap.mp member
+  simp only [generatedPair, List.mem_cons, List.mem_nil_iff, or_false] at inside
+  rcases inside with rfl | rfl
+  · apply generated_rule_signature _ _ _ (recover_entry_type e.syntaxTree e.type_ok)
+    intro ty member
+    obtain ⟨checked, _, rfl⟩ := List.mem_map.mp member
+    exact checked.property
+  · exact recover_entry_binding envType.isSome syntaxMode e.syntaxTree e.parserClose
+
+#print axioms recovery_items_valid
+
 theorem generated_module_with_rules
     (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
@@ -200,7 +229,7 @@ theorem generated_module_with_rules
     (selected : List RenderModuleGHC.GeneratedExport) (dataTypes debugEntries : Nat)
     (userExports verbatimImports dataDecls otherDecls : List (List Symbol))
     (envType : CheckedEnvType) (entries : List EntryFragment)
-    (syntaxEntryCount : Nat) (rules : List RuleFragment)
+    (syntaxEntryCount : Nat) (recoveryEntries : List RecoveryEntry) (rules : List RuleFragment)
     (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
     (verbatim_ok : ∀ item ∈ verbatimImports,
       Derives productions [.nonterminal 59] item)
@@ -215,7 +244,8 @@ theorem generated_module_with_rules
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ otherDecls ++ ruleItems rules).foldl semiAppend [])) :
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType recoveryEntries ++
+        otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -226,14 +256,16 @@ theorem generated_module_with_rules
   apply generated_module lex first firstTokens chunks finalSource finalTokens _
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
     (dataDecls ++ entryItems syntaxMode envType entries ++
-        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ otherDecls ++ ruleItems rules) name_ok
+        syntaxEntryItems syntaxMode envType syntaxEntryCount ++ recoveryItems syntaxMode envType recoveryEntries ++
+        otherDecls ++ ruleItems rules) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports debugEntries user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
-    rcases member with (((hd | he) | hs) | ho) | hr
+    rcases member with ((((hd | he) | hs) | hc) | ho) | hr
     · exact data_ok item hd
     · exact entry_items_valid syntaxMode envType entries item he
     · exact syntax_entry_items_valid syntaxMode envType syntaxEntryCount item hs
+    · exact recovery_items_valid syntaxMode envType recoveryEntries item hc
     · exact other_ok item ho
     · exact rule_items_valid rules item hr
   · exact initial
