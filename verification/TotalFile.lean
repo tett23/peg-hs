@@ -109,6 +109,23 @@ theorem invariant2_parseFile_pipeline_diagnostic (mode : Bool) (source : String)
   rw [PublicParsing.invariant1_translated_entry] at result
   exact result
 
+theorem invariant1_generated_module_requires_complete_parse (mode : Bool) (source moduleText : String)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String)
+    (generated : Pipeline.visible (Pipeline.pipeline ((parseFile mode source format).bind assemble)
+      resolve expand check notes strip warnings generate) = .ok moduleText) :
+    ∃ env, FileResult mode source.toList (.ok 0 env) := by
+  apply Classical.byContradiction
+  intro invalid
+  have rejected := (invariant2_parseFile_pipeline_diagnostic mode source invalid format assemble
+    resolve expand check notes strip warnings generate).2
+  rw [generated] at rejected
+  contradiction
+
+#print axioms invariant1_generated_module_requires_complete_parse
 #print axioms invariant2_parseFile_pipeline_diagnostic
 #print axioms invariant2_total_invalid_file
 #print axioms invariant1_total_public_entry
