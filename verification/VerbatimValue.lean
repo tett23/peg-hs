@@ -31,6 +31,26 @@ theorem invariant1_parameter_location {space alpha alnum src name ty}
   rw [source]
   exact (List.foldl_append ..).symm
 
+theorem invariant1_toParam_result (space alpha alnum : Char → Bool) (src : List Char)
+    (loc : α × Nat × Nat) :
+    match ParameterPredicates.classify space alpha alnum src with
+    | .formError => translatedToParam space alpha alnum loc src =
+        .error "expected a parameter of the form name :: Type"
+    | .typeError => translatedToParam space alpha alnum loc src =
+        .error "expected a parameter type"
+    | .ok name ty => ∃ a b, ParameterPredicates.splitParam src = some (a, b) ∧
+        translatedToParam space alpha alnum loc src =
+          .ok (name, translatedAdvanceLoc loc (a ++ [':', ':'] ++ b.takeWhile space), ty) := by
+  cases split : ParameterPredicates.splitParam src with
+  | none => simp [ParameterPredicates.classify, translatedToParam, split]
+  | some pair =>
+    obtain ⟨a, b⟩ := pair
+    cases ident : ParameterPredicates.identifier alpha alnum (ParameterPredicates.strip space a) <;>
+      cases empty : (ParameterPredicates.strip space b).isEmpty <;>
+      simp [ParameterPredicates.classify, translatedToParam, split, ident, empty]
+    exact ⟨a, b, ⟨rfl, rfl⟩, rfl⟩
+
+#print axioms invariant1_toParam_result
 #print axioms invariant1_parameter_location
 #print axioms invariant1_verbatim_value
 end PegHs.MetaExecution
