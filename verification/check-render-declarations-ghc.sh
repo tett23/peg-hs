@@ -14,14 +14,32 @@ if grep -q 'sorryAx' "$scratch/RenderDeclarationsGHC.log"; then
 fi
 
 cat > "$scratch/RenderDeclarationsSource.expected" <<'SOURCE'
+    valueOf = if syntax then "PegPrelude.fmap PegPrelude.fst " else ""
+    wrapValue e = if syntax then valueOf <> "(" <> e <> ")" else e
+    hasEnv = isJust (grammarEnv g)
+    fstName = if importsPrelude g then "PegPrelude.fst" else "Prelude.fst"
+    envType = maybe "()" (fragment src marker) (grammarEnv g)
+    resultType n = maybe "()" (ruleTypeFragment env) (M.lookup n (envRules env))
+    envArg = if hasEnv then " peg'env" else ""
+    envParamType = if hasEnv then "(" <> envType <> ") -> " else ""
+    entryDecls =
+      concat
+        [ [ "-- | Parse the whole input with the rule @" <> n <> "@."
           , entryName k <> " :: " <> envParamType <> "PegRt.Text -> PegPrelude.Either PegRt.ParseError (" <> resultType n <> ")"
           , entryName k <> envArg <> " peg'input ="
+          , "  " <> wrapValue (fstName <> " (PegRt.runParser peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " peg'input)")
+          , ""
+          ]
+        | (k, n) <- entries
+        , keep (entryName k)
+        ]
     [ ruleVar (ruleName r) <> " :: " <> T.concat ["(" <> fragmentEnv env (paramType p) <> ") -> " | p <- ruleParams r]
     , ruleVar (ruleName r) <> T.concat [" " <> paramName p | p <- ruleParams r] <> " ="
 SOURCE
-sed -n '/^    entryDecls =/,/^    syntaxEntryDecls/p' packages/peg-codegen/src/Peg/Codegen.hs |
-  grep -E '^          , entryName k <>|^    \[ ruleVar|^    , ruleVar' \
-  > "$scratch/RenderDeclarationsSource.actual.entry"
+sed -n '/^    valueOf =/,/^    hasEnv =/p
+        /^    fstName =/,/^    resultType n =/p
+        /^    envArg =/,/^    syntaxEntryDecls/{ /^    syntaxEntryDecls/!p; }' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderDeclarationsSource.actual.entry"
 sed -n '/^ruleDecl env r =/,/^  where/p' packages/peg-codegen/src/Peg/Codegen.hs |
   grep -E '^    \[ ruleVar|^    , ruleVar' \
   > "$scratch/RenderDeclarationsSource.actual.rule"
