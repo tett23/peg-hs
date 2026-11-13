@@ -424,6 +424,31 @@ def classLexemes (ranges : List (Char × Char)) (original : String) : List (Stri
   [("PegRt.cls ", Symbol.terminal 121), ("[", .terminal 105)] ++ inside ++
     [("] ", .terminal 106), (Peg.Verification.encodeLiteral original, .terminal 130)]
 
+private def rangeText (r : Char × Char) :=
+  "(" ++ Peg.Verification.encodeEndpoint r.1 ++ ", " ++ Peg.Verification.encodeEndpoint r.2 ++ ")"
+
+theorem class_lexemes_text (ranges : List (Char × Char)) (original : String) :
+    String.join ((classLexemes ranges original).map Prod.fst) =
+      "PegRt.cls [" ++ String.intercalate ", " (ranges.map rangeText) ++ "] " ++
+        Peg.Verification.encodeLiteral original := by
+  have fold (rs : List (Char × Char)) (acc : List (String × Symbol)) :
+      String.join ((rs.foldl appendRange acc).map Prod.fst) =
+        (rs.map rangeText).foldl (fun text item => text ++ ", " ++ item)
+          (String.join (acc.map Prod.fst)) := by
+    induction rs generalizing acc with
+    | nil => rfl
+    | cons r rs ih =>
+      simp [ih, appendRange, rangeLexemes, rangeText, String.append_assoc]
+  cases ranges with
+  | nil => simp [classLexemes, ← String.append_assoc]
+  | cons r rs =>
+    simp [classLexemes, RenderExpressionLexer.intercalate_cons, fold, rangeLexemes,
+      rangeText, String.append_assoc]
+    rw [← String.append_assoc]
+    rw [show "PegRt.cls " ++ "[" = "PegRt.cls [" by decide]
+
+#print axioms class_lexemes_text
+
 theorem class_lexemes_derive (ranges : List (Char × Char)) (original : String) :
     Derives productions [.nonterminal 211] ((classLexemes ranges original).map Prod.snd) := by
   have fold (rs : List (Char × Char)) (acc : List (String × Symbol)) :
