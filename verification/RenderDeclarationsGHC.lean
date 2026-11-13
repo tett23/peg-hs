@@ -333,6 +333,40 @@ theorem syntax_entry_body (hasEnv : Bool) :
 
 #print axioms syntax_entry_body
 
+theorem pair_argument {value errors : List Symbol}
+    (v : Derives productions [.nonterminal 229] value)
+    (e : Derives productions [.nonterminal 229] errors) :
+    Derives productions [.nonterminal 218]
+      ([.terminal 107] ++ value ++ [.terminal 114] ++ errors ++ [.terminal 108]) := by
+  have comma := applyRule (g := productions) (id := 839) (by rfl) (.refl _)
+  have suffix := applyRule (id := 604) (by rfl)
+    (beside comma (oneRule (id := 606) (by rfl) e))
+  have pair := applyRule (id := 600) (by rfl) (beside v suffix)
+  have atom := applyRule (id := 563) (by rfl)
+    (beside (.refl [.terminal 107]) (beside pair (.refl [.terminal 108])))
+  simpa [List.append_assoc] using
+    oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl) atom)
+
+def recoverResultWord (projectValue : Bool) : List Symbol :=
+  [.terminal 107] ++ (if projectValue then [.terminal 121, .terminal 121] else []) ++
+    [.terminal 117, .terminal 114, .terminal 117, .terminal 108]
+
+open RenderExpressionGHC in
+theorem recover_result (projectValue : Bool) :
+    Derives productions [.nonterminal 218] (recoverResultWord projectValue) := by
+  have name := aexp_to_texp varid_argument
+  cases projectValue
+  · exact pair_argument name name
+  · have fstArg := oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+      (oneRule (id := 555) (by rfl) (oneRule (id := 769) (by rfl)
+        (applyRule (g := productions) (id := 774) (by rfl) (.refl _)))))
+    have value := application (application qualified_function fstArg) varid_argument
+    have term := oneRule (id := 596) (by rfl) (oneRule (id := 520) (by rfl)
+      (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) value)))
+    exact pair_argument term name
+
+#print axioms recover_result
+
 -- PegRt.Text -> PegPrelude.Either PegRt.ParseError (resultType)
 def entryTypeWord (result : List Symbol) : List Symbol :=
   [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 107] ++

@@ -62,28 +62,7 @@ theorem pure_value_statement {value : List Symbol}
     RenderExpressionGHC.qualified_function value_ok
   exact one r658 (one r661 (one r520 (one r523 (one r528 applied))))
 
--- The syntax-tree backend returns the semantic value and its children as a pair.
-theorem pair_argument {value kids : List Symbol}
-    (v : Derives productions [.nonterminal 229] value)
-    (k : Derives productions [.nonterminal 229] kids) :
-    Derives productions [.nonterminal 218]
-      ([.terminal 107] ++ value ++ [.terminal 114] ++ kids ++ [.terminal 108]) := by
-  have comma : Derives productions [.nonterminal 322] [.terminal 114] := by
-    exact Derives.production (pre := []) (post := []) (id := 839) (rhs := [.terminal 114]) (by decide) (.refl _)
-  have tail := one (id := 606) (lhs := 232) (by decide) k
-  have suffix : Derives productions [.nonterminal 231] ([.terminal 114] ++ kids) := by
-    apply Derives.production (pre := []) (post := []) (id := 604) (rhs := [.nonterminal 322, .nonterminal 232]) (by decide)
-    exact trans (after [.nonterminal 232] comma) (before [.terminal 114] tail)
-  have pair : Derives productions [.nonterminal 230] (value ++ ([.terminal 114] ++ kids)) := by
-    apply Derives.production (pre := []) (post := []) (id := 600) (rhs := [.nonterminal 229, .nonterminal 231]) (by decide)
-    exact trans (after [.nonterminal 231] v) (before value suffix)
-  have arg : Derives productions [.nonterminal 220]
-      ([.terminal 107] ++ (value ++ ([.terminal 114] ++ kids)) ++ [.terminal 108]) := by
-    apply Derives.production (pre := []) (post := []) (id := 563) (rhs := [.terminal 107, .nonterminal 230, .terminal 108]) (by decide)
-    exact after [.terminal 108] (before [.terminal 107] pair)
-  have atom := one (id := 551) (lhs := 218) (by decide)
-    (one (id := 554) (lhs := 219) (by decide) arg)
-  simpa [List.append_assoc] using atom
+open RenderDeclarationsGHC (pair_argument)
 
 theorem pure_pair_statement {value kids : List Symbol}
     (v : Derives productions [.nonterminal 229] value)
