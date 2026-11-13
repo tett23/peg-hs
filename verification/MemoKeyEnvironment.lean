@@ -24,6 +24,22 @@ theorem argument_key_determines_callee (sites : Nat → Option CallSite)
     left right hsite harg
   simp [evalDepthArg, hdepth]
 
+-- Argument entry reconstructs the callee environment solely from the
+-- evaluated depth. Thus the actual rule computation at this offset can
+-- use the canonical environment even when callers have different captures.
+theorem argument_body_at_key (mode : Bool) (input : List Char)
+    (rule fuel offset depth : Nat) (sites : Nat → Option CallSite)
+    (site : Nat) (caller target source : String) (env : Env)
+    (found : sites site = some (caller, target, [source]))
+    (arg : depthArgOf source = some a)
+    (value : evalDepthArg env a = some depth) :
+    let ctx := MetaExecution.context mode input
+    (enterCall sites site env).bind (runFuel ctx fuel (ctx.rules rule) offset) =
+      runFuel ctx fuel (ctx.rules rule) offset {depth := depth} := by
+  simp [enterCall, found, arg, value]
+
+#print axioms argument_body_at_key
+
 -- For a no-argument call, the same rule/offset key does not itself imply
 -- observational equality of entry environments. A local capture can differ.
 theorem noarg_key_does_not_determine_observations :
