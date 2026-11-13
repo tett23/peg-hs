@@ -33,12 +33,25 @@ cat > "$scratch/RenderDeclarationsSource.expected" <<'SOURCE'
         | (k, n) <- entries
         , keep (entryName k)
         ]
+    syntaxEntryDecls
+      | syntax =
+          concat
+            [ [ "-- | Parse the whole input with the rule @" <> n <> "@ and return its lossless syntax tree."
+              , "parseSyntax" <> maybe "" id k <> " :: " <> envParamType <> "PegRt.Text -> PegPrelude.Either PegRt.ParseError PegRt.SyntaxNode"
+              , "parseSyntax" <> maybe "" id k <> envArg <> " peg'input ="
+              , "  PegPrelude.fmap (\\peg'r -> PegRt.syntaxRoot peg'input " <> kindVar n <> " (PegPrelude.snd peg'r)) (" <> fstName <> " (PegRt.runParser peg'config (peg'newStore" <> envArg <> ") " <> ruleVar n <> " peg'input))"
+              , ""
+              ]
+            | (k, n) <- entries
+            , keep ("parseSyntax" <> maybe "" id k)
+            ]
+      | otherwise = []
     [ ruleVar (ruleName r) <> " :: " <> T.concat ["(" <> fragmentEnv env (paramType p) <> ") -> " | p <- ruleParams r]
     , ruleVar (ruleName r) <> T.concat [" " <> paramName p | p <- ruleParams r] <> " ="
 SOURCE
 sed -n '/^    valueOf =/,/^    hasEnv =/p
         /^    fstName =/,/^    resultType n =/p
-        /^    envArg =/,/^    syntaxEntryDecls/{ /^    syntaxEntryDecls/!p; }' \
+        /^    envArg =/,/^    recoverEntryDecls/{ /^    recoverEntryDecls/!p; }' \
   packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderDeclarationsSource.actual.entry"
 sed -n '/^ruleDecl env r =/,/^  where/p' packages/peg-codegen/src/Peg/Codegen.hs |
   grep -E '^    \[ ruleVar|^    , ruleVar' \

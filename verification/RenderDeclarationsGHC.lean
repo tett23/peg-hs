@@ -287,6 +287,33 @@ theorem entry_body (hasEnv syntaxMode : Bool) :
 
 #print axioms entry_body
 
+def syntaxEntryBodyWord (hasEnv : Bool) : List Symbol :=
+  [.terminal 121, .terminal 107, .terminal 78, .terminal 117, .terminal 83,
+   .terminal 121, .terminal 117, .terminal 117, .terminal 107, .terminal 121,
+   .terminal 117, .terminal 108, .terminal 108, .terminal 107] ++
+    entryBodyWord hasEnv false ++ [.terminal 108]
+
+open RenderExpressionGHC in
+theorem syntax_entry_body (hasEnv : Bool) :
+    Derives productions [.nonterminal 211] (syntaxEntryBodyWord hasEnv) := by
+  have expr {w} (f : Derives productions [.nonterminal 217] w) :=
+    oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl) f))
+  have parens {w} (e : Derives productions [.nonterminal 211] w) :=
+    parenthesized (oneRule (id := 596) (by rfl) e)
+  have children := parens (expr (application qualified_function varid_argument))
+  have root := expr (application (application (application qualified_function varid_argument)
+    varid_argument) children)
+  have pat := oneRule (id := 642) (by rfl) (oneRule (id := 646) (by rfl) varid_argument)
+  have pats := applyRule (id := 644) (by rfl) (beside pat
+    (applyRule (g := productions) (id := 645) (by rfl) (.refl [])))
+  have callback := applyRule (id := 542) (by rfl) (beside (.refl [.terminal 78])
+    (beside pats (beside (.refl [.terminal 83]) root)))
+  have mapped := application qualified_function (parenthesized (aexp_to_texp callback))
+  simpa [syntaxEntryBodyWord, List.append_assoc] using
+    expr (application mapped (parens (entry_body hasEnv false)))
+
+#print axioms syntax_entry_body
+
 -- PegRt.Text -> PegPrelude.Either PegRt.ParseError (resultType)
 def entryTypeWord (result : List Symbol) : List Symbol :=
   [.terminal 122, .terminal 83, .terminal 122, .terminal 122, .terminal 107] ++
