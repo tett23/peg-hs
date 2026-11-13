@@ -278,11 +278,12 @@ theorem invariant2_parameter_chunks_throw (input : List Char) (n pos : Nat) (env
   exact .altLeft (.seqCarryThrow (Derives.bind call)) (by simp)
 
 set_option maxRecDepth 8192 in
-theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (initial : Env)
-    (sameInput : (before ++ ['(']) ++ xs = pre ++ ',' :: tail)
-    (comma : afterWhitespace xs = ',' :: tail) :
+theorem invariant2_parameter_list_first_throw (before xs : List Char) (initial : Env)
+    (pos : Nat) (label : String) (msg : Option String)
+    (chunk : Derives (context false (before ++ '(' :: xs)) translatedStrictParamChunk xs.length
+      {initial with resultDepth := 0} (.throwLabel pos label msg)) :
     Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
-      (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+      (.throwLabel pos label msg) := by
   let ctx := context false (before ++ '(' :: xs)
   let next := {initial with resultDepth := 0}
   have openTerm : ctx.terms 26 = some (.lit ['(']) := rfl
@@ -293,12 +294,20 @@ theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (
   have openStep : runFuel ctx 1 (.terminal 26) ('(' :: xs).length initial = some (.ok xs.length next) := by
     simp only [runFuel, openTerm, hit]
     simp [next]
-  have bad := invariant2_empty_parameter_before_comma (before ++ ['(']) xs pre tail next sameInput comma
-  have chunks := invariant2_parameter_chunks_throw _ _ _ _ _ _ bad
-  simp only [List.append_assoc, List.singleton_append] at chunks
+  have chunks := invariant2_parameter_chunks_throw _ _ _ _ _ _ chunk
   apply Derives.seqOk (invariant1_runFuel_sound openStep)
   exact Derives.call (ctx := ctx) (site := 43) (rule := 18) (env := next) (callee := next) (by rfl) chunks
 
+theorem invariant2_parameter_list_empty_first (before xs pre tail : List Char) (initial : Env)
+    (sameInput : (before ++ ['(']) ++ xs = pre ++ ',' :: tail)
+    (comma : afterWhitespace xs = ',' :: tail) :
+    Derives (context false (before ++ '(' :: xs)) translatedStrictParamList ('(' :: xs).length initial
+      (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
+  apply invariant2_parameter_list_first_throw
+  simpa only [List.append_assoc, List.singleton_append] using
+    invariant2_empty_parameter_before_comma (before ++ ['(']) xs pre tail {initial with resultDepth := 0} sameInput comma
+
+#print axioms invariant2_parameter_list_first_throw
 #print axioms invariant2_parameter_list_empty_first
 #print axioms invariant2_parameter_outcomes
 #print axioms invariant2_argcode_outcomes
