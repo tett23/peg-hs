@@ -77,6 +77,35 @@ theorem invariant2_unterminated_block_public (pre xs : List Char) (ends : List N
   subst reply
   rfl
 
+theorem invariant2_unterminated_block_no_module (pre xs : List Char) (ends : List Nat)
+    (missing : verbatimRest xs = [])
+    (items : let input := pre ++ '%' :: '{' :: xs
+      ItemStepsTo (context false input) (xs.length + 2) (afterWhitespace input).length ends)
+    (reply : Reply) (parsed : FileResult false (pre ++ '%' :: '{' :: xs) reply)
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    let input := pre ++ '%' :: '{' :: xs
+    let tops := PublicParsing.translatedPublic format (PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileEntry.start input reply))
+    Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
+      .error [format (.labelled "verbatim" (some "unterminated %{ block"))] := by
+  dsimp only
+  rw [invariant2_unterminated_block_public pre xs ends missing items reply parsed format]
+  rfl
+
+-- A preceding rule consumes its trailing newline before reaching the block.
+set_option maxRecDepth 20000 in
+example : FileResult false "S <- .\n%{body".toList
+    (.throwLabel 0 "verbatim" (some "unterminated %{ block")) := by
+  apply invariant2_unterminated_block_file "S <- .\n".toList "body".toList [6] (by decide)
+  refine ⟨?_, by decide +kernel, rfl⟩
+  apply invariant1_runFuel_sound (fuel := 256)
+  decide +kernel
+
+#print axioms invariant2_unterminated_block_no_module
 #print axioms invariant2_unterminated_block_public
 
 theorem invariant2_missing_directive_after_items (pre xs : List Char) (ends : List Nat)
