@@ -202,6 +202,32 @@ theorem passThroughAlternative_source (lead rest : List RenderPrimitiveDoGHC.Sta
   rw [passThroughAlternative, valueAlternative_source]
   simp [itemStatement, Option.filter, List.append_assoc]
 
+theorem constructor_value (fields : Nat) :
+    Derives productions [.nonterminal 218]
+      (if fields = 0 then [.terminal 118] else
+        [.terminal 107, .terminal 118] ++ List.replicate fields (.terminal 117) ++ [.terminal 108]) := by
+  have con : Derives productions [.nonterminal 218] [.terminal 118] := by
+    apply one (child := 219) (id := 551) (by decide)
+    apply one (child := 220) (id := 554) (by decide)
+    apply one (child := 274) (id := 556) (by decide)
+    apply one (child := 275) (id := 693) (by decide)
+    apply one (child := 315) (id := 695) (by decide)
+    apply one (child := 316) (id := 811) (by decide)
+    exact Derives.production (pre := []) (post := []) (rhs := [.terminal 118]) (id := 813) (by decide) (.refl _)
+  have args (n : Nat) : Derives productions [.nonterminal 217]
+      (.terminal 118 :: List.replicate n (.terminal 117)) := by
+    induction n with
+    | zero => exact one (child := 218) (id := 536) (by decide) con
+    | succ n ih =>
+      simpa [List.replicate_succ', List.append_assoc] using
+        RenderExpressionGHC.application ih RenderDeclarationsGHC.varid_argument
+  split
+  · exact con
+  · apply RenderExpressionGHC.parenthesized
+    exact one (child := 211) (id := 596) (by decide) (one (child := 212) (id := 520) (by decide)
+      (one (child := 214) (id := 523) (by decide) (one (child := 217) (id := 528) (by decide) (args fields))))
+
+#print axioms constructor_value
 #print axioms passThroughAlternative_source
 #print axioms valueAlternative_source
 #print axioms itemStatement
