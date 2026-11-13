@@ -1082,6 +1082,45 @@ theorem syntax_kind_binding :
   exact binding_named_infixexp (oneRule (id := 523) (by rfl) (oneRule (id := 528) (by rfl)
     (RenderExpressionGHC.application con number)))
 
+def triviaListWord : Nat → List Symbol
+  | 0 => [.terminal 105, .terminal 106]
+  | n + 1 => [.terminal 105, .terminal 117] ++
+      (List.replicate n [.terminal 114, .terminal 117]).flatten ++ [.terminal 106]
+
+open RenderExpressionGHC in
+theorem trivia_binding (count : Nat) :
+    Derives productions [.nonterminal 78]
+      (argumentsWord [[.terminal 117]] ++ [.terminal 77] ++
+        ([.terminal 121, .terminal 117] ++ triviaListWord count)) := by
+  have item := aexp_to_texp varid_argument
+  have list : Derives productions [.nonterminal 218] (triviaListWord count) := by
+    cases count with
+    | zero =>
+      exact oneRule (id := 551) (by rfl) (oneRule (id := 554) (by rfl)
+        (oneRule (id := 556) (by rfl) (oneRule (id := 694) (by rfl)
+          (applyRule (id := 709) (by rfl) (.refl _)))))
+    | succ n =>
+      cases n with
+      | zero => exact choice_list (oneRule (id := 608) (by rfl) item)
+      | succ n =>
+        have extend (k : Nat) {w} (h : Derives productions [.nonterminal 234] w) :
+            Derives productions [.nonterminal 234]
+              (w ++ (List.replicate k [.terminal 114, .terminal 117]).flatten) := by
+          induction k generalizing w with
+          | zero => simpa using h
+          | succ k ih =>
+            simpa [List.replicate_succ, commaAppend, List.append_assoc] using
+              ih (lexps_extend h item)
+        have pair := applyRule (id := 616) (by rfl) (beside item (beside (.refl [.terminal 114]) item))
+        simpa [triviaListWord, List.replicate_succ, List.append_assoc] using
+          choice_list (oneRule (id := 609) (by rfl) (extend n pair))
+  apply binding_named_arguments
+  · intro a h
+    exact List.mem_singleton.mp h ▸ varid_argument
+  · exact oneRule (id := 520) (by rfl) (oneRule (id := 523) (by rfl)
+      (oneRule (id := 528) (by rfl) (application (application qualified_function varid_argument) list)))
+
+#print axioms trivia_binding
 #print axioms syntax_node_newtype
 #print axioms syntax_kind_binding
 
