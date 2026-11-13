@@ -102,6 +102,31 @@ theorem invariant1_strict_ws_memo_reply (pre xs : List Char) (env : Env) (reply 
   · rintro rfl
     exact ⟨fuel, succeeded⟩
 
+-- The runtime table indexes by byte offset. Equal byte keys into the same
+-- input select the same suffix even when prefixes contain multibyte scalars.
+private theorem suffix_at_byte_key {p q xs ys : List Char}
+    (input : p ++ xs = q ++ ys) (key : p.utf8Encode.size = q.utf8Encode.size) :
+    xs = ys := by
+  have bytes := congrArg List.utf8Encode input
+  rw [List.utf8Encode_append, List.utf8Encode_append] at bytes
+  have suffix := congrArg (fun b : ByteArray => b.extract p.utf8Encode.size b.size) bytes
+  simp only [ByteArray.size_append] at suffix
+  rw [ByteArray.extract_append_eq_right rfl rfl,
+    ByteArray.extract_append_eq_right key rfl] at suffix
+  simpa using congrArg ByteArray.utf8Decode? suffix
+
+theorem invariant1_strict_ws_cache_hit {p q xs ys : List Char} (left right : Env)
+    (input : p ++ xs = q ++ ys) (key : p.utf8Encode.size = q.utf8Encode.size) :
+    let rest := (afterWhitespace xs).length
+    (∃ fuel, runFuel (context false (p ++ xs)) fuel ((context false (p ++ xs)).rules 4)
+      xs.length left = some (.ok rest {left with resultDepth := 0})) ∧
+    (∃ fuel, runFuel (context false (q ++ ys)) fuel ((context false (q ++ ys)).rules 4)
+      ys.length right = some (.ok rest {right with resultDepth := 0})) := by
+  obtain rfl := suffix_at_byte_key input key
+  exact ⟨(invariant1_strict_ws_memo_reply p xs left _).2 rfl,
+    (invariant1_strict_ws_memo_reply q xs right _).2 rfl⟩
+
+#print axioms invariant1_strict_ws_cache_hit
 #print axioms invariant1_strict_ws_memo_reply
 #print axioms invariant1_strict_whitespace_scan
 end PegHs.MetaExecution
