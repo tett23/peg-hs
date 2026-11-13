@@ -240,10 +240,23 @@ theorem printedConstructor_shape (name : String) (fields : List String) (clean :
   | nil => simp [printedConstructor, clean]
   | cons f fs => simp [printedConstructor]
 
+theorem constructor_name_no_space (name : String) (valid : RenderExpressionLexer.conId name = true) :
+    ' ' ∉ name.toList := by
+  cases chars : name.toList with
+  | nil => simp
+  | cons c cs =>
+    simp only [RenderExpressionLexer.conId, chars, Bool.and_eq_true, List.all_eq_true] at valid
+    intro mem
+    rcases List.mem_cons.mp mem with head | tail
+    · subst c
+      exact (by decide : RenderExpressionLexer.asciiUpper ' ' ≠ true) valid.1
+    · exact (by decide : RenderExpressionLexer.idTail ' ' ≠ true) (valid.2 _ tail)
+
 def constructorAlternative (stmts : List RenderPrimitiveDoGHC.Statement) (name : String)
     (fields : List String) : RenderPrimitiveChoice.Alternative :=
   valueAlternative stmts (printedConstructor name fields) _ (constructor_value fields.length)
 
+#print axioms constructor_name_no_space
 #print axioms printedConstructor_shape
 #print axioms constructor_value
 #print axioms passThroughAlternative_source
