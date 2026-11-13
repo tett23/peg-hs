@@ -117,6 +117,20 @@ def binderKeyword (words options : List String) (name : String) : Bool :=
     (extensionEnabled ["RecursiveDo", "DoRec"] options && ["mdo", "rec"].contains name) ||
     (extensionEnabled ["Arrows"] options && ["proc", "rec"].contains name)
 
+theorem invariant2_reserved_word_diagnostic (tree : BindingTree) (name rule : String)
+    (templates : List String) (tops : List Top) (p : Predicates)
+    (word : name ∈ grammarReservedWords) (notWildcard : name ≠ "_")
+    (occurs : tree.Binds name) (definition : Top.definitionWithBindings rule templates tree.names ∈ tops) :
+    ∃ ds, assemble tops {p with reservedBinder := binderKeyword grammarReservedWords (languageOptions tops)}
+      = .error ds ∧ diagnostic ⟨.reservedBinding, name⟩ ∈ ds := by
+  apply invariant2_nested_binder_reported tree name rule templates _ _ occurs tops definition
+  change binderKeyword grammarReservedWords (languageOptions tops) name = true
+  simp [binderKeyword, word, notWildcard]
+
+theorem invariant2_wildcard_not_reserved (options : List String) :
+    binderKeyword grammarReservedWords options "_" = false := by
+  simp [binderKeyword]
+
 theorem invariant2_extension_binder_diagnostic (tree : BindingTree) (name rule : String)
     (templates : List String) (tops : List Top) (p : Predicates)
     (occurs : tree.Binds name) (definition : Top.definitionWithBindings rule templates tree.names ∈ tops)
