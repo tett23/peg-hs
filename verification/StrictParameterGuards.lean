@@ -2,6 +2,7 @@ import SelfHostedFileProof
 import TerminalCursor
 import StrictWhitespaceScan
 import StrictIdentifier
+import StrictWhitespaceLexical
 
 namespace PegHs.MetaExecution
 open EnvironmentEval
@@ -505,11 +506,12 @@ private theorem templates_before_parameters (pre xs : List Char) (env : Env) :
 theorem invariant2_declaration_empty_parameter (pre : List Char) (c : Char) (cs xs tail : List Char)
     (env : Env) (valid : CharRule.identStart.accepts c = true)
     (afterName : cs.dropWhile CharRule.identChar.accepts = '(' :: xs)
-    (comma : afterWhitespace xs = ',' :: tail)
-    (commaPrefix : ∃ ws, xs = ws ++ ',' :: tail) :
+    (comma : afterWhitespace xs = ',' :: tail) :
     Derives (context false (pre ++ c :: cs)) translatedStrictDeclaration (c :: cs).length env
       (.throwLabel (',' :: tail).length "argument" (some "expected an argument")) := by
-  obtain ⟨ws, splitXs⟩ := commaPrefix
+  obtain ⟨ws, suffix⟩ := afterWhitespace_suffix xs
+  have splitXs := suffix.symm
+  rw [comma] at splitXs
   obtain ⟨here, name⟩ := invariant1_declaration_name pre c cs env valid
   rw [afterName] at name
   let namePrefix := pre ++ c :: cs.takeWhile CharRule.identChar.accepts
