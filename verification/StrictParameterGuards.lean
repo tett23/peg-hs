@@ -582,11 +582,9 @@ theorem invariant2_empty_parameter_no_module (pre : List Char) (c : Char) (cs xs
     tops = .error diagnostic ∧
       Pipeline.visible (Pipeline.pipeline (tops.bind assemble) resolve expand check notes strip warnings generate) =
         .error diagnostic := by
-  obtain ⟨_, _, unique⟩ := invariant1_file_result false _
-  have rejected := invariant2_file_empty_parameter pre c cs xs tail ends valid ordinary afterName comma items
-  have eq := (unique _ parsed).trans (unique _ rejected).symm
-  subst reply
-  exact ⟨rfl, rfl⟩
+  exact FileEntry.invariant2_labelled_file_diagnostic parsed
+    (invariant2_file_empty_parameter pre c cs xs tail ends valid ordinary afterName comma items)
+    format assemble resolve expand check notes strip warnings generate
 
 set_option maxRecDepth 20000 in
 example : FileResult false "%module Test\nRule( # comment\n ,)".toList
