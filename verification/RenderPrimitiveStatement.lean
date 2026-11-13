@@ -1,3 +1,4 @@
+import Literal
 import RenderExpressionGHC
 import RenderExpressionLexer
 import RenderDeclarationsGHC
@@ -348,6 +349,24 @@ theorem plain_syntax_body {body : List Symbol}
       ([.terminal 121, .terminal 107] ++ body ++ [.terminal 108]) :=
   function_expression (RenderExpressionGHC.application_parenthesized
     RenderExpressionGHC.qualified_function valid)
+
+-- exprCode renders both the decoded literal and its original spelling.
+-- The syntax-tree backend wraps that same application in PegRt.plain.
+theorem generated_literal_forms (value original : String) :
+    Peg.Verification.PegLitSyntax
+      ("PegRt.lit " ++ Peg.Verification.showStringModel value ++ " " ++
+        Peg.Verification.showStringModel original) ∧
+    Derives productions [.nonterminal 211] [.terminal 121, .terminal 130, .terminal 130] ∧
+    Derives productions [.nonterminal 211]
+      [.terminal 121, .terminal 107, .terminal 121, .terminal 130, .terminal 130, .terminal 108] := by
+  have body := function_expression (RenderExpressionGHC.application
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument)
+    string_argument)
+  exact ⟨by simpa [Peg.Verification.showStringModel_eq, Peg.Verification.renderPegLit] using
+    Peg.Verification.invariant3_pegLit_sound value original,
+    body, plain_syntax_body (one (id := 596) (by decide) body)⟩
+
+#print axioms generated_literal_forms
 
 theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List Symbol}
     (valid : Derives productions [.nonterminal 229] body) :
