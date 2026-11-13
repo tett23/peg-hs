@@ -18,6 +18,31 @@ def ghcConId (large tail : Char → Bool) (name : String) : Bool :=
   | [] => false
   | c :: cs => large c && cs.all tail
 
+-- Classify an isolated qualified variable, in Lexer.x rule order. The
+-- module part is already separated from the final identifier.
+inductive QualifiedVariableToken where
+  | qvarid | qualifiedDo | qualifiedMdo
+  deriving DecidableEq
+
+def qualifiedVariableToken (validModule : String → Bool) (small tail : Char → Bool)
+    (recursiveDo : Bool) (qual name : String) : Option QualifiedVariableToken :=
+  if validModule qual && ghcVarId small tail name then
+    if name == "do" then some .qualifiedDo
+    else if recursiveDo && name == "mdo" then some .qualifiedMdo
+    else some .qvarid
+  else none
+
+theorem invariant3_qualified_export_variable (validModule : String → Bool)
+    (small tail : Char → Bool) (recursiveDo : Bool) (qual name : String)
+    (module_ok : validModule qual = true) (var_ok : ghcVarId small tail name = true)
+    (notDo : name ≠ "do") (notMdo : recursiveDo = true → name ≠ "mdo") :
+    qualifiedVariableToken validModule small tail recursiveDo qual name = some .qvarid ∧
+      Derives productions [.nonterminal 47] [.terminal 121] := by
+  refine ⟨?_, export_qvarid⟩
+  cases recursiveDo <;> simp_all [qualifiedVariableToken]
+
+#print axioms invariant3_qualified_export_variable
+
 theorem generated_rule_var (tail : Char → Bool) (name : String)
     (prefixTail : ∀ c ∈ "eg'rule'".toList, tail c = true)
     (nameTail : ∀ c ∈ name.toList, tail c = true) :
