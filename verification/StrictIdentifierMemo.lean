@@ -43,24 +43,25 @@ theorem invariant1_identifier_memo_trace (input : List Char)
 
 theorem invariant1_identifier_memo_call (pre xs : List Char) (env : Env)
     (effects : Nat → Entry (List Char)) (enabled : Bool) (state : State)
-    (next : Result (List Char) → State → Calls Nat (List Char)) :
+    (prior : List Nat) (next : Result (List Char) → State → Calls Nat (List Char)) :
     let input := pre ++ xs
     let body := suffixEntry input (identResult input) effects
     let key := pre.utf8Encode.size
+    let prefixRun := runMemo enabled body prior state
     let entry := body key
     ∃ fuel reply, runFuel (context false input) fuel ((context false input).rules 8)
       xs.length env = some reply ∧ captureReply input xs.length reply = some entry.result ∧
-      runCalls enabled body (.call key next) [] state =
-        (entry.result :: (runCalls false body (next entry.result (replay state entry)) []
-          (replay state entry)).1, (runCalls false body (next entry.result (replay state entry))
-          [] (replay state entry)).2) := by
+      runCalls enabled body (.call key next) prefixRun.table prefixRun.state =
+        (entry.result :: (runCalls false body (next entry.result (replay prefixRun.state entry)) []
+          (replay prefixRun.state entry)).1, (runCalls false body (next entry.result (replay prefixRun.state entry))
+          [] (replay prefixRun.state entry)).2) := by
   dsimp only
   have valid := invariant1_identifier_memo_trace (pre ++ xs) effects enabled state
     [(pre, xs, env)] (by simp)
   obtain ⟨fuel, reply, observed, value⟩ := valid.2 (pre, xs, env) (by simp)
   refine ⟨fuel, reply, observed, ?_, ?_⟩
   · simpa [suffixEntry, List.utf8Encode_append, ByteArray.extract_append_eq_right] using value
-  · rw [runCalls_sound enabled _ _ [] state (empty_invariant _)]
+  · rw [runCalls_sound enabled _ _ _ _ (runMemo_invariant enabled _ prior state)]
     rfl
 
 #print axioms invariant1_identifier_memo_call
