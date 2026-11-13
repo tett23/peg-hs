@@ -96,11 +96,12 @@ theorem generated_module
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ decls.foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
-    Derives (layoutGrammar productions) [.nonterminal 32] finalTokens := by
+    Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have hLex := (trace_sound initial trace).2.2
   constructor
   · exact hLex
   · rw [tokens_match]
+    apply parse_module_source
     exact generated_with_imports name usesPegPrelude importsPrelude exports
       verbatimImports decls name_ok exports_ok verbatim_ok decls_ok
 
@@ -158,7 +159,7 @@ theorem generated_module_with_rules
         (generatedImports usesPegPrelude importsPrelude ++ verbatimImports).foldl
           semiAppend [] ++ (otherDecls ++ ruleItems rules).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
-    Derives (layoutGrammar productions) [.nonterminal 32] finalTokens := by
+    Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   apply generated_module lex first firstTokens chunks finalSource finalTokens name
     usesPegPrelude importsPrelude (RenderModuleGHC.moduleExports selected dataTypes userExports debugEntries) verbatimImports
     (otherDecls ++ ruleItems rules) name_ok

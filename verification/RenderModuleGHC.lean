@@ -521,6 +521,13 @@ theorem parse_module {tokens : List Symbol}
   have rule : productions 0 = some (0, [.nonterminal 32]) := by decide
   exact oneRule rule frame
 
+theorem parse_module_source {tokens : List Symbol}
+    (frame : Derives (layoutGrammar productions) [.nonterminal 32] tokens) :
+    Derives (layoutGrammar productions) [.nonterminal 0] tokens := by
+  have rule : layoutGrammar productions 0 = some (0, [.nonterminal 32]) := by decide
+  exact oneRule rule frame
+
+#print axioms parse_module_source
 #print axioms generated_imports_valid
 #print axioms generated_with_imports
 #print axioms exports_nonempty
