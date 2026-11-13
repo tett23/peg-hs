@@ -84,4 +84,19 @@ theorem invariant1_capture_value (before captured after : List Char) :
       (before.utf8Encode.size + captured.utf8Encode.size)).utf8Decode? = some captured.toArray := by
   rw [invariant1_capture_bytes, List.utf8Decode?_utf8Encode]
 
+-- posIn drops the bytes preceding the line and counts the code points
+-- through the queried offset. A tab contributes one code point.
+def columnAtBytes (input : ByteArray) (start off : Nat) : Option Nat :=
+  ((input.extract start off).utf8Decode?).map fun chars => chars.size + 1
+
+theorem invariant2_column_at_boundary (beforeLine linePrefix rest : List Char) :
+    columnAtBytes (beforeLine ++ linePrefix ++ rest).utf8Encode beforeLine.utf8Encode.size
+      (beforeLine.utf8Encode.size + linePrefix.utf8Encode.size) = some (linePrefix.length + 1) := by
+  unfold columnAtBytes
+  rw [invariant1_capture_value]
+  simp
+
+#print axioms invariant2_column_at_boundary
+
+
 end PegHs.Utf8Terminals

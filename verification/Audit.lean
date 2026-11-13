@@ -11,6 +11,7 @@ import ConcreteTables
 import MetagrammarPredicates
 import PredicateBindings
 import Guard
+import LineIndex
 import SemanticPredicates
 import EnvironmentEval
 import CaptureWindow
@@ -151,7 +152,7 @@ open Lean Elab Command in
 run_cmd do
   let env ← getEnv
   for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor,
-      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard,
+      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `LineIndex,
       `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
