@@ -858,6 +858,29 @@ theorem grouped_field_type {ty : List Symbol} (valid : Derives productions [.non
   exact oneRule (id := 379) (by rfl) (oneRule (id := 381) (by rfl)
     (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
 
+def ruleValueWord (syntaxMode : Bool) (ty : List Symbol) : List Symbol :=
+  if syntaxMode then
+    [.terminal 107] ++ groupedKeyParameter ty ++
+      [.terminal 114, .terminal 105, .terminal 122, .terminal 106, .terminal 108]
+  else groupedKeyParameter ty
+
+theorem rule_value_argument (syntaxMode : Bool) {ty : List Symbol}
+    (valid : Derives productions [.nonterminal 163] ty) :
+    Derives productions [.nonterminal 172] (ruleValueWord syntaxMode ty) := by
+  have grouped := applyRule (id := 412) (by rfl) (beside (.refl [.terminal 107])
+    (beside (oneRule (id := 374) (by rfl) valid) (.refl [.terminal 108])))
+  cases syntaxMode with
+  | false => simpa [ruleValueWord, groupedKeyParameter, List.append_assoc] using grouped
+  | true =>
+    let child := FieldType.list (.atomic qualifiedTypeAtom)
+    have tail := oneRule (id := 433) (by rfl) child.typeValid
+    simpa [ruleValueWord, groupedKeyParameter, FieldType.list, FieldType.atomic, child, List.append_assoc]
+      using applyRule (id := 407) (by rfl) (beside (.refl [.terminal 107])
+        (beside (oneRule (id := 374) (by rfl) (grouped_field_type valid))
+          (beside (.refl [.terminal 114]) (beside tail (.refl [.terminal 108])))))
+
+#print axioms rule_value_argument
+
 def keyParameterTail (first : List Symbol) : List (List Symbol) → List Symbol
   | [] => groupedKeyParameter first
   | next :: rest => groupedKeyParameter first ++ [.terminal 114] ++ keyParameterTail next rest

@@ -326,12 +326,12 @@ structure MemoTable where
 structure RenderRule extends RuleFragment where
   name : String
   valueType : List Symbol
-  value_ok : Derives productions [.nonterminal 172] valueType
+  value_ok : Derives productions [.nonterminal 163] valueType
 
-def RenderRule.memoTable (r : RenderRule) : MemoTable where
+def RenderRule.memoTable (syntaxMode : Bool) (r : RenderRule) : MemoTable where
   params := r.params.map fun p => if p.2 then [.terminal 107, .terminal 108] else p.1
-  result := r.valueType
-  result_ok := r.value_ok
+  result := ruleValueWord syntaxMode r.valueType
+  result_ok := rule_value_argument syntaxMode r.value_ok
   params_ok := by
     intro ty member
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp member
@@ -343,8 +343,8 @@ def RenderRule.memoTable (r : RenderRule) : MemoTable where
 def retainedRules (rules : List RenderRule) (keep : String → Bool) :=
   rules.filter fun r => keep ("peg'rule'" ++ r.name)
 
-def retainedTables (rules : List RenderRule) (keep : String → Bool) (noMemo : List String) :=
-  ((retainedRules rules keep).filter fun r => !noMemo.contains r.name).map RenderRule.memoTable
+def retainedTables (syntaxMode : Bool) (rules : List RenderRule) (keep : String → Bool) (noMemo : List String) :=
+  ((retainedRules rules keep).filter fun r => !noMemo.contains r.name).map (RenderRule.memoTable syntaxMode)
 
 def storeFieldTypes (env : CheckedEnvType) (tables : List MemoTable) : List (List Symbol) :=
   env.toList.map (fun e => groupedKeyParameter e.val) ++
@@ -573,7 +573,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables rules keep noMemo))) envType (retainedTables rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)).foldl semiAppend [])) :
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)).foldl semiAppend [])) :
     lex finalSource = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have name_ok : Derives productions [.nonterminal 321]
@@ -588,7 +588,7 @@ theorem generated_module_with_rules
           (selectRecoveryEntries recovering syntaxMode keep candidates) ++
         debugItems debug recovering syntaxMode envType start ++ syntaxItems syntaxMode (syntaxInputs.selected keep) ++
         configItems (keep "peg'config") explicitTabstop debug.noTraditionalRecordSyntax debug.enabled ++
-        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables rules keep noMemo))) envType (retainedTables rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)) name_ok
+        storeItems (keep "peg'newStore") (storeDeclarations debug.noTraditionalRecordSyntax (storeFieldTypes envType (retainedTables syntaxMode rules keep noMemo))) envType (retainedTables syntaxMode rules keep noMemo).length ++ ruleItems ((retainedRules rules keep).map RenderRule.toRuleFragment)) name_ok
     (RenderModuleGHC.module_exports_valid selected dataTypes userExports (debugExportKinds debug.enabled recovering syntaxMode).length user_ok) verbatim_ok
   · intro item member
     simp only [List.mem_append] at member
@@ -601,7 +601,7 @@ theorem generated_module_with_rules
     · exact debug_items_valid debug recovering syntaxMode envType start item hdebug
     · exact syntax_items_valid _ _ item hsyntax
     · exact config_items_valid _ _ _ _ item hconfig
-    · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ (store_field_types_valid envType (retainedTables rules keep noMemo))) item hstore
+    · exact store_items_valid _ _ _ _ (store_declarations_valid _ _ (store_field_types_valid envType (retainedTables syntaxMode rules keep noMemo))) item hstore
     · exact rule_items_valid _ item hr
   · exact initial
   · exact trace
