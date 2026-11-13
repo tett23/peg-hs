@@ -839,6 +839,29 @@ private theorem data_header : Derives productions [.nonterminal 105] [.terminal 
   exact oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
     (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) (oneRule (id := 390) (by rfl) atom))))
 
+-- Peg'Store has one type parameter even when it has no fields. In the
+-- positional form, data is retained for any number of constructor fields.
+private theorem store_header :
+    Derives productions [.nonterminal 105] [.terminal 118, .terminal 117] := by
+  have param := oneRule (id := 401) (by rfl) (oneRule (id := 760) (by rfl)
+    (applyRule (g := productions) (id := 762) (by rfl) (.refl [.terminal 117])))
+  have app := applyRule (id := 392) (by rfl)
+    (beside (oneRule (id := 390) (by rfl) unqualifiedTypeAtom)
+      (oneRule (id := 394) (by rfl) param))
+  exact oneRule (id := 238) (by rfl) (oneRule (id := 381) (by rfl)
+    (oneRule (id := 386) (by rfl) (oneRule (id := 387) (by rfl) app)))
+
+theorem positional_store_declaration (fields : ConstructorFields) :
+    Derives productions [.nonterminal 78]
+      ([.terminal 6, .terminal 118, .terminal 117, .terminal 77] ++ fields.word) := by
+  have kw := applyRule (g := productions) (id := 222) (by rfl) (.refl [.terminal 6])
+  have capi := applyRule (g := productions) (id := 245) (by rfl) (.refl [])
+  have decl := applyRule (id := 169) (by rfl) (beside kw (beside capi (beside store_header
+    (beside (data_constructors fields []) (data_deriving [])))))
+  simpa [constructorTail, derivingClause] using oneRule (id := 153) (by rfl) decl
+
+#print axioms positional_store_declaration
+
 theorem data_declaration (first : ConstructorFields) (rest : List ConstructorFields)
     (classes : List Bool) : Derives productions [.nonterminal 78] (dataDeclWord first rest classes) := by
   have kw : Derives productions [.nonterminal 99]
