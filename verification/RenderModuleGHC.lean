@@ -465,6 +465,39 @@ theorem generated_imports_valid (usesPegPrelude importsPrelude : Bool) :
   cases usesPegPrelude <;> cases importsPrelude <;>
     simp_all [generatedImports]
 
+-- Shapes of generatedNames after selection, class data types, user exports,
+-- and debugNames, in the order used by the module printer.
+inductive GeneratedExport
+  | value
+  | typeWithConstructors
+
+def GeneratedExport.tokens : GeneratedExport → List Symbol
+  | .value => [.terminal 117]
+  | .typeWithConstructors => [.terminal 118, .terminal 107, .terminal 74, .terminal 108]
+
+def moduleExports (selected : List GeneratedExport) (dataTypes : Nat)
+    (userExports : List (List Symbol)) (debugEntries : Nat) : List (List Symbol) :=
+  selected.map GeneratedExport.tokens ++
+    List.replicate dataTypes GeneratedExport.typeWithConstructors.tokens ++
+    userExports ++ List.replicate debugEntries GeneratedExport.value.tokens
+
+theorem module_exports_valid (selected : List GeneratedExport) (dataTypes : Nat)
+    (userExports : List (List Symbol)) (debugEntries : Nat)
+    (user_ok : ∀ e ∈ userExports, Derives productions [.nonterminal 47] e) :
+    ∀ e ∈ moduleExports selected dataTypes userExports debugEntries,
+      Derives productions [.nonterminal 47] e := by
+  intro e member
+  simp only [moduleExports, List.mem_append, List.mem_map, List.mem_replicate] at member
+  rcases member with (((⟨shape, _, rfl⟩ | ⟨_, rfl⟩) | user) | ⟨_, rfl⟩)
+  · cases shape
+    · exact export_varid
+    · exact export_constructor_all
+  · exact export_constructor_all
+  · exact user_ok _ user
+  · exact export_varid
+
+#print axioms module_exports_valid
+
 theorem generated_with_imports (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
     (exports verbatimImports decls : List (List Symbol))
     (name_ok : Derives productions [.nonterminal 321] name)
