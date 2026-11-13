@@ -241,6 +241,33 @@ theorem invariant2_argcode_outcomes (input : List Char) (n : Nat) (env : Env) :
     exact .inl ⟨rest, _, invariant1_success_remaining_le call rest _ rfl, call⟩
   | throwLabel pos name msg => exact .inr ⟨pos, name, msg, call⟩
 
+theorem invariant2_parameter_outcomes (before xs : List Char) (initial : Env) :
+    ∃ reply, Derives (context false (before ++ xs)) translatedStrictParamChunk xs.length initial reply ∧
+      reply ≠ .fail := by
+  let input := before ++ xs
+  let env := bindHere {initial with resultDepth := 0}
+  rcases invariant2_argcode_outcomes input (afterWhitespace xs).length env with
+    ⟨rest, parsed, bound, code⟩ | ⟨pos, label, msg, code⟩
+  · have scan := invariant1_strict_whitespace_scan before xs initial
+    have le := invariant1_success_remaining_le scan _ _ rfl
+    have within : rest ≤ input.length := by simp [input]; omega
+    let k := input.length - rest
+    have splitInput : before ++ xs = input.take k ++ input.drop k := (List.take_append_drop k input).symm
+    have len : (input.drop k).length = rest := by simp [k]; omega
+    have adapted : Derives (context false (input.take k ++ input.drop k)) (.call 49 51)
+        (afterWhitespace xs).length env (.ok (input.drop k).length parsed) := by
+      rw [← splitInput, len]; exact code
+    have full := invariant2_parameter_rule_reply before xs _ _ splitInput initial parsed adapted
+    rw [← splitInput] at full
+    refine ⟨_, full, ?_⟩
+    split
+    · simp
+    · split <;> try simp
+      unfold parameterDelimiterReply
+      split <;> simp
+  · exact ⟨_, invariant2_parameter_code_throw before xs initial pos label msg code, by simp⟩
+
+#print axioms invariant2_parameter_outcomes
 #print axioms invariant2_argcode_outcomes
 #print axioms invariant2_argcode_ne_fail
 #print axioms invariant2_empty_parameter_before_comma
