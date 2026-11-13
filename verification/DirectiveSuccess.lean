@@ -108,6 +108,29 @@ theorem invariant1_directive_top_item (pre : List Char) (c : Char) (cs : List Ch
   have item : Derives ctx (ctx.rules 1) n {} (.ok (afterWhitespace rest).length {}) := .seqOk oneCall wsCall
   exact Derives.call (callee := {}) (by rfl) item
 
+def afterDirectiveItem (cs : List Char) : List Char :=
+  afterWhitespace (((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace)
+    |>.dropWhile (· != '\n'))
+
+theorem invariant1_directive_item_progress (cs : List Char) :
+    (afterDirectiveItem cs).length < cs.length + 2 := by
+  let names := cs.dropWhile CharRule.identChar.accepts
+  let raw := names.dropWhile PegVerification.isInlineSpace
+  let rest := raw.dropWhile (· != '\n')
+  have ws := invariant1_success_remaining_le (invariant1_strict_whitespace_scan [] rest {}) _ _ rfl
+  have namesLe := (List.dropWhile_suffix CharRule.identChar.accepts (l := cs)).length_le
+  have rawLe := (List.dropWhile_suffix PegVerification.isInlineSpace (l := names)).length_le
+  have restLe := (List.dropWhile_suffix (· != '\n') (l := raw)).length_le
+  change (afterWhitespace rest).length < cs.length + 2
+  exact Nat.lt_of_le_of_lt (Nat.le_trans ws (Nat.le_trans restLe (Nat.le_trans rawLe namesLe))) (by omega)
+
+theorem invariant1_directive_then_items (pre : List Char) (c : Char) (cs : List Char)
+    (start : CharRule.identStart.accepts c = true) {stop : Nat} {finalEnv : Env}
+    (tail : TopItems (context false (pre ++ '%' :: c :: cs))
+      (afterDirectiveItem cs).length {} stop finalEnv) :
+    TopItems (context false (pre ++ '%' :: c :: cs)) (cs.length + 2) {} stop finalEnv :=
+  .next (invariant1_directive_top_item pre c cs start) (invariant1_directive_item_progress cs) tail
+
 -- For a single directive the raw argument may extend all the way to EOF.
 theorem invariant1_single_directive_file (c : Char) (cs : List Char)
     (start : CharRule.identStart.accepts c = true)
