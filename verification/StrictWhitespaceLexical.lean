@@ -40,6 +40,10 @@ private theorem sameRemainder (fuel : Nat) (xs : List Char) (enough : xs.length 
             ih (cs.dropWhile PegVerification.beforeNewline) (by omega)
         · simp [space, hash]
 
+theorem afterWhitespace_suffix (xs : List Char) : (afterWhitespace xs).IsSuffix xs := by
+  rw [← sameRemainder (xs.length + 1) xs (by omega)]
+  exact PegVerification.invariant1_ws_suffix _ _ _
+
 theorem invariant1_strict_ws_lexical_reply (pre xs : List Char) (env : EnvironmentEval.Env) :
     ∃ suffix, PegVerification.run PegVerification.whitespaceExpr xs = .ok suffix ∧
       EnvironmentEval.Derives (context false (pre ++ xs)) translatedStrictWs xs.length env

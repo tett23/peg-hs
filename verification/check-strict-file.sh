@@ -17,10 +17,11 @@ lean -DwarningAsError=true -o "$work/StrictDirective.olean" StrictDirective.lean
 lean -DwarningAsError=true -o "$work/StrictComment.olean" StrictComment.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
-lean -DwarningAsError=true StrictWhitespaceLexical.lean
+lean -DwarningAsError=true -o "$work/StrictWhitespaceLexical.olean" StrictWhitespaceLexical.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
+lean -DwarningAsError=true DirectiveSequence.lean
 lean -DwarningAsError=true -o "$work/DirectiveSourceDiagnostic.olean" DirectiveSourceDiagnostic.lean
 sh check-directive-arity.sh "$work"
 
