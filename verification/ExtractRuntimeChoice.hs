@@ -135,6 +135,15 @@ main = do
       putStrLn "def translatedPredicate (test : Nat → Bool) (column n : Nat) (unitValue : Env) : Reply :="
       putStrLn ("  if " ++ test ++ " then .ok n unitValue else .fail")
     _ -> die "unsupported semantic predicate"
+  case body "anyChar = " of
+    ["anyChar = P $ \\c i ->", "  if i < ctxLen c", success, "    else failAt c i ExpectedAny"] -> do
+      end <- case success of
+        "    then let TU.Iter _ d = TU.iter (ctxInput c) i in pure (Ok (i + d) ())" -> pure "i + width"
+        "    then let TU.Iter _ d = TU.iter (ctxInput c) i in pure (Ok (i + 1) ())" -> pure "i + 1"
+        _ -> die "unsupported anyChar success"
+      putStrLn "def translatedAnyChar (bytes i width : Nat) : Option Nat :="
+      putStrLn ("  if i < bytes then some (" ++ end ++ ") else none")
+    _ -> die "unsupported anyChar"
   putStrLn "end PegHs.EnvironmentEval"
   where
     branch prefix line = case stripPrefix prefix line of
