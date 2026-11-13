@@ -164,6 +164,21 @@ theorem invariant2_strict_public_rejection (source : String)
   rw [invariant2_parseFile_rejects_iff]
   exact not_congr (exists_congr fun env => (invariant1_strict_recursive_file _ (.ok 0 env)).symm)
 
+-- A terminating translated evaluation determines the public outcome,
+-- including the precise trailing-input byte offset or labelled failure.
+theorem invariant1_strict_public_reply (source : String) (fuel : Nat) (reply : Reply)
+    (observed : runFuel (strictContext source.toList) fuel translatedStrictFile
+      source.toList.length {} = some reply)
+    (format : PublicParsing.Failure → String) :
+    parseFile false source format = PublicParsing.entry source.toList.utf8Encode.size
+      (FileEntry.start source.toList reply) format := by
+  have parsed := (invariant1_strict_recursive_file source.toList reply).mp ⟨fuel, observed⟩
+  obtain ⟨_, _, unique⟩ := invariant1_file_result false source.toList
+  have same := (unique _ (recognizeFile false source.toList).property).trans (unique _ parsed).symm
+  rw [invariant1_parseFile_entry, same]
+
+#print axioms invariant1_strict_public_reply
+
 #print axioms invariant1_strict_public_acceptance
 #print axioms invariant2_strict_public_rejection
 
