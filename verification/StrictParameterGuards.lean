@@ -588,6 +588,16 @@ theorem invariant2_empty_parameter_no_module (pre : List Char) (c : Char) (cs xs
   subst reply
   exact ⟨rfl, rfl⟩
 
+set_option maxRecDepth 20000 in
+example : FileResult false "%module Test\nRule( # comment\n ,)".toList
+    (.throwLabel 2 "argument" (some "expected an argument")) := by
+  apply invariant2_file_empty_parameter "%module Test\n".toList 'R' "ule( # comment\n ,)".toList
+    " # comment\n ,)".toList ")".toList ["Rule( # comment\n ,)".length]
+    (by decide +kernel) (by decide) (by decide +kernel) (by decide +kernel)
+  refine ⟨?_, by decide +kernel, rfl⟩
+  apply invariant1_runFuel_sound (fuel := 256)
+  decide +kernel
+
 #print axioms invariant2_empty_parameter_no_module
 #print axioms invariant2_file_empty_parameter
 #print axioms invariant2_top_item_declaration_throw
