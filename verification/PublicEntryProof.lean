@@ -88,6 +88,35 @@ theorem invariant2_mergePairs_length {A} (greater : A → A → Bool) (runs : Li
 
 #print axioms invariant2_mergePairs_length
 
+private theorem mergePairs_count_le {A} (gt : A → A → Bool) (runs : List (List A)) :
+    (mergePairs gt runs).length ≤ runs.length := by
+  induction runs using mergePairs.induct with
+  | case1 => simp_all [mergePairs] <;> omega
+  | case2 xs h => cases xs with
+    | nil => exact Nat.le_refl _
+    | cons a tail => cases tail with
+      | nil => exact Nat.le_refl _
+      | cons b rest => exact False.elim (h a b rest rfl)
+
+private def mergeAllRuns {A} (gt : A → A → Bool) : List (List A) → List A
+  | [] => []
+  | [run] => run
+  | a :: b :: rest => mergeAllRuns gt (mergePairs gt (a :: b :: rest))
+termination_by runs => runs.length
+decreasing_by
+  simp only [mergePairs, List.length_cons]
+  have := mergePairs_count_le gt rest
+  omega
+
+theorem invariant2_mergeAll_length {A} (gt : A → A → Bool) (runs : List (List A)) :
+    (mergeAllRuns gt runs).length = runs.flatten.length := by
+  induction runs using mergeAllRuns.induct gt with
+  | case1 | case2 => simp [mergeAllRuns]
+  | case3 a b rest ih =>
+    rw [mergeAllRuns, ih, invariant2_mergePairs_length]
+
+#print axioms invariant2_mergeAll_length
+
 -- Data.List.sortOn decorates each element with its key, sorts the pairs,
 -- and projects the original elements. Only the length matters to rejection.
 theorem invariant2_sortOn_length {A K} (key : A → K)
