@@ -164,6 +164,30 @@ theorem knownRuleNames_member {n : Nat} (names : Fin n → String)
     name ∈ knownRuleNames names known ↔ ∃ i, names i = name ∧ known i = true := by
   simp [knownRuleNames, List.mem_map, List.mem_filter, and_comm]
 
+def lookupRuleNames {n : Nat} (names : Fin n → String) : RuleLookup n :=
+  fun name => (List.finRange n).find? fun i => names i == name
+
+theorem lookupRuleNames_correct {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (name : String) (i : Fin n) :
+    lookupRuleNames names name = some i ↔ names i = name := by
+  constructor
+  · intro found
+    exact beq_iff_eq.mp (List.find?_some (p := fun k => names k == name) found)
+  · intro target
+    have existsResult : ∃ j, lookupRuleNames names name = some j := by
+      cases result : lookupRuleNames names name with
+      | some j => exact ⟨j, rfl⟩
+      | none =>
+        have absent := List.find?_eq_none.mp result
+        have impossible := absent i (by simp)
+        simp [target] at impossible
+    obtain ⟨j, found⟩ := existsResult
+    have named : names j = name := beq_iff_eq.mp (List.find?_some (p := fun k => names k == name) found)
+    have same := distinct (named.trans target.symm)
+    simpa [same] using found
+
+#print axioms lookupRuleNames_correct
+
 theorem knownRuleNames_lookup {n : Nat} (names : Fin n → String)
     (lookup : RuleLookup n)
     (indexed : ∀ name i, lookup name = some i ↔ names i = name)
@@ -302,6 +326,27 @@ decreasing_by
   omega
 
 #print axioms nullableUntilStable_correct
+
+theorem invariant2_named_nullable_result {n : Nat} (names : Fin n → String)
+    (distinct : Function.Injective names) (recovery : RecoveryLookup n)
+    (rules : Fin n → List (List Expr)) :
+    let lookup := lookupRuleNames names
+    let result := nullableUntilStable lookup recovery rules 0 (Nat.zero_le n)
+    (∀ name, name ∈ knownRuleNames names result ↔
+      (lookup name).any (directRounds lookup recovery rules n) = true) ∧
+    (∀ name, name ∈ knownRuleNames names (directNext lookup recovery rules result) ↔
+      name ∈ knownRuleNames names result) := by
+  dsimp only
+  rw [nullableUntilStable_correct]
+  constructor
+  · intro name
+    exact knownRuleNames_lookup names (lookupRuleNames names)
+      (lookupRuleNames_correct names distinct) _ name
+  · rw [direct_rounds_rule_count_fixed]
+    intro name
+    rfl
+
+#print axioms invariant2_named_nullable_result
 
 def computedLanguageNullable {n : Nat} (lookup : RuleLookup n)
     (rules : Fin n → List (List Expr)) : Expr → Bool :=
