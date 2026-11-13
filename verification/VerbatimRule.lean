@@ -71,6 +71,27 @@ private theorem rest_suffix (xs : List Char) : ∃ consumed, xs = consumed ++ ve
       obtain ⟨consumed, eq⟩ := ih
       exact ⟨c :: consumed, by simpa [verbatimRest, h] using congrArg (List.cons c) eq⟩
 
+-- The generated action reads b from the capture environment. Recover the
+-- original source as that exact capture followed by the unconsumed suffix.
+theorem invariant1_verbatim_capture_split (pre xs : List Char) (env : Env) :
+    let captured := (afterCapture (pre ++ '%' :: '{' :: xs) xs env).lookup "b"
+    xs = captured ++ verbatimRest xs := by
+  obtain ⟨body, split⟩ := rest_suffix xs
+  have lengths := congrArg List.length split
+  simp only [List.length_append] at lengths
+  have width : xs.length - (verbatimRest xs).length = body.length := by omega
+  have capture : matchedText (pre ++ '%' :: '{' :: xs) xs.length (verbatimRest xs).length = body := by
+    unfold matchedText
+    simp only [List.length_append, List.length_cons, width]
+    rw [show pre.length + (xs.length + 1 + 1) - xs.length = pre.length + 2 by omega]
+    rw [List.drop_append]
+    simp only [List.drop_of_length_le (show pre.length ≤ pre.length + 2 by omega), List.nil_append,
+      Nat.add_sub_cancel_left]
+    change xs.take body.length = body
+    conv => lhs; rw [split]
+    simp
+  simpa [afterCapture, Env.lookup, Env.putDepth, Env.put, capture] using split
+
 -- A certificate may check an isolated block ending in }% once and replay it
 -- with any following grammar text without traversing the following input.
 theorem invariant1_verbatim_rest_append (xs tail extra : List Char)
