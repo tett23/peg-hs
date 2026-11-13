@@ -452,12 +452,12 @@ def classifyAccess (token inlineRule : String → Bool) : TemplateSubstitution.E
 
 structure SyntaxRule where
   name : String
-  isInline : Bool
-  isToken : Bool
   alternatives : List (List (Option String × TemplateSubstitution.Expr))
 
 structure SyntaxInputs where
   rules : List SyntaxRule
+  tokens : List String
+  inlineRules : List String
   trivia : List String
   toUpper : Char → Char
   toLower : Char → Char
@@ -469,10 +469,10 @@ private def mapFirst (f : Char → Char) (name : String) : String :=
   | c :: cs => String.ofList (f c :: cs)
 
 def SyntaxInputs.selected (inputs : SyntaxInputs) (keep : String → Bool) : List SyntaxDeclaration :=
-  let token := fun n => inputs.rules.any fun r => r.name == n && r.isToken
-  let inlineRule := fun n => inputs.rules.any fun r => r.name == n && r.isInline
-  let kinds := inputs.rules.filter fun r => !r.isInline
-  let nodes := kinds.filter fun r => !r.isToken
+  let token := inputs.tokens.contains
+  let inlineRule := inputs.inlineRules.contains
+  let kinds := inputs.rules.filter fun r => !inlineRule r.name
+  let nodes := kinds.filter fun r => !token r.name
   let upper := mapFirst inputs.toUpper
   let lower := mapFirst inputs.toLower
   (kinds.filter fun r => keep ("syntaxKind" ++ upper r.name)).map (fun _ => .kind) ++
