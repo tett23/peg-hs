@@ -1,6 +1,6 @@
 # ADR 0099: 編集応答時間の中央値が 16 ms を超えたら CI から issue を立てる
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

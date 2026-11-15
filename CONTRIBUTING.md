@@ -34,12 +34,12 @@ After cloning, install [adr-guard](https://github.com/tett23/adr-guard) and enab
 adr-guard is a tool that checks that committed ADRs and benchmark records have not changed (see "ADRs and adr-guard").
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.10.0
+cargo install --git https://github.com/tett23/adr-guard --tag v0.13.1
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` is needed in every clone.
-Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)).
+Keep the version of adr-guard the same as the one in CI (`.github/workflows/adr.yml`) ([ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)).
 
 The tests of the editor grammars (see "Tests of the editor grammars") need the LTS version of Node.
 
@@ -135,13 +135,13 @@ ADRs live in `docs/adr/`.
 
 - Write an ADR before implementing. Features and specification changes without an ADR are not accepted
 - Name the file `NNNN-kebab-case.md`, where `NNNN` is the next number after the existing ADRs and the rest is an English name that tells what it is about
-- Write ADRs in Japanese. Set the status to 提案 (proposed)
+- Write ADRs in Japanese. Set the status line to `Status: proposed`
 - Include the following sections. Add a section for changes to data structures or algorithms, and for anything worth keeping as a record of the discussion
 
 ```
 # ADR NNNN: Title
 
-ステータス: 提案
+Status: proposed
 
 ## 文脈 (context)
 
@@ -157,8 +157,8 @@ ADRs live in `docs/adr/`.
 ### Review and adoption
 
 - Do not commit a new ADR; it is reviewed first
-- Once adopted, set its status to 採択 (adopted) and commit it
-- An ADR that is adopted but not yet implemented (for example, when its implementation is split into several pull requests) is committed with the status 採択（未実装） (adopted, not implemented), and its status is changed to 採択 when the implementation is done. `adr-guard unimplemented` lists the ADRs whose status is 採択（未実装） ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md))
+- Once adopted, commit it with `Status: proposed` first, and change its status to `accepted` in a later commit. adr-guard rejects a new ADR committed with any other status ([ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md))
+- An ADR that is adopted but not yet implemented (for example, when its implementation is split into several pull requests) gets the status `accepted-pending`, and its status is changed to `accepted` when the implementation is done. `adr-guard unimplemented` lists the ADRs whose status is `accepted-pending` ([ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md), [ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md))
 - When adopting an ADR that changes the notation, update both `docs/syntax.md` and `docs/syntax.en.md` in the same commit, and add the ADR to the lists of reflected ADRs at their tops
 - When an ADR changes the specification, update `docs/specifications.md` and the README (both the English and the Japanese version) at the same time. These three must always be up to date on main
 - When the way of development changes, update this document (both the Japanese and the English version) at the same time
@@ -166,9 +166,11 @@ ADRs live in `docs/adr/`.
 ### Committed ADRs do not change
 
 - A committed ADR cannot be changed, except for its status line and changes to links only (adding or removing a link, or changing its target). adr-guard checks this in the pre-commit hook and in the `adr` job of CI
-- An ADR has exactly one status line, a line starting with `ステータス:`. adr-guard rejects an ADR with no status line or with two or more ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md))
-- To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as 採択→(the changed part)は ADR NNNN
-- To discard an ADR, set its status to 破棄 (discarded) and write the reason in `docs/specifications.md`
+- An ADR has exactly one status line, a line starting with `Status:`. adr-guard rejects an ADR with no status line or with two or more ([ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md))
+- The status line has the form `Status: <token>`, where the token is `proposed`, `accepted`, `accepted-pending`, `rejected`, `discarded`, `deprecated`, or `superseded [<JSON array of changes>]`. A change is written as `{"by":[<paths of the amending ADRs from the repository root>],"part":<name of the changed part or null>}` ([ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md))
+- The pre-commit hook and the `adr` job of CI check the state transitions of status lines (from `proposed` to `accepted`, from `accepted` to `superseded`, and so on). `--allow-status`, `ADR_GUARD_ALLOW` and the commit trailer do not exempt a change from this check ([ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md))
+- To change a decision, write a new ADR with the change. Rewrite the status line of the original ADR as `Status: superseded [{"by":["docs/adr/NNNN-....md"],"part":"<the changed part>"}]`
+- To discard an ADR, set its status to `discarded` and write the reason in `docs/specifications.md`
 - When an implementation could not follow its ADR, or took a different form, write an ADR that records it (for example [ADR 0015](docs/adr/0015-implementation-deviations.md), [ADR 0025](docs/adr/0025-lua-toml-implementation-deviations.md), [ADR 0029](docs/adr/0029-label-safety-implementation-deviations.md))
 
 ### Links to ADRs

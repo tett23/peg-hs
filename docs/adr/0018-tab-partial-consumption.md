@@ -1,6 +1,6 @@
 # ADR 0018: 論理桁の受け渡しでタブの部分消費を表し、CommonMark に全件適合する
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

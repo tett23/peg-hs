@@ -1,6 +1,6 @@
 # ADR 0057: CI で確かめる GHC を ghcup の recommended の版だけにする
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

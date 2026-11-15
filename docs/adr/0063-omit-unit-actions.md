@@ -1,6 +1,6 @@
 # ADR 0063: 型が () の規則で、値のない選択肢のアクションを省略する
 
-ステータス: 採択→単位の要素が一つの選択肢の値は [ADR 0064](0064-unit-rules-always-return-unit.md)、lint の知らせの水準と表示は [ADR 0067](0067-lint-info-with-verbose.md)
+Status: superseded [{"by":["docs/adr/0064-unit-rules-always-return-unit.md"],"part":"単位の要素が一つの選択肢の値"},{"by":["docs/adr/0067-lint-info-with-verbose.md"],"part":"lint の知らせの水準と表示"}]
 
 ## 文脈
 

@@ -1,6 +1,6 @@
 # ADR 0093: UTF-8 のバイト列を入力の Text に直す関数を peg-runtime に置く
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

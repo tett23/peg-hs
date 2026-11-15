@@ -1,6 +1,6 @@
 # ADR 0045: v0.1.0 の前に直す使い勝手と移植性
 
-ステータス: 採択→CI で確かめる GHC の版は [ADR 0057](0057-recommended-ghc-only.md)
+Status: superseded [{"by":["docs/adr/0057-recommended-ghc-only.md"],"part":"CI で確かめる GHC の版"}]
 
 ## 文脈
 

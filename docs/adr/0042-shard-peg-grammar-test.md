@@ -1,6 +1,6 @@
 # ADR 0042: peg-grammar-test を複数のジョブに分けて動かす
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

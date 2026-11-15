@@ -1,6 +1,6 @@
 # ADR 0013: 実装の順序、ツールチェーン、メモ表のデータ構造
 
-ステータス: 採択→成長中の項目の破棄は [ADR 0024](0024-discard-seed-dependents-only.md)
+Status: superseded [{"by":["docs/adr/0024-discard-seed-dependents-only.md"],"part":"成長中の項目の破棄"}]
 
 ## 文脈
 

@@ -1,6 +1,6 @@
 # ADR 0097: Lean で hpeg の構文解析と生成した Haskell の構文を検証する
 
-ステータス: 採択（未実装）
+Status: accepted-pending
 
 ## 文脈
 

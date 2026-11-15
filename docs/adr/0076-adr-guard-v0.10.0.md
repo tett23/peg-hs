@@ -1,6 +1,6 @@
 # ADR 0076: adr-guard を v0.10.0 に上げる
 
-ステータス: 採択
+Status: superseded [{"by":["docs/adr/0100-adr-guard-v0.13.1.md"],"part":"adr-guard の版（v0.13.1）"}]
 
 ## 文脈
 

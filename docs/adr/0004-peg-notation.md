@@ -1,6 +1,6 @@
 # ADR 0004: .peg 記法を確定する
 
-ステータス: 採択→型が () の規則のアクションの省略は [ADR 0063](0063-omit-unit-actions.md)、型注釈の省略は [ADR 0066](0066-omit-unit-type-annotations.md)
+Status: superseded [{"by":["docs/adr/0063-omit-unit-actions.md"],"part":"型が () の規則のアクションの省略"},{"by":["docs/adr/0066-omit-unit-type-annotations.md"],"part":"型注釈の省略"}]
 
 ## 文脈
 

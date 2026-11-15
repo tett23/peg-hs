@@ -1,6 +1,6 @@
 # ADR 0025: Lua と TOML の適合性テストの実装で ADR から外れた点
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

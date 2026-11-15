@@ -1,6 +1,6 @@
 # ADR 0011: CommonMark パーサーを生成し、表現力の限界を測る
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 
