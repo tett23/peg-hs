@@ -1,6 +1,6 @@
 # ADR 0028: ラベルの安全性を静的に検査する
 
-ステータス: 採択→安全性の定義と記法の文法の変更は [ADR 0029](0029-label-safety-implementation-deviations.md)
+Status: superseded [{"by":["docs/adr/0029-label-safety-implementation-deviations.md"],"part":"安全性の定義と記法の文法の変更"}]
 
 ## 文脈
 

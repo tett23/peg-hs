@@ -1,6 +1,6 @@
 # ADR 0039: CI を速くする
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

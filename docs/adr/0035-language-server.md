@@ -1,6 +1,6 @@
 # ADR 0035: 文法ファイルの言語サーバー（peg-hs lsp）
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

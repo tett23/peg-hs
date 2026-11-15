@@ -1,6 +1,6 @@
 # ADR 0017: %nomemo を実装する
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

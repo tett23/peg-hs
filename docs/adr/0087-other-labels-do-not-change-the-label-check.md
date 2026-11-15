@@ -1,6 +1,6 @@
 # ADR 0087: ほかのラベルがラベルの検査の判定を変えないようにする
 
-ステータス: 採択→二つめの例とテスト設計の該当の項は [ADR 0088](0088-correct-the-second-example-of-adr-0087.md)
+Status: superseded [{"by":["docs/adr/0088-correct-the-second-example-of-adr-0087.md"],"part":"二つめの例とテスト設計の該当の項"}]
 
 ## 文脈
 

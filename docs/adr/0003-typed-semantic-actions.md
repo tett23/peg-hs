@@ -1,6 +1,6 @@
 # ADR 0003: 型付きセマンティックアクションと規則別メモレコード
 
-ステータス: 採択→汎用 CST を作らない（実装しないこと）は [ADR 0019](0019-lossless-syntax-tree.md)
+Status: superseded [{"by":["docs/adr/0019-lossless-syntax-tree.md"],"part":"汎用 CST を作らない（実装しないこと）"}]
 
 ## 文脈
 

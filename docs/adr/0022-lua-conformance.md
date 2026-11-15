@@ -1,6 +1,6 @@
 # ADR 0022: Lua 5.5 の文法で左再帰を実用の規模で検証する
 
-ステータス: 採択→意味の誤りとした変異の扱いは [ADR 0025](0025-lua-toml-implementation-deviations.md)
+Status: superseded [{"by":["docs/adr/0025-lua-toml-implementation-deviations.md"],"part":"意味の誤りとした変異の扱い"}]
 
 ## 文脈
 

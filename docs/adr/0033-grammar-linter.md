@@ -1,6 +1,6 @@
 # ADR 0033: 文法ファイルの lint（peg-hs lint）
 
-ステータス: 採択→偽陽性のテストで比べる失敗の報告は [ADR 0049](0049-lint-false-positive-test-and-expected-sets.md)
+Status: superseded [{"by":["docs/adr/0049-lint-false-positive-test-and-expected-sets.md"],"part":"偽陽性のテストで比べる失敗の報告"}]
 
 ## 文脈
 

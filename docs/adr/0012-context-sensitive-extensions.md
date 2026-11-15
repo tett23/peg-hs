@@ -1,6 +1,6 @@
 # ADR 0012: 意味述語、引数付き規則、解析環境、桁の参照を記法に加える
 
-ステータス: 採択→タブの部分消費（実装しないこと）は [ADR 0018](0018-tab-partial-consumption.md)
+Status: superseded [{"by":["docs/adr/0018-tab-partial-consumption.md"],"part":"タブの部分消費（実装しないこと）"}]
 
 ## 文脈
 

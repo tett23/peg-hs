@@ -1,6 +1,6 @@
 # ADR 0048: Hackage へのアップロードのコマンドと、peg-cli の Haddock の tarball を正す
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

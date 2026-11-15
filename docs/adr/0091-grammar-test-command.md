@@ -1,6 +1,6 @@
 # ADR 0091: 文法を入力の例で試すコマンド（peg-hs test）
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

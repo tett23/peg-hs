@@ -1,6 +1,6 @@
 # ADR 0019: ロスレスな構文木を生成する
 
-ステータス: 採択→エラー回復（実装しないこと）は [ADR 0021](0021-error-recovery.md)
+Status: superseded [{"by":["docs/adr/0021-error-recovery.md"],"part":"エラー回復（実装しないこと）"}]
 
 ## 文脈
 

@@ -1,6 +1,6 @@
 # ADR 0037: peg-hs のコマンドをサブコマンドに分ける
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

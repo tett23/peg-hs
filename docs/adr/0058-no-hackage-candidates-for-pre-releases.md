@@ -1,6 +1,6 @@
 # ADR 0058: プレリリースを Hackage に上げない
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 
