@@ -113,6 +113,8 @@ import LayoutDerivation
 import RenderComposition
 import RenderFinalize
 import RenderFinalizeModule
+import PublicGeneration
+import PublicGenerationGHC
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
 import RenderExpressionBoundary
@@ -291,6 +293,8 @@ def auditedModules : List Lean.Name := [
   `PredicateBindings,
   `PrefixReplay,
   `PublicEntryProof,
+  `PublicGeneration,
+  `PublicGenerationGHC,
   `PublicParsing,
   `Reachable,
   `RecursiveEval,
