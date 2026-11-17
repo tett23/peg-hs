@@ -252,8 +252,23 @@ feat(cli): take --name=value in every option that takes a value (ADR 0046)
 CI consists of three workflows.
 
 `.github/workflows/ci.yml` runs on pushes to main and on pull requests.
-It does not run for changes of `docs/` and Markdown files only ([ADR 0039](docs/adr/0039-faster-ci.md)).
 A new push to a pull request stops the run of the previous push.
+
+The first job, **changes**, decides with `scripts/ci-changes.mjs` whether the change needs the build and the tests ([ADR 0101](docs/adr/0101-run-ci-for-documents-that-tests-read.md)).
+On a pull request it reads the diff from the merge base to the head; on a push to main, the diff from the commit before the push.
+When every path in the diff is a document (a file under `docs/` or a `.md` file) and none of them is in the list of inputs, the build and test jobs are skipped.
+The list of inputs holds the documents that a build or a test reads; it is now as follows (a `*` matches one name without a `/`).
+
+- `docs/syntax.md`, `docs/syntax.en.md`, `README.md`, `README.ja.md`: tests read the syntax guide and the examples of the README
+- `editors/README.md`: goes into the copy of the editor grammars
+- `conformance/commonmark/tabs/*.md`: inputs of the CommonMark tab checks
+- `docs/audits/2026-11-07-inj-module.hpeg.txt`: a test of peg-cli reads it
+- `packages/*/CHANGELOG.md`: goes into the source archives of the packages
+
+A change that makes a test or a build read a document adds its path to the list of inputs in `scripts/ci-changes.mjs` in the same change.
+A change that removes the test or the build that reads a path of the list removes the path from the list in the same change.
+When the decision fails, the **changes** job and the **ci** job fail.
+The **ci** job gathers the results of the other jobs and is the check that main requires ([ADR 0072](docs/adr/0072-required-checks-for-auto-merge.md)).
 
 - **haskell**: builds every package, and checks the grammars of the repository with `peg-hs fmt --check` and `peg-hs lint`, that the six packages have one version (`python3 scripts/versions.py check`), and each package with `cabal check`
 - **test-grammar-1, test-grammar-2, test-grammar-3**: run peg-grammar-test in parts, `--shard 1/3` to `--shard 3/3` ([ADR 0042](docs/adr/0042-shard-peg-grammar-test.md))

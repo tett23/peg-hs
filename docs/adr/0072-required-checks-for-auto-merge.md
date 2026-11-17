@@ -1,6 +1,6 @@
 # ADR 0072: 自動マージのために、必須のチェックを一つにまとめる
 
-Status: accepted
+Status: superseded [{"by":["docs/adr/0101-run-ci-for-documents-that-tests-read.md"],"part":"変更の判定"}]
 
 ## 文脈
 

@@ -1,15 +1,15 @@
 name: CI
 
-# A change of documents only (docs/** and **.md) does not change what the
-# code and the tests do; the ADR workflow still checks it (ADR 0039). A push
-# to main skips the workflow by paths-ignore. A pull request always runs it,
-# the job changes skips the other jobs, and the job ci reports one result,
-# the check that main requires with adr (ADR 0072). Keep the two conditions
-# the same.
+# Every pull request and every push to main runs the workflow. The job
+# changes runs scripts/ci-changes.mjs, which skips the build and the tests
+# when the change has only documents (docs/** and **.md) that no build or
+# test reads; the list of the documents that they read is in that script
+# (ADR 0101). The job ci reports one result, the check that main requires
+# with adr (ADR 0072). The ADR workflow checks every change, documents
+# included.
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
   pull_request:
 
 permissions:
@@ -32,7 +32,7 @@ env:
   GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
 
 jobs:
-  # Whether the pull request changes anything besides documents (ADR 0072).
+  # Whether the change needs the build and the tests (ADR 0072, ADR 0101).
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -42,25 +42,25 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - id: diff
-        env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
-            code=true
-          elif git diff --name-only "$BASE...$HEAD" | grep -v -e '^docs/' -e '\.md$' > /dev/null; then
-            code=true
-          else
-            code=false
-          fi
-          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
-        if: github.event_name == 'pull_request' && steps.diff.outputs.code == 'true'
         with:
           node-version: lts/*
+      - name: Test the decision of the changes
+        run: node --test scripts/ci-changes.test.mjs
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            code=$(node scripts/ci-changes.mjs "$(git merge-base "$BASE" "$HEAD")" "$HEAD")
+          else
+            code=$(node scripts/ci-changes.mjs "$BEFORE" "$GITHUB_SHA")
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
       - name: Test LSP median monitoring
-        if: github.event_name == 'pull_request' && steps.diff.outputs.code == 'true'
+        if: steps.diff.outputs.code == 'true'
         run: node --test scripts/lsp-median*.test.mjs scripts/lsp-monitor-changes.test.mjs
 
   haskell:
@@ -497,7 +497,8 @@ jobs:
 
   # One result for the branch protection of main (ADR 0072): it fails when a
   # job failed or was cancelled, and passes when every job passed or was
-  # skipped because only documents changed. A new job goes to needs.
+  # skipped because the change needs no build (ADR 0101). A new job goes to
+  # needs.
   ci:
     needs: [changes, haskell, test, haddock, sdist, hooks, editors, wasm, lsp-latency]
     if: always()
