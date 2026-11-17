@@ -93,6 +93,7 @@ import AssembleBindings
 import NestedBindings
 import ImportResolution
 import LabelPropagation
+import LabelCheckTheorems
 import InnerGeneration
 import InnerUnicode
 import Pragmas
@@ -251,6 +252,10 @@ def auditedModules : List Lean.Name := [
   `InnerUnicode,
   `ItemSourceSplit,
   `ItemWindow,
+  `LabelCheckCharSet,
+  `LabelCheckModel,
+  `LabelCheckTermination,
+  `LabelCheckTheorems,
   `LabelPropagation,
   `LabeledConcreteBody,
   `LayoutDerivation,
