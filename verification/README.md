@@ -45,6 +45,17 @@
 
 [RenderComposition.lean](RenderComposition.lean) は、生成器が組み立てる部品を GHC 9.10.3 のモジュール規則に合成し、出力のトークン列に開始記号からの導出があることを示す。`generated_module_verbatim` と `generated_module_with_rules_verbatim` は、埋め込みブロックが import 宣言だけでなくトップレベル宣言も含む場合を扱う。`Codegen.render` は各ブロックを分割せずに、ソースの順で生成した import と生成した宣言のあいだに置く。そのため、トークン列は、生成した import、各ブロックのトークン、生成した宣言の順に並ぶ。[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の埋め込みコードの前提は `verbatim_split` と二つの要素の前提になる。ブロックのトークンを連結した列は、import 宣言の並びとトップレベル宣言の並びをこの順に連ねたものであり、各要素が GHC の `importdecl` と `topdecl` から導出できる、という前提である。lexer に関する `initial`、`trace`、`tokens_match` の前提は残る。[check-render-composition.sh](check-render-composition.sh) は `render` の並び、`verbatimBlock` の定義、`grammarVerbatim` がブロックをソースの順に集める行を実ソースと照合する。さらに、import と宣言を含むブロックと規則の後のブロックを持つ文法から実際に生成したモジュールで、ブロックの行がこの位置にこの順で並ぶことを確かめ、GHC で検査する。
 
+[RenderFinalize.lean](RenderFinalize.lean) と [RenderFinalizeModule.lean](RenderFinalizeModule.lean) は、RenderComposition.lean の結論を、公開の入口が実際に返すテキストまで延ばす。`Codegen.generate` が返すのは `render` の出力ではなく、それに `finalize` をかけたものである。`finalize` は、`fragment` と `verbatimBlock` が利用者のコードの後に置いた復帰マーカーの行を、生成したファイルの次の行を指す LINE プラグマに置き換え、末尾に改行を足す。RenderFinalize.lean は `Data.Text.lines`、`Data.Text.unlines`、`finalize`、`freshRestoreMarker` が選ぶマーカー、`render` の先頭の行（二行のコメント、LANGUAGE プラグマ、OPTIONS_GHC プラグマ）をモデルにする。`finalize_lex` は、`finalize` の出力の字句が `render` の出力の字句と等しいことを示す。`finalize_render_header` は、先頭のコメントとプラグマの行が、変わらずに同じ順でファイルの先頭に残ることを示す。`finalize_line_numbers` は、i + 1 行目のマーカーを置き換えた LINE プラグマが i + 2 行目を指すことを示す。RenderFinalizeModule.lean の `generated_module_finalized`、`generated_module_with_rules_finalized`、`generated_module_with_rules_finalized_header` は、`generated_module_verbatim` と `generated_module_with_rules_verbatim` の結論を `finalize` の出力について述べ直す。つまり、その字句の列が GHC のモジュールの開始記号から導出できる。
+
+これらの定理には、次の前提が残る。
+
+- RenderComposition.lean の lexer の前提（`initial`、`trace`、`tokens_match`）と、埋め込みコードの前提。
+- `eof`: `render` の出力の末尾に足した改行は字句を足さない。
+- `steps`: マーカーの行を、それまでの行を置き換えたテキストの中でその LINE プラグマの行に置き換えても、字句は変わらない。どちらの行も GHC が字句にしないプラグマである。あらゆる文脈で同じことを述べる `MarkerLine` からは、`transparent_of_marker_line` が `steps` を導く。
+- `source_ok`、`languages_ok`、`shown_ok`: 文法のファイル名、`%language` の引数、`show` した出力のファイル名は改行を含まない。`generate` は制御文字を含むファイル名を拒み、Peg.hpeg の指示の引数は `(!'\n' .)*` であり、`show` は改行をエスケープする。
+
+[check-render-finalize.sh](check-render-finalize.sh) は、モデルを実装に結びつける。まず `finalize`、`freshRestoreMarker`、`generate` の二回の `render`、`fragment` の定義、`runtimeVersions` の値を実ソースと照合する。次に、7 個の文法（埋め込みブロックと最初のマーカーと同じ行を持つ文法、`%module` を区切った名前にした文法、テンプレート、回復のラベル、`%language`、`%env`、`--export` で宣言を省いた文法、PegSyntax.hpeg）から実際にモジュールを生成する。各モジュールで、出力のファイルの次の行を指す LINE プラグマをマーカーに戻したテキストに Lean の `finalize` を実行し、結果が生成したファイルとバイト単位で一致することを確かめる。先頭の行が `headerLines` と一致することも確かめる。さらに、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 の字句のトレーサーで、マーカーを戻したテキスト（末尾の改行がある場合とない場合）と生成したファイルの字句の番号の列が等しいことを確かめる。これは、生成したモジュールについて `eof` と `steps` を合わせたものを GHC で確かめることにあたる。
+
 ソースの抽出・照合スクリプトと、そこで使う Haskell の構文の読み取り方は信頼する前提である。
 
 [CertifiedPublicFiles.lean](CertifiedPublicFiles.lean) は、`Peg.hpeg` と `PegSyntax.hpeg` の現行の内容を `parseTops` のモデルが受理することを証明する。`parseTops` はどの hpeg ファイルも `Peg.hpeg` の文法 (モード `false`) で読むので、`invariant1_public_syntax_as_peg` は `PegSyntax.hpeg` をこの文法で受理することを示す。`invariant1_public_syntax` は、`PegSyntax.hpeg` を自身の規則の表 (モード `true`) で受理することを示す。各ファイルの導出の証明書は [SplitMetaFile.lean](SplitMetaFile.lean) が項目ごとに書き出し、[check-file-items.sh](check-file-items.sh) が検査する。[CheckItemSources.lean](CheckItemSources.lean) は、証明書の入力が実際のファイルの内容と一致することを確かめる。
