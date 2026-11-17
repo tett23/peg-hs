@@ -15,8 +15,10 @@ trap 'rm -f "$expected" "$actual"' EXIT HUP INT TERM
 sed -n '/^assemble ::/,/^-- | Whether a text is a path/p' "$source_file" |
   sed '$d' > "$actual"
 [ "$(git hash-object --stdin < "$actual")" = eb078d6e35ca244df172c988214424d89222a8c0 ]
-# Predicate and splitting helpers (including stringArg/decodeString) are
-# opaque in Lean. Pin them too so that a semantic change stops this check.
+# The predicates, splitting helpers and stringArg/decodeString are translated
+# in AssemblePredicates and AssembleValidationHelpers and probed by
+# check-assemble-predicates.sh and check-assemble-validation-helpers.sh.
+# Pin the whole file too so that any semantic change stops this check.
 [ "$(git hash-object "$source_file")" = abf4ddbda63b2428fb8a275b43d5b3efe8ef0ff3 ]
 
 cat > "$expected" <<'SOURCE'

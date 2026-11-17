@@ -16,7 +16,7 @@ export LEAN_PATH="$work"
 runghc-9.10.3 -Werror ExtractReservedWords.hs ../packages/peg-grammar/src/Peg/Grammar.hs > "$work/GrammarReservedWords.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/GrammarReservedWords.olean" "$work/GrammarReservedWords.lean"
 
-for module in Guard LineIndex Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
+for module in Guard LineIndex Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleChars AssemblePredicates AssembleBindings AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 runghc-9.10.3 -Werror ExtractSimpleEscapes.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedEscapes.lean"
@@ -54,6 +54,7 @@ verification/check-pipeline.sh
 verification/check-public-parsing.sh "$work"
 verification/check-assemble-validation.sh
 verification/check-assemble-validation-helpers.sh
+verification/check-assemble-predicates.sh "$work"
 verification/check-directive-comment.sh "$work"
 verification/check-rule-rejection.sh
 verification/check-rule-rejection-nullable.sh
