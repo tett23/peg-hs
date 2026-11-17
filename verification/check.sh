@@ -103,6 +103,8 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/FileItemChain.olean" FileItemChain.lean &&
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
   lean -DwarningAsError=true -o "$work/TotalFile.olean" TotalFile.lean &&
+  lean -DwarningAsError=true -o "$work/FileTops.olean" FileTops.lean &&
+  ./check-file-tops.sh "$work" &&
   ./check-strict-file.sh "$work" &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
   ./check-file-items.sh "$work" &&
