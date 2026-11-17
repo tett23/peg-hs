@@ -4,7 +4,8 @@ namespace PegHs.MemoTables
 open MemoRecognition
 
 -- Extensional views of IntMap Entry and IntMap (Map argument Entry).
--- The Haskell source checker pins the concrete IM/M operations. We assume
+-- ExtractRuntimeCore.hs translates the IM/M operations of memo and memoArg;
+-- RuntimeCore.lean models the containers by lookup (premise R2). We assume
 -- the standard lookup/insert/left-biased-union laws of those containers.
 abbrev MemoTable (α : Type) := Nat → Option (Entry α)
 abbrev ArgTable (κ α : Type) := Nat → κ → Option (Entry α)

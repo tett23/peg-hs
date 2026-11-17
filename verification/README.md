@@ -43,6 +43,23 @@
 
 [RenderComposition.lean](RenderComposition.lean) は、生成器が組み立てる部品を GHC 9.10.3 のモジュール規則に合成し、出力のトークン列に開始記号からの導出があることを示す。`generated_module_verbatim` と `generated_module_with_rules_verbatim` は、埋め込みブロックが import 宣言だけでなくトップレベル宣言も含む場合を扱う。`Codegen.render` は各ブロックを分割せずに、ソースの順で生成した import と生成した宣言のあいだに置く。そのため、トークン列は、生成した import、各ブロックのトークン、生成した宣言の順に並ぶ。[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の埋め込みコードの前提は `verbatim_split` と二つの要素の前提になる。ブロックのトークンを連結した列は、import 宣言の並びとトップレベル宣言の並びをこの順に連ねたものであり、各要素が GHC の `importdecl` と `topdecl` から導出できる、という前提である。lexer に関する `initial`、`trace`、`tokens_match` の前提は残る。[check-render-composition.sh](check-render-composition.sh) は `render` の並び、`verbatimBlock` の定義、`grammarVerbatim` がブロックをソースの順に集める行を実ソースと照合する。さらに、import と宣言を含むブロックと規則の後のブロックを持つ文法から実際に生成したモジュールで、ブロックの行がこの位置にこの順で並ぶことを確かめ、GHC で検査する。
 
+生成したパーサーが呼ぶランタイム `Peg.Runtime.Internal` は、[ExtractRuntimeCore.hs](ExtractRuntimeCore.hs) が Lean に翻訳する。対象は、メモ化（`memo`、`memoArg`、`nomemo`、`evalBody`、`replay`、`logUndo` など）、制御の組み合わせ子（モナドの連接、`choice`、`many`、`skipMany`、`optional`、`andP`、`notP`、`labeledWith`、`expecting`）、端末（`lit`、`cls`、`anyChar`）、公開入口の `runParser` と `defaultConfig` である。抽出器は関数ごとに、ソースの行または行の並びを Lean の行へ写す辞書を持ち、辞書にない行があると翻訳を止める。行を消したり並べ替えたりした変更は翻訳を通るので、正しいかどうかは証明が決める。翻訳先の型と ST の参照のモデルは [RuntimeCore.lean](RuntimeCore.lean) に置き、抽出器はそこで写したデータ宣言をソースと照合する。
+
+翻訳した定義についての定理は [RuntimeCoreProof.lean](RuntimeCoreProof.lean) にある。`invariant1_translated_memo_step` と `invariant1_translated_memoArg_step` は、翻訳した `memo` と `memoArg` が [MemoRecognition.lean](MemoRecognition.lean) の `memoStep` と同じ結果と状態を返すことを示す。`invariant1_translated_memo_off_same` は、メモ化の有無と hit・miss によらず、結果、最遠の失敗、依存、エラーの記録が一致することを示す。回復しない構文解析では、連接、選択、`optional`、ラベル、先読みの結果が [LabelPropagation.lean](LabelPropagation.lean) のフレームと先読みに一致し、`many` と `skipMany` は 1 回の反復ごとの式を満たす。端末の `lit`、`cls`、`anyChar` は、スカラー値の境界で `ConcreteTerminal.matchTerm` と同じ入力を受理する。`expecting` は翻訳するが、定理はない。`invariant1_translated_runParser_entry` は、`runParser` が値を返すことと、開始規則の結果を `PublicParsing.entry` に渡して成功することが同値であることを示す。これらの定理により、`check-public-parsing.sh` と `check-memo-recognition.sh` にあったランタイムの SHA-256 の照合を外した。
+
+[check-runtime-core.sh](check-runtime-core.sh) は翻訳と証明を検査し、さらに変異で検査の強さを確かめる。辞書にない五つの変更は翻訳で拒否される。`replay` の失敗の再生、`evalBody` の失敗の記録の初期化、`notP` の失敗の記録の復元、`runParser` の入力末尾の期待の追加の四つを消した変更は、翻訳を通るが証明で拒否される。生成した `parse` が `runParser` を `defaultConfig` で呼ぶことは、[check-public-parsing.sh](check-public-parsing.sh) が生成ソースの該当行と照合する。
+
+ただし、ランタイムの翻訳には次の前提が残る。
+
+- ST は世界の状態の遷移として写し、`newCtx` が作る参照は互いに別の固定の欄とする。メモ表は生成したストアの中を指す参照とし、miss の後に表を読み戻す定理はその参照のレンズ則を仮定する。
+- `Data.Set`、`Data.IntSet`、`Data.IntMap`、`Data.Map` は所属と検索の関数で写す。
+- `Text` は Unicode スカラー値の UTF-8 符号化とし、オフセットを 0 に正規化した Lean の `String` で写す。`T.pack` は恒等、`TU.lengthWord8` はバイト長、`TA.unsafeIndex` は範囲内のバイトの読み出し、`TU.iter` はバイト位置から始まるスカラー値の復号とする。最後の二つは [CheckUtf8Runtime.hs](CheckUtf8Runtime.hs) が実ライブラリで確かめる。
+- 位置はバイトオフセットのまま扱い、行と列への変換は [LineIndex.lean](LineIndex.lean) が別に証明する。
+- `ctxLogs` に積む取り消しの動作は消して写す。取り消しを実行する `endIteration` と、それを呼ぶ `memoLR` は翻訳しない。メタ文法のパーサーが `memoLR` を使わないことは [check-memo-meta.sh](check-memo-meta.sh) が確かめる。
+- メモ化の定理は、回復と計数が無効であること、成長の反復が走っていないこと（`ctxLogs` が空）、規則本体が失敗の記録と依存を空にして始めたときに同じ結果を返すこと（`BodySpec`）、表の項目が本体を評価した結果に等しいこと（キャッシュの不変条件）を仮定に置く。
+- `lit` の比較の繰り返しは、Lean の停止性の証明のために `k < n` の分岐を足す。`go 0` から呼ぶかぎり、足した分岐には到達しない。
+- 繰り返しの `many` と `skipMany` の定義には Lean の `partial_fixpoint` を使う。
+
 ソースの抽出・照合スクリプトと、そこで使う Haskell の構文の読み取り方は信頼する前提である。
 [Audit.lean](Audit.lean) は各証明モジュールの定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
 

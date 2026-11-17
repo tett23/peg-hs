@@ -97,6 +97,8 @@ import RuleRejection
 import RuleRejectionRefs
 import RuleRejectionRepeat
 import RuleRejectionNullable
+import TranslatedRuntimeCore
+import RuntimeCoreProof
 
 namespace PegHs.RecursiveEval
 
@@ -161,9 +163,9 @@ run_cmd do
       `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `MemoTrace, `MemoTables, `MemoMetaNoLR, `EnvProjection, `EnvProjectionPredicate, `MemoKeyTransfer, `EnvRunCongruence, `MetaEnvCompatible, `MemoKeyEnvironment, `NoArgInputReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `TotalFile, `SelfHostedFileProof, `RuntimeChoiceProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveSourceDiagnostic, `DirectiveDecode, `SimpleEscapeProof, `TranslatedEscapes, `DirectiveHex, `DirectiveStringDiagnostic, `TabstopProof, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
       `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
-      `LabelPropagation] do
+      `LabelPropagation, `TranslatedRuntimeCore, `RuntimeCoreProof] do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
-    let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop].contains moduleName
+    let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore].contains moduleName
     let mut checked := 0
     for (name, info) in env.constants.toList do
       if env.getModuleIdxFor? name != some idx then continue

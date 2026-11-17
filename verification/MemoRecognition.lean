@@ -92,6 +92,8 @@ theorem step_preserves_invariant [DecidableEq κ] (enabled : Bool)
 -- Local recognition equivalence. A cached entry must still equal the result
 -- of evaluating that rule at the same offset and with the same arguments.
 -- This stability assumption is the boundary for left-recursive seed changes.
+-- RuntimeCoreProof.invariant1_translated_memo_step and _memoArg_step show
+-- that the memo and memoArg translated from Internal.hs take this step.
 theorem hit_miss_same_recognition [DecidableEq κ] (enabled : Bool)
     (evalBody : κ → Entry α) (table : List (κ × Entry α)) (key : κ)
     (s : State) (h : CacheInvariant evalBody table) :
