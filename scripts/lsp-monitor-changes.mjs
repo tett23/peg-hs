@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
 
 // These paths either build peg-bench, supply its input, select its toolchain,
-// or control the monitor. Documentation and test fixtures do not do so.
+// control the measurement on main, the judgment of pull requests or the
+// budgets (ADR 0099, ADR 0102). Documentation and test fixtures do not do so.
 export function shouldMeasure(paths) {
   return paths.some(path =>
     (path.startsWith('conformance/') && !path.startsWith('conformance/test/') &&
@@ -10,7 +11,10 @@ export function shouldMeasure(paths) {
     /^packages\/[^/]+\/[^/]+\.cabal$/.test(path) ||
     path === 'cabal.project' || path === 'cabal.project.freeze' ||
     path === '.github/workflows/lsp-latency.yml' ||
-    path === 'scripts/lsp-latency.mjs' ||
+    path === '.github/workflows/ci.yml' ||
+    path === 'docs/budgets.md' ||
+    path === 'scripts/lsp-measure.sh' ||
+    path === 'scripts/lsp-budget.sh' ||
     /^scripts\/lsp-(median|monitor-changes)(?:-issue)?(?:\.test)?\.mjs$/.test(path));
 }
 

@@ -1,15 +1,15 @@
 name: CI
 
-# A change of documents only (docs/** and **.md) does not change what the
-# code and the tests do; the ADR workflow still checks it (ADR 0039). A push
-# to main skips the workflow by paths-ignore. A pull request always runs it,
-# the job changes skips the other jobs, and the job ci reports one result,
-# the check that main requires with adr (ADR 0072). Keep the two conditions
-# the same.
+# Every pull request and every push to main runs the workflow. The job
+# changes runs scripts/ci-changes.mjs, which skips the build and the tests
+# when the change has only documents (docs/** and **.md) that no build or
+# test reads; the list of the documents that they read is in that script
+# (ADR 0101). The job ci reports one result, the check that main requires
+# with adr (ADR 0072). The ADR workflow checks every change, documents
+# included.
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
   pull_request:
 
 permissions:
@@ -32,7 +32,7 @@ env:
   GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
 
 jobs:
-  # Whether the pull request changes anything besides documents (ADR 0072).
+  # Whether the change needs the build and the tests (ADR 0072, ADR 0101).
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -42,26 +42,26 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - id: diff
-        env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
-            code=true
-          elif git diff --name-only "$BASE...$HEAD" | grep -v -e '^docs/' -e '\.md$' > /dev/null; then
-            code=true
-          else
-            code=false
-          fi
-          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
-        if: github.event_name == 'pull_request' && steps.diff.outputs.code == 'true'
         with:
           node-version: lts/*
-      - name: Test LSP median monitoring
-        if: github.event_name == 'pull_request' && steps.diff.outputs.code == 'true'
-        run: node --test scripts/lsp-median*.test.mjs scripts/lsp-monitor-changes.test.mjs
+      - name: Test the decision of the changes
+        run: node --test scripts/ci-changes.test.mjs
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            code=$(node scripts/ci-changes.mjs "$(git merge-base "$BASE" "$HEAD")" "$HEAD")
+          else
+            code=$(node scripts/ci-changes.mjs "$BEFORE" "$GITHUB_SHA")
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+      - name: Test LSP median monitoring and the budgets
+        if: steps.diff.outputs.code == 'true'
+        run: node --test scripts/lsp-median*.test.mjs scripts/lsp-monitor-changes.test.mjs scripts/lsp-budget.test.mjs
 
   haskell:
     needs: changes
@@ -441,13 +441,18 @@ jobs:
           PEG_HS_WASM_RAW: ${{ runner.temp }}/raw.wasm
         run: deno test --allow-read --allow-write --allow-env --allow-run wasm/test
 
+  # The judgment of the language-server budgets of docs/budgets.md (ADR
+  # 0102). A pull request that changes a benchmark input (shouldMeasure)
+  # measures its base and its head on this runner with the scripts of the
+  # head, both with the Memo grammar of the base. The job fails when a median
+  # of the head is over 16 ms; the base is for comparison only, and its
+  # failure does not fail the job.
   lsp-latency:
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 86
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:
       BASE: ${{ github.event.pull_request.base.sha }}
       HEAD: ${{ github.event.pull_request.head.sha }}
-      GOLEM: 89ae4b4142c58cb8937e10c18c0e664280397547
     steps:
       - uses: actions/checkout@v7
         with:
@@ -457,12 +462,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: lts/*
-      - run: node --test scripts/lsp-latency.test.mjs
+      - id: changes
+        run: |
+          measure=$(node scripts/lsp-monitor-changes.mjs "$(git merge-base "$BASE" "$HEAD")" "$HEAD")
+          echo "measure=$measure" | tee -a "$GITHUB_OUTPUT"
+          if [ "$measure" != true ]; then
+            echo 'No benchmark input changed; the latency was not measured.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/cache@v6
+        if: steps.changes.outputs.measure == 'true'
         with:
           path: /home/runner/toolchain/.ghcup
           key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
-      - name: Prepare toolchain and identical grammar inputs
+      - name: Prepare toolchain and the base
+        if: steps.changes.outputs.measure == 'true'
         run: |
           mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
           ghcup install ghc "$GHC_VERSION" --set
@@ -470,34 +483,49 @@ jobs:
           echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
           git worktree add --detach "$RUNNER_TEMP/base" "$BASE"
           git show "$BASE:conformance/bench/Memo.hpeg" > "$RUNNER_TEMP/Memo.hpeg"
-          curl --fail --location --retry 3 "https://raw.githubusercontent.com/tett23/golem/$GOLEM/modules/golem-parser/grammar/Golem.hpeg" -o "$RUNNER_TEMP/Golem.hpeg"
-          echo "e27f6daf94af567afbf0712eae8f2ec4e9d45801571b61b90af04929020d1a2c  $RUNNER_TEMP/Golem.hpeg" | sha256sum --check
-      - name: Build and measure both revisions on this runner
+      - name: Record the inputs
+        if: steps.changes.outputs.measure == 'true'
         run: |
+          cabal update
           {
-            echo "Base $BASE, head $HEAD. Memo from base, Golem from $GOLEM."
-            echo "Runner $ImageOS $ImageVersion ($(uname -m)), GHC $(ghc --numeric-version), Cabal $(cabal --numeric-version), -O1, RTS -A64m."
+            echo "## LSP median latency"
+            echo
+            echo "Base: $BASE. Head: $HEAD. Memo: conformance/bench/Memo.hpeg at the base, for both. Golem: $(sed -n 's/^golem=//p' scripts/lsp-measure.sh)."
+            echo "Runner: $ImageOS $ImageVersion ($(uname -m)); GHC $(ghc --numeric-version); Cabal $(cabal --numeric-version)."
+            echo 'Options: -O1, Criterion --match pattern range, RTS -A64m.'
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          cabal update
-          for revision in base head; do
-            if [ "$revision" = base ]; then cd "$RUNNER_TEMP/base"; else cd "$GITHUB_WORKSPACE"; fi
-            cabal build bench:peg-bench --enable-optimization=1
-            bench=$(cabal list-bin bench:peg-bench --enable-optimization=1)
-            cd conformance
-            for grammar in Memo Golem; do
-              PEG_BENCH_LSP_GRAMMAR="$RUNNER_TEMP/$grammar.hpeg" "$bench" \
-                --match pattern range --json "$RUNNER_TEMP/$revision-$grammar.json" +RTS -A64m -RTS
-            done
-          done
-      - name: Check all twelve head means and record both revisions
+      - name: Build and measure the base
+        id: base-measure
+        if: steps.changes.outputs.measure == 'true'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/base
+        run: '"$GITHUB_WORKSPACE/scripts/lsp-measure.sh" "$RUNNER_TEMP/Memo.hpeg" "$RUNNER_TEMP/base-measured"'
+      - name: Record the twelve medians of the base
+        id: base-median
+        if: steps.changes.outputs.measure == 'true' && steps.base-measure.outcome == 'success'
+        continue-on-error: true
         run: |
-          node scripts/lsp-latency.mjs "$RUNNER_TEMP"/{base-Memo,base-Golem,head-Memo,head-Golem}.json | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/lsp-median.mjs "$RUNNER_TEMP/base-measured/Memo.json" "$RUNNER_TEMP/base-measured/Golem.json" > "$RUNNER_TEMP/base-medians.md"
+          { echo '### Base'; echo; cat "$RUNNER_TEMP/base-medians.md"; echo; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Report the base that was not measured
+        if: steps.changes.outputs.measure == 'true' && steps.base-median.outcome != 'success'
+        run: |
+          { echo '### Base'; echo; echo 'ベースは測れなかった (the base could not be measured).'; echo; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Build and measure the head
+        if: steps.changes.outputs.measure == 'true'
+        run: scripts/lsp-measure.sh "$RUNNER_TEMP/Memo.hpeg" "$RUNNER_TEMP/head-measured"
+      - name: Judge the twelve medians of the head
+        if: steps.changes.outputs.measure == 'true'
+        run: |
+          { echo '### Head'; echo; } >> "$GITHUB_STEP_SUMMARY"
+          node scripts/lsp-median.mjs --fail-on-exceed "$RUNNER_TEMP/head-measured/Memo.json" "$RUNNER_TEMP/head-measured/Golem.json" | tee -a "$GITHUB_STEP_SUMMARY"
         shell: bash
 
   # One result for the branch protection of main (ADR 0072): it fails when a
   # job failed or was cancelled, and passes when every job passed or was
-  # skipped because only documents changed. A new job goes to needs.
+  # skipped because the change needs no build (ADR 0101). A new job goes to
+  # needs.
   ci:
     needs: [changes, haskell, test, haddock, sdist, hooks, editors, wasm, lsp-latency]
     if: always()

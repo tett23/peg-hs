@@ -1,6 +1,6 @@
 # ADR 0102: 性能の予算を CI の計測で判定する
 
-Status: proposed
+Status: accepted
 
 ## 文脈
 

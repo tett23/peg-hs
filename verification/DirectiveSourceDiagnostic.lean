@@ -5,7 +5,7 @@ namespace PegHs.MetaExecution
 open EnvironmentEval ConcreteTerminal AssembleValidation
 
 theorem invariant2_single_string_decoder_error (c : Char) (cs : List Char)
-    (p : Predicates) (name gap body : List Char) (msg : String) (start : CharRule.identStart.accepts c = true)
+    (name gap body : List Char) (msg : String) (start : CharRule.identStart.accepts c = true)
     (endOfArg : ((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
       |>.dropWhile (· != '\n')) = [])
     (supported : String.ofList (c :: cs.takeWhile CharRule.identChar.accepts) = "expect" ∨
@@ -14,7 +14,7 @@ theorem invariant2_single_string_decoder_error (c : Char) (cs : List Char)
       let directive := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
       let raw := (cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
       DirectiveArgument.argument directive (raw.takeWhile (· != '\n')) = name ++ gap ++ '"' :: body)
-    (valid : p.validIdent (String.ofList name) = true)
+    (valid : validIdent (String.ofList name) = true)
     (noSpace : ∀ k ∈ name, PegVerification.ghcIsSpace k = false)
     (separator : gap ≠ []) (spaces : ∀ k ∈ gap, PegVerification.ghcIsSpace k = true)
     (failed : TranslatedEscapes.run (body.length + 1) .plain [] body = .error msg)
@@ -27,14 +27,14 @@ theorem invariant2_single_string_decoder_error (c : Char) (cs : List Char)
     let top := capturedDirective ('%' :: c :: cs) (c :: cs).length tail.length raw.length
       (raw.dropWhile (· != '\n')).length
     FileResult false ('%' :: c :: cs) (.ok 0 {}) ∧
-      ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok [top]) p)
+      ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok [top]))
         resolve expand check notes strip warningFor generate) = .error ds ∧ diagnostic ⟨.invalidString, msg⟩ ∈ ds := by
-  apply invariant2_single_directive_public_error _ _ _ _ start endOfArg _
+  apply invariant2_single_directive_public_error _ _ _ start endOfArg _
     resolve expand check notes strip warningFor generate
   rw [TranslatedEscapes.invariant2_decode_string] at failed
   dsimp only at argument ⊢
   rw [argument]
-  exact invariant2_directive_decoder_diagnostic _ p _ name gap body msg supported (.head _)
+  exact invariant2_directive_decoder_diagnostic _ _ name gap body msg supported (.head _)
     valid noSpace separator spaces failed
 
 #print axioms invariant2_single_string_decoder_error

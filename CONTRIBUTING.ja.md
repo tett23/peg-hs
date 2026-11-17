@@ -253,8 +253,24 @@ feat(cli): take --name=value in every option that takes a value (ADR 0046)
 CI は三つのワークフローからなる。
 
 `.github/workflows/ci.yml` は、main への push と pull request で動く。
-`docs/` と Markdown のファイルだけの変更では動かない（[ADR 0039](docs/adr/0039-faster-ci.md)）。
 pull request に続けて push すると、前の push の実行は止まる。
+
+最初の **changes** のジョブは、`scripts/ci-changes.mjs` で、変更がビルドとテストを要るかを判定する（[ADR 0101](docs/adr/0101-run-ci-for-documents-that-tests-read.md)）。
+pull request ではマージベースからヘッドまでの差分を、main への push では push の前のコミットからの差分を見る。
+差分のパスが文書（`docs/` の下と `.md` のファイル）だけで、そのどれもが入力の一覧に無いとき、ビルドとテストのジョブを飛ばす。
+入力の一覧は、文書のうちビルドかテストが読むもので、いまは次のとおりである（`*` は `/` を含まない一つの名前に合う）。
+
+- `docs/syntax.md`、`docs/syntax.en.md`、`README.md`、`README.ja.md`：記法の解説と README の例をテストが読む
+- `editors/README.md`：エディタの文法の写しに入る
+- `conformance/commonmark/tabs/*.md`：CommonMark のタブの検査の入力
+- `docs/audits/2026-11-07-inj-module.hpeg.txt`：peg-cli のテストが読む
+- `packages/*/CHANGELOG.md`：パッケージのソースのアーカイブに入る
+- `docs/budgets.md`：予算の値をテストが読む（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）
+
+テストかビルドに文書を読ませる変更では、同じ変更で、そのパスを `scripts/ci-changes.mjs` の入力の一覧に足す。
+一覧のパスを読むテストかビルドを消す変更では、同じ変更で、そのパスを一覧から除く。
+判定のコマンドが失敗すると、**changes** と **ci** のジョブも失敗する。
+**ci** のジョブは、ほかのジョブの結果をまとめ、main の必須の検査になる（[ADR 0072](docs/adr/0072-required-checks-for-auto-merge.md)）。
 
 - **haskell**：すべてのパッケージをビルドし、リポジトリの文法の `peg-hs fmt --check` と `peg-hs lint`、六つのパッケージの版の一致（`python3 scripts/versions.py check`）、各パッケージの `cabal check` を検査する
 - **test-grammar-1、test-grammar-2、test-grammar-3**：peg-grammar-test を `--shard 1/3` から `--shard 3/3` に分けて動かす（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）
@@ -265,6 +281,7 @@ pull request に続けて push すると、前の push の実行は止まる。
 - **hooks**：peg-hooks を使う利用者のパッケージの例（`examples/hooks/`）を、`examples/hooks/test.sh` でビルドして動かす。文法を変えたときと変えないときの再ビルド、文法の誤り、アクションの型の誤り、`%module` と違うモジュールの名前、`cabal check`、`cabal sdist` を確かめる。最初のビルドで Cabal をビルドするので時間がかかる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 - **wasm**：固定した ghc-wasm-meta の `nix shell` の中で `scripts/build-wasm.sh` により wasm の reactor をビルドし、ネイティブの `peg-hs` もビルドして、`wasm/test` の Deno のテストを動かす（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)、[ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md)）
+- **lsp-latency**：pull request で動く。計測に影響する変更（`scripts/lsp-monitor-changes.mjs` の `shouldMeasure`）があれば、ベースとヘッドを同じ実行環境で `scripts/lsp-measure.sh` により測り、ヘッドの言語サーバーの編集応答時間の 12 件の中央値のどれかが 16 ms を超えると失敗する。ベースの値は比べるためだけにジョブサマリーに出す。計測に影響する変更が無ければ、測らずに成功する。両版のビルドと計測で、十数分かかる見込みである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）
 
 テストのジョブ（`test-*`）の中では、スイートを一つずつ動かす。
 各スイートが実行環境のすべてのコアを使えるようにするためである（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）。
@@ -280,7 +297,11 @@ pull request に続けて push すると、前の push の実行は止まる。
 peg-hs は性能に絶対値の目標を置かない（[ADR 0007](docs/adr/0007-performance-discipline.md)）。
 計測値は機械に依存するためである。
 退行は、変更の前と後を同じ機械で計測して比べることで見つける。
-共有の実行環境では計測のばらつきが大きいので、CI では性能を検査しない。
+CI で検査する性能は、[`docs/budgets.md`](docs/budgets.md) の予算だけである。いまの予算は、言語サーバーの編集応答時間の二つである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）。
+予算の合否は、GitHub Actions の `ubuntu-latest` のランナーでの計測で決める。開発の途中に手元で測って目安にしてよいが、手元の値は参考であり、CI の計測で満たすまでは予算を満たしたとしない。
+手元では `scripts/lsp-budget.sh diagnostics` か `scripts/lsp-budget.sh semantic-tokens` で、その操作の 6 ケースの中央値の最大を ms で出せる（`CABAL=cabal-3.16.1.0` で cabal を選べる）。
+新しい予算を置く ADR は、その予算を CI で測る方法と、どのイベントで測るかを同じ ADR で決め、予算を ADR の受けいれ条件と `docs/budgets.md` の両方に書く。
+そのほかの性能は、共有の実行環境では計測のばらつきが大きいので、CI では検査しない。
 
 peg-runtime か peg-codegen に触れる変更では、変更の前後で次のベンチマークを動かして比べる。
 

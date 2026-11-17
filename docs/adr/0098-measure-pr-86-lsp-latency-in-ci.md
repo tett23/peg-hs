@@ -1,6 +1,6 @@
 # ADR 0098: PR #86 の言語サーバーの応答時間を CI で判定する
 
-Status: accepted
+Status: superseded [{"by":["docs/adr/0102-judge-performance-budgets-in-ci.md"],"part":null}]
 
 ## 文脈
 

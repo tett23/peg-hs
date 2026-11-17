@@ -32,7 +32,24 @@ test('invariant 1: each benchmark input triggers measurement', () => {
     'scripts/lsp-median.mjs',
     'scripts/lsp-median-issue.mjs',
     'scripts/lsp-monitor-changes.mjs',
-    'scripts/lsp-latency.mjs',
+  ]) assert.equal(shouldMeasure([path]), true, path);
+});
+
+test('ADR 0102 I4: a change without a benchmark input is not measured', () => {
+  for (const paths of [
+    [],
+    ['docs/adr/0102-judge-performance-budgets-in-ci.md', 'conformance/test/JsonMain.hs'],
+    ['scripts/lsp-latency.mjs'],
+  ]) assert.equal(shouldMeasure(paths), false, paths.join(' '));
+});
+
+test('ADR 0102 I4: the budgets, the CI workflow and the measuring scripts are measured', () => {
+  for (const path of [
+    'docs/budgets.md',
+    '.github/workflows/ci.yml',
+    'scripts/lsp-measure.sh',
+    'scripts/lsp-budget.sh',
+    'packages/peg-grammar/src/Peg/Grammar.hs',
   ]) assert.equal(shouldMeasure([path]), true, path);
 });
 
