@@ -34,6 +34,9 @@ for line in \
   '@conid     = $large $idchar*' \
   '@qual = (@conid \.)+' \
   '@qvarid = @qual @varid' \
+  '@qmdo   = @qual "mdo"' \
+  '@qdo                                      { qdo_token ITdo }' \
+  '@qmdo    / { ifExtension RecursiveDoBit } { qdo_token ITmdo }' \
   '@qdo    = @qual "do"' \
   '@qvarid                       { idtoken qvarid }' \
   '@varid                        { varid }' \

@@ -9,6 +9,10 @@ BEGIN {
   emit("    : Except Failure T :=")
   emit("  match start with")
 }
+/^parseGrammar src =/ {
+  if (assembly++ || $0 != "parseGrammar src = parseTops src >>= assemble") reject()
+  next
+}
 /^parseTops src = case SelfHosted.parse src of$/ {
   if (wrapper++ || stage != 6) reject()
   emit("def translatedPublic {T} (d : Failure → String) : Except Failure T → Except PegHs.Pipeline.Diagnostics T")
@@ -27,6 +31,58 @@ wrapper == 1 && !done {
   reject()
 }
 /^  res <- case r of$/ { if (seen++) reject(); active = 1; next }
+/^assemble items =$/ { if (body++) reject(); assemblyStage = 1; next }
+assemblyStage == 1 { if ($0 != "  case errors of") reject(); assemblyStage++; next }
+assemblyStage == 2 { if ($0 != "    [] -> case moduleName of") reject(); assemblyStage++; next }
+assemblyStage == 3 { if ($0 != "      Just m ->") reject(); assemblyStage++; next }
+assemblyStage == 4 { if ($0 != "        Right") reject(); assemblyStage++; next }
+assemblyStage == 5 && /^      Nothing ->/ {
+  if ($0 != "      Nothing -> Left [Diagnostic (Loc 0 1 1) \"missing %module directive\"]") reject()
+  assemblyStage++; next
+}
+assemblyStage == 6 { if ($0 != "    es -> Left (sortOn diagLoc es)") reject(); assemblyStage++; next }
+/^    directives =/ {
+  if (directivesSeen++ || $0 != "    directives = [(l, n, a) | TDirective l n _ a <- items]") reject()
+  emit("-- Non-directive constructors are erased because this projection discards all of them.")
+  emit("inductive AssemblyItem (L : Type) where")
+  emit("  | directive (loc : L) (name : String) (argLoc : L) (arg : String)")
+  emit("  | other")
+  emit("def translatedDirectives {L} (items : List (AssemblyItem L)) : List (L × String × String) :=")
+  emit("  items.filterMap fun | .directive l n _ a => some (l, n, a) | .other => none")
+  next
+}
+/^    libraryLoc =/ {
+  if (librarySeen++ || $0 != "    libraryLoc = case [l | (l, \"library\", _) <- directives] of") reject()
+  if (getline <= 0 || $0 != "      l : _ -> Just l") reject()
+  if (getline <= 0 || $0 != "      [] -> Nothing") reject()
+  emit("def translatedLibraryLoc {L} (ds : List (L × String × String)) : Option L :=")
+  emit("  (ds.filterMap fun (l, n, _) => if n == \"library\" then some l else none).head?")
+  next
+}
+/^    single n =/ {
+  if (singleSeen++ || $0 != "    single n = case [Located l a | (l, n', a) <- directives, n' == n] of") reject()
+  if (getline <= 0 || $0 != "      x : _ -> Just x") reject()
+  if (getline <= 0 || $0 != "      [] -> Nothing") reject()
+  emit("def translatedSingle {L} (ds : List (L × String × String)) (name : String) : Option (L × String) :=")
+  emit("  (ds.filterMap fun (l, n, a) => if n == name then some (l, a) else none).head?")
+  next
+}
+/^    moduleName = case libraryLoc of$/ {
+  if (moduleBranch++) reject()
+  emit("def translatedModuleName {L} (libraryLoc : Option L) (single : String → Option (L × String)) : Option (L × String) :=")
+  emit("  match libraryLoc with")
+  next
+}
+moduleBranch == 1 {
+  if ($0 != "      Just l -> Just (Located l \"\")") reject()
+  emit("  | some l => some (l, \"\")")
+  moduleBranch++; next
+}
+moduleBranch == 2 {
+  if ($0 != "      Nothing -> single \"module\"") reject()
+  emit("  | none => single \"module\"")
+  moduleBranch++; next
+}
 !active { next }
 $0 == "  s <- readSTRef (ctxStats ctx)" {
   if (stage != 6) reject()
@@ -50,6 +106,16 @@ stage == 5 && $0 == "    Fail -> Left <$> currentError ctx Nothing Nothing" {
 }
 { reject() }
 END {
-  if (bad || active || seen != 1 || stage != 6 || !done) exit 1
+  if (bad || active || seen != 1 || stage != 6 || !done || assembly != 1 || assemblyStage != 7 || moduleBranch != 3 || librarySeen != 1 || singleSeen != 1 || directivesSeen != 1) exit 1
+  emit("def translatedGrammar {T G} (bytes : Nat) (start : StartResult T) (d : Failure → String)")
+  emit("    (assemble : T → Except PegHs.Pipeline.Diagnostics G) : Except PegHs.Pipeline.Diagnostics G :=")
+  emit("  (translatedPublic d (translatedRuntime bytes start)).bind assemble")
+  emit("def translatedAssemble {M G D} (errors : List D) (moduleName : Option M)")
+  emit("    (build : M → G) (missing : D) (sortErrors : List D → List D) : Except (List D) G :=")
+  emit("  match errors with")
+  emit("  | [] => match moduleName with")
+  emit("    | some m => .ok (build m)")
+  emit("    | none => .error [missing]")
+  emit("  | e :: es => .error (sortErrors (e :: es))")
   emit("end PegHs.PublicParsing")
 }

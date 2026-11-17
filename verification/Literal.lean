@@ -78,6 +78,36 @@ inductive LiteralSyntax : String → Prop where
       (hBody : BodySyntax chars body) :
       LiteralSyntax ("\"" ++ body ++ "\"")
 
+theorem decimal_single_line (n : Nat) : '\n' ∉ n.repr.toList := by
+  intro member
+  have digit := Nat.isDigit_of_mem_toDigits (by decide : 0 < 10) (by decide : 10 ≤ 10)
+    (show '\n' ∈ Nat.toDigits 10 n from by simpa [Nat.repr] using member)
+  contradiction
+
+theorem LiteralSyntax.single_line {text : String} (syntaxOk : LiteralSyntax text) :
+    '\n' ∉ text.toList := by
+  have tokenSafe {c t} (h : TokenSyntax c t) : '\n' ∉ t.toList := by
+    cases h with
+    | plain c plain =>
+      have different : '\n' ≠ c := by
+        intro eq
+        subst c
+        exact (by decide : ¬ 32 ≤ '\n'.toNat) plain.1
+      simpa using different
+    | decimal c _ => simpa [String.toList_append] using decimal_single_line c.toNat
+    | control c text h =>
+      unfold controlEscape at h
+      split at h <;> cases h <;> decide
+    | _ => decide
+  cases syntaxOk with
+  | string chars body h =>
+    have clean : '\n' ∉ body.toList := by
+      induction h with
+      | nil => decide
+      | cons _ _ _ _ ht _ _ ih => simp [String.toList_append, tokenSafe ht, ih]
+      | separated _ _ _ _ ht _ _ ih => simp [String.toList_append, tokenSafe ht, ih]
+    simp [String.toList_append, clean]
+
 def encodeChar (c : Char) : String :=
   if c == quote then "\\\""
   else if c == slash then "\\\\"

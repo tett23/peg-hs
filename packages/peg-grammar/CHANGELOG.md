@@ -274,6 +274,19 @@ Since v0.1.0-rc6:
   and `%nomemo` in left recursion apply to these rules too.
   `analysisNullable` and the errors about repetitions do not change
   ([ADR 0095](https://github.com/tett23/peg-hs/blob/main/docs/adr/0095-left-recursion-through-recovery-rules.md)).
+- Names that GHC does not read as the names they look like are errors
+  before generation, instead of making a generated module that does not
+  parse: `forall` as a binding or parameter name (`binding name forall is
+  a Haskell reserved word`), a binding or parameter name that starts with
+  a Unicode modifier letter (`binding name ʰabc starts with a Unicode
+  modifier letter`), and, in `%export`, a name that starts with a
+  modifier letter or an unqualified `proc`, `rec` or `mdo` while `Arrows`
+  or `RecursiveDo` makes it a keyword. A type annotation written as a
+  compact function type (`Int->Int`) is put in parentheses as a field of
+  a generated constructor, and a line comment in a type annotation is
+  ended before the generated code that follows it. The proofs of
+  [ADR 0097](https://github.com/tett23/peg-hs/blob/main/docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md)
+  found these.
 
 ### Security
 

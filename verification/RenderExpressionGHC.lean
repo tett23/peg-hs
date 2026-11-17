@@ -159,6 +159,14 @@ theorem do_many (first : List Symbol) (rest : List (List Symbol))
 
 -- A qualified rule/function name is a QVARID token. These six rules lift it
 -- through qvarid, qvar, aexp2, aexp1, aexp, and fexp.
+theorem string_argument : Derives productions [.nonterminal 218] [.terminal 130] := by
+  have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
+    Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
+      (by decide) (.refl _)
+  have arg := one (id := 551) (lhs := 218) (by decide)
+    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
+  exact arg
+
 theorem qualified_function :
     Derives productions [.nonterminal 217] [.terminal 121] := by
   have r774 : productions 774 = some (306, [.terminal 121]) := by decide
@@ -286,15 +294,20 @@ theorem choice_many (first second : List Symbol) (rest : List (List Symbol))
         ih (commaAppend acc item) (lexps_extend acc_ok item_ok) more_ok
   exact choice (one r609 (general _ rest pair rest_ok))
 
+theorem fexp_to_exp {body : List Symbol}
+    (valid : Derives productions [.nonterminal 217] body) :
+    Derives productions [.nonterminal 211] body :=
+  one (rhs := 212) (id := 520) (by decide) (one (rhs := 214) (id := 523) (by decide) (one (id := 528) (by decide) valid))
+
+theorem fexp_to_texp {body : List Symbol}
+    (valid : Derives productions [.nonterminal 217] body) :
+    Derives productions [.nonterminal 229] body :=
+  one (id := 596) (by decide) (fexp_to_exp valid)
+
 theorem aexp_to_texp {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 218] body) :
     Derives productions [.nonterminal 229] body := by
-  have r536 : productions 536 = some (217, [.nonterminal 218]) := by decide
-  have r528 : productions 528 = some (214, [.nonterminal 217]) := by decide
-  have r523 : productions 523 = some (212, [.nonterminal 214]) := by decide
-  have r520 : productions 520 = some (211, [.nonterminal 212]) := by decide
-  have r596 : productions 596 = some (229, [.nonterminal 211]) := by decide
-  exact one r596 (one r520 (one r523 (one r528 (one r536 body_ok))))
+  exact fexp_to_texp (one (id := 536) (by decide) body_ok)
 
 def blockTokens : List (List Symbol) → List Symbol
   | [] => []

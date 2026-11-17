@@ -109,6 +109,23 @@ theorem invariant2_parseFile_pipeline_diagnostic (mode : Bool) (source : String)
   rw [PublicParsing.invariant1_translated_entry] at result
   exact result
 
+-- A syntax error is already observable before forcing generationModule.
+theorem invariant2_parseFile_outer_diagnostic (mode : Bool) (source : String)
+    (invalid : ¬ ∃ env, FileResult mode source.toList (.ok 0 env))
+    (format : PublicParsing.Failure → String)
+    (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (check : G → Except Pipeline.Diagnostics Unit) (notes : G → Pipeline.Diagnostics → Pipeline.Diagnostics)
+    (strip : Option (G → G)) (warnings : G → G → Pipeline.Diagnostics)
+    (generate : G → Except Pipeline.Diagnostics String) :
+    Pipeline.pipeline ((parseFile mode source format).bind assemble) resolve expand check notes
+      strip warnings generate =
+      .error [format (FileEntry.incompleteCause source.toList (recognizeFile mode source.toList).val)] := by
+  rw [(invariant2_parseFile_pipeline_diagnostic mode source invalid format assemble resolve expand
+    check notes strip warnings generate).1]
+  rfl
+
+#print axioms invariant2_parseFile_outer_diagnostic
+
 theorem invariant1_generated_module_requires_complete_parse (mode : Bool) (source moduleText : String)
     (format : PublicParsing.Failure → String)
     (assemble : Unit → Except Pipeline.Diagnostics G) (resolve expand : G → Except Pipeline.Diagnostics G)

@@ -390,6 +390,6 @@ codeVariables start code = go (zip (scanl advance start chars) chars)
 -- | The reserved words of Haskell 2010, which are not variables.
 reservedWords :: [Text]
 reservedWords =
-  [ "case", "class", "data", "default", "deriving", "do", "else", "foreign", "if", "import", "in"
+  [ "case", "class", "data", "default", "deriving", "do", "else", "forall", "foreign", "if", "import", "in"
   , "infix", "infixl", "infixr", "instance", "let", "module", "newtype", "of", "then", "type", "where", "_"
   ]

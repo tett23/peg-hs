@@ -59,6 +59,15 @@ private theorem sorted_has {errors : List Diagnostic} {d : Diagnostic}
     (h : d ∈ errors) : d ∈ sortErrors errors := by
   exact (List.mergeSort_perm errors order).mem_iff.mpr h
 
+theorem checkRoot_error_contains (undefined repetition before after : List Diagnostic)
+    (d : Diagnostic) (h : d ∈ allErrors undefined repetition before after) :
+    ∃ ds, checkRoot undefined repetition before after = .error ds ∧ d.2 ∈ ds := by
+  have hs := sorted_has h
+  unfold checkRoot
+  split
+  next eq => simp [eq] at hs
+  next => exact ⟨_, rfl, List.mem_map.mpr ⟨d, hs, rfl⟩⟩
+
 private theorem rejects_of_mem (undefined repetition before after : List Diagnostic)
     (d : Diagnostic) (h : d ∈ allErrors undefined repetition before after) :
     ∃ ds, ds ≠ [] ∧ checkRoot undefined repetition before after = .error ds := by

@@ -18,6 +18,104 @@ def ghcConId (large tail : Char → Bool) (name : String) : Bool :=
   | [] => false
   | c :: cs => large c && cs.all tail
 
+-- Peg.Grammar.Types.generatedTypeName capitalizes the first character when
+-- its uppercase mapping is uppercase, and otherwise prefixes the entire name.
+def generatedTypeName (toUpper : Char → Char) (upper : Char → Bool) (name : List Char) : String :=
+  match name with
+  | [] => "Rule'"
+  | c :: cs =>
+    if upper (toUpper c) then String.ofList (toUpper c :: cs)
+    else "Rule'" ++ String.ofList (c :: cs)
+
+theorem generated_type_name_conid (toUpper : Char → Char) (upper large tail : Char → Bool)
+    (upper_ok : ∀ c, upper c = true → large c = true)
+    (fallback : ghcConId large tail "Rule'" = true)
+    (name : List Char) (chars : name.all tail = true) :
+    ghcConId large tail (generatedTypeName toUpper upper name) = true := by
+  cases name with
+  | nil => exact fallback
+  | cons c cs =>
+    simp only [generatedTypeName]
+    split
+    next h =>
+      simp_all [ghcConId, upper_ok _ h]
+    next =>
+      change (large 'R' && ['u', 'l', 'e', '\''].all tail) = true at fallback
+      simpa [ghcConId, String.toList_append, List.all_append, Bool.and_assoc] using
+        (show ((large 'R' && ['u', 'l', 'e', '\''].all tail) && (c :: cs).all tail) = true by
+          rw [fallback, chars]; decide)
+
+-- Scan the large idchar* pattern from the current cursor.
+def scanConId (large tail : Char → Bool) : List Char → Option (List Char × List Char)
+  | [] => none
+  | c :: cs => if large c then some (c :: cs.takeWhile tail, cs.dropWhile tail) else none
+
+theorem scan_conid_boundary (large tail : Char → Bool) (name : String)
+    (valid : ghcConId large tail name = true) (sep : Char) (rest : List Char)
+    (boundary : tail sep = false) :
+    scanConId large tail (name.toList ++ sep :: rest) = some (name.toList, sep :: rest) := by
+  unfold ghcConId at valid
+  cases h : name.toList with
+  | nil => simp [h] at valid
+  | cons c cs =>
+    simp [h] at valid
+    obtain ⟨first, allTail⟩ := valid
+    have span (xs : List Char) (ok : ∀ x ∈ xs, tail x = true) :
+        (xs ++ sep :: rest).takeWhile tail = xs ∧
+        (xs ++ sep :: rest).dropWhile tail = sep :: rest := by
+      induction xs with
+      | nil => simp [boundary]
+      | cons x xs ih =>
+        have next := ih (fun y hy => ok y (by simp [hy]))
+        simp [ok x (by simp), next.1, next.2]
+    obtain ⟨take, drop⟩ := span cs allTail
+    simp [scanConId, first, take, drop]
+
+-- A qualified identifier must contain a conid immediately followed by a
+-- dot; the MagicHash extension similarly requires a hash after the conid.
+-- Even choosing a shorter conid prefix cannot create either match.
+theorem no_extended_conid_prefix (large tail : Char → Bool)
+    (name candidate : String) (name_ok : ghcConId large tail name = true)
+    (candidate_ok : ghcConId large tail candidate = true)
+    (sep marker : Char) (rest suffix : List Char)
+    (boundary : tail sep = false) (marker_boundary : tail marker = false)
+    (different : sep ≠ marker) :
+    name.toList ++ sep :: rest ≠ candidate.toList ++ marker :: suffix := by
+  intro same
+  have scan := scan_conid_boundary large tail name name_ok sep rest boundary
+  rw [same, scan_conid_boundary large tail candidate candidate_ok marker suffix marker_boundary] at scan
+  exact different (by simpa using (congrArg (fun r : Option (List Char × List Char) =>
+    r.map (fun p => p.2.head?)) scan).symm)
+
+#print axioms no_extended_conid_prefix
+#print axioms scan_conid_boundary
+#print axioms generated_type_name_conid
+
+-- Classify an isolated qualified variable, in Lexer.x rule order. The
+-- module part is already separated from the final identifier.
+inductive QualifiedVariableToken where
+  | qvarid | qualifiedDo | qualifiedMdo
+  deriving DecidableEq
+
+def qualifiedVariableToken (validModule : String → Bool) (small tail : Char → Bool)
+    (recursiveDo : Bool) (qual name : String) : Option QualifiedVariableToken :=
+  if validModule qual && ghcVarId small tail name then
+    if name == "do" then some .qualifiedDo
+    else if recursiveDo && name == "mdo" then some .qualifiedMdo
+    else some .qvarid
+  else none
+
+theorem invariant3_qualified_export_variable (validModule : String → Bool)
+    (small tail : Char → Bool) (recursiveDo : Bool) (qual name : String)
+    (module_ok : validModule qual = true) (var_ok : ghcVarId small tail name = true)
+    (notDo : name ≠ "do") (notMdo : recursiveDo = true → name ≠ "mdo") :
+    qualifiedVariableToken validModule small tail recursiveDo qual name = some .qvarid ∧
+      Derives productions [.nonterminal 47] [.terminal 121] := by
+  refine ⟨?_, export_qvarid⟩
+  cases recursiveDo <;> simp_all [qualifiedVariableToken]
+
+#print axioms invariant3_qualified_export_variable
+
 theorem generated_rule_var (tail : Char → Bool) (name : String)
     (prefixTail : ∀ c ∈ "eg'rule'".toList, tail c = true)
     (nameTail : ∀ c ∈ name.toList, tail c = true) :

@@ -1152,8 +1152,9 @@ main = do
       _ -> die ("unsupported or missing generated rule " ++ name)
   -- production accepts only the return of the binder from PegRt.many.
   -- directiveRule verifies the constructor and both uses of the name.
-  -- Locations are erased by the assembly validation projection.
-  putStrLn "def translatedDirectiveValue (build : String → String → α) (argument : String → List Char → List Char) (name : String) (raw : List Char) : α := build name (String.ofList (argument name raw))"
+  putStrLn "def translatedLocatedDirective (build : ι → String → ι → String → α) (argument : String → List Char → List Char) (loc : ι) (name : String) (argLoc : ι) (raw : List Char) : α := build loc name argLoc (String.ofList (argument name raw))"
+  -- The validation projection erases both locations.
+  putStrLn "def translatedDirectiveValue (build : String → String → α) (argument : String → List Char → List Char) (name : String) (raw : List Char) : α := translatedLocatedDirective (fun (_ : Unit) n _ a => build n a) argument () name () raw"
   -- declarationRule checks the definition action, including the template
   -- parameter name projection and the unmodified list of alternatives.
   putStrLn "def translatedAnnotationValue (build : ι → String → List π → List τ → υ → α) (loc : ι) (name : String) (params : Option (List π)) (templates : Option (List τ)) (ty : υ) : α := build loc name (params.getD []) (templates.getD []) ty"

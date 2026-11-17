@@ -1,3 +1,4 @@
+import Pragmas
 import Literal
 import RenderExpressionGHC
 import RenderExpressionLexer
@@ -62,28 +63,7 @@ theorem pure_value_statement {value : List Symbol}
     RenderExpressionGHC.qualified_function value_ok
   exact one r658 (one r661 (one r520 (one r523 (one r528 applied))))
 
--- The syntax-tree backend returns the semantic value and its children as a pair.
-theorem pair_argument {value kids : List Symbol}
-    (v : Derives productions [.nonterminal 229] value)
-    (k : Derives productions [.nonterminal 229] kids) :
-    Derives productions [.nonterminal 218]
-      ([.terminal 107] ++ value ++ [.terminal 114] ++ kids ++ [.terminal 108]) := by
-  have comma : Derives productions [.nonterminal 322] [.terminal 114] := by
-    exact Derives.production (pre := []) (post := []) (id := 839) (rhs := [.terminal 114]) (by decide) (.refl _)
-  have tail := one (id := 606) (lhs := 232) (by decide) k
-  have suffix : Derives productions [.nonterminal 231] ([.terminal 114] ++ kids) := by
-    apply Derives.production (pre := []) (post := []) (id := 604) (rhs := [.nonterminal 322, .nonterminal 232]) (by decide)
-    exact trans (after [.nonterminal 232] comma) (before [.terminal 114] tail)
-  have pair : Derives productions [.nonterminal 230] (value ++ ([.terminal 114] ++ kids)) := by
-    apply Derives.production (pre := []) (post := []) (id := 600) (rhs := [.nonterminal 229, .nonterminal 231]) (by decide)
-    exact trans (after [.nonterminal 231] v) (before value suffix)
-  have arg : Derives productions [.nonterminal 220]
-      ([.terminal 107] ++ (value ++ ([.terminal 114] ++ kids)) ++ [.terminal 108]) := by
-    apply Derives.production (pre := []) (post := []) (id := 563) (rhs := [.terminal 107, .nonterminal 230, .terminal 108]) (by decide)
-    exact after [.terminal 108] (before [.terminal 107] pair)
-  have atom := one (id := 551) (lhs := 218) (by decide)
-    (one (id := 554) (lhs := 219) (by decide) arg)
-  simpa [List.append_assoc] using atom
+open RenderDeclarationsGHC (pair_argument)
 
 theorem pure_pair_statement {value kids : List Symbol}
     (v : Derives productions [.nonterminal 229] value)
@@ -234,19 +214,11 @@ def labeledBindingTokens (body : List Symbol) : List Symbol :=
   [.terminal 107, .terminal 117, .terminal 114, .terminal 117, .terminal 108,
    .terminal 82, .terminal 121, .terminal 130, .terminal 107] ++ body ++ [.terminal 108]
 
-private theorem string_argument : Derives productions [.nonterminal 218] [.terminal 130] := by
-  have literal : Derives productions [.nonterminal 319] [.terminal 130] :=
-    Derives.production (pre := []) (post := []) (id := 819) (rhs := [.terminal 130])
-      (by decide) (.refl _)
-  have arg := one (id := 551) (lhs := 218) (by decide)
-    (one (id := 554) (lhs := 219) (by decide) (one (id := 559) (lhs := 220) (by decide) literal))
-  exact arg
-
 theorem labeled_item_parts {body : List Symbol}
     (body_ok : Derives productions [.nonterminal 229] body) :
     Derives productions [.nonterminal 257] (labeledBindingTokens body) ∧
     Derives productions [.nonterminal 257] [.terminal 121, .terminal 117] := by
-  have arg := string_argument
+  have arg := RenderExpressionGHC.string_argument
   have expr {tokens : List Symbol} (f : Derives productions [.nonterminal 217] tokens) :
       Derives productions [.nonterminal 211] tokens :=
     one (id := 520) (by decide) (one (id := 523) (lhs := 212) (by decide)
@@ -360,8 +332,8 @@ theorem generated_literal_forms (value original : String) :
     Derives productions [.nonterminal 211]
       [.terminal 121, .terminal 107, .terminal 121, .terminal 130, .terminal 130, .terminal 108] := by
   have body := function_expression (RenderExpressionGHC.application
-    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument)
-    string_argument)
+    (RenderExpressionGHC.application RenderExpressionGHC.qualified_function RenderExpressionGHC.string_argument)
+    RenderExpressionGHC.string_argument)
   exact ⟨by simpa [Peg.Verification.showStringModel_eq, Peg.Verification.renderPegLit] using
     Peg.Verification.invariant3_pegLit_sound value original,
     body, plain_syntax_body (one (id := 596) (by decide) body)⟩
@@ -390,7 +362,7 @@ def classFunctionTokens : Nat → List Symbol
 theorem class_body (ranges : Nat) : Derives productions [.nonterminal 211]
     (classFunctionTokens ranges ++ [.terminal 130]) := by
   apply function_expression
-  apply RenderExpressionGHC.application _ string_argument
+  apply RenderExpressionGHC.application _ RenderExpressionGHC.string_argument
   cases ranges with
   | zero =>
     have nil : Derives productions [.nonterminal 280] [.terminal 105, .terminal 106] :=
@@ -485,12 +457,12 @@ theorem label_call_body (hasMessage : Bool) (valued : Option Bool) {body : List 
     Derives productions [.nonterminal 211]
       ((nameArgs ++ recoveryTokens valued) ++ [.terminal 107] ++ inner ++ [.terminal 108]) := by
   dsimp only
-  have named := RenderExpressionGHC.application RenderExpressionGHC.qualified_function string_argument
+  have named := RenderExpressionGHC.application RenderExpressionGHC.qualified_function RenderExpressionGHC.string_argument
   have prefixOk : Derives productions [.nonterminal 217]
       (if hasMessage then [.terminal 121, .terminal 130, .terminal 130] else [.terminal 121, .terminal 130]) := by
     cases hasMessage
     · exact named
-    · exact RenderExpressionGHC.application named string_argument
+    · exact RenderExpressionGHC.application named RenderExpressionGHC.string_argument
   have innerOk : Derives productions [.nonterminal 229]
       (if valued = some false then [.terminal 121, .terminal 107] ++ body ++ [.terminal 108] else body) := by
     split
@@ -655,7 +627,62 @@ private theorem returningAlternative_source (stmts : List RenderPrimitiveDoGHC.S
     (ret : RenderPrimitiveDoGHC.Statement) :
     (returningAlternative stmts ret).source =
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ [ret.source]) := by
-  cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative]
+  cases stmts <;> simp [returningAlternative, RenderPrimitiveChoice.doAlternative, RenderPrimitiveChoice.Alternative.source]
+
+def printedKids (children : List String) : String :=
+  match children with
+  | [] => "[]"
+  | [k] => k
+  | ks => "PegPrelude.concat [" ++ String.intercalate ", " ks ++ "]"
+
+inductive SyntaxReturnValue where
+  | unit
+  | boundName (name : String)
+  | action (source : String) (tokens : List Symbol)
+      (valid : Derives productions [.nonterminal 229] tokens)
+
+def SyntaxReturnValue.source : SyntaxReturnValue → String
+  | .unit => "()"
+  | .boundName name => name
+  | .action fragment _ _ => "(" ++ fragment ++ ")"
+
+def SyntaxReturnValue.tokens : SyntaxReturnValue → List Symbol
+  | .unit => [.terminal 107, .terminal 108]
+  | .boundName _ => [.terminal 117]
+  | .action _ fragment _ => [.terminal 107] ++ fragment ++ [.terminal 108]
+
+theorem SyntaxReturnValue.valid (value : SyntaxReturnValue) :
+    Derives productions [.nonterminal 229] value.tokens := by
+  apply RenderExpressionGHC.aexp_to_texp
+  cases value with
+  | unit => exact RenderDeclarationsGHC.parameter_key_argument true
+  | boundName _ => exact RenderDeclarationsGHC.varid_argument
+  | action _ _ h => exact RenderExpressionGHC.parenthesized h
+
+-- Each child reference is the name returned by freshK for that item.
+def syntaxAlternative (stmts : List RenderPrimitiveDoGHC.Statement)
+    (value : SyntaxReturnValue)
+    (children : List Nat) : RenderPrimitiveChoice.Alternative :=
+  let names := children.map fun n => "peg'k" ++ n.repr
+  let childTokens := children.map fun _ => [Symbol.terminal 117]
+  have child_ok : ∀ t ∈ childTokens, Derives productions [.nonterminal 229] t := by
+    intro t mem
+    obtain ⟨_, _, rfl⟩ := List.mem_map.mp mem
+    exact RenderExpressionGHC.aexp_to_texp RenderDeclarationsGHC.varid_argument
+  returningAlternative stmts
+    ⟨"PegPrelude.pure (" ++ value.source ++ ", " ++ printedKids names ++ ")",
+      _, kids_return_statement childTokens value.valid child_ok⟩
+
+theorem syntaxAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement)
+    (value : SyntaxReturnValue)
+    (children : List Nat) :
+    (syntaxAlternative stmts value children).source =
+      RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++
+        ["PegPrelude.pure (" ++ value.source ++ ", " ++ printedKids (children.map fun n => "peg'k" ++ n.repr) ++ ")"]) :=
+  returningAlternative_source stmts _
+
+#print axioms syntaxAlternative_source
+#print axioms syntaxAlternative
 
 def unitAlternative (stmts : List RenderPrimitiveDoGHC.Statement) : RenderPrimitiveChoice.Alternative :=
   returningAlternative stmts
@@ -676,6 +703,113 @@ theorem valueAlternative_source (stmts : List RenderPrimitiveDoGHC.Statement) (s
     (valueAlternative stmts source tokens value).source =
       RenderPrimitiveDo.printedDo (stmts.map RenderPrimitiveDoGHC.Statement.source ++ ["PegPrelude.pure " ++ source]) :=
   returningAlternative_source stmts _
+
+def actionStatements (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement) :
+    List RenderPrimitiveDoGHC.Statement :=
+  let env : RenderPrimitiveDoGHC.Statement :=
+    ⟨"_env <- PegRt.askStore peg'env", _, syntax_action_bindings.2⟩
+  let start : RenderPrimitiveDoGHC.Statement :=
+    ⟨"peg'start <- PegRt.getOffset", _, syntax_action_bindings.1⟩
+  let span : RenderPrimitiveDoGHC.Statement :=
+    ⟨"_span <- PegRt.spanFrom peg'start", _, syntax_action_bindings.2⟩
+  (if hasEnv then [env] else []) ++ [start] ++ items ++ [span]
+
+def actionAlternative (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (fragment : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (syntaxChildren : Option (List Nat)) : RenderPrimitiveChoice.Alternative :=
+  let stmts := actionStatements hasEnv items
+  match syntaxChildren with
+  | none => valueAlternative stmts ("(" ++ fragment ++ ")") _ (RenderExpressionGHC.parenthesized valid)
+  | some children => syntaxAlternative stmts (.action fragment tokens valid) children
+
+theorem actionAlternative_source (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (fragment : String) (tokens : List Symbol) (valid : Derives productions [.nonterminal 229] tokens)
+    (syntaxChildren : Option (List Nat)) :
+    (actionAlternative hasEnv items fragment tokens valid syntaxChildren).source =
+      RenderPrimitiveDo.printedDo ((if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++
+        ["peg'start <- PegRt.getOffset"] ++ items.map RenderPrimitiveDoGHC.Statement.source ++
+        ["_span <- PegRt.spanFrom peg'start", match syntaxChildren with
+          | none => "PegPrelude.pure (" ++ fragment ++ ")"
+          | some ks => "PegPrelude.pure ((" ++ fragment ++ "), " ++
+              printedKids (ks.map fun n => "peg'k" ++ n.repr) ++ ")"]) := by
+  have combine (a b tail : String) : a ++ (b ++ tail) = (a ++ b) ++ tail :=
+    (String.append_assoc ..).symm
+  cases syntaxChildren <;> cases hasEnv <;>
+    simp [actionAlternative, valueAlternative_source, syntaxAlternative_source, actionStatements,
+      SyntaxReturnValue.source, List.append_assoc, String.append_assoc] <;>
+    first
+    | rw [combine "PegPrelude.pure " "(", show "PegPrelude.pure " ++ "(" = "PegPrelude.pure (" by decide]
+    | rw [combine "PegPrelude.pure (" "(", show "PegPrelude.pure (" ++ "(" = "PegPrelude.pure ((" by decide]
+
+#print axioms actionAlternative_source
+#print axioms actionAlternative
+
+-- The restore line stays isolated even inside the final return of an action.
+theorem actionAlternative_marker_slot (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (path body : String) (line col n : Nat) (tokens : List Symbol)
+    (valid : Derives productions [.nonterminal 229] tokens) (children : Option (List Nat)) :
+    ∃ left right : List (List Char), ∀ marker ∈ ["", Peg.Verification.markerCandidate n],
+      ((actionAlternative hasEnv items (Peg.Verification.renderFragment marker line col path body)
+        tokens valid children).source).toList.splitOn '\n' = left ++ [marker.toList] ++ right := by
+  let sep := "\n          ; "
+  have last (xs : List String) (last : String) :
+      String.intercalate sep (xs ++ [last]) =
+        String.join (xs.map (fun x => x ++ sep)) ++ last := by
+    induction xs with
+    | nil => simp
+    | cons x xs ih =>
+      cases xs <;> simp_all [String.intercalate_cons_cons, String.append_assoc]
+  let before := (if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++
+    ["peg'start <- PegRt.getOffset"] ++ items.map RenderPrimitiveDoGHC.Statement.source ++
+    ["_span <- PegRt.spanFrom peg'start"]
+  have printed (ret : String) : RenderPrimitiveDo.printedDo (before ++ [ret]) =
+      "do { " ++ String.join (before.map fun x => x ++ sep) ++ ret ++ "\n          }" := by
+    simp only [RenderPrimitiveDo.printedDo, RenderPrimitiveDo.join_intersperse]
+    rw [last]
+    simp [String.append_assoc]
+  let lead := "do { " ++ String.join (before.map fun x => x ++ sep)
+  let retHead := if children.isSome then "PegPrelude.pure ((" else "PegPrelude.pure ("
+  let retTail := match children with
+    | none => ")"
+    | some ks => "), " ++ printedKids (ks.map fun (k : Nat) => "peg'k" ++ k.repr) ++ ")"
+  have source (fragment : String) :
+      (actionAlternative hasEnv items fragment tokens valid children).source =
+        (lead ++ retHead) ++ fragment ++ (retTail ++ "\n          }") := by
+    rw [actionAlternative_source]
+    have boundary (ret : String) : before ++ [ret] =
+        (if hasEnv then ["_env <- PegRt.askStore peg'env"] else []) ++ ["peg'start <- PegRt.getOffset"] ++
+          items.map RenderPrimitiveDoGHC.Statement.source ++ ["_span <- PegRt.spanFrom peg'start", ret] := by
+      simp [before, List.append_assoc]
+    rw [← boundary, printed]
+    cases children <;> simp [lead, retHead, retTail, String.append_assoc]
+  simpa only [source] using Peg.Verification.invariant3_fragment_marker_slot
+    (lead ++ retHead) (retTail ++ "\n          }") path body line col n
+
+open Peg.Verification in
+theorem actionAlternative_restore_line (hasEnv : Bool) (items : List RenderPrimitiveDoGHC.Statement)
+    (path body : String) (line col n : Nat) (tokens : List Symbol)
+    (valid : Derives productions [.nonterminal 229] tokens) (children : Option (List Nat)) :
+    let source := (actionAlternative hasEnv items (renderFragment (markerCandidate n) line col path body)
+      tokens valid children).source
+    ∃ offset : Nat, ∀ (preceding following : List String) (outputPath : String),
+      let lines := preceding ++ (source.toList.splitOn '\n').map String.ofList ++ following
+      (finalizeLines (markerCandidate n) outputPath lines)[preceding.length + offset]? =
+        some (renderLine (preceding.length + offset + 2) outputPath) := by
+  dsimp only
+  obtain ⟨left, right, slot⟩ := actionAlternative_marker_slot hasEnv items path body line col n tokens valid children
+  refine ⟨left.length, ?_⟩
+  intro preceding following outputPath
+  rw [slot _ (by simp)]
+  simp only [List.map_append, List.map_cons, List.map_nil, String.ofList_toList]
+  let lead := preceding ++ left.map String.ofList
+  let tail := right.map String.ofList ++ following
+  have atSlot := invariant3_finalize_lines_at (markerCandidate n) outputPath
+    (lead ++ markerCandidate n :: tail) lead.length (by simp)
+  simpa [lead, tail, List.append_assoc] using atSlot
+
+#print axioms actionAlternative_restore_line
+
+#print axioms actionAlternative_marker_slot
 
 -- passThroughOf binds the chosen item and returns that same name after
 -- the remaining statements have run.

@@ -1,4 +1,5 @@
 import RuleRejection
+import TemplateQueue
 
 namespace PegHs.RuleRejectionRefs
 
@@ -207,6 +208,32 @@ theorem invariant2_nestedMissingRefVisible {G : Type}
     repetition before after hr he hn
   exact Or.inl ⟨location, name,
     invariant2_nestedMissingRefProducesError expression location name arity defined nested missing⟩
+
+theorem invariant2_grammar_missing_ref_diagnostic {G : Type}
+    (parsed resolved expanded : G) (resolve expand : G → Except Pipeline.Diagnostics G)
+    (rules : G → List (List (List Expr))) (defined : G → List String)
+    (repetition before after : G → List RuleRejection.Diagnostic)
+    (note : G → String → String) (strip : Option (G → G))
+    (warn : G → G → Pipeline.Diagnostics) (generate : G → Except Pipeline.Diagnostics String)
+    (hr : resolve parsed = .ok resolved) (he : expand resolved = .ok expanded)
+    (location arity : Nat) (name : String)
+    (present : ∃ alts ∈ rules expanded, ∃ items ∈ alts, ∃ e ∈ items, HasRef e (location, name, arity))
+    (missing : name ∉ defined expanded) :
+    let undefined := fun g => RuleRejection.undefinedFromRefs (withoutArity (grammarRefs (rules g))) (defined g)
+    let check := fun g => RuleRejection.checkRoot (undefined g) (repetition g) (before g) (after g)
+    ∃ ds, Pipeline.pipeline (.ok parsed) resolve expand check (fun g => TemplateQueue.templateNotes (note g))
+      strip warn generate = .error ds ∧ note resolved ("undefined rule " ++ name) ∈ ds := by
+  dsimp only
+  have ref := (invariant2_grammarRefs_iff _ _).mpr present
+  have erased : (location, name) ∈ withoutArity (grammarRefs (rules expanded)) :=
+    List.mem_map.mpr ⟨_, ref, rfl⟩
+  have diagnostic := RuleRejection.invariant2_missingRefProducesError _ _ _ _ erased missing
+  obtain ⟨raw, rejected, member⟩ := RuleRejection.checkRoot_error_contains _ (repetition expanded)
+    (before expanded) (after expanded) _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ diagnostic)))
+  refine ⟨TemplateQueue.templateNotes (note resolved) raw, ?_, List.mem_eraseDups.mpr (List.mem_map.mpr ⟨_, member, rfl⟩)⟩
+  simp [Pipeline.pipeline, hr, he, rejected, Pipeline.withNotes]
+
+#print axioms invariant2_grammar_missing_ref_diagnostic
 
 -- Invariant 2: a deeply nested rule reference is extracted once.
 example : (3, "Missing", 0) ∈ exprRefs (.group [[.star (.ref 3 "Missing" 0)]]) := by

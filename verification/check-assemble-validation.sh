@@ -14,10 +14,10 @@ trap 'rm -f "$expected" "$actual"' EXIT HUP INT TERM
 # requires re-review of the Lean data model and every diagnostic source.
 sed -n '/^assemble ::/,/^-- | Whether a text is a path/p' "$source_file" |
   sed '$d' > "$actual"
-[ "$(git hash-object --stdin < "$actual")" = 47a3413aa08f794f7acd663957963c0e8b4fc92e ]
+[ "$(git hash-object --stdin < "$actual")" = eb078d6e35ca244df172c988214424d89222a8c0 ]
 # Predicate and splitting helpers (including stringArg/decodeString) are
 # opaque in Lean. Pin them too so that a semantic change stops this check.
-[ "$(git hash-object "$source_file")" = 7a3eb05bf4d3be02ad1c845a9ccea9a5b68f2738 ]
+[ "$(git hash-object "$source_file")" = abf4ddbda63b2428fb8a275b43d5b3efe8ef0ff3 ]
 
 cat > "$expected" <<'SOURCE'
 parseGrammar :: Text -> Either [Diagnostic] Grammar

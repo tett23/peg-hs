@@ -16,6 +16,8 @@ lexer=${GHC_LEXER_X:-"$LEAN_PATH/Lexer.x"}
 cat verification/CheckModuleNameChars.hs > "$scratch/CheckModuleNameChars.hs"
 sed -n '/^adjustChar ::/,/^[ ]*_other *-> non_graphic/p' "$lexer" >> "$scratch/CheckModuleNameChars.hs"
 runghc-9.10.3 "$scratch/CheckModuleNameChars.hs"
+runghc-9.10.3 -package=ghc -XGHC2021 -ipackages/peg-grammar/src \
+  verification/CheckGeneratedTypeNames.hs "$(ghc-9.10.3 --print-libdir)"
 
 (cd verification && lean -DwarningAsError=true \
   -o "$scratch/RenderModuleNames.olean" RenderModuleNames.lean) \
@@ -39,6 +41,15 @@ SOURCE
 sed -n '/^ruleVar ::/,/^ruleVar n =/p' \
   packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderModuleNames.actual"
 diff -u "$scratch/RenderModuleNames.expected" "$scratch/RenderModuleNames.actual"
+
+cat > "$scratch/GeneratedTypeName.expected" <<'SOURCE'
+generatedTypeName n = case T.uncons n of
+  Just (c, rest) | isUpper (toUpper c) -> T.cons (toUpper c) rest
+  _ -> "Rule'" <> n
+SOURCE
+sed -n '/^generatedTypeName n =/,/^  _ ->/p' \
+  packages/peg-grammar/src/Peg/Grammar/Types.hs > "$scratch/GeneratedTypeName.actual"
+diff -u "$scratch/GeneratedTypeName.expected" "$scratch/GeneratedTypeName.actual"
 
 cat > "$scratch/InvalidQdo.hpeg" <<'SOURCE'
 %module Probe.InvalidQdo
@@ -102,4 +113,4 @@ for name in QualifiedMdo UnicodeNames UnicodeModule; do
     "$scratch/$name.hs" > "$scratch/$name.ghc.log" 2>&1
 done
 
-printf 'Module names and exports: 5 Lean theorems, 1114112 character classifications, 2 invalid inputs rejected, 3 generated modules compiled.\n'
+printf 'Module names and exports: 9 Lean declarations, 1114112 character classifications, 28 GHC identifier scans, 2 invalid inputs rejected, 3 generated modules compiled.\n'
