@@ -9,6 +9,7 @@ case "$version" in
   "Lean (version ${toolchain#leanprover/lean4:v},"*) ;;
   *) echo "Expected $toolchain; found $version" >&2; exit 1 ;;
 esac
+./check-audit-coverage.sh
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 export LEAN_PATH="$work"
@@ -103,8 +104,7 @@ mkdir "$work/meta-cases"
   ./check-file-items.sh "$work" &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean --compare "$work/meta-results" &&
   lean -DwarningAsError=true --run CheckMetaExecution.lean ../packages/peg-grammar/grammar/Peg.hpeg ../packages/peg-grammar/grammar/PegSyntax.hpeg &&
-  ./check-file-certificates.sh "$work" &&
-  lean -DwarningAsError=true Audit.lean)
+  ./check-file-certificates.sh "$work")
 
 # Each edited hpeg must still parse and translate. Only the Lean certificate fails.
 reject_mutation() {
@@ -128,7 +128,7 @@ reject_mutation Peg 's/^Ws <-.*/Ws <- ./' 'run (ruleWs rest) []'
   packages/peg-grammar/grammar/Peg.hpeg \
   packages/peg-grammar/grammar/PegSyntax.hpeg \
   packages/peg-codegen/test/fixtures/Templates.hpeg > "$work/ExtractedSignatures.lean"
-(cd verification && lean -DwarningAsError=true "$work/ExtractedSignatures.lean")
+(cd verification && lean -DwarningAsError=true -R "$work" -o "$work/ExtractedSignatures.olean" "$work/ExtractedSignatures.lean")
 cp "$work/ExtractedSignatures.lean" "$work/InvalidSignatures.lean"
 cat >> "$work/InvalidSignatures.lean" <<'SOURCE'
 namespace Grammar1
@@ -176,3 +176,6 @@ verification/check-render-expression-lexer.sh "$work"
 verification/check-ghc-derivations.sh "$work"
 verification/check-render-module-names.sh "$work/module-names"
 GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-operators.sh "$work/module-operators"
+
+# Every module is compiled by now. Audit.lean lists the axioms of each theorem.
+(cd verification && LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true Audit.lean)

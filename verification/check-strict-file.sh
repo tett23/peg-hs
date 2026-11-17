@@ -6,7 +6,7 @@ runghc-9.10.3 -Werror ExtractVerbatimBody.hs ../packages/peg-grammar/src/Peg/Gra
   ../packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs \
   ../packages/peg-grammar/src/Peg/Grammar/SelfHostedSyntax.hs > "$work/TranslatedVerbatimBody.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedVerbatimBody.olean" "$work/TranslatedVerbatimBody.lean"
-lean -DwarningAsError=true VerbatimValue.lean
+lean -DwarningAsError=true -o "$work/VerbatimValue.olean" VerbatimValue.lean
 runtime=../packages/peg-runtime/src/Peg/Runtime/Internal.hs
 runghc-9.10.3 -Werror ExtractRuntimeChoice.hs "$runtime" > "$work/TranslatedRuntimeChoice.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedRuntimeChoice.olean" "$work/TranslatedRuntimeChoice.lean"
@@ -24,13 +24,13 @@ lean -DwarningAsError=true -o "$work/StrictWhitespace.olean" StrictWhitespace.le
 lean -DwarningAsError=true -o "$work/StrictWhitespaceScan.olean" StrictWhitespaceScan.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceLexical.olean" StrictWhitespaceLexical.lean
 lean -DwarningAsError=true -o "$work/StrictWhitespaceMemo.olean" StrictWhitespaceMemo.lean
-lean -DwarningAsError=true StrictIdentifierMemo.lean
-lean -DwarningAsError=true StrictCharMemo.lean
+lean -DwarningAsError=true -o "$work/StrictIdentifierMemo.olean" StrictIdentifierMemo.lean
+lean -DwarningAsError=true -o "$work/StrictCharMemo.olean" StrictCharMemo.lean
 lean -DwarningAsError=true -o "$work/DirectiveFailure.olean" DirectiveFailure.lean
-lean -DwarningAsError=true StrictParameterGuards.lean
+lean -DwarningAsError=true -o "$work/StrictParameterGuards.olean" StrictParameterGuards.lean
 lean -DwarningAsError=true -o "$work/DirectiveSuccess.olean" DirectiveSuccess.lean
 lean -DwarningAsError=true -o "$work/DirectiveAssembly.olean" DirectiveAssembly.lean
-lean -DwarningAsError=true DirectiveSequence.lean
+lean -DwarningAsError=true -o "$work/DirectiveSequence.olean" DirectiveSequence.lean
 lean -DwarningAsError=true -o "$work/DirectiveSourceDiagnostic.olean" DirectiveSourceDiagnostic.lean
 sh check-directive-arity.sh "$work"
 
