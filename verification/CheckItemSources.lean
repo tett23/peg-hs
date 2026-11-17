@@ -1,5 +1,6 @@
 import PegPieces
 import SyntaxPieces
+import SyntaxAsPegPieces
 
 private def checkSource (path : String) (pieceSource : List Char) : IO Unit := do
   let actual ← IO.FS.readFile ⟨path⟩
@@ -15,3 +16,4 @@ def main (paths : List String) : IO Unit := do
     | _ => throw (IO.userError "expected zero or two grammar paths")
   checkSource peg PegHs.MetaPieces.Peg.source
   checkSource syntaxPath PegHs.MetaPieces.Syntax.source
+  checkSource syntaxPath PegHs.MetaPieces.SyntaxAsPeg.source

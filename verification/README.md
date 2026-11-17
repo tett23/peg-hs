@@ -28,7 +28,9 @@
 [RenderDeclarationsGHC.lean](RenderDeclarationsGHC.lean) は GHC 9.10.3 の型シグネチャと関数束縛の規則から、任意の子の導出と引数列を合成する。[RenderDeclarationBinders.lean](RenderDeclarationBinders.lean) は予約語の拒否、`_` の保持、メモ化キーの値と型の置換を扱う。[check-render-declaration-binders.sh](check-render-declaration-binders.sh) は組み立て時の二つの検査箇所と生成時の二つのキー箇所を実ソースで照合する。子の型・式の導出、文字列から GHC トークンへの対応、Haskell の遅延評価、任意の hpeg 構文木から名前の一覧を取り出す処理はこの定理の前提に残る。
 
 ソースの抽出・照合スクリプトと、そこで使う Haskell の構文の読み取り方は信頼する前提である。
-[Audit.lean](Audit.lean) は各証明モジュールの定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
+[CertifiedPublicFiles.lean](CertifiedPublicFiles.lean) は、`Peg.hpeg` と `PegSyntax.hpeg` の現行の内容を `parseTops` のモデルが受理することを証明する。`parseTops` はどの hpeg ファイルも `Peg.hpeg` の文法 (モード `false`) で読むので、`invariant1_public_syntax_as_peg` は `PegSyntax.hpeg` をこの文法で受理することを示す。`invariant1_public_syntax` は、`PegSyntax.hpeg` を自身の規則の表 (モード `true`) で受理することを示す。各ファイルの導出の証明書は [SplitMetaFile.lean](SplitMetaFile.lean) が項目ごとに書き出し、[check-file-items.sh](check-file-items.sh) が検査する。[CheckItemSources.lean](CheckItemSources.lean) は、証明書の入力が実際のファイルの内容と一致することを確かめる。
+
+[Audit.lean](Audit.lean) は、一覧に挙げたモジュールと Audit.lean 自身の定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。すべてのモジュールを作った後で動かすため、[check.sh](check.sh) の最後に置く。[check-audit-coverage.sh](check-audit-coverage.sh) は、定理を持つ手書きのモジュールと、定理を書き出す生成器が作るモジュールが、この一覧にすべて載っていることを確かめる。SplitMetaFile.lean が書き出す項目ごとの証明書は、CertifiedPublicFiles.lean の定理の前提になるので、その定理の公理の一覧に含まれる。
 
 ## 実行方法
 
