@@ -79,6 +79,20 @@
 
 [check-render-finalize.sh](check-render-finalize.sh) は、モデルを実装に結びつける。まず、`finalize`、`freshRestoreMarker`、`generate` の二回の `render`、`fragment` の定義、`runtimeVersions` の値を実ソースと照合する。次に、7 個の文法から実際にモジュールを生成する。文法は、埋め込みブロックと最初のマーカーと同じ行を持つもの、テンプレート、回復のラベル、`%language`、`%env`、`--export` で宣言を省いたもの、PegSyntax.hpeg である。各モジュールで、出力のファイルの次の行を指す LINE プラグマをマーカーに戻したテキストに Lean の `finalize` を実行し、結果が生成したファイルとバイト単位で一致することを確かめる。先頭の行が `headerLines` と一致することも確かめる。さらに、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで、生成したファイルを構文解析の受理まで読めることを確かめる。マーカーに戻したテキストの字句の列が生成したファイルと異なるモジュールが少なくとも一つあることも確かめ、`finalizedLex` を使う理由が今も成り立つことを見張る。
 
+[RenderPrinting.lean](RenderPrinting.lean) は、式を印字する `Codegen.exprCodeU` を Lean の全域関数でモデル化し、印字したテキストから GHC の終端記号の列への橋を作る。対象は、利用者のコードを含まない式である。`.`、引数のない規則の参照、リテラル、文字クラス、十種の包み（`*`、`+`、`?` の値の有無、`&`、`!`、`$`、`~`）、各選択肢を do ブロックにしたグループを扱う。モデルは印字の木 `PExpr` と、そのテキスト `render` と終端記号の列 `tokens` からなる。`many` と `skipMany` のどちらを使うか、文の形、新しい変数の名前は、文法の解析で決まるので木の欄に置く。字句のモデル `lexModel` は、GHC 9.10.3 の Lexer.x に合わせた全域の lexer である。扱うのは、識別子、修飾付きの識別子、予約語の `do` と `_`、予約演算子の `<-`、文字列と文字のリテラル、特殊文字 `( ) [ ] , ; { }` である。知らない語は `none` になるので、モデルが GHC と異なる字句を主張することはない。次の定理を示す。
+
+- `printed_lexes`: 名前が妥当な木について、`lexModel (render e) = some (tokens e)`。RenderExpressionGHC.lean の `bridge_wrap`、`bridge_choice`、`bridge_do` が前提に置く lexer の等式のうち、印字する側が出す部分を、これらの式については定理にする。
+- `printed_derives`: `tokens e` は GHC Parser.y の `exp`（211）と `texp`（229）から導出できる。
+- `printed_ghc`: GHC の lexer が印字したテキストでモデルと一致すれば、その字句の列は `tokens e` であり、`exp` から導出できる。
+- `render_wrap`、`render_group`: `render` は、check-render-expression.sh が実ソースと照合する RenderExpression.lean の `renderWrap`、`renderChoice`、`renderDo` に等しい。
+
+これらの定理には、次の前提が残る。
+
+- `valid`: 規則の名前は ASCII の `idTail` の文字からなり、束縛の名前は GHC の予約語でない varid である。検査器は ASCII 以外の文字を含む規則の名前も受理するが、字句のモデルはそれを読まない。check-render-printing.sh はそのテキストを比較から外し、外した件数を表示する。
+- `agrees`（`printed_ghc`）: GHC の lexer は、印字した式のテキストでモデルと同じ字句の列を返す。これが lexer の橋の前提である。RenderFinalize.lean の結論に従い、この前提は `finalize` をかけた後のテキストについてのものとして読む。対象の式は利用者のコードを含まないので復帰マーカーを含まず、印字する改行の後には必ず十個の空白が続く。
+
+[check-render-printing.sh](check-render-printing.sh) は、モデルを実装と GHC に結びつける。まず、`exprCodeU`、`itemStmt`、`passThroughOf`、`doBlock`、`fresh`、`ruleVar`、`showT` と `hsString` の定義を git hash-object で固定する。次に、Lexer.x の `reservedWordsFM` がモデルの予約語の一覧と一致することを確かめる。そのうえで、[RenderPrintingProbe.hs](RenderPrintingProbe.hs) がリポジトリのすべての文法を読み、生成器と同じ `Env` を作る。各規則の式とその部分式を、値を使う場合と捨てる場合で実際の `exprCodeU` に印字させ、同じ順に新しい名前を取りながら印字の木を作る。Lean の `render` がすべての木で `exprCodeU` と同じテキストを返すことを確かめる。`%syntax` のない文法では、各テキストが `generate` の返す `finalize` 後のモジュールに現れることも確かめる。最後に、すべてのテキストを一つのモジュールに並べ、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで読む。GHC の lexer がパーサーに渡す終端記号の番号が、`lexModel` の列と一致することを確かめる。
+
 [CommittedModuleDerivations.lean](CommittedModuleDerivations.lean) は、リポジトリにコミットした生成物の fixture のうち三つについて、不変条件 3 を埋め込みコードの前提なしで示す。三つは、`packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs`、`SelfHostedSyntax.hs`、`packages/peg-codegen/test/generated/Fixture/Extensions.hs` である。以前の [check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) は、別の場所に生成し直したモジュールを読んでいた。そのため、導出の証明書とコミットした fixture は、パッケージのテスト（生成物がコミットしたファイルと一致すること）を介してしか結びついていなかった。いまの check-ghc-parser-trace.sh は、`scripts/regen-fixtures.sh` と同じ作業ディレクトリ、ソース名、出力名、オプションで三つを生成し直し、コミットしたファイルとバイト単位で一致することを確かめる。そのうえで、コミットしたファイルそのものを GHC 9.10.3 のトレーサーで読む。regen-fixtures.sh の該当行が変わったときは、この検査が失敗する。[check-ghc-derivations.sh](check-ghc-derivations.sh) は、三つのトレースから証明書 `DerivationPeg`、`DerivationPegSyntax`、`DerivationExtensions` を作る。`invariant3_certified_word` と `invariant3_committed_words` は、各証明書の字句の列が GHC のモジュールの開始記号から導出できることを示す。`invariant3_committed_text` は、GHC の lexer がテキストから証明書の字句の列を返すという前提だけから、RenderFinalizeModule.lean と同じ形の結論を導く。
 
 証明書は、モジュール全体の字句の列を覆う。そのため、二つのメタ文法と Extensions.hpeg の埋め込みブロック、アクション、意味述語、引数のコード、型は、すべて証明書の中にある。RenderComposition.lean と RenderFinalizeModule.lean の定理は任意の文法についての定理なので、埋め込みコードの前提（`verbatim_split`、`verbatim_imports_ok`、`verbatim_decls_ok`、規則本体の `user_ok` と `decls_ok`）を仮定に置く。この三つのモジュールについては、証明書がこれらの前提に置き換わる。ただし、次の前提は残る。
