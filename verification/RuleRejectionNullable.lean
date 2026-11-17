@@ -721,6 +721,39 @@ theorem invariant2_declaration_repeat_diagnostic
 
 #print axioms invariant2_declaration_repeat_diagnostic
 
+def loopRepetitionErrors (declarations : List (String × List (List Expr)))
+    (items : List (Nat × Expr)) : List RuleRejection.Diagnostic :=
+  RuleRejection.repetitionFromNullable (items.flatMap fun (location, e) =>
+    RuleRejectionRepeat.repeatCandidates
+      (namedLanguageNullable (namedNullableUntilStable declarations)) location e)
+
+theorem loopRepetitionErrors_correct (declarations : List (String × List (List Expr)))
+    (items : List (Nat × Expr)) :
+    loopRepetitionErrors declarations items = declarationRepetitionErrors declarations items := by
+  have same : namedLanguageNullable (namedNullableUntilStable declarations) =
+      namedLanguageNullable (nullableDeclarationNames declarations) := by
+    funext e
+    exact namedLanguageNullable_congr _ _ (namedNullableUntilStable_correct declarations) e
+  simp only [loopRepetitionErrors, declarationRepetitionErrors, same]
+
+theorem invariant2_loop_repeat_diagnostic (declarations : List (String × List (List Expr)))
+    (items : List (Nat × Expr)) (location : Nat) (e : Expr) (item : (location, e) ∈ items)
+    (found : RuleRejectionRepeat.HasNullableRepeat
+      (namedLanguageNullable (namedNullableUntilStable declarations)) e)
+    (undefined before after : List RuleRejection.Diagnostic) :
+    ∃ ds, RuleRejection.checkRoot undefined (loopRepetitionErrors declarations items) before after = .error ds ∧
+      "the repeated expression can match the empty string, which would loop forever" ∈ ds := by
+  rw [loopRepetitionErrors_correct]
+  have same : namedLanguageNullable (namedNullableUntilStable declarations) =
+      namedLanguageNullable (nullableDeclarationNames declarations) := by
+    funext x
+    exact namedLanguageNullable_congr _ _ (namedNullableUntilStable_correct declarations) x
+  rw [same] at found
+  exact invariant2_declaration_repeat_diagnostic declarations items location e item found undefined before after
+
+#print axioms loopRepetitionErrors_correct
+#print axioms invariant2_loop_repeat_diagnostic
+
 theorem nullableDeclarationNames_least (declarations : List (String × List (List Expr)))
     (candidate : Fin (declarationNames declarations).length → Bool)
     (closed : directNext (lookupRuleNames (indexedDeclarationName declarations)) (fun _ => none)
