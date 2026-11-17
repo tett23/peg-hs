@@ -74,6 +74,7 @@ import Header
 import Whitespace
 import TemplateExpansion
 import TemplateExpansionFresh
+import TemplateExpansionWhole
 import TemplateSubstitution
 import TemplateQueue
 import Lexical
@@ -156,7 +157,7 @@ run_cmd do
   let env ← getEnv
   for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor,
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `LineIndex,
-      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `Nullable,
+      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `TemplateExpansionWhole, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
       `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssemblePredicates, `AssembleBindings, `AssembleValidation, `NestedBindings, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,

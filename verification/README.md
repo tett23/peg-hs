@@ -19,7 +19,21 @@
 
 [Whitespace.lean](Whitespace.lean) は、各実メタ文法から取り出した `Ws` が任意の入力でどこまで読み進むかを証明する。`SpaceChar` の捕捉と意味述語を一文字の文字クラスに翻訳し、コメントとの順序付き選択と繰り返しを開始規則の定理につなぐ。[check-whitespace.sh](check-whitespace.sh) は、Lean の文字表と GHC の `Data.Char.isSpace` を Unicode スカラー値 1,112,064 個すべてについて比較する。
 
-[TemplateQueue.lean](TemplateQueue.lean) は、テンプレート展開で、同じ深さの有限個のインスタンスを FIFO 順に処理し、そこで生じたインスタンスを次の深さで処理することを形式化する。個々の展開が有限個の子を返せば、子の個数に一律の上限がなくても、深さ 65 ですべての残りを拒否して待ち行列が空になる。外側の型分類の反復も、初期カウンター 8 で最大 9 回で終了する。テンプレート本体の置換、型分類、各インスタンスを展開する処理自体の停止性は、この二つの定理の前提に残る。[check-template-queue.sh](check-template-queue.sh) は実装の深さと待ち行列の更新を照合し、実生成器で深さ 64 の生成成功と 65 の診断を検査する。
+[TemplateQueue.lean](TemplateQueue.lean) は、テンプレート展開で、同じ深さの有限個のインスタンスを FIFO 順に処理し、そこで生じたインスタンスを次の深さで処理することを形式化する。個々の展開が有限個の子を返せば、子の個数に一律の上限がなくても、深さ 65 ですべての残りを拒否して待ち行列が空になる。外側の型分類の反復も、初期カウンター 8 で最大 9 回で終了する。テンプレート本体の置換、型分類、各インスタンスを展開する処理自体の停止性は、この二つの定理の前提に残る。型分類を除くこれらの前提は、次に述べる TemplateExpansionWhole.lean が外す。[check-template-queue.sh](check-template-queue.sh) は実装の深さと待ち行列の更新を照合し、実生成器で深さ 64 の生成成功と 65 の診断を検査する。
+
+[TemplateExpansionWhole.lean](TemplateExpansionWhole.lean) は、`expandTemplates` 全体についての定理 `expandTemplates_whole` を証明する。この定理は四つの性質からなる。展開は終わり、結果は一つに決まる。拒否の結果には診断が一件以上あり、`Left` なので文法を含まない。受理の結果は、展開した通常の規則の後にインスタンスを並べたものである。そこにはテンプレート、テンプレートの呼び出し、テンプレートへの参照が残らず、各インスタンスは入力のどの規則とも異なる名前で一度だけ定義される。
+
+このモデルは、`expandTemplates`、`expandOnce`、`expandRule`、`expandAlt`、`expandItems`、`expandExpr`、`captures`、`argType`、`instanceOf`、`freshName`、`drain` の分岐をすべて写す。`drain` の再帰は関係 `Drain` に、型の反復 `go` は関係 `Go` に写し、それぞれの導出が存在して一つに決まることを証明する。待ち行列の停止性は、深さ d の仕事の後に深さ d + 1 の仕事が並ぶ FIFO の形が保たれることから導く。インスタンスの本体は、テンプレートを呼び出し元として、束縛のスコープを項目ごとに広げて展開する。[TemplateExpansion.lean](TemplateExpansion.lean) にあった、呼び出し元を固定しスコープを広げない `expandExpr` と `expandBody` のモデルは、このモジュールで置き換えた。そのため、[TemplateSubstitution.lean](TemplateSubstitution.lean) の式は、グループの項目に束縛を持つ。
+
+さらに、[check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。比べる文法は、受理、インスタンスの共有、名前の衝突の回避、`%syntax` でのインライン化、各診断、深さの上限を含む。
+
+ただし、次の前提は定理の仮定として残る。
+
+- `haskellIdents`（`codeVariables`）、インスタンスの型を作る `instanceType`、型の分類 `classifiedTypes . classify` は任意の関数として扱う。プローブは型を比べない。
+- メモ表のキーは位置を除いた引数の `show` であり、導出された `Show` が単射であることを仮定する。モデルは引数を構造で比べる。
+- `Data.Map` と `Data.Set` はリストで写す。`M.fromList` は同じキーの最後の束縛を残し、`S.toAscList` は整列して重複を除く。
+- 位置は自然数で写し、プローブは一つのファイルの `Loc f l c` を `l * 100000 + c` と書く。
+- `show (k :: Integer)` が `Nat.repr` と一致することは、[check-template-expansion-fresh.sh](check-template-expansion-fresh.sh) のプローブで確かめる。
 
 [Pipeline.lean](Pipeline.lean) は、警告付き生成で外側の診断または内側の `generationModule` を観測するまでの分岐を扱う。各段階が失敗時に空でない診断を返し、テンプレートの注記が診断を空にしないという前提から、合成後の結果が空でない診断か生成テキストになることを証明する。[PipelineProbe.hs](PipelineProbe.hs) は実際の `generateWithWarnings` に構文、import、テンプレート、規則参照、生成オプションのエラーを渡し、外側と内側のどちらから診断が返るかを確かめる。個々の段階が任意の入力で停止し、仕様どおりの診断を生成することは未証明である。
 
