@@ -22,7 +22,9 @@ files byte for byte.
 Theorems:
 - `unlines_lines`: unlines after lines gives the text back, with at most one
   '\n' added at the end.
-- `finalize_lex`: the finalized text lexes to the tokens of the rendered text.
+- `finalize_prefix`: finalize of the text up to a line break is the start of
+  finalize of the whole text. RenderFinalizeModule uses it to state the lexer
+  obligations on text that GHC reads.
 - `finalize_header`, `finalize_render_header`: the header lines (the two
   comments, the LANGUAGE pragmas and the OPTIONS_GHC pragma) come out of
   finalize unchanged and first.
@@ -30,20 +32,15 @@ Theorems:
   i + 1 names line i + 2, the line after it.
 
 Premises left explicit in the theorems:
-- `eof` (finalize_lex): a '\n' added at the end of the rendered text adds no
-  token. finalize ends the text with '\n' when render did not.
-- `steps` (finalize_lex): for each line equal to the marker, replacing it by
-  its LINE pragma in the partly finalized text does not change the tokens.
-  Both lines are pragmas that GHC lexes as no token: the marker is a pragma
-  GHC does not know (`{-# PEG'RESTORE_x... #-}`), and LINE only moves the
-  position. `transparent_of_marker_line` gives `steps` from the same
-  statement for every context (`MarkerLine`). check-render-finalize.sh checks
-  the composite of these steps and `eof` with GHC 9.10.3's own lexer on
-  generated modules.
 - `source_ok`, `languages_ok`, `shown_ok`: the file name in the first comment,
   the `%language` arguments and the shown output name hold no '\n'. generate
   rejects file names with control characters (ADR 0080), Haskell's `show`
   escapes '\n', and a directive argument is `(!'\n' .)*` in Peg.hpeg.
+
+No theorem here says that the marker lines lex as no token. They do not:
+GHC 9.10.3's layout rule puts a virtual semicolon before a pragma it does not
+know at the start of a line, and check-render-finalize.sh shows that render's
+text then lexes differently from the generated file.
 -/
 
 namespace PegHs.RenderFinalize
@@ -185,63 +182,47 @@ theorem textUnlines_append (a b : List String) :
   apply String.toList_inj.mp
   simp [toList_textUnlines, unlinesChars, String.toList_append]
 
-/-! finalize keeps the tokens -/
+/-! finalize works line by line, so it commutes with taking a prefix -/
 
--- One obligation per line equal to the marker, on the text finalized up to
--- that line. Every other line gives `True`.
-def Transparent {α : Type} (lex : String → List α) (shown marker : String) :
-    List String → Nat → List String → Prop
-  | _, _, [] => True
-  | done, n, l :: ls =>
-    (l = marker →
-      lex (textUnlines (done ++ marker :: ls)) =
-        lex (textUnlines (done ++ linePragma (n + 1) shown :: ls))) ∧
-    Transparent lex shown marker (done ++ [fixLine shown marker n l]) (n + 1) ls
+theorem linesFrom_split (acc x r : List Char) :
+    linesFrom acc (x ++ '\n' :: r) = linesFrom acc (x ++ ['\n']) ++ linesFrom [] r := by
+  induction x generalizing acc with
+  | nil => simp [linesFrom_newline, linesFrom_nil]
+  | cons c x ih =>
+    by_cases hc : c = '\n'
+    · subst hc
+      simp only [List.cons_append, linesFrom_newline, List.cons_append]
+      rw [ih []]
+    · simp only [List.cons_append, linesFrom_other acc c _ hc]
+      exact ih (c :: acc)
 
-theorem finalizeFrom_lex {α : Type} (lex : String → List α) (shown marker : String)
-    (done : List String) (n : Nat) (rest : List String)
-    (steps : Transparent lex shown marker done n rest) :
-    lex (textUnlines (done ++ finalizeFrom shown marker n rest)) =
-      lex (textUnlines (done ++ rest)) := by
-  induction rest generalizing done n with
+theorem textLines_split (a b : String) :
+    textLines (a ++ "\n" ++ b) = textLines (a ++ "\n") ++ textLines b := by
+  simp only [textLines, String.toList_append]
+  rw [show a.toList ++ "\n".toList ++ b.toList = a.toList ++ '\n' :: b.toList by
+    simp]
+  rw [linesFrom_split, List.map_append]
+  congr 3
+
+theorem finalizeFrom_append (shown marker : String) (n : Nat) (l r : List String) :
+    finalizeFrom shown marker n (l ++ r) =
+      finalizeFrom shown marker n l ++ finalizeFrom shown marker (n + l.length) r := by
+  induction l generalizing n with
   | nil => simp [finalizeFrom]
-  | cons l ls ih =>
-    obtain ⟨step, tail⟩ := steps
-    have shifted := ih (done ++ [fixLine shown marker n l]) (n + 1) tail
-    simp only [List.append_assoc, List.singleton_append] at shifted
-    simp only [finalizeFrom]
-    rw [shifted]
-    by_cases hl : l = marker
-    · subst hl
-      rw [fixLine_marker]
-      exact (step rfl).symm
-    · rw [fixLine_other shown marker n l hl]
+  | cons x l ih =>
+    simp only [List.cons_append, finalizeFrom, ih (n + 1), List.length_cons,
+      List.cons.injEq, true_and]
+    congr 2
+    omega
 
-theorem finalize_lex {α : Type} (lex : String → List α) (shown marker t : String)
-    (eof : lex (t ++ "\n") = lex t)
-    (steps : Transparent lex shown marker [] 1 (textLines t)) :
-    lex (finalize shown marker t) = lex t := by
-  have h := finalizeFrom_lex lex shown marker [] 1 (textLines t) steps
-  simp only [List.nil_append] at h
+-- The text up to a line break, finalized alone, is the start of the
+-- finalized whole: the lines before the break keep their numbers.
+theorem finalize_prefix (shown marker a b : String) :
+    finalize shown marker (a ++ "\n" ++ b) =
+      finalize shown marker (a ++ "\n") ++
+        finalizeAt shown marker (1 + (textLines (a ++ "\n")).length) b := by
   simp only [finalize, finalizeAt]
-  rw [h]
-  rcases unlines_lines t with e | e <;> rw [e]
-  exact eof
-
--- The same obligation in every context: a line holding the marker and a line
--- holding any LINE pragma lex alike.
-def MarkerLine {α : Type} (lex : String → List α) (shown marker : String) : Prop :=
-  ∀ (before after : List String) (n : Nat),
-    lex (textUnlines (before ++ marker :: after)) =
-      lex (textUnlines (before ++ linePragma n shown :: after))
-
-theorem transparent_of_marker_line {α : Type} (lex : String → List α)
-    (shown marker : String) (h : MarkerLine lex shown marker)
-    (done : List String) (n : Nat) (rest : List String) :
-    Transparent lex shown marker done n rest := by
-  induction rest generalizing done n with
-  | nil => trivial
-  | cons l ls ih => exact ⟨fun _ => h done ls (n + 1), ih _ _⟩
+  rw [textLines_split, finalizeFrom_append, textUnlines_append]
 
 /-! The header lines come out unchanged and first -/
 
@@ -487,8 +468,7 @@ theorem finalize_line_numbers (shown marker t : String) (shown_ok : '\n' ∉ sho
   omega
 
 #print axioms unlines_lines
-#print axioms finalize_lex
-#print axioms transparent_of_marker_line
+#print axioms finalize_prefix
 #print axioms finalize_header
 #print axioms header_lines_single
 #print axioms header_lines_not_marker

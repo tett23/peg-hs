@@ -2,9 +2,11 @@
 # ADR 0097 invariant 3: the text that generate returns is finalize's output,
 # not render's. Compile RenderFinalize and RenderFinalizeModule, pin the
 # Haskell that they model, and run the Lean model of finalize on modules that
-# peg-hs generates. GHC 9.10.3's lexer (the tracer that
-# check-ghc-parser-trace.sh builds in the same directory) must give the same
-# tokens before and after finalize.
+# peg-hs generates. GHC 9.10.3's parser (the tracer that
+# check-ghc-parser-trace.sh builds in the same directory) must accept each
+# finalized module. It must not read render's text, with the markers, as the
+# same tokens: that is why RenderFinalizeModule states the lexer obligations
+# after finalize.
 set -eu
 cd "$(dirname "$0")/.."
 scratch=${1:?pass the shared temporary verification directory}
@@ -129,6 +131,7 @@ languages_of() {
 grammars=0
 markers=0
 tokens=0
+apart=0
 check_grammar() {
   grammar=$1
   name=$2
@@ -170,21 +173,21 @@ check_grammar() {
     exit 1
   }
 
-  # GHC's lexer: the same tokens with the markers (render's text, with and
-  # without the final newline) as with the LINE pragmas (finalize's text).
-  printf '%s' "$(cat "$probe/$name.rendered")" > "$probe/$name.unterminated"
-  for text in hs rendered unterminated; do
+  # GHC reads the finalized module to the end. Render's text, with the
+  # markers, is lexed apart from it (the count of such modules is reported).
+  for text in hs rendered; do
     file="$probe/$name.$text"
     [ "$text" = hs ] && file=$out
     "$tracer" "$libdir" "$file" 2> "$probe/$name.$text.trace" > "$probe/$name.$text.result" || true
     grep '^LEXID ' "$probe/$name.$text.trace" > "$probe/$name.$text.ids" || true
   done
-  [ -s "$probe/$name.hs.ids" ] || {
-    echo "$name: the GHC tracer read no token" >&2
+  grep -q 'action: accept\.' "$probe/$name.hs.trace" || {
+    echo "$name: GHC's parser did not accept the generated module" >&2
     exit 1
   }
-  cmp "$probe/$name.hs.ids" "$probe/$name.rendered.ids"
-  cmp "$probe/$name.hs.ids" "$probe/$name.unterminated.ids"
+  if ! cmp -s "$probe/$name.hs.ids" "$probe/$name.rendered.ids"; then
+    apart=$((apart + 1))
+  fi
   tokens=$((tokens + $(wc -l < "$probe/$name.hs.ids")))
   grammars=$((grammars + 1))
 }
@@ -209,6 +212,10 @@ grep -Fqx '{-# OPTIONS_GHC -Wno-unused-imports -Wno-unused-top-binds #-}' "$prob
   exit 1
 }
 check_grammar packages/peg-grammar/grammar/PegSyntax.hpeg PegSyntax full
+[ "$apart" -gt 0 ] || {
+  echo "GHC lexed render's text with the markers as the generated module; revisit RenderFinalizeModule" >&2
+  exit 1
+}
 
 # A changed line number in the model must break finalize_line_numbers.
 sed 's/  if line = marker then linePragma (n + 1) shown else line/  if line = marker then linePragma (n + 2) shown else line/' \
@@ -228,5 +235,5 @@ grep -Fq "'PegHs.RenderFinalize.finalize_line_numbers' depends on axioms: [prope
   exit 1
 }
 
-printf 'Render finalize: %s grammars, %s restore markers, %s GHC tokens unchanged by finalize, 4 exact source checks, 1 rejected mutation, 0 sorry axioms.\n' \
-  "$grammars" "$markers" "$tokens"
+printf 'Render finalize: %s grammars, %s restore markers, %s GHC tokens accepted after finalize, %s modules lexed apart before it, 4 exact source checks, 1 rejected mutation, 0 sorry axioms.\n' \
+  "$grammars" "$markers" "$tokens" "$apart"

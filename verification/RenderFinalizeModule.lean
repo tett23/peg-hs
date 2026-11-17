@@ -7,24 +7,31 @@ generated_module_with_rules_verbatim carried to the output of
 Codegen.finalize (ADR 0097 invariant 3).
 
 `Codegen.generate` returns `finalize opts marker (render opts g analysis
-marker)`. The theorems of RenderComposition are about `finalSource`, render's
-text with the restore markers still in it (`trace_sound` gives
-`finalSource = renderTail "\n" first chunks`). The theorems below are about
+marker)`. RenderComposition's theorems take the lexer `lex` as a parameter and
+state its obligations (`initial`, `trace`) on prefixes of render's text, which
+still holds the restore markers. GHC 9.10.3 does not lex that text as it lexes
+the generated file: at the start of a line, a pragma GHC does not know (the
+marker) gets a virtual semicolon from the layout rule before it is skipped,
+while a LINE pragma does not (check-render-finalize.sh shows both on a
+generated module). The theorems below therefore instantiate `lex` with
+`finalizedLex ghcLex shown marker`, GHC's lexer applied after finalize. Every
+lexer obligation is then about GHC's lexer on text that GHC reads: by
+RenderFinalize.finalize_prefix, finalize of a prefix that ends at a line break
+is the start of the generated file. The conclusion is about
 `finalize shown marker finalSource`, the text that generate returns and the
-CLI writes, with every marker line replaced by its LINE pragma and a '\n' at
-the end. The `_header` theorem also takes render's list as the header lines
-(the two comments, the LANGUAGE pragmas and the OPTIONS_GHC pragma) followed
-by the rest, and shows those lines open the finalized file unchanged.
+CLI writes.
+
+The `_header` theorem also takes render's list as the header lines (the two
+comments, the LANGUAGE pragmas and the OPTIONS_GHC pragma) followed by the
+rest, and shows that those lines open the finalized file unchanged.
 
 Premises left explicit in the theorems:
 - `initial`, `trace`, `tokens_match`: the lexer obligations of
-  generated_module (RenderComposition), on render's text.
-- `verbatim_split`, `verbatim_imports_ok`, `verbatim_decls_ok`, `name_ok`,
-  `exports_ok`, `user_ok`, `decls_ok`: as in generated_module_verbatim and
+  generated_module (RenderComposition), for GHC's lexer on the finalized
+  prefixes of render's text.
+- `verbatim_split`, `verbatim_imports_ok`, `verbatim_decls_ok`, `user_ok`
+  and the other derivation premises: as in generated_module_verbatim and
   generated_module_with_rules_verbatim.
-- `eof`, `steps`: the lexer obligations of RenderFinalize.finalize_lex. A '\n'
-  at the end adds no token, and each marker line lexes as its LINE pragma
-  does.
 - `source_ok`, `languages_ok` (`_header` only): the source file name and the
   `%language` arguments hold no '\n'.
 -/
@@ -33,8 +40,13 @@ namespace PegHs.RenderFinalizeModule
 
 open CFG GHCGrammar RenderModuleGHC RenderComposition RenderFinalize
 
+-- GHC's lexer on the text after finalize.
+def finalizedLex (ghcLex : String → List Symbol) (shown marker : String) (s : String) :
+    List Symbol :=
+  ghcLex (finalize shown marker s)
+
 theorem generated_module_finalized
-    (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
+    (ghcLex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (shown marker : String)
     (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
@@ -48,25 +60,24 @@ theorem generated_module_finalized
     (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
       Derives productions [.nonterminal 78] item)
     (decls_ok : ∀ item ∈ decls, Derives productions [.nonterminal 78] item)
-    (initial : lex first = firstTokens)
-    (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
+    (initial : finalizedLex ghcLex shown marker first = firstTokens)
+    (trace : Trace (finalizedLex ghcLex shown marker) "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
       ([.terminal 19] ++ name ++ exportWord exports ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
         blocks.flatten ++ decls.foldl semiAppend []))
-    (eof : lex (finalSource ++ "\n") = lex finalSource)
-    (steps : Transparent lex shown marker [] 1 (textLines finalSource)) :
-    lex (finalize shown marker finalSource) = finalTokens ∧
+:
+    ghcLex (finalize shown marker finalSource) = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
-  obtain ⟨hLex, hDerives⟩ := generated_module_verbatim lex first firstTokens chunks
+  obtain ⟨hLex, hDerives⟩ := generated_module_verbatim (finalizedLex ghcLex shown marker) first firstTokens chunks
     finalSource finalTokens name usesPegPrelude importsPrelude exports blocks
     verbatimImports verbatimDecls decls name_ok exports_ok verbatim_split
     verbatim_imports_ok verbatim_decls_ok decls_ok initial trace tokens_match
-  exact ⟨(finalize_lex lex shown marker finalSource eof steps).trans hLex, hDerives⟩
+  exact ⟨hLex, hDerives⟩
 
 theorem generated_module_with_rules_finalized
-    (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
+    (ghcLex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (shown marker : String)
     (qualifiedName : Bool) (usesPegPrelude importsPrelude : Bool)
@@ -80,31 +91,30 @@ theorem generated_module_with_rules_finalized
       Derives productions [.nonterminal 59] item)
     (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
       Derives productions [.nonterminal 78] item)
-    (initial : lex first = firstTokens)
-    (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
+    (initial : finalizedLex ghcLex shown marker first = firstTokens)
+    (trace : Trace (finalizedLex ghcLex shown marker) "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
       ([.terminal 19] ++ [.terminal (if qualifiedName then 122 else 118)] ++
         exportWord (parts.exports selected dataTypes userExports) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
         blocks.flatten ++ parts.decls.foldl semiAppend []))
-    (eof : lex (finalSource ++ "\n") = lex finalSource)
-    (steps : Transparent lex shown marker [] 1 (textLines finalSource)) :
-    lex (finalize shown marker finalSource) = finalTokens ∧
+:
+    ghcLex (finalize shown marker finalSource) = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
-  obtain ⟨hLex, hDerives⟩ := generated_module_with_rules_verbatim lex first
+  obtain ⟨hLex, hDerives⟩ := generated_module_with_rules_verbatim (finalizedLex ghcLex shown marker) first
     firstTokens chunks finalSource finalTokens qualifiedName usesPegPrelude
     importsPrelude selected dataTypes userExports blocks verbatimImports
     verbatimDecls parts user_ok verbatim_split verbatim_imports_ok
     verbatim_decls_ok initial trace tokens_match
-  exact ⟨(finalize_lex lex shown marker finalSource eof steps).trans hLex, hDerives⟩
+  exact ⟨hLex, hDerives⟩
 
 -- The same, with render's list (`first` and the chunks) opened by the header
 -- lines and the marker that freshRestoreMarker chooses: the finalized file
 -- starts with the header lines, unchanged, and lexes to tokens that derive
 -- from GHC's module start symbol.
 theorem generated_module_with_rules_finalized_header
-    (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
+    (ghcLex : String → List Symbol) (first : String) (firstTokens : List Symbol)
     (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
     (shown source : String) (languages : List String) (pruned : Bool) (k : Nat)
     (body : List String)
@@ -123,30 +133,29 @@ theorem generated_module_with_rules_finalized_header
       Derives productions [.nonterminal 59] item)
     (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
       Derives productions [.nonterminal 78] item)
-    (initial : lex first = firstTokens)
-    (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
+    (initial : finalizedLex ghcLex shown (restoreMarker k) first = firstTokens)
+    (trace : Trace (finalizedLex ghcLex shown (restoreMarker k)) "\n" first firstTokens chunks finalSource finalTokens)
     (tokens_match : finalTokens = sourceSymbols
       ([.terminal 19] ++ [.terminal (if qualifiedName then 122 else 118)] ++
         exportWord (parts.exports selected dataTypes userExports) ++
         [.terminal 25, .terminal 103] ++
         (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
         blocks.flatten ++ parts.decls.foldl semiAppend []))
-    (eof : lex (finalSource ++ "\n") = lex finalSource)
-    (steps : Transparent lex shown (restoreMarker k) [] 1 (textLines finalSource)) :
+:
     finalize shown (restoreMarker k) finalSource =
       textUnlines (headerLines source languages pruned) ++
         finalizeAt shown (restoreMarker k) (1 + (headerLines source languages pruned).length)
           (String.intercalate "\n" body) ∧
-    lex (finalize shown (restoreMarker k) finalSource) = finalTokens ∧
+    ghcLex (finalize shown (restoreMarker k) finalSource) = finalTokens ∧
     Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
   have hSource : finalSource =
       String.intercalate "\n" (headerLines source languages pruned ++ body) := by
     rw [(trace_sound initial trace).1, renderTail_intercalate, layout]
-  refine ⟨?_, generated_module_with_rules_finalized lex first firstTokens chunks
+  refine ⟨?_, generated_module_with_rules_finalized ghcLex first firstTokens chunks
     finalSource finalTokens shown (restoreMarker k) qualifiedName usesPegPrelude
     importsPrelude selected dataTypes userExports blocks verbatimImports
     verbatimDecls parts user_ok verbatim_split verbatim_imports_ok
-    verbatim_decls_ok initial trace tokens_match eof steps⟩
+    verbatim_decls_ok initial trace tokens_match⟩
   rw [hSource]
   exact finalize_render_header shown source languages pruned k body source_ok
     languages_ok body_ne
