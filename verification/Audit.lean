@@ -88,6 +88,9 @@ import FileTrees
 import Pipeline
 import RenderExpression
 import AssembleValidation
+import AssemblePredicates
+import AssembleBindings
+import NestedBindings
 import ImportResolution
 import LabelPropagation
 import InnerGeneration
@@ -104,7 +107,6 @@ import ExtractedSignatures
 import HaskellDerivation
 import ItemSourceSplit
 import LayoutDerivation
-import NestedBindings
 import RenderComposition
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
@@ -188,6 +190,8 @@ end PegHs.ConcreteTerminalBody
 -- markers.
 def auditedModules : List Lean.Name := [
   -- audited modules begin
+  `AssembleBindings,
+  `AssemblePredicates,
   `AssembleValidation,
   `AssembleValidationHelpers,
   `BoundedDecimal,
