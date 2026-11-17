@@ -94,6 +94,7 @@ import NestedBindings
 import ImportResolution
 import LabelPropagation
 import LabelCheckTheorems
+import CheckGroupsTheorems
 import InnerGeneration
 import InnerUnicode
 import Pragmas
@@ -201,6 +202,9 @@ def auditedModules : List Lean.Name := [
   `CaptureWindow,
   `CapturedPredicates,
   `CertifiedPublicFiles,
+  `CheckGroupsModel,
+  `CheckGroupsReach,
+  `CheckGroupsTheorems,
   `ConcreteFileCertificates,
   `ConcreteTables,
   `ConcreteTerminal,
