@@ -19,6 +19,7 @@ compile GHCGrammar
 ./check-render-declaration-binders.sh "$work"
 lean -DwarningAsError=true -o "$work/RenderModuleNames.olean" RenderModuleNames.lean
 ./check-render-composition.sh "$work"
+./check-render-finalize.sh "$work"
 ./check-render-primitive-do-ghc.sh "$work"
 ./check-render-primitive-choice.sh "$work"
 ./check-render-primitive-statement.sh "$work"
