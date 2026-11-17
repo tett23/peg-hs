@@ -138,6 +138,8 @@ import VerbatimItem47
 import VerbatimValue
 import DerivationPeg
 import DerivationPegSyntax
+import DerivationExtensions
+import CommittedModuleDerivations
 
 namespace PegHs.RecursiveEval
 
@@ -209,11 +211,13 @@ def auditedModules : List Lean.Name := [
   `CheckGroupsModel,
   `CheckGroupsReach,
   `CheckGroupsTheorems,
+  `CommittedModuleDerivations,
   `ConcreteFileCertificates,
   `ConcreteTables,
   `ConcreteTerminal,
   `ConcreteTerminalBody,
   `Consumption,
+  `DerivationExtensions,
   `DerivationPeg,
   `DerivationPegSyntax,
   `DirectiveArgument,

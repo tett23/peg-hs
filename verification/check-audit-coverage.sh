@@ -28,7 +28,7 @@ ExtractConcreteTerminals.hs ConcreteTables
 ExtractFile.hs FileTrees
 ExtractSemanticClasses.hs GhcPredicates
 ExtractSignatures.hs ExtractedSignatures
-extract-happy-trace.awk DerivationPeg DerivationPegSyntax
+extract-happy-trace.awk DerivationPeg DerivationPegSyntax DerivationExtensions
 SplitMetaFile.lean CertifiedPublicFiles
 TABLE
 grep -lE '"[^"]*(theorem|lemma) ' -- *.hs *.awk *.lean | sort > "$work/writers"

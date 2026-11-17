@@ -56,10 +56,66 @@ sed -e 's/^module GHC.Parser$/module PegTraceParser/' \
   -o "$scratch/trace-generated-module"
 libdir=$("$ghc" --print-libdir)
 
-for grammar in Peg PegSyntax; do
-  "$peg" gen "packages/peg-grammar/grammar/$grammar.hpeg" -o "$scratch/$grammar.hs"
-  "$scratch/trace-generated-module" "$libdir" "$scratch/$grammar.hs" 2> "$scratch/$grammar.raw-trace" \
-    > "$scratch/$grammar.result"
+# The modules traced are committed fixtures, the files that the packages
+# compile: the two self-hosted parsers, and the codegen fixture Extensions,
+# whose %language lines become LANGUAGE pragmas that the tracer applies. They
+# must be what scripts/regen-fixtures.sh writes now: regenerate each the same
+# way (from the package directory, with the same source and output names,
+# which the header and the LINE pragmas carry, and the same options) in a copy
+# of its grammar directory, and compare byte for byte. The Lean certificates
+# that check-ghc-derivations.sh builds from these traces are then about the
+# committed files and about the generator's present output.
+awk '
+  $0 == "  for src in test/fixtures/*.hpeg; do" { state = 1; next }
+  state == 1 && $0 == "    name=$(basename \"$src\" .hpeg)" { state = 2; next }
+  state == 2 && $0 == "    \"$peg\" gen \"$src\" -o \"test/generated/Fixture/$name.hs\" --debug-entry >/dev/null" { found++ }
+  { state = 0 }
+  END { exit found == 1 ? 0 : 1 }
+' scripts/regen-fixtures.sh || {
+  echo 'scripts/regen-fixtures.sh no longer writes the codegen fixtures as this check does' >&2
+  exit 1
+}
+regen="$scratch/regen-fixtures"
+rm -rf "$regen"
+mkdir -p "$regen/peg-grammar/src/Peg/Grammar" "$regen/peg-codegen/test/generated/Fixture"
+cp -R packages/peg-grammar/grammar "$regen/peg-grammar/grammar"
+cp -R packages/peg-codegen/test/fixtures "$regen/peg-codegen/test/fixtures"
+for grammar in Peg PegSyntax Extensions; do
+  case $grammar in
+    Peg | PegSyntax)
+      package=peg-grammar
+      source=grammar/$grammar.hpeg
+      output=src/Peg/Grammar/SelfHosted.hs
+      [ "$grammar" = Peg ] || output=src/Peg/Grammar/SelfHostedSyntax.hs
+      [ "$(grep -Fxc "  \"\$peg\" gen $source -o $output >/dev/null" scripts/regen-fixtures.sh)" -eq 1 ] || {
+        echo "scripts/regen-fixtures.sh no longer writes $output as this check does" >&2
+        exit 1
+      }
+      set --
+      ;;
+    Extensions)
+      package=peg-codegen
+      source=test/fixtures/$grammar.hpeg
+      output=test/generated/Fixture/$grammar.hs
+      set -- --debug-entry
+      ;;
+  esac
+  (cd "$regen/$package" && "$peg" gen "$source" -o "$output" "$@" >/dev/null)
+  cmp "packages/$package/$output" "$regen/$package/$output" || {
+    echo "packages/$package/$output differs from the generator's output: run scripts/regen-fixtures.sh" >&2
+    exit 1
+  }
+  cp "packages/$package/$output" "$scratch/$grammar.hs"
+  "$scratch/trace-generated-module" "$libdir" "packages/$package/$output" "$scratch/$grammar.options" \
+    2> "$scratch/$grammar.raw-trace" > "$scratch/$grammar.result"
+  # The header options that the tracer applied are the %language lines of the
+  # grammar, in order (none for the self-hosted parsers).
+  sed -n 's/^%language //p' "packages/$package/$source" | tr ',' '\n' |
+    sed -e 's/^ *//' -e 's/ *$//' -e '/^$/d' -e 's/^/-X/' > "$scratch/$grammar.options.expected"
+  cmp "$scratch/$grammar.options.expected" "$scratch/$grammar.options" || {
+    echo "$grammar: the tracer applied other header options than the grammar's %language" >&2
+    exit 1
+  }
   awk -v callbacks="$scratch/$grammar.ids" -v shifts="$scratch/$grammar.shift.ids" \
     -f verification/check-lexer-trace.awk "$scratch/$grammar.raw-trace"
   grep '^token: ' "$scratch/$grammar.raw-trace" > "$scratch/$grammar.tokens"
