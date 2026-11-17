@@ -23,6 +23,8 @@ lean -DwarningAsError=true -o "$work/RenderModuleNames.olean" RenderModuleNames.
 ./check-render-primitive-do-ghc.sh "$work"
 ./check-render-primitive-choice.sh "$work"
 ./check-render-primitive-statement.sh "$work"
+lean -DwarningAsError=true -o "$work/RenderPrinting.olean" RenderPrinting.lean
+./check-render-printing.sh "$work"
 for name in Peg PegSyntax; do
   awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.ids" "$work/$name.trace" > "$work/Derivation$name.lean"
   compile "Derivation$name"

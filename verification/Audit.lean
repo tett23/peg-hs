@@ -115,6 +115,7 @@ import RenderFinalize
 import RenderFinalizeModule
 import PublicGeneration
 import PublicGenerationGHC
+import RenderPrinting
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
 import RenderExpressionBoundary
@@ -310,6 +311,7 @@ def auditedModules : List Lean.Name := [
   `RenderModuleGHC,
   `RenderModuleNames,
   `RenderPrimitiveChoice,
+  `RenderPrinting,
   `RenderPrimitiveDo,
   `RenderPrimitiveDoGHC,
   `RenderPrimitiveStatement,
