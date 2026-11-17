@@ -14,6 +14,7 @@ export const inputs = [
   'conformance/commonmark/tabs/*.md',
   'docs/audits/2026-11-07-inj-module.hpeg.txt',
   'packages/*/CHANGELOG.md',
+  'docs/budgets.md',
 ];
 
 const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
