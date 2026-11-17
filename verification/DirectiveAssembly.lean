@@ -6,23 +6,23 @@ namespace PegHs.MetaExecution
 open EnvironmentEval ConcreteTerminal AssembleValidation
 
 -- Projection of the generated TDef action onto the definition fields used
--- by assembly. Binding extraction still depends on the alternatives.
+-- by assembly. The alternatives keep their binding trees (AssembleBindings).
 theorem invariant2_definition_value_fields (loc : ι) (name : String) (params : Option (List τ))
-    (paramName : τ → String) (alts : β) (bindings : β → List String) :
+    (paramName : τ → String) (alts : β) (trees : β → List (List BindingTree)) :
     let top := translatedDefinitionValue
-      (fun _ n ts as => Top.definitionWithBindings n ts (bindings as)) paramName loc name params alts
+      (fun _ n ts as => Top.definition n ts (trees as)) paramName loc name params alts
     definitions [top] = [(name, (params.getD []).map paramName)] ∧
-      top = .definitionWithBindings name ((params.getD []).map paramName) (bindings alts) := by
+      top = .definition name ((params.getD []).map paramName) (trees alts) := by
   cases params <;> exact ⟨rfl, rfl⟩
 
 theorem invariant2_annotation_value_fields (loc : ι) (name : String)
     (params : Option (List π)) (templates : Option (List τ)) (ty : υ)
     (paramName : π → String) (templateName : τ → String) :
     let top := translatedAnnotationValue
-      (fun _ n ps ts _ => Top.annotationWithParams n (ts.map templateName) (ps.map paramName))
+      (fun _ n ps ts _ => Top.annotation n (ts.map templateName) (ps.map paramName))
       loc name params templates ty
     annotations [top] = [(name, (templates.getD []).map templateName)] ∧
-      top = .annotationWithParams name ((templates.getD []).map templateName)
+      top = .annotation name ((templates.getD []).map templateName)
         ((params.getD []).map paramName) := ⟨rfl, rfl⟩
 
 #print axioms invariant2_annotation_value_fields
@@ -100,10 +100,10 @@ private theorem filteredDirectiveDiagnostic (tops : List Top) (name arg : String
   refine ⟨name, List.mem_map.mpr ⟨(name, arg), List.mem_filter.mpr ⟨?_, accepted⟩, rfl⟩, rfl⟩
   exact List.mem_filterMap.mpr ⟨.directive name arg, member, rfl⟩
 
-theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String) (p : Predicates)
+theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String)
     (member : Top.directive name arg ∈ tops)
     (unknown : known.contains name = false) :
-    diagnostic ⟨.unknownDirective, name⟩ ∈ errors tops p := by
+    diagnostic ⟨.unknownDirective, name⟩ ∈ errors tops := by
   apply List.mem_map.mpr
   refine ⟨⟨.unknownDirective, name⟩, List.mem_append_left _ ?_, rfl⟩
   unfold otherViolations
@@ -112,10 +112,10 @@ theorem unknownDirectiveDiagnostic (tops : List Top) (name arg : String) (p : Pr
   exact filteredDirectiveDiagnostic tops name arg .unknownDirective _ member
     (by change (!known.contains name) = true; rw [unknown]; rfl)
 
-theorem invariant2_missing_argument (tops : List Top) (name : String) (p : Predicates)
+theorem invariant2_missing_argument (tops : List Top) (name : String)
     (member : Top.directive name "" ∈ tops) (recognized : known.contains name = true)
     (required : ["syntax", "deriving", "library"].contains name = false) :
-    diagnostic ⟨.missingArgument, name⟩ ∈ errors tops p := by
+    diagnostic ⟨.missingArgument, name⟩ ∈ errors tops := by
   have emitted := filteredDirectiveDiagnostic tops name "" .missingArgument
     (fun d => known.contains d.1 && !["syntax", "deriving", "library"].contains d.1 && d.2.isEmpty)
     member (by simp only [recognized, required]; rfl)
@@ -125,10 +125,10 @@ theorem invariant2_missing_argument (tops : List Top) (name : String) (p : Predi
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
-theorem invariant2_unexpected_argument (tops : List Top) (name arg : String) (p : Predicates)
+theorem invariant2_unexpected_argument (tops : List Top) (name arg : String)
     (member : Top.directive name arg ∈ tops) (flag : ["syntax", "library"].contains name = true)
     (nonempty : arg.isEmpty = false) :
-    diagnostic ⟨.unexpectedArgument, name⟩ ∈ errors tops p := by
+    diagnostic ⟨.unexpectedArgument, name⟩ ∈ errors tops := by
   have emitted := filteredDirectiveDiagnostic tops name arg .unexpectedArgument
     (fun d => ["syntax", "library"].contains d.1 && !d.2.isEmpty)
     member (by simp only [flag, nonempty]; rfl)
@@ -138,20 +138,20 @@ theorem invariant2_unexpected_argument (tops : List Top) (name arg : String) (p 
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
-private theorem reportedRejection (tops : List Top) (p : Predicates) (v : Violation)
-    (reported : diagnostic v ∈ errors tops p) :
-    ∃ ds, assemble tops p = .error ds ∧ diagnostic v ∈ ds := by
-  cases he : errors tops p with
+private theorem reportedRejection (tops : List Top) (v : Violation)
+    (reported : diagnostic v ∈ errors tops) :
+    ∃ ds, assemble tops = .error ds ∧ diagnostic v ∈ ds := by
+  cases he : errors tops with
   | nil => simp [he] at reported
   | cons d ds => exact ⟨_, by simp only [assemble, he], he ▸ reported⟩
 
-theorem unknownDirectiveRejected (tops : List Top) (name arg : String) (p : Predicates)
+theorem unknownDirectiveRejected (tops : List Top) (name arg : String)
     (member : Top.directive name arg ∈ tops) (unknown : known.contains name = false) :
-    ∃ ds, assemble tops p = .error ds ∧ diagnostic ⟨.unknownDirective, name⟩ ∈ ds := by
-  exact reportedRejection _ _ _ (unknownDirectiveDiagnostic tops name arg p member unknown)
+    ∃ ds, assemble tops = .error ds ∧ diagnostic ⟨.unknownDirective, name⟩ ∈ ds := by
+  exact reportedRejection _ _ (unknownDirectiveDiagnostic tops name arg member unknown)
 
 -- The successful File derivation and the assembly error refer to the same input slices.
-theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Predicates)
+theorem invariant2_single_unknown_directive (c : Char) (cs : List Char)
     (start : CharRule.identStart.accepts c = true)
     (unknown : known.contains (String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)) = false)
     (endOfArg : ((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
@@ -161,23 +161,23 @@ theorem invariant2_single_unknown_directive (c : Char) (cs : List Char) (p : Pre
     let top := capturedDirective ('%' :: c :: cs) (c :: cs).length tail.length raw.length
       (raw.dropWhile (· != '\n')).length
     FileResult false ('%' :: c :: cs) (.ok 0 {}) ∧
-      ∃ ds, assemble [top] p = .error ds ∧
+      ∃ ds, assemble [top] = .error ds ∧
         diagnostic ⟨.unknownDirective, String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)⟩ ∈ ds := by
   refine ⟨invariant1_single_directive_file c cs start endOfArg, ?_⟩
   rw [invariant2_directive_captures]
-  exact unknownDirectiveRejected _ _ _ p (.head _) unknown
+  exact unknownDirectiveRejected _ _ _ (.head _) unknown
 
 -- The downstream stages are arbitrary. A diagnostic from the captured declaration
 -- survives to the public result, including when the declaration also lacks a module.
 theorem invariant2_single_directive_public_error (c : Char) (cs : List Char)
-    (p : Predicates) (v : Violation) (start : CharRule.identStart.accepts c = true)
+    (v : Violation) (start : CharRule.identStart.accepts c = true)
     (endOfArg : ((cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
       |>.dropWhile (· != '\n')) = [])
     (reported :
       let name := String.ofList (c :: cs.takeWhile CharRule.identChar.accepts)
       let raw := (cs.dropWhile CharRule.identChar.accepts).dropWhile PegVerification.isInlineSpace
       diagnostic v ∈ errors [.directive name
-        (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n'))))] p)
+        (String.ofList (DirectiveArgument.argument name (raw.takeWhile (· != '\n'))))])
     (resolve expand check : Unit → Except (List String) Unit)
     (notes : Unit → List String → List String)
     (strip : Option (Unit → Unit)) (warningFor : Unit → Unit → List String)
@@ -187,26 +187,26 @@ theorem invariant2_single_directive_public_error (c : Char) (cs : List Char)
     let top := capturedDirective ('%' :: c :: cs) (c :: cs).length tail.length raw.length
       (raw.dropWhile (· != '\n')).length
     FileResult false ('%' :: c :: cs) (.ok 0 {}) ∧
-      ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok [top]) p)
+      ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok [top]))
         resolve expand check notes strip warningFor generate) = .error ds ∧ diagnostic v ∈ ds := by
   refine ⟨invariant1_single_directive_file c cs start endOfArg, ?_⟩
   rw [invariant2_directive_captures]
   dsimp only at reported
-  obtain ⟨ds, failed, member⟩ := reportedRejection _ p v reported
-  exact ⟨ds, (public_assemble_failure _ p ds failed resolve expand check notes strip warningFor
+  obtain ⟨ds, failed, member⟩ := reportedRejection _ v reported
+  exact ⟨ds, (public_assemble_failure _ ds failed resolve expand check notes strip warningFor
     generate).1, member⟩
 
 -- A trailing comment can remove the entire argument or leave a nonempty value.
-example (p : Predicates) :
+example :
     diagnostic ⟨.missingArgument, "module"⟩ ∈
-      errors [capturedDirective "%module  # ignored".toList 17 11 9 0] p := by
-  apply invariant2_missing_argument _ _ _ _ (by decide +kernel) (by decide +kernel)
+      errors [capturedDirective "%module  # ignored".toList 17 11 9 0] := by
+  apply invariant2_missing_argument _ _ _ (by decide +kernel) (by decide +kernel)
   exact .head _
 
-example (p : Predicates) :
+example :
     diagnostic ⟨.unexpectedArgument, "syntax"⟩ ∈
-      errors [capturedDirective "%syntax  yes # ignored".toList 21 15 13 0] p := by
-  apply invariant2_unexpected_argument _ _ "yes" _ _ (by decide +kernel) (by decide +kernel)
+      errors [capturedDirective "%syntax  yes # ignored".toList 21 15 13 0] := by
+  apply invariant2_unexpected_argument _ _ "yes" _ (by decide +kernel) (by decide +kernel)
   exact .head _
 
 #print axioms invariant2_single_directive_public_error

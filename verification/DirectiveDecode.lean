@@ -106,9 +106,9 @@ theorem invariant2_source_string_argument (valid : String → Bool) (directive a
 
 open AssembleValidation
 
-theorem invariant2_source_string_results (items : List (α × Top)) (p : Predicates) (d : String) :
-    (collect (argument p.validIdent (fun body => run (body.length + 1) .plain [] body)) d items).map
-        (fun result => result.2.map Prod.fst) = stringResults p (directives (items.map Prod.snd)) d := by
+theorem invariant2_source_string_results (items : List (α × Top)) (d : String) :
+    (collect (argument validIdent (fun body => run (body.length + 1) .plain [] body)) d items).map
+        (fun result => result.2.map Prod.fst) = stringResults (directives (items.map Prod.snd)) d := by
   induction items with
   | nil => rfl
   | cons item rest ih =>
@@ -122,13 +122,13 @@ theorem invariant2_source_string_results (items : List (α × Top)) (p : Predica
           ite_true, invariant2_source_string_argument, List.cons.injEq, true_and] using ih
     | _ => exact ih
 
-theorem invariant2_source_string_errors (items : List (α × Top)) (p : Predicates) :
-    let parse := argument p.validIdent (fun body => run (body.length + 1) .plain [] body)
+theorem invariant2_source_string_errors (items : List (α × Top)) :
+    let parse := argument validIdent (fun body => run (body.length + 1) .plain [] body)
     let ds := directives (items.map Prod.snd)
     failures (collect parse "expect" items) (collect parse "message" items) =
-      parseFailures (stringResults p ds "expect" ++ stringResults p ds "message") := by
+      parseFailures (stringResults ds "expect" ++ stringResults ds "message") := by
   dsimp only
-  rw [← invariant2_source_string_results items p "expect", ← invariant2_source_string_results items p "message"]
+  rw [← invariant2_source_string_results items "expect", ← invariant2_source_string_results items "message"]
   generalize collect _ "expect" items = es
   generalize collect _ "message" items = ms
   simp only [failures, parseFailures, List.filterMap_append]
@@ -140,25 +140,25 @@ theorem invariant2_source_string_errors (items : List (α × Top)) (p : Predicat
     | nil => rfl
     | cons x xs ih => obtain ⟨l, r⟩ := x; cases r <;> simp_all [Except.map]
 
-theorem invariant2_duplicate_string_result (items : List (α × Top)) (p : Predicates)
+theorem invariant2_duplicate_string_result (items : List (α × Top))
     (directive target : String) (supported : directive = "expect" ∨ directive = "message")
     (before after : List (Except String String))
     (results :
-      (collect (argument p.validIdent (fun body => run (body.length + 1) .plain [] body))
+      (collect (argument validIdent (fun body => run (body.length + 1) .plain [] body))
         directive items).map (fun result => result.2.map Prod.fst) =
         before ++ .ok target :: after)
     (earlier : target ∈ parsedNames before) :
-    diagnostic ⟨.duplicateString, target⟩ ∈ errors (items.map Prod.snd) p := by
+    diagnostic ⟨.duplicateString, target⟩ ∈ errors (items.map Prod.snd) := by
   rw [invariant2_source_string_results] at results
-  have twice : 2 ≤ ((parsedNames (stringResults p (directives (items.map Prod.snd)) directive)).count target) := by
+  have twice : 2 ≤ ((parsedNames (stringResults (directives (items.map Prod.snd)) directive)).count target) := by
     rw [results]
     have positive := List.count_pos_iff.mpr earlier
     simp only [parsedNames, List.filterMap_append, List.filterMap_cons, List.count_append,
       List.count_cons_self] at positive ⊢
     omega
   have witness := (invariant2_repeated_iff target _).2 twice
-  have combined : target ∈ repeated (parsedNames (stringResults p (directives (items.map Prod.snd)) "expect")) ++
-      repeated (parsedNames (stringResults p (directives (items.map Prod.snd)) "message")) := by
+  have combined : target ∈ repeated (parsedNames (stringResults (directives (items.map Prod.snd)) "expect")) ++
+      repeated (parsedNames (stringResults (directives (items.map Prod.snd)) "message")) := by
     rcases supported with rfl | rfl
     · exact List.mem_append_left _ witness
     · exact List.mem_append_right _ witness
@@ -170,11 +170,11 @@ theorem invariant2_duplicate_string_result (items : List (α × Top)) (p : Predi
   dsimp only [Id.run, Bind.bind, pure, Pure.pure, Id.instMonad]
   repeat first | exact List.mem_append_right _ emitted | apply List.mem_append_left
 
-theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)
+theorem invariant2_decoder_public_rejection (tops : List Top)
     (directive : String) (name gap body : List Char) (msg : String)
     (supported : directive = "expect" ∨ directive = "message")
     (member : Top.directive directive (String.ofList (name ++ gap ++ '"' :: body)) ∈ tops)
-    (valid : p.validIdent (String.ofList name) = true)
+    (valid : validIdent (String.ofList name) = true)
     (noSpace : ∀ c ∈ name, PegVerification.ghcIsSpace c = false)
     (separator : gap ≠ []) (spaces : ∀ c ∈ gap, PegVerification.ghcIsSpace c = true)
     (failed : run (body.length + 1) .plain [] body = .error msg)
@@ -182,16 +182,16 @@ theorem invariant2_decoder_public_rejection (tops : List Top) (p : Predicates)
     (notes : Unit → List String → List String)
     (strip : Option (Unit → Unit)) (warningFor : Unit → Unit → List String)
     (generate : Unit → Except (List String) String) :
-    ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok tops) p)
+    ∃ ds, Pipeline.visible (Pipeline.pipeline (parseGrammar (.ok tops))
         resolve expand check notes strip warningFor generate) = .error ds ∧
       diagnostic ⟨.invalidString, msg⟩ ∈ ds := by
   rw [invariant2_decode_string] at failed
-  have reported := invariant2_directive_decoder_diagnostic tops p directive name gap body msg
+  have reported := invariant2_directive_decoder_diagnostic tops directive name gap body msg
     supported member valid noSpace separator spaces failed
-  cases he : errors tops p with
+  cases he : errors tops with
   | nil => simp [he] at reported
   | cons d ds =>
-    have rejected := public_assemble_failure tops p (d :: ds) (by simp only [assemble, he])
+    have rejected := public_assemble_failure tops (d :: ds) (by simp only [assemble, he])
       resolve expand check notes strip warningFor generate
     exact ⟨_, rejected.1, he ▸ reported⟩
 

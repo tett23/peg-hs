@@ -32,10 +32,10 @@ private theorem countSelected (ds : List (String × String)) (names : List Strin
     · simpa [same, selected] using ih
     · by_cases keep : d.1 ∈ names <;> simpa [same, keep] using ih
 
-theorem invariant2_duplicate_directive (tops : List Top) (p : Predicates) (name : String)
+theorem invariant2_duplicate_directive (tops : List Top) (name : String)
     (selected : name ∈ ["module", "start", "env", "tabstop", "syntax", "deriving", "library"])
     (twice : 2 ≤ ((directives tops).filter (fun d => d.1 == name)).length) :
-    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors tops p := by
+    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors tops := by
   have witness := (invariant2_repeated_iff name _).2
     ((countSelected (directives tops) _ name selected).symm ▸ twice)
   have emitted := (List.mem_map (f := fun n => Violation.mk .duplicateDirective n)).mpr ⟨name, witness, rfl⟩
