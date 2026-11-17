@@ -253,8 +253,23 @@ feat(cli): take --name=value in every option that takes a value (ADR 0046)
 CI は三つのワークフローからなる。
 
 `.github/workflows/ci.yml` は、main への push と pull request で動く。
-`docs/` と Markdown のファイルだけの変更では動かない（[ADR 0039](docs/adr/0039-faster-ci.md)）。
 pull request に続けて push すると、前の push の実行は止まる。
+
+最初の **changes** のジョブは、`scripts/ci-changes.mjs` で、変更がビルドとテストを要るかを判定する（[ADR 0101](docs/adr/0101-run-ci-for-documents-that-tests-read.md)）。
+pull request ではマージベースからヘッドまでの差分を、main への push では push の前のコミットからの差分を見る。
+差分のパスが文書（`docs/` の下と `.md` のファイル）だけで、そのどれもが入力の一覧に無いとき、ビルドとテストのジョブを飛ばす。
+入力の一覧は、文書のうちビルドかテストが読むもので、いまは次のとおりである（`*` は `/` を含まない一つの名前に合う）。
+
+- `docs/syntax.md`、`docs/syntax.en.md`、`README.md`、`README.ja.md`：記法の解説と README の例をテストが読む
+- `editors/README.md`：エディタの文法の写しに入る
+- `conformance/commonmark/tabs/*.md`：CommonMark のタブの検査の入力
+- `docs/audits/2026-11-07-inj-module.hpeg.txt`：peg-cli のテストが読む
+- `packages/*/CHANGELOG.md`：パッケージのソースのアーカイブに入る
+
+テストかビルドに文書を読ませる変更では、同じ変更で、そのパスを `scripts/ci-changes.mjs` の入力の一覧に足す。
+一覧のパスを読むテストかビルドを消す変更では、同じ変更で、そのパスを一覧から除く。
+判定のコマンドが失敗すると、**changes** と **ci** のジョブも失敗する。
+**ci** のジョブは、ほかのジョブの結果をまとめ、main の必須の検査になる（[ADR 0072](docs/adr/0072-required-checks-for-auto-merge.md)）。
 
 - **haskell**：すべてのパッケージをビルドし、リポジトリの文法の `peg-hs fmt --check` と `peg-hs lint`、六つのパッケージの版の一致（`python3 scripts/versions.py check`）、各パッケージの `cabal check` を検査する
 - **test-grammar-1、test-grammar-2、test-grammar-3**：peg-grammar-test を `--shard 1/3` から `--shard 3/3` に分けて動かす（[ADR 0042](docs/adr/0042-shard-peg-grammar-test.md)）

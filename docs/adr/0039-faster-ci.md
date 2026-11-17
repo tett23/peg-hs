@@ -1,6 +1,6 @@
 # ADR 0039: CI を速くする
 
-Status: accepted
+Status: superseded [{"by":["docs/adr/0101-run-ci-for-documents-that-tests-read.md"],"part":"文書だけの変更では Haskell と Node のジョブを動かさない"}]
 
 ## 文脈
 

@@ -11,7 +11,10 @@ ADR は `docs/adr/` に連番で置く。
 性能の判断の根拠にした計測の記録は `docs/benchmarks/` に置き、これもコミットした後は変更しない。
 この二つの決まりは [adr-guard](https://github.com/tett23/adr-guard) v0.13.1 が pre-commit のフックと CI で検査する（[ADR 0043](adr/0043-adr-guard-v0.8.0.md)、[ADR 0047](adr/0047-adr-guard-v0.8.1.md)、[ADR 0059](adr/0059-adr-guard-v0.8.2.md)、[ADR 0060](adr/0060-adr-guard-v0.8.3.md)、[ADR 0076](adr/0076-adr-guard-v0.10.0.md)、[ADR 0100](adr/0100-adr-guard-v0.13.1.md)）。
 プルリクエストは、main の必須のチェック（`adr` と `ci`）が通ると自動でマージする。
-`ci` は CI のジョブの結果をまとめるジョブで、文書（`docs/` の下と `.md` のファイル）だけの変更では、ほかのジョブを飛ばして成功する（[ADR 0072](adr/0072-required-checks-for-auto-merge.md)）。
+`ci` は CI のジョブの結果をまとめるジョブである（[ADR 0072](adr/0072-required-checks-for-auto-merge.md)）。
+CI は、プルリクエストと main への push のどちらでも、変更がビルドとテストを要るかを `scripts/ci-changes.mjs` で判定する。
+文書（`docs/` の下と `.md` のファイル）のうちビルドかテストが読まないものだけの変更では、ビルドとテストのジョブを飛ばし、`ci` は成功する。
+ビルドかテストが読む文書は入力の一覧として `scripts/ci-changes.mjs` に置き、いまは `docs/syntax.md`、`docs/syntax.en.md`、`README.md`、`README.ja.md`、`editors/README.md`、`conformance/commonmark/tabs/*.md`、`docs/audits/2026-11-07-inj-module.hpeg.txt`、`packages/*/CHANGELOG.md` である。これらを変えたときは、ビルドとテストが動く（[ADR 0101](adr/0101-run-ci-for-documents-that-tests-read.md)）。
 言語サーバーの編集応答時間は、計測に影響する変更が main に入ったときに測る。Memo と Golem の各文法で、先頭・中ほど・末尾を編集し、診断までと semantic tokens を返すまでの計12件を調べる。標本ごとの1回あたりの時間から求めた中央値が 16 ms を超えたケースを、一つの issue にまとめる。実行環境による揺れも含め、一度の超過で記録する（[ADR 0099](adr/0099-open-an-issue-for-lsp-median-latency.md)）。
 
 ## 目的
