@@ -1,6 +1,6 @@
 # ADR 0023: TOML 1.1.0 の文法で構文の後の検査と回復を検証する
 
-ステータス: 採択→回復の規則と複数行の文字列の読み方は [ADR 0025](0025-lua-toml-implementation-deviations.md)
+Status: superseded [{"by":["docs/adr/0025-lua-toml-implementation-deviations.md"],"part":"回復の規則と複数行の文字列の読み方"}]
 
 ## 文脈
 

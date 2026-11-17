@@ -1,6 +1,6 @@
 # ADR 0032: 文法ファイルの整形（peg-hs fmt）
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

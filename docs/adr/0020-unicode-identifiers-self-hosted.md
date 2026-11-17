@@ -1,6 +1,6 @@
 # ADR 0020: 自己記述の文法の識別子と空白を Unicode に広げる
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

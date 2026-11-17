@@ -1,6 +1,6 @@
 # ADR 0047: adr-guard を v0.8.1 に上げる
 
-ステータス: 採択→adr-guard の版（v0.8.2）は [ADR 0059](0059-adr-guard-v0.8.2.md)
+Status: superseded [{"by":["docs/adr/0059-adr-guard-v0.8.2.md"],"part":"adr-guard の版（v0.8.2）"}]
 
 ## 文脈
 

@@ -35,12 +35,12 @@ clone した後に、[adr-guard](https://github.com/tett23/adr-guard) を入れ�
 adr-guard は、コミットした ADR とベンチマークの記録が変わっていないことを検査する道具である（「ADR と adr-guard」の節）。
 
 ```sh
-cargo install --git https://github.com/tett23/adr-guard --tag v0.10.0
+cargo install --git https://github.com/tett23/adr-guard --tag v0.13.1
 git config core.hooksPath .githooks
 ```
 
 `git config core.hooksPath .githooks` は clone ごとに要る。
-adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)）。
+adr-guard の版は、CI（`.github/workflows/adr.yml`）の版にそろえる（[ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)）。
 
 エディタの文法のテスト（「エディタの文法のテスト」の節）には Node の LTS が要る。
 
@@ -136,13 +136,13 @@ ADR は `docs/adr/` に置く。
 
 - 実装に入る前に ADR を書く。ADR のない機能の追加や仕様の変更は受け付けない
 - ファイル名は `NNNN-kebab-case.md` とする。`NNNN` は既存の ADR に続く連番、その後ろは内容の分かる英語の名前である
-- ADR は日本語で書く。ステータスは「提案」とする
+- ADR は日本語で書く。ステータスの行は `Status: proposed` とする
 - 次の節を含める。データ構造やアルゴリズムを変える場合はその節を、検討の経緯として残すべきことがあればその節を加える
 
 ```
 # ADR NNNN: タイトル
 
-ステータス: 提案
+Status: proposed
 
 ## 文脈
 
@@ -158,8 +158,8 @@ ADR は `docs/adr/` に置く。
 ### レビューと採択
 
 - 書いた ADR はコミットせず、レビューを受ける
-- 採択されたら、ステータスを「採択」にしてコミットする
-- 採択したがまだ実装していない ADR（実装を複数の pull request に分けるときなど）は、ステータスを「採択（未実装）」にしてコミットし、実装を終えたら「採択」に変える。`adr-guard unimplemented` で、ステータスが「採択（未実装）」の ADR を一覧できる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)）
+- 採択されたら、まず `Status: proposed` のままコミットし、後のコミットでステータスを `accepted` にする。新しい ADR をほかのステータスでコミットすると、adr-guard が拒否する（[ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)）
+- 採択したがまだ実装していない ADR（実装を複数の pull request に分けるときなど）は、ステータスを `accepted-pending` にし、実装を終えたら `accepted` に変える。`adr-guard unimplemented` で、ステータスが `accepted-pending` の ADR を一覧できる（[ADR 0060](docs/adr/0060-adr-guard-v0.8.3.md)、[ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)）
 - 記法を変える ADR を採択するときは、同じコミットで `docs/syntax.md` と `docs/syntax.en.md` の両方を更新し、両方の冒頭の「反映している ADR」の一覧に加える
 - ADR で仕様が変わったら、`docs/specifications.md` と README（英語版と日本語版）も同時に更新する。この三つは main で常に最新でなければならない
 - 開発の進め方が変わったら、この文書（日本語版と英語版）も同時に更新する
@@ -167,9 +167,11 @@ ADR は `docs/adr/` に置く。
 ### コミットした ADR は変えない
 
 - コミットした ADR は、ステータスの行の変更とリンクだけの変更（リンクの追加、削除、リンク先の変更）を除いて変更できない。pre-commit のフックと CI の `adr` のジョブで adr-guard が検査する
-- ADR は、行頭が `ステータス:` のステータスの行をちょうど一つ持つ。ステータスの行が無い ADR と二つ以上ある ADR は、adr-guard が拒否する（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）
-- 決定を変えたいときは、変更する内容の新しい ADR を書く。元の ADR のステータスの行を「採択→（変更した部分）は ADR NNNN」のように書き換える
-- ADR を破棄するときは、ステータスを「破棄」にし、理由を `docs/specifications.md` に書く
+- ADR は、行頭が `Status:` のステータスの行をちょうど一つ持つ。ステータスの行が無い ADR と二つ以上ある ADR は、adr-guard が拒否する（[ADR 0043](docs/adr/0043-adr-guard-v0.8.0.md)）
+- ステータスの行は `Status: <トークン>` の形で書く。トークンは `proposed`、`accepted`、`accepted-pending`、`rejected`、`discarded`、`deprecated`、または `superseded [<変更の JSON 配列>]` である。変更は `{"by":[<修正した ADR のリポジトリのルートからのパス>],"part":<変更した部分の名前か null>}` の形で書く（[ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)）
+- pre-commit のフックと CI の `adr` のジョブは、ステータスの行の状態遷移（`proposed` から `accepted` へ、`accepted` から `superseded` へ、など）を検査する。この検査は `--allow-status`、`ADR_GUARD_ALLOW`、コミットのトレーラーでは免除されない（[ADR 0100](docs/adr/0100-adr-guard-v0.13.1.md)）
+- 決定を変えたいときは、変更する内容の新しい ADR を書く。元の ADR のステータスの行を `Status: superseded [{"by":["docs/adr/NNNN-....md"],"part":"（変更した部分）"}]` のように書き換える
+- ADR を破棄するときは、ステータスを `discarded` にし、理由を `docs/specifications.md` に書く
 - 実装の過程で ADR のとおりにできなかった点や、ADR と違う形にした点は、それを記録する ADR を書く（例：[ADR 0015](docs/adr/0015-implementation-deviations.md)、[ADR 0025](docs/adr/0025-lua-toml-implementation-deviations.md)、[ADR 0029](docs/adr/0029-label-safety-implementation-deviations.md)）
 
 ### ADR へのリンク

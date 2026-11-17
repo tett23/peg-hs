@@ -1,6 +1,6 @@
 # ADR 0015: 初回の実装で生じた ADR とのずれの記録
 
-ステータス: 採択→自己記述の文法の識別子の制限は [ADR 0020](0020-unicode-identifiers-self-hosted.md)、既定の解析器への切り替えは [ADR 0027](0027-switch-to-self-hosted-parser.md)
+Status: superseded [{"by":["docs/adr/0020-unicode-identifiers-self-hosted.md"],"part":"自己記述の文法の識別子の制限"},{"by":["docs/adr/0027-switch-to-self-hosted-parser.md"],"part":"既定の解析器への切り替え"}]
 
 ## 文脈
 

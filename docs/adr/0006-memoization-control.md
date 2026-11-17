@@ -1,6 +1,6 @@
 # ADR 0006: v1 は全規則メモ化とし、%nomemo は予約のみ
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

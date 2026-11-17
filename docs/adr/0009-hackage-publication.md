@@ -1,6 +1,6 @@
 # ADR 0009: Hackage 公開を前提とし、パッケージ名は peg-* で確定する
 
-ステータス: 採択
+Status: accepted
 
 ## 文脈
 

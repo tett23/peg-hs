@@ -1,6 +1,6 @@
 # ADR 0066: 型注釈のない規則の型を () とする
 
-ステータス: 採択→%syntax の文法の扱いは [ADR 0068](0068-untyped-rules-in-syntax-grammars.md)、%syntax のない文法の型注釈とアクションのない規則の型は [ADR 0075](0075-generated-types-for-rules-without-actions.md)
+Status: superseded [{"by":["docs/adr/0068-untyped-rules-in-syntax-grammars.md"],"part":"%syntax の文法の扱い"},{"by":["docs/adr/0075-generated-types-for-rules-without-actions.md"],"part":"%syntax のない文法の型注釈とアクションのない規則の型"}]
 
 ## 文脈
 
