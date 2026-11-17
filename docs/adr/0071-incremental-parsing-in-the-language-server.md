@@ -1,6 +1,6 @@
 # ADR 0071: 言語サーバーで、最上位の要素ごとに構文解析を使い回す
 
-Status: accepted
+Status: superseded [{"by":["docs/adr/0102-judge-performance-budgets-in-ci.md"],"part":"テスト設計の計測"}]
 
 ## 文脈
 

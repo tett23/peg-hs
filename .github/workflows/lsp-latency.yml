@@ -11,7 +11,6 @@ env:
   GHC_VERSION: '9.10.3'
   CABAL_VERSION: '3.16.1.0'
   GHCUP_INSTALL_BASE_PREFIX: /home/runner/toolchain
-  GOLEM: 89ae4b4142c58cb8937e10c18c0e664280397547
 
 jobs:
   changes:
@@ -51,36 +50,29 @@ jobs:
         with:
           path: /home/runner/toolchain/.ghcup
           key: ghcup-${{ runner.os }}-${{ env.GHC_VERSION }}-${{ env.CABAL_VERSION }}
-      - name: Prepare toolchain and pinned grammar inputs
+      - name: Prepare toolchain
         run: |
           mkdir -p "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin"
           ghcup install ghc "$GHC_VERSION" --set
           ghcup install cabal "$CABAL_VERSION" --set
           echo "$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin" >> "$GITHUB_PATH"
-          cp conformance/bench/Memo.hpeg "$RUNNER_TEMP/Memo.hpeg"
-          curl --fail --location --retry 3 "https://raw.githubusercontent.com/tett23/golem/$GOLEM/modules/golem-parser/grammar/Golem.hpeg" -o "$RUNNER_TEMP/Golem.hpeg"
-          echo "e27f6daf94af567afbf0712eae8f2ec4e9d45801571b61b90af04929020d1a2c  $RUNNER_TEMP/Golem.hpeg" | sha256sum --check
+      # scripts/lsp-measure.sh measures, the same as the judgment of pull
+      # requests (ADR 0102).
       - name: Build and measure the pushed commit
         run: |
           {
             echo "## LSP median latency"
             echo
-            echo "Commit: $GITHUB_SHA. Memo: conformance/bench/Memo.hpeg at $GITHUB_SHA. Golem: $GOLEM."
+            echo "Commit: $GITHUB_SHA. Memo: conformance/bench/Memo.hpeg at $GITHUB_SHA. Golem: $(sed -n 's/^golem=//p' scripts/lsp-measure.sh)."
             echo "Runner: $ImageOS $ImageVersion ($(uname -m)); GHC $(ghc --numeric-version); Cabal $(cabal --numeric-version)."
             echo 'Options: -O1, Criterion --match pattern range, RTS -A64m.'
             echo
           } >> "$GITHUB_STEP_SUMMARY"
           cabal update
-          cabal build bench:peg-bench --enable-optimization=1
-          bench=$(cabal list-bin bench:peg-bench --enable-optimization=1)
-          cd conformance
-          for grammar in Memo Golem; do
-            PEG_BENCH_LSP_GRAMMAR="$RUNNER_TEMP/$grammar.hpeg" "$bench" \
-              --match pattern range --json "$RUNNER_TEMP/$grammar.json" +RTS -A64m -RTS
-          done
+          scripts/lsp-measure.sh conformance/bench/Memo.hpeg "$RUNNER_TEMP/measured"
       - name: Record all twelve medians
         id: median
-        run: node scripts/lsp-median.mjs "$RUNNER_TEMP/Memo.json" "$RUNNER_TEMP/Golem.json" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: node scripts/lsp-median.mjs "$RUNNER_TEMP/measured/Memo.json" "$RUNNER_TEMP/measured/Golem.json" | tee -a "$GITHUB_STEP_SUMMARY"
         shell: bash
 
   notify:
