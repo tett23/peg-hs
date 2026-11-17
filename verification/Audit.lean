@@ -74,6 +74,7 @@ import Header
 import Whitespace
 import TemplateExpansion
 import TemplateExpansionFresh
+import TemplateExpansionWhole
 import TemplateSubstitution
 import TemplateQueue
 import Lexical
@@ -312,6 +313,7 @@ def auditedModules : List Lean.Name := [
   `TabstopProof,
   `TemplateExpansion,
   `TemplateExpansionFresh,
+  `TemplateExpansionWhole,
   `TemplateQueue,
   `TemplateSubstitution,
   `TerminalCursor,
