@@ -45,6 +45,7 @@ verification/check-template-expansion-fresh.sh
 verification/check-template-queue.sh "$work"
 verification/check-nullable.sh "$work"
 verification/check-reachable.sh
+verification/check-import-resolution.sh
 verification/check-literal.sh "$work"
 verification/check-pragmas.sh "$work"
 verification/check-render-expression.sh "$work"
