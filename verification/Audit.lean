@@ -93,6 +93,7 @@ import AssembleBindings
 import NestedBindings
 import ImportResolution
 import LabelPropagation
+import LabelCheckTheorems
 import InnerGeneration
 import InnerUnicode
 import Pragmas
@@ -108,6 +109,8 @@ import HaskellDerivation
 import ItemSourceSplit
 import LayoutDerivation
 import RenderComposition
+import RenderFinalize
+import RenderFinalizeModule
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
 import RenderExpressionBoundary
@@ -253,6 +256,10 @@ def auditedModules : List Lean.Name := [
   `InnerUnicode,
   `ItemSourceSplit,
   `ItemWindow,
+  `LabelCheckCharSet,
+  `LabelCheckModel,
+  `LabelCheckTermination,
+  `LabelCheckTheorems,
   `LabelPropagation,
   `LabeledConcreteBody,
   `LayoutDerivation,
@@ -288,6 +295,8 @@ def auditedModules : List Lean.Name := [
   `RenderExpressionBoundary,
   `RenderExpressionGHC,
   `RenderExpressionLexer,
+  `RenderFinalize,
+  `RenderFinalizeModule,
   `RenderModuleGHC,
   `RenderModuleNames,
   `RenderPrimitiveChoice,
