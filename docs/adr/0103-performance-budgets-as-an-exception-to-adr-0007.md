@@ -1,6 +1,6 @@
 # ADR 0103: 性能の予算を [ADR 0007](0007-performance-discipline.md) の例外とする
 
-Status: proposed
+Status: accepted-pending
 
 ## 文脈
 
