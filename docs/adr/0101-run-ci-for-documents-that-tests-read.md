@@ -1,6 +1,6 @@
 # ADR 0101: テストとビルドが読む文書の変更では CI を省かない
 
-Status: accepted-pending
+Status: accepted
 
 ## 文脈
 
