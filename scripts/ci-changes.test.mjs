@@ -112,3 +112,7 @@ test('ADR 0101 I4: ci.yml decides with ci-changes.mjs and has no paths-ignore', 
   assert.equal(job.split('scripts/ci-changes.mjs').length - 1, 2);
   assert.equal(/git diff/.test(job), false);
 });
+
+test('ADR 0102 I8: docs/budgets.md needs a build', () => {
+  assert.equal(needsBuild(['docs/budgets.md']), true);
+});
