@@ -130,6 +130,8 @@ import StrictWhitespaceLexical
 import StrictWhitespaceMemo
 import TraceChunks
 import Verbatim47Data
+import TranslatedRuntimeCore
+import RuntimeCoreProof
 import VerbatimChunks
 import VerbatimItem47
 import VerbatimValue
@@ -307,6 +309,7 @@ def auditedModules : List Lean.Name := [
   `RuleRejectionRefs,
   `RuleRejectionRepeat,
   `RuntimeChoiceProof,
+  `RuntimeCoreProof,
   `SelfHostedFileProof,
   `SemanticPredicates,
   `Signatures,
@@ -334,6 +337,7 @@ def auditedModules : List Lean.Name := [
   `TraceChunks,
   `TranslatedArity,
   `TranslatedEscapes,
+  `TranslatedRuntimeCore,
   `TranslatedTabstop,
   `Utf8Terminals,
   `Verbatim47Data,
@@ -357,7 +361,7 @@ run_cmd do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     owners := owners.insert idx.toNat moduleName
     counts := counts.insert moduleName 0
-  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop]
+  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore]
   let mut own := 0
   for (name, info) in env.constants.toList do
     -- Declarations of this file have no module index.
