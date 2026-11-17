@@ -69,6 +69,20 @@
 
 [check-render-finalize.sh](check-render-finalize.sh) は、モデルを実装に結びつける。まず、`finalize`、`freshRestoreMarker`、`generate` の二回の `render`、`fragment` の定義、`runtimeVersions` の値を実ソースと照合する。次に、7 個の文法から実際にモジュールを生成する。文法は、埋め込みブロックと最初のマーカーと同じ行を持つもの、テンプレート、回復のラベル、`%language`、`%env`、`--export` で宣言を省いたもの、PegSyntax.hpeg である。各モジュールで、出力のファイルの次の行を指す LINE プラグマをマーカーに戻したテキストに Lean の `finalize` を実行し、結果が生成したファイルとバイト単位で一致することを確かめる。先頭の行が `headerLines` と一致することも確かめる。さらに、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで、生成したファイルを構文解析の受理まで読めることを確かめる。マーカーに戻したテキストの字句の列が生成したファイルと異なるモジュールが少なくとも一つあることも確かめ、`finalizedLex` を使う理由が今も成り立つことを見張る。
 
+[RenderPrinting.lean](RenderPrinting.lean) は、式を印字する `Codegen.exprCodeU` を Lean の全域関数でモデル化し、印字したテキストから GHC の終端記号の列への橋を作る。対象は、利用者のコードを含まない式である。`.`、引数のない規則の参照、リテラル、文字クラス、十種の包み（`*`、`+`、`?` の値の有無、`&`、`!`、`$`、`~`）、各選択肢を do ブロックにしたグループを扱う。モデルは印字の木 `PExpr` と、そのテキスト `render` と終端記号の列 `tokens` からなる。`many` と `skipMany` のどちらを使うか、文の形、新しい変数の名前は、文法の解析で決まるので木の欄に置く。字句のモデル `lexModel` は、GHC 9.10.3 の Lexer.x に合わせた全域の lexer である。扱うのは、識別子、修飾付きの識別子、予約語の `do` と `_`、予約演算子の `<-`、文字列と文字のリテラル、特殊文字 `( ) [ ] , ; { }` である。知らない語は `none` になるので、モデルが GHC と異なる字句を主張することはない。次の定理を示す。
+
+- `printed_lexes`: 名前が妥当な木について、`lexModel (render e) = some (tokens e)`。RenderExpressionGHC.lean の `bridge_wrap`、`bridge_choice`、`bridge_do` が前提に置く lexer の等式のうち、印字する側が出す部分を、これらの式については定理にする。
+- `printed_derives`: `tokens e` は GHC Parser.y の `exp`（211）と `texp`（229）から導出できる。
+- `printed_ghc`: GHC の lexer が印字したテキストでモデルと一致すれば、その字句の列は `tokens e` であり、`exp` から導出できる。
+- `render_wrap`、`render_group`: `render` は、check-render-expression.sh が実ソースと照合する RenderExpression.lean の `renderWrap`、`renderChoice`、`renderDo` に等しい。
+
+これらの定理には、次の前提が残る。
+
+- `valid`: 規則の名前は ASCII の `idTail` の文字からなり、束縛の名前は GHC の予約語でない varid である。検査器は ASCII 以外の文字を含む規則の名前も受理するが、字句のモデルはそれを読まない。check-render-printing.sh はそのテキストを比較から外し、外した件数を表示する。
+- `agrees`（`printed_ghc`）: GHC の lexer は、印字した式のテキストでモデルと同じ字句の列を返す。これが lexer の橋の前提である。RenderFinalize.lean の結論に従い、この前提は `finalize` をかけた後のテキストについてのものとして読む。対象の式は利用者のコードを含まないので復帰マーカーを含まず、印字する改行の後には必ず十個の空白が続く。
+
+[check-render-printing.sh](check-render-printing.sh) は、モデルを実装と GHC に結びつける。まず、`exprCodeU`、`itemStmt`、`passThroughOf`、`doBlock`、`fresh`、`ruleVar`、`showT` と `hsString` の定義を git hash-object で固定する。次に、Lexer.x の `reservedWordsFM` がモデルの予約語の一覧と一致することを確かめる。そのうえで、[RenderPrintingProbe.hs](RenderPrintingProbe.hs) がリポジトリのすべての文法を読み、生成器と同じ `Env` を作る。各規則の式とその部分式を、値を使う場合と捨てる場合で実際の `exprCodeU` に印字させ、同じ順に新しい名前を取りながら印字の木を作る。Lean の `render` がすべての木で `exprCodeU` と同じテキストを返すことを確かめる。`%syntax` のない文法では、各テキストが `generate` の返す `finalize` 後のモジュールに現れることも確かめる。最後に、すべてのテキストを一つのモジュールに並べ、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで読む。GHC の lexer がパーサーに渡す終端記号の番号が、`lexModel` の列と一致することを確かめる。
+
 生成したパーサーが呼ぶランタイム `Peg.Runtime.Internal` は、[ExtractRuntimeCore.hs](ExtractRuntimeCore.hs) が Lean に翻訳する。対象は、メモ化（`memo`、`memoArg`、`nomemo`、`evalBody`、`replay`、`logUndo` など）、制御の組み合わせ子（モナドの連接、`choice`、`many`、`skipMany`、`optional`、`andP`、`notP`、`labeledWith`、`expecting`）、端末（`lit`、`cls`、`anyChar`）、公開入口の `runParser` と `defaultConfig` である。抽出器は関数ごとに、ソースの行または行の並びを Lean の行へ写す辞書を持ち、辞書にない行があると翻訳を止める。行を消したり並べ替えたりした変更は翻訳を通るので、正しいかどうかは証明が決める。翻訳先の型と ST の参照のモデルは [RuntimeCore.lean](RuntimeCore.lean) に置き、抽出器はそこで写したデータ宣言をソースと照合する。
 
 翻訳した定義についての定理は [RuntimeCoreProof.lean](RuntimeCoreProof.lean) にある。`invariant1_translated_memo_step` と `invariant1_translated_memoArg_step` は、翻訳した `memo` と `memoArg` が [MemoRecognition.lean](MemoRecognition.lean) の `memoStep` と同じ結果と状態を返すことを示す。`invariant1_translated_memo_off_same` は、メモ化の有無と hit・miss によらず、結果、最遠の失敗、依存、エラーの記録が一致することを示す。回復しない構文解析では、連接、選択、`optional`、ラベル、先読みの結果が [LabelPropagation.lean](LabelPropagation.lean) のフレームと先読みに一致し、`many` と `skipMany` は 1 回の反復ごとの式を満たす。端末の `lit`、`cls`、`anyChar` は、スカラー値の境界で `ConcreteTerminal.matchTerm` と同じ入力を受理する。`expecting` は翻訳するが、定理はない。`invariant1_translated_runParser_entry` は、`runParser` が値を返すことと、開始規則の結果を `PublicParsing.entry` に渡して成功することが同値であることを示す。これらの定理により、`check-public-parsing.sh` と `check-memo-recognition.sh` にあったランタイムの SHA-256 の照合を外した。
