@@ -27,6 +27,8 @@
 
 [RenderDeclarationsGHC.lean](RenderDeclarationsGHC.lean) は GHC 9.10.3 の型シグネチャと関数束縛の規則から、任意の子の導出と引数列を合成する。[RenderDeclarationBinders.lean](RenderDeclarationBinders.lean) は予約語の拒否、`_` の保持、メモ化キーの値と型の置換を扱う。[check-render-declaration-binders.sh](check-render-declaration-binders.sh) は組み立て時の二つの検査箇所と生成時の二つのキー箇所を実ソースで照合する。子の型・式の導出、文字列から GHC トークンへの対応、Haskell の遅延評価、任意の hpeg 構文木から名前の一覧を取り出す処理はこの定理の前提に残る。
 
+[RenderComposition.lean](RenderComposition.lean) は、生成器が組み立てる部品を GHC 9.10.3 のモジュール規則に合成し、出力のトークン列に開始記号からの導出があることを示す。`generated_module_verbatim` と `generated_module_with_rules_verbatim` は、埋め込みブロックが import 宣言だけでなくトップレベル宣言も含む場合を扱う。`Codegen.render` は各ブロックを分割せずに、ソースの順で生成した import と生成した宣言のあいだに置く。そのため、トークン列は、生成した import、各ブロックのトークン、生成した宣言の順に並ぶ。[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の埋め込みコードの前提は `verbatim_split` と二つの要素の前提になる。ブロックのトークンを連結した列は、import 宣言の並びとトップレベル宣言の並びをこの順に連ねたものであり、各要素が GHC の `importdecl` と `topdecl` から導出できる、という前提である。lexer に関する `initial`、`trace`、`tokens_match` の前提は残る。[check-render-composition.sh](check-render-composition.sh) は `render` の並び、`verbatimBlock` の定義、`grammarVerbatim` がブロックをソースの順に集める行を実ソースと照合する。さらに、import と宣言を含むブロックと規則の後のブロックを持つ文法から実際に生成したモジュールで、ブロックの行がこの位置にこの順で並ぶことを確かめ、GHC で検査する。
+
 ソースの抽出・照合スクリプトと、そこで使う Haskell の構文の読み取り方は信頼する前提である。
 [Audit.lean](Audit.lean) は各証明モジュールの定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
 

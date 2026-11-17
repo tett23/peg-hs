@@ -4,6 +4,23 @@ import RenderModuleNames
 import TemplateSubstitution
 import RenderRuleBodyGHC
 
+/-
+Composition of Codegen.render's parts into a GHC 9.10.3 module derivation.
+
+Premises left explicit in the theorems:
+- `initial`, `trace`, `tokens_match`: the lexer obligations (GHC's lexer on
+  the emitted text gives the token word of the composed module).
+- `verbatim_ok` (generated_module, generated_module_with_rules): the verbatim
+  blocks lex as import declarations only.
+- `verbatim_split`, `verbatim_imports_ok`, `verbatim_decls_ok`
+  (generated_module_verbatim, generated_module_with_rules_verbatim): the ADR
+  0097 premise on embedded code at the verbatim insertion point; the tokens of
+  all blocks, in order, are import declarations followed by top-level
+  declarations.
+- `name_ok`, `exports_ok`, `user_ok`, `decls_ok`: derivations of the parts
+  that the generic theorems take as arguments.
+-/
+
 namespace PegHs.RenderComposition
 
 open CFG GHCGrammar RenderModuleGHC
@@ -622,6 +639,151 @@ theorem generated_module_with_rules
   · exact trace
   · exact tokens_match
 
+-- The generated declarations in the order of Codegen.render's `decls`
+-- (pinned by check-render-composition.sh), the same list as in
+-- generated_module_with_rules.
+structure GeneratedParts where
+  syntaxMode : Bool
+  envType : CheckedEnvType
+  recovering : Bool
+  keep : String → Bool
+  debug : DebugSettings
+  start : EntryFragment
+  candidates : List EntryCandidate
+  rules : List RenderRule
+  dataDecls : List DataDeclaration
+  explicitTabstop : Bool
+  noMemo : List String
+  syntaxInputs : SyntaxInputs
+
+def GeneratedParts.decls (p : GeneratedParts) : List (List Symbol) :=
+  p.dataDecls.map DataDeclaration.word ++
+    entryItems p.syntaxMode p.envType (selectedValueEntries p.keep p.candidates) ++
+    syntaxEntryItems p.syntaxMode p.envType (selectedSyntaxCount p.keep p.candidates) ++
+    recoveryItems p.syntaxMode p.envType
+      (selectRecoveryEntries p.recovering p.syntaxMode p.keep p.candidates) ++
+    debugItems p.debug p.recovering p.syntaxMode p.envType p.start ++
+    syntaxItems p.syntaxMode (p.syntaxInputs.selected p.keep) ++
+    configItems (p.keep "peg'config") p.explicitTabstop
+      p.debug.noTraditionalRecordSyntax p.debug.enabled ++
+    storeItems (p.keep "peg'newStore")
+      (storeDeclarations p.debug.noTraditionalRecordSyntax
+        (storeFieldTypes p.envType (retainedTables p.syntaxMode p.rules p.keep p.noMemo)))
+      p.envType (retainedTables p.syntaxMode p.rules p.keep p.noMemo).length ++
+    ruleItems ((retainedRules p.rules p.keep).map (RenderRule.fragment p.syntaxMode))
+
+def GeneratedParts.exports (p : GeneratedParts)
+    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
+    (userExports : List (List Symbol)) : List (List Symbol) :=
+  RenderModuleGHC.moduleExports selected dataTypes userExports
+    (debugExportKinds p.debug.enabled p.recovering p.syntaxMode).length
+
+theorem generated_parts_valid (p : GeneratedParts) :
+    ∀ item ∈ p.decls, Derives productions [.nonterminal 78] item := by
+  intro item member
+  simp only [GeneratedParts.decls, List.mem_append] at member
+  rcases member with (((((((hd | he) | hs) | hc) | hdebug) | hsyntax) | hconfig) | hstore) | hr
+  · obtain ⟨d, _, rfl⟩ := List.mem_map.mp hd
+    exact data_declaration_valid d
+  · exact entry_items_valid p.syntaxMode p.envType _ item he
+  · exact syntax_entry_items_valid p.syntaxMode p.envType
+      (selectedSyntaxCount p.keep p.candidates) item hs
+  · exact recovery_items_valid p.syntaxMode p.envType _ item hc
+  · exact debug_items_valid p.debug p.recovering p.syntaxMode p.envType p.start item hdebug
+  · exact syntax_items_valid _ _ item hsyntax
+  · exact config_items_valid _ _ _ _ item hconfig
+  · exact store_items_valid _ _ _ _ (store_declarations_valid _ _
+      (store_field_types_valid p.envType
+        (retainedTables p.syntaxMode p.rules p.keep p.noMemo))) item hstore
+  · exact rule_items_valid _ item hr
+
+-- Verbatim blocks may carry top-level declarations as well as imports.
+-- Codegen.render places `map verbatimBlock (grammarVerbatim g)` after its own
+-- imports and before `decls`, and verbatimBlock copies a block's text whole
+-- between a LINE pragma and a restore marker, which finalize turns into a
+-- LINE pragma (pinned by check-render-composition.sh). The token word
+-- therefore has the generated imports, then the tokens of every block in
+-- grammarVerbatim order (`blocks`), then the generated declarations.
+-- Premises: `verbatim_split` with the two item premises is the ADR 0097
+-- premise on embedded code (the blocks belong to the import declarations
+-- and top-level declarations that GHC's module body accepts at that point);
+-- `initial`, `trace` and `tokens_match` are the lexer obligations of
+-- generated_module.
+theorem generated_module_verbatim
+    (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
+    (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
+    (name : List Symbol) (usesPegPrelude importsPrelude : Bool)
+    (exports blocks verbatimImports verbatimDecls decls : List (List Symbol))
+    (name_ok : Derives productions [.nonterminal 321] name)
+    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (verbatim_split : blocks.flatten =
+      verbatimImports.foldl semiAppend [] ++ verbatimDecls.foldl semiAppend [])
+    (verbatim_imports_ok : ∀ item ∈ verbatimImports,
+      Derives productions [.nonterminal 59] item)
+    (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
+      Derives productions [.nonterminal 78] item)
+    (decls_ok : ∀ item ∈ decls, Derives productions [.nonterminal 78] item)
+    (initial : lex first = firstTokens)
+    (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
+    (tokens_match : finalTokens = sourceSymbols
+      ([.terminal 19] ++ name ++ exportWord exports ++
+        [.terminal 25, .terminal 103] ++
+        (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
+        blocks.flatten ++ decls.foldl semiAppend [])) :
+    lex finalSource = finalTokens ∧
+    Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
+  refine ⟨(trace_sound initial trace).2.2, ?_⟩
+  rw [tokens_match]
+  exact parse_module_source (generated_with_verbatim name usesPegPrelude
+    importsPrelude exports blocks verbatimImports verbatimDecls decls name_ok
+    exports_ok verbatim_split verbatim_imports_ok verbatim_decls_ok decls_ok)
+
+-- generated_module_with_rules with verbatim declarations: the same exports
+-- and generated declarations, and the verbatim blocks where render puts them.
+theorem generated_module_with_rules_verbatim
+    (lex : String → List Symbol) (first : String) (firstTokens : List Symbol)
+    (chunks : List Chunk) (finalSource : String) (finalTokens : List Symbol)
+    (qualifiedName : Bool) (usesPegPrelude importsPrelude : Bool)
+    (selected : List RenderModuleGHC.GeneratedExport) (dataTypes : Nat)
+    (userExports blocks verbatimImports verbatimDecls : List (List Symbol))
+    (parts : GeneratedParts)
+    (user_ok : ∀ item ∈ userExports, Derives productions [.nonterminal 47] item)
+    (verbatim_split : blocks.flatten =
+      verbatimImports.foldl semiAppend [] ++ verbatimDecls.foldl semiAppend [])
+    (verbatim_imports_ok : ∀ item ∈ verbatimImports,
+      Derives productions [.nonterminal 59] item)
+    (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
+      Derives productions [.nonterminal 78] item)
+    (initial : lex first = firstTokens)
+    (trace : Trace lex "\n" first firstTokens chunks finalSource finalTokens)
+    (tokens_match : finalTokens = sourceSymbols
+      ([.terminal 19] ++ [.terminal (if qualifiedName then 122 else 118)] ++
+        exportWord (parts.exports selected dataTypes userExports) ++
+        [.terminal 25, .terminal 103] ++
+        (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
+        blocks.flatten ++ parts.decls.foldl semiAppend [])) :
+    lex finalSource = finalTokens ∧
+    Derives (layoutGrammar productions) [.nonterminal 0] finalTokens := by
+  have name_ok : Derives productions [.nonterminal 321]
+      [.terminal (if qualifiedName then 122 else 118)] := by
+    cases qualifiedName
+    · exact module_name_simple
+    · exact module_name_qualified
+  exact generated_module_verbatim lex first firstTokens chunks finalSource
+    finalTokens _ usesPegPrelude importsPrelude _ blocks verbatimImports
+    verbatimDecls parts.decls name_ok
+    (RenderModuleGHC.module_exports_valid selected dataTypes userExports _ user_ok)
+    verbatim_split verbatim_imports_ok verbatim_decls_ok
+    (generated_parts_valid parts) initial trace tokens_match
+
+-- The earlier imports-only shape is the instance with one block of imports
+-- and no verbatim declarations.
+theorem imports_only_split (verbatimImports : List (List Symbol)) :
+    [verbatimImports.foldl semiAppend []].flatten =
+      verbatimImports.foldl semiAppend [] ++
+        ([] : List (List Symbol)).foldl semiAppend [] := by
+  simp
+
 #print axioms renderTail_intercalate
 #print axioms renderTail_append
 #print axioms tokenTail_append
@@ -630,5 +792,9 @@ theorem generated_module_with_rules
 #print axioms generated_module
 #print axioms rule_items_valid
 #print axioms generated_module_with_rules
+#print axioms generated_parts_valid
+#print axioms generated_module_verbatim
+#print axioms generated_module_with_rules_verbatim
+#print axioms imports_only_split
 
 end PegHs.RenderComposition

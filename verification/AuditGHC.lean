@@ -1,11 +1,15 @@
 import Lean
 import DerivationPeg
 import DerivationPegSyntax
+import RenderComposition
 
 open Lean Elab Command in
 run_cmd do
   for result in [``Peg.invariant3_module_trace, ``PegSyntax.invariant3_module_trace,
-      ``Peg.invariant3_source_tokens, ``PegSyntax.invariant3_source_tokens] do
+      ``Peg.invariant3_source_tokens, ``PegSyntax.invariant3_source_tokens,
+      ``PegHs.RenderModuleGHC.generated_with_verbatim,
+      ``PegHs.RenderComposition.generated_module_verbatim,
+      ``PegHs.RenderComposition.generated_module_with_rules_verbatim] do
     let axioms ← collectAxioms result
     logInfo m!"{result}: {axioms}"
     for ax in axioms do

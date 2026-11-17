@@ -515,6 +515,61 @@ theorem generated_with_imports (name : List Symbol) (usesPegPrelude importsPrelu
   · exact generated_imports_valid _ _ _ generated
   · exact verbatim_ok _ supplied
 
+theorem semiAppend_foldl_acc (acc : List Symbol) (items : List (List Symbol)) :
+    items.foldl semiAppend acc = acc ++ items.foldl semiAppend [] := by
+  induction items generalizing acc with
+  | nil => simp
+  | cons item more ih =>
+    simp only [List.foldl]
+    rw [ih (semiAppend acc item), ih (semiAppend [] item)]
+    simp [semiAppend, List.append_assoc]
+
+theorem semiAppend_foldl_append (xs ys : List (List Symbol)) :
+    (xs ++ ys).foldl semiAppend [] =
+      xs.foldl semiAppend [] ++ ys.foldl semiAppend [] := by
+  rw [List.foldl_append, semiAppend_foldl_acc]
+
+-- Codegen.render copies every verbatim block, in grammarVerbatim order,
+-- between its own imports and the generated declarations, without splitting
+-- it. `blocks` holds the source tokens of each block. The ADR 0097 premise on
+-- embedded code becomes `verbatim_split`: at that point GHC's body accepts
+-- import declarations followed by top-level declarations, so the blocks
+-- together lex as a run of imports and then a run of top-level declarations,
+-- each followed by its layout semicolon. One block may hold both runs.
+theorem generated_with_verbatim (name : List Symbol)
+    (usesPegPrelude importsPrelude : Bool)
+    (exports blocks verbatimImports verbatimDecls decls : List (List Symbol))
+    (name_ok : Derives productions [.nonterminal 321] name)
+    (exports_ok : ∀ item ∈ exports, Derives productions [.nonterminal 47] item)
+    (verbatim_split : blocks.flatten =
+      verbatimImports.foldl semiAppend [] ++ verbatimDecls.foldl semiAppend [])
+    (verbatim_imports_ok : ∀ item ∈ verbatimImports,
+      Derives productions [.nonterminal 59] item)
+    (verbatim_decls_ok : ∀ item ∈ verbatimDecls,
+      Derives productions [.nonterminal 78] item)
+    (decls_ok : ∀ item ∈ decls, Derives productions [.nonterminal 78] item) :
+    Derives (layoutGrammar productions) [.nonterminal 32]
+      (sourceSymbols ([.terminal 19] ++ name ++ exportWord exports ++
+        [.terminal 25, .terminal 103] ++
+        (generatedImports usesPegPrelude importsPrelude).foldl semiAppend [] ++
+        blocks.flatten ++ decls.foldl semiAppend [])) := by
+  have h := generated_lists name exports
+    (generatedImports usesPegPrelude importsPrelude ++ verbatimImports)
+    (verbatimDecls ++ decls) name_ok exports_ok
+    (by
+      intro item member
+      obtain generated | supplied := List.mem_append.mp member
+      · exact generated_imports_valid _ _ _ generated
+      · exact verbatim_imports_ok _ supplied)
+    (by
+      intro item member
+      obtain supplied | generated := List.mem_append.mp member
+      · exact verbatim_decls_ok _ supplied
+      · exact decls_ok _ generated)
+  rw [semiAppend_foldl_append, semiAppend_foldl_append] at h
+  rw [verbatim_split]
+  simpa [List.append_assoc] using h
+
 theorem parse_module {tokens : List Symbol}
     (frame : Derives productions [.nonterminal 32] tokens) :
     Derives productions [.nonterminal 0] tokens := by
@@ -530,6 +585,8 @@ theorem parse_module_source {tokens : List Symbol}
 #print axioms parse_module_source
 #print axioms generated_imports_valid
 #print axioms generated_with_imports
+#print axioms semiAppend_foldl_append
+#print axioms generated_with_verbatim
 #print axioms exports_nonempty
 #print axioms export_varid
 #print axioms export_qvarid

@@ -62,6 +62,76 @@ sed -n '/^    decls =$/,/^        ++ \[ruleDecl env r |/p' \
   packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderCompositionDecls.actual"
 diff -u "$scratch/RenderCompositionDecls.expected" "$scratch/RenderCompositionDecls.actual"
 
+# generated_module_verbatim places the verbatim blocks, whole and in source
+# order, between the generated imports and the generated declarations.
+cat > "$scratch/RenderCompositionVerbatim.expected" <<'SOURCE'
+    verbatimBlock (Located (Loc _ l _) t) =
+      T.concat ["{-# LINE ", showT l, " ", T.pack (show (optSourceName opts)), " #-}\n", t, "\n", marker, "\n"]
+SOURCE
+sed -n '/^    verbatimBlock (Located (Loc _ l _) t) =$/,/^      T.concat \["{-# LINE ", showT l,/p' \
+  packages/peg-codegen/src/Peg/Codegen.hs > "$scratch/RenderCompositionVerbatim.actual"
+diff -u "$scratch/RenderCompositionVerbatim.expected" "$scratch/RenderCompositionVerbatim.actual"
+[ "$(grep -c '^            , grammarVerbatim = \[Located l t | TVerbatim l t <- items\]$' \
+  packages/peg-grammar/src/Peg/Grammar/Assemble.hs)" -eq 1 ] || {
+  echo 'grammarVerbatim no longer keeps the blocks in source order' >&2
+  exit 1
+}
+
+# Probe: two blocks, the first with an import and declarations, the second
+# with a declaration after a rule. The emitted module must hold the generated
+# imports, then each block's lines in order (between LINE pragmas, which GHC
+# lexes as no token), then the generated declarations, and GHC must accept it.
+peg=${PEG_HS:-}
+if [ -z "$peg" ]; then
+  peg=$("${CABAL:-cabal}" list-bin exe:peg-hs)
+fi
+cat > "$scratch/VerbatimProbe.hpeg" <<'GRAMMAR'
+%module VerbatimProbe
+%{
+import Data.Char (isDigit)
+
+digitCount :: [Char] -> Int
+digitCount = length . filter isDigit
+}%
+S :: Int
+S <- 'a' { digitCount "a1" + extra }
+%{
+extra :: Int
+extra = 1
+}%
+GRAMMAR
+"$peg" gen "$scratch/VerbatimProbe.hpeg" -o "$scratch/VerbatimProbe.hs"
+cat > "$scratch/VerbatimProbe.expected" <<'REGION'
+import qualified Peg.Runtime.Internal as PegRt
+import Prelude
+
+LINE
+import Data.Char (isDigit)
+
+digitCount :: [Char] -> Int
+digitCount = length . filter isDigit
+LINE
+
+LINE
+extra :: Int
+extra = 1
+LINE
+
+-- | Parse the whole input with the rule @S@.
+REGION
+awk '
+  /^import qualified Peg.Runtime.Internal as PegRt$/ { on = 1 }
+  on && /^\{-# LINE [0-9]+ "[^"]*" #-\}$/ { print "LINE"; next }
+  on { print }
+  on && /^-- \| Parse the whole input/ { exit }
+' "$scratch/VerbatimProbe.hs" > "$scratch/VerbatimProbe.actual"
+diff -u "$scratch/VerbatimProbe.expected" "$scratch/VerbatimProbe.actual"
+"${CABAL:-cabal}" exec -v0 -- ghc-9.10.3 -fno-code -fforce-recomp -package peg-runtime \
+  -outputdir "$scratch/verbatim-probe" "$scratch/VerbatimProbe.hs" > "$scratch/VerbatimProbe.ghc" 2>&1 || {
+  cat "$scratch/VerbatimProbe.ghc" >&2
+  exit 1
+}
+
 sed 's/\[\.terminal 19\] ++ name ++ exportWord exports/[.terminal 20] ++ name ++ exportWord exports/' \
   verification/RenderComposition.lean > "$scratch/RenderCompositionInvalid.lean"
 if cmp -s verification/RenderComposition.lean "$scratch/RenderCompositionInvalid.lean"; then
@@ -79,4 +149,22 @@ grep -Fq 'error: Type mismatch' "$scratch/RenderCompositionInvalid.log" || {
   exit 1
 }
 
-printf 'Render composition: 18 Lean theorems, 2 exact source checks, 1 rejected mutation, 0 sorry axioms.\n'
+# Verbatim blocks placed after the generated declarations are rejected.
+sed 's/        blocks\.flatten ++ decls\.foldl semiAppend \[\])) :/        decls.foldl semiAppend [] ++ blocks.flatten)) :/' \
+  verification/RenderComposition.lean > "$scratch/RenderCompositionVerbatimInvalid.lean"
+if cmp -s verification/RenderComposition.lean "$scratch/RenderCompositionVerbatimInvalid.lean"; then
+  echo 'Render composition mutation did not move the verbatim blocks' >&2
+  exit 1
+fi
+if (cd verification && lean -DwarningAsError=true \
+    "$scratch/RenderCompositionVerbatimInvalid.lean") \
+    > "$scratch/RenderCompositionVerbatimInvalid.log" 2>&1; then
+  echo 'Lean accepted verbatim blocks after the generated declarations' >&2
+  exit 1
+fi
+grep -Fq 'error: Application type mismatch' "$scratch/RenderCompositionVerbatimInvalid.log" || {
+  cat "$scratch/RenderCompositionVerbatimInvalid.log" >&2
+  exit 1
+}
+
+printf 'Render composition: 22 Lean theorems, 4 exact source checks, 1 generated verbatim probe, 2 rejected mutations, 0 sorry axioms.\n'
