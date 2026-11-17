@@ -48,6 +48,7 @@ inline =
   , ("prefix", grammar ["S :: ()", "S <- 'a' ('b' ^l) { () } / 'a' 'c' { () }"])
   , ("safe", grammar ["S :: ()", "S <- 'a' ('b' ^l) { () } / 'a' 'c' { () }", "%safe l"])
   , ("repetition", grammar ["S :: ()", "S <- ('x' ('y' ^l))* 'x' 'z' { () }"])
+  , ("repetition-continue", grammar ["%entry T", "S :: ()", "S <- ('a' ('b' ^l)?)* 'c' { () }", "T :: ()", "T <- ('a' ('b' ^m)?)+ 'c' { () }"])
   , ("optional", grammar ["S :: ()", "S <- ('a' ^l)? 'b' { () }"])
   , ("plus", grammar ["S :: ()", "S <- ('a' ('b' ^l))+ 'a' 'c' { () }"])
   , ("other-rule", grammar ["S :: ()", "S <- A { () } / 'a' 'c' { () }", "A :: ()", "A <- 'a' ('b' ^l) { () }"])

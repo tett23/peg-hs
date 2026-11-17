@@ -17,7 +17,7 @@ The translation keeps the Haskell names. The differences of form:
   names; `envEq` compares the binding of every rule name.
 - `nullableRules` carries the proof that the known set only grows
   (`nullableGo`), which bounds its loop.
-- `stronglyConnComp` of Data.Graph is replaced by `components`, which finds
+- `stronglyConnComp` of Data.Graph is replaced by `lrTables` and `componentOf`, which find
   the rules that reach themselves and the rules they reach and are reached
   from (see the premises).
 - The recursion of `failed`, `succeeded`, `ruleFailed` and `ruleSucceeded`
@@ -40,9 +40,10 @@ Premises (not proved here; the probe compares the results):
   (checked against GHC 9.10.3 by check-assemble-predicates.sh), and
   `isSpace` is `spaceRanges`, checked by check-label-check.sh.
 - `stronglyConnComp` returns the strongly connected components of the graph
-  of the rules (containers' Data.Graph); `components` computes the same
-  partition when the rule names are distinct, which
-  `Peg.Grammar.Check.check` ensures before `labelWarnings` runs.
+  of the rules (containers' Data.Graph); `componentOf` computes the same
+  partition when the rule names are distinct. `assemble` and
+  `resolveImports` reject a rule named twice, and `expandTemplates` names
+  each instance with a name no rule has (TemplateExpansionWhole).
 - Haskell's `Int` arithmetic of indices, depths and counters does not
   overflow; the model uses natural numbers.
 -/
