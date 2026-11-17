@@ -3,14 +3,16 @@ import Lean.Elab.Tactic.Omega
 
 namespace PegHs.TemplateSubstitution
 
--- Item locations, bindings, Alt actions, and located value arguments are
--- projected away: substituteAlt changes only itemExpr in these records.
+-- Item locations, Alt actions, and located value arguments are projected
+-- away: substituteAlt changes only itemExpr in these records. An item is its
+-- binding and its expression, so a group keeps the bindings that put names in
+-- scope for the later items of its alternative.
 inductive Expr where
   | lit (value written : String)
   | charClass (written : String)
   | any
   | ref (location : Nat) (name : String) (args : List String)
-  | group (alts : List (List Expr))
+  | group (alts : List (List (Option String × Expr)))
   | star (child : Expr)
   | plus (child : Expr)
   | opt (child : Expr)
@@ -34,7 +36,7 @@ def substitute (sub : Substitution) (passed : Bool) : Expr → Expr
     | some (typed, arg) =>
       if passed || typed then arg else .discard arg
     | none => .ref location name []
-  | .group alts => .group (alts.map fun items => items.map (substitute sub false))
+  | .group alts => .group (alts.map fun items => items.map fun item => (item.1, substitute sub false item.2))
   | .star x => .star (substitute sub false x)
   | .plus x => .plus (substitute sub false x)
   | .opt x => .opt (substitute sub false x)
@@ -50,19 +52,21 @@ termination_by e => sizeOf e
 decreasing_by
   all_goals simp_wf
   all_goals try omega
-  · apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
-    apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
+  · have h1 := List.sizeOf_lt_of_mem (by assumption : item ∈ items)
+    have h2 := List.sizeOf_lt_of_mem (by assumption : items ∈ alts)
+    have h3 : sizeOf item.2 < sizeOf item := by cases item; simp; omega
     omega
   · apply Nat.lt_trans (List.sizeOf_lt_of_mem (by assumption))
     omega
 
-def substituteAlt (sub : Substitution) (items : List Expr) : List Expr :=
-  items.map (substitute sub false)
+def substituteAlt (sub : Substitution) (items : List (Option String × Expr)) :
+    List (Option String × Expr) :=
+  items.map fun item => (item.1, substitute sub false item.2)
 
 theorem expandedArguments_length (expandChild : Expr → Expr) (args : List Expr) :
     (args.map expandChild).length = args.length := by simp
 
-theorem substituteAlt_length (sub : Substitution) (items : List Expr) :
+theorem substituteAlt_length (sub : Substitution) (items : List (Option String × Expr)) :
     (substituteAlt sub items).length = items.length := by
   simp [substituteAlt]
 
