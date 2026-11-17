@@ -4,17 +4,17 @@ import DirectiveDuplicates
 namespace PegHs.TranslatedArity
 open AssembleValidation MetaExecution
 
-theorem invariant2_source_missing_argument (tops : List Top) (p : Predicates) (name : String)
+theorem invariant2_source_missing_argument (tops : List Top) (name : String)
     (present : Top.directive name "" ∈ tops) (recognized : known.contains name = true)
     (required : optional.contains name = false) :
-    diagnostic ⟨.missingArgument, name⟩ ∈ errors tops p :=
-  invariant2_missing_argument tops name p present recognized required
+    diagnostic ⟨.missingArgument, name⟩ ∈ errors tops :=
+  invariant2_missing_argument tops name present recognized required
 
-theorem invariant2_source_unexpected_argument (tops : List Top) (p : Predicates) (name arg : String)
+theorem invariant2_source_unexpected_argument (tops : List Top) (name arg : String)
     (present : Top.directive name arg ∈ tops) (flag : flags.contains name = true)
     (nonempty : arg.isEmpty = false) :
-    diagnostic ⟨.unexpectedArgument, name⟩ ∈ errors tops p :=
-  invariant2_unexpected_argument tops name arg p present flag nonempty
+    diagnostic ⟨.unexpectedArgument, name⟩ ∈ errors tops :=
+  invariant2_unexpected_argument tops name arg present flag nonempty
 
 theorem duplicateLocation_iff (name : String) (ds : List (α × String × String)) :
     (duplicateLocation name ds).isSome ↔
@@ -33,11 +33,11 @@ theorem eraseDirectiveLocations (items : List (α × Top)) :
     obtain ⟨loc, top⟩ := item
     cases top <;> simpa [locatedDirectives, directives] using ih
 
-theorem invariant2_source_duplicate (items : List (α × Top)) (p : Predicates) (name : String)
+theorem invariant2_source_duplicate (items : List (α × Top)) (name : String)
     (selected : name ∈ uniqueNames)
     (duplicate : (duplicateLocation name (locatedDirectives items)).isSome) :
-    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors (items.map Prod.snd) p := by
-  apply invariant2_duplicate_directive _ p name selected
+    diagnostic ⟨.duplicateDirective, name⟩ ∈ errors (items.map Prod.snd) := by
+  apply invariant2_duplicate_directive _ name selected
   rw [← eraseDirectiveLocations, List.filter_map]
   simpa [Function.comp_def] using (duplicateLocation_iff name _).mp duplicate
 

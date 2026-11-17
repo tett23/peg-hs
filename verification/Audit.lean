@@ -88,6 +88,9 @@ import FileTrees
 import Pipeline
 import RenderExpression
 import AssembleValidation
+import AssemblePredicates
+import AssembleBindings
+import NestedBindings
 import ImportResolution
 import LabelPropagation
 import InnerGeneration
@@ -156,7 +159,7 @@ run_cmd do
       `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `LineIndex,
       `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `TemplateExpansionWhole, `Nullable,
       `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
-      `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssembleValidation, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
+      `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssemblePredicates, `AssembleBindings, `AssembleValidation, `NestedBindings, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
       `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
       `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `MemoTrace, `MemoTables, `MemoMetaNoLR, `EnvProjection, `EnvProjectionPredicate, `MemoKeyTransfer, `EnvRunCongruence, `MetaEnvCompatible, `MemoKeyEnvironment, `NoArgInputReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `TotalFile, `SelfHostedFileProof, `RuntimeChoiceProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveSourceDiagnostic, `DirectiveDecode, `SimpleEscapeProof, `TranslatedEscapes, `DirectiveHex, `DirectiveStringDiagnostic, `TabstopProof, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
       `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
