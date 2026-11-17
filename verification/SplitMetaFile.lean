@@ -28,8 +28,7 @@ private def certificate (moduleName : String) (mode : Bool) (window : List Char)
   header ++ (if needsFit then check else "") ++ run ++ (if needsFit then fit else "") ++
     "end PegHs.MetaCertificate." ++ moduleName ++ "\n"
 
-private def pieceTable (mode : Bool) (ranges : Array (Nat × Nat)) : String := Id.run do
-  let name := if mode then "Syntax" else "Peg"
+private def pieceTable (name : String) (ranges : Array (Nat × Nat)) : String := Id.run do
   let mut lines := #["import InitialWhitespace", "import Verbatim47Data"]
   for i in [:ranges.size] do
     if i != 47 then
@@ -67,8 +66,7 @@ private def pieceTable (mode : Bool) (ranges : Array (Nat × Nat)) : String := I
   lines := lines.push ("end PegHs.MetaPieces." ++ name)
   return String.intercalate "\n" lines.toList ++ "\n"
 
-private def verbatimStepCertificate (mode : Bool) : String :=
-  let grammarName := if mode then "Syntax" else "Peg"
+private def verbatimStepCertificate (grammarName : String) (mode : Bool) : String :=
   let modeText := if mode then "true" else "false"
   String.intercalate "\n" [
     "import VerbatimItem47",
@@ -98,9 +96,8 @@ private def verbatimStepCertificate (mode : Bool) : String :=
     "#print axioms step",
     "end PegHs.MetaStep." ++ grammarName ++ "Step47", ""]
 
-private def stepCertificate (mode : Bool) (index rest : Nat) (final : Bool) : String :=
-  if index == 47 then verbatimStepCertificate mode else
-  let grammarName := if mode then "Syntax" else "Peg"
+private def stepCertificate (grammarName : String) (mode : Bool) (index rest : Nat) (final : Bool) : String :=
+  if index == 47 then verbatimStepCertificate grammarName mode else
   let modeText := if mode then "true" else "false"
   let item := grammarName ++ "Item" ++ toString index
   let piece := grammarName ++ "Pieces"
@@ -168,8 +165,7 @@ private def stepCertificate (mode : Bool) (index rest : Nat) (final : Bool) : St
     "  rw [beginEq, endEq] at h\n  exact h\n"
   header ++ body ++ "end PegHs.MetaStep." ++ grammarName ++ "Step" ++ toString index ++ "\n"
 
-private def chainProof (mode : Bool) (count start stop : Nat) : String := Id.run do
-  let grammarName := if mode then "Syntax" else "Peg"
+private def chainProof (grammarName : String) (mode : Bool) (count start stop : Nat) : String := Id.run do
   let modeText := if mode then "true" else "false"
   let mut lines := #["import FileItemChain", "import " ++ grammarName ++ "Pieces"]
   if stop < count then
@@ -205,8 +201,7 @@ private def chainProof (mode : Bool) (count start stop : Nat) : String := Id.run
   lines := lines.push ("end PegHs.MetaProof." ++ grammarName)
   return String.intercalate "\n" lines.toList ++ "\n"
 
-private def finalFileProof (mode : Bool) : String :=
-  let grammarName := if mode then "Syntax" else "Peg"
+private def finalFileProof (grammarName : String) (mode : Bool) : String :=
   let modeText := if mode then "true" else "false"
   String.intercalate "\n" [
     "import " ++ grammarName ++ "Chain0",
@@ -227,7 +222,7 @@ private def finalFileProof (mode : Bool) : String :=
     "#print axioms invariant1_file_result",
     "end PegHs.MetaProof." ++ grammarName, ""]
 
-private def split (mode : Bool) (path : String) (outDir : Option String) : IO Unit := do
+private def split (name : String) (mode : Bool) (path : String) (outDir : Option String) : IO Unit := do
   let source ← IO.FS.readFile ⟨path⟩
   let input := source.toList
   let ctx := context mode input
@@ -263,13 +258,13 @@ private def split (mode : Bool) (path : String) (outDir : Option String) : IO Un
       else
         IO.println s!"unreplayable item={count} fit={fitted} local={repr localResult}"
       if let some dir := outDir then
-        let moduleName := (if mode then "Syntax" else "Peg") ++ s!"Item{count}"
+        let moduleName := name ++ s!"Item{count}"
         let code := certificate moduleName mode window
           (input.length - remaining) (input.length - rest) (window.length - consumed) (!isFinal)
         IO.FS.writeFile ⟨dir ++ "/" ++ moduleName ++ ".lean"⟩ code
-        let stepName := (if mode then "Syntax" else "Peg") ++ s!"Step{count}"
+        let stepName := name ++ s!"Step{count}"
         IO.FS.writeFile ⟨dir ++ "/" ++ stepName ++ ".lean"⟩
-          (stepCertificate mode count (window.length - consumed) isFinal)
+          (stepCertificate name mode count (window.length - consumed) isFinal)
       IO.println s!"item={count} start={input.length - remaining} end={input.length - rest}"
       ranges := ranges.push (input.length - remaining, input.length - rest)
       count := count + 1
@@ -293,24 +288,26 @@ private def split (mode : Bool) (path : String) (outDir : Option String) : IO Un
     let certifiedVerb := ['%', '{'] ++ Verbatim47Data.suffix0 ++ ['\n', '\n']
     unless actualVerb == certifiedVerb do
       throw (IO.userError s!"verbatim certificate does not match item 47: {path}")
-    let name := if mode then "Syntax" else "Peg"
     IO.FS.writeFile ⟨dir ++ "/" ++ name ++ "Pieces.lean"⟩
-      (pieceTable mode ranges)
+      (pieceTable name ranges)
     for start in [0:ranges.size] do
       if start % 20 == 0 then
         let stop := min (start + 20) ranges.size
         IO.FS.writeFile ⟨dir ++ "/" ++ name ++ "Chain" ++ toString start ++ ".lean"⟩
-          (chainProof mode ranges.size start stop)
+          (chainProof name mode ranges.size start stop)
     IO.FS.writeFile ⟨dir ++ "/" ++ name ++ "Full.lean"⟩
-      (finalFileProof mode)
+      (finalFileProof name mode)
   IO.println s!"{path}: items={count} replayable={replayable} remaining={remaining}"
 
 def main (paths : List String) : IO Unit := do
   match paths with
   | [peg, syntaxPath] =>
-    split false peg none
-    split true syntaxPath none
+    split "Peg" false peg none
+    split "Syntax" true syntaxPath none
+    split "SyntaxAsPeg" false syntaxPath none
   | [peg, syntaxPath, outDir] =>
-    split false peg (some outDir)
-    split true syntaxPath (some outDir)
+    split "Peg" false peg (some outDir)
+    split "Syntax" true syntaxPath (some outDir)
+    -- ADR 0097 invariant 1: parseTops reads PegSyntax.hpeg with the Peg grammar.
+    split "SyntaxAsPeg" false syntaxPath (some outDir)
   | _ => throw (IO.userError "expected Peg.hpeg and PegSyntax.hpeg")
