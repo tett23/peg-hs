@@ -42,6 +42,7 @@ import FileEnd
 import FileItemChain
 import FileEntry
 import TotalFile
+import FileTops
 import RuntimeChoiceProof
 import StrictSpaceChar
 import StrictInlineSpace
@@ -248,6 +249,7 @@ def auditedModules : List Lean.Name := [
   `FileExamples,
   `FileItemChain,
   `FileTopItems,
+  `FileTops,
   `FileTrees,
   `GhcPredicates,
   `Guard,
