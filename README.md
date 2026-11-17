@@ -569,14 +569,15 @@ A grammar with `%env` is tested only when the interpreter can parse with it (whe
 Editors run it; the next section has their settings.
 When changes arrive faster than it checks them, it checks only the last version and sends its diagnostics ([ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)).
 Editors send only the changed parts of a document, and the server parses again only the top-level items that changed ([ADR 0071](docs/adr/0071-incremental-parsing-in-the-language-server.md)).
+CI measures the edit latency of the server with the Memo and Golem grammars: twelve cases, an edit at the start, the middle and the end of a document, each until the diagnostics and until the semantic tokens.
+A pull request that changes a benchmark input fails CI when the median of a case of its head is above 16 ms, the budget in [docs/budgets.md](docs/budgets.md) ([ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)).
+After such a change reaches main, CI measures it again and records any case above 16 ms in a tracking issue ([ADR 0099](docs/adr/0099-open-an-issue-for-lsp-median-latency.md)).
 A message whose JSON nests arrays and objects deeper than 256 levels is answered with the parse error -32700, and the server goes on with the next message ([ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)).
 
 ## Editors
 
 An editor gets four tools for grammars: the language server, lint, formatting and syntax highlighting.
 The settings below set up all four, and format a grammar on every save by default, since `fmt` has only one style ([ADR 0069](docs/adr/0069-richer-highlighting-and-format-on-save.md)).
-
-CI measures language-server edit latency for the Memo and Golem grammars when benchmark inputs change on main. If any of the twelve cases has a median above 16 ms, CI records the case and the run in a tracking issue ([ADR 0099](docs/adr/0099-open-an-issue-for-lsp-median-latency.md)).
 
 `editors/` has grammars for syntax highlighting and a VS Code extension ([ADR 0034](docs/adr/0034-syntax-highlighting.md)).
 The TextMate and tree-sitter grammars are also in the releases: `peg-hs-editors-<version>.tar.gz` on [Releases](https://github.com/tett23/peg-hs/releases), and `editors/` in the archive of the executable. The tree-sitter grammar there has its generated parser, so Neovim and Helix build it without the tree-sitter CLI. In the settings below, `/path/to/peg-hs/editors/tree-sitter-hpeg` can be the `tree-sitter-hpeg/` of an extracted archive ([ADR 0073](docs/adr/0073-editor-grammars-in-releases.md)).

@@ -596,6 +596,9 @@ Expr.cases/three.cst: expected acceptance, but 1:5: expected [0-9]
 エディタが起動するもので、手で動かすことはない。設定は次の節にある。
 打鍵が検査より速く、変更が続けて届いたときは、最後の版だけを検査して診断を送る（[ADR 0070](docs/adr/0070-faster-checks-in-the-language-server.md)）。
 エディタは文書の変わった部分だけを送り、言語サーバーは変わった最上位の要素だけを解析し直す（[ADR 0071](docs/adr/0071-incremental-parsing-in-the-language-server.md)）。
+CI は、Memo と Golem の文法で、言語サーバーの編集応答時間を測る。文書の先頭、中ほど、末尾の編集について、診断までと semantic tokens を返すまでを測る 12 件である。
+計測に影響する変更を含むプルリクエストは、ヘッドのどれかのケースの中央値が 16 ms を超えると CI で失敗する。16 ms は [docs/budgets.md](docs/budgets.md) に置いた予算である（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）。
+そのような変更が main に入った後も CI は測り直し、16 ms を超えたケースを一つの issue に記録する（[ADR 0099](docs/adr/0099-open-an-issue-for-lsp-median-latency.md)）。
 配列とオブジェクトの入れ子が 256 段より深い JSON のメッセージには、解析の誤り -32700 で応え、次のメッセージの処理を続ける（[ADR 0080](docs/adr/0080-fixes-of-the-security-audit-of-2026-11-07.md)）。
 
 ## エディタ

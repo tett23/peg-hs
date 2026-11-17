@@ -264,6 +264,7 @@ The list of inputs holds the documents that a build or a test reads; it is now a
 - `conformance/commonmark/tabs/*.md`: inputs of the CommonMark tab checks
 - `docs/audits/2026-11-07-inj-module.hpeg.txt`: a test of peg-cli reads it
 - `packages/*/CHANGELOG.md`: goes into the source archives of the packages
+- `docs/budgets.md`: a test reads the values of the budgets ([ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md))
 
 A change that makes a test or a build read a document adds its path to the list of inputs in `scripts/ci-changes.mjs` in the same change.
 A change that removes the test or the build that reads a path of the list removes the path from the list in the same change.
@@ -279,6 +280,7 @@ The **ci** job gathers the results of the other jobs and is the check that main 
 - **hooks**: builds and runs the example of a package that uses peg-hooks (`examples/hooks/`) with `examples/hooks/test.sh`. It checks the builds after changing the grammar and without changes, an error of the grammar, a type error of an action, a module name other than `%module`, `cabal check` and `cabal sdist`. The first build builds Cabal and takes a while ([ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md))
 - **editors**: runs the tests of the editor grammars, and checks that the committed tree-sitter parser is up to date ([ADR 0034](docs/adr/0034-syntax-highlighting.md))
 - **wasm**: builds the wasm reactor with `scripts/build-wasm.sh` in the pinned `nix shell` of ghc-wasm-meta, builds the native `peg-hs`, and runs the Deno tests of `wasm/test` ([ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md), [ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md))
+- **lsp-latency**: runs on pull requests. When the change affects the measurement (`shouldMeasure` of `scripts/lsp-monitor-changes.mjs`), it measures the base and the head on the same runner with `scripts/lsp-measure.sh`, and fails when one of the twelve medians of the edit latency of the head is above 16 ms. The values of the base are in the job summary for comparison only. When the change does not affect the measurement, it passes without measuring. Building and measuring both revisions is expected to take more than ten minutes ([ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md))
 
 In a test job (`test-*`), the suites run one at a time.
 This gives each suite all the cores of the runner ([ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)).
@@ -294,7 +296,11 @@ What it does is in "Release procedure".
 peg-hs sets no absolute performance targets ([ADR 0007](docs/adr/0007-performance-discipline.md)).
 Measurements depend on the machine.
 Regressions are found by measuring before and after a change on the same machine, and comparing.
-CI does not check performance, because measurements on shared runners vary too much.
+CI checks only the performance budgets in [`docs/budgets.md`](docs/budgets.md); they are now the two budgets of the edit latency of the language server ([ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)).
+Measurements on GitHub Actions `ubuntu-latest` runners decide whether a budget is met. You may measure on your machine as a guide during development, but the value is for reference only: a budget is not met until the measurement in CI meets it.
+On your machine, `scripts/lsp-budget.sh diagnostics` or `scripts/lsp-budget.sh semantic-tokens` prints the largest median of the six cases of that operation in ms (`CABAL=cabal-3.16.1.0` selects the cabal).
+An ADR that sets a new budget decides in the same ADR how CI measures it and on which events, and writes the budget both in its acceptance conditions and in `docs/budgets.md`.
+CI does not check other performance, because measurements on shared runners vary too much.
 
 For changes touching peg-runtime or peg-codegen, run the following benchmarks before and after the change and compare them.
 
