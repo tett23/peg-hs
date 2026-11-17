@@ -250,7 +250,7 @@ feat(cli): take --name=value in every option that takes a value (ADR 0046)
 
 ## CI のジョブ
 
-CI は三つのワークフローからなる。
+CI は四つのワークフローからなる。
 
 `.github/workflows/ci.yml` は、main への push と pull request で動く。
 pull request に続けて push すると、前の push の実行は止まる。
@@ -281,7 +281,7 @@ pull request ではマージベースからヘッドまでの差分を、main �
 - **hooks**：peg-hooks を使う利用者のパッケージの例（`examples/hooks/`）を、`examples/hooks/test.sh` でビルドして動かす。文法を変えたときと変えないときの再ビルド、文法の誤り、アクションの型の誤り、`%module` と違うモジュールの名前、`cabal check`、`cabal sdist` を確かめる。最初のビルドで Cabal をビルドするので時間がかかる（[ADR 0085](docs/adr/0085-generate-modules-in-the-build-with-setup-hooks.md)）
 - **editors**：エディタの文法のテストを動かし、コミットした tree-sitter のパーサーが最新であることを確かめる（[ADR 0034](docs/adr/0034-syntax-highlighting.md)）
 - **wasm**：固定した ghc-wasm-meta の `nix shell` の中で `scripts/build-wasm.sh` により wasm の reactor をビルドし、ネイティブの `peg-hs` もビルドして、`wasm/test` の Deno のテストを動かす（[ADR 0078](docs/adr/0078-grammar-analysis-in-wasm.md)、[ADR 0079](docs/adr/0079-stub-wasi-imports-outside-the-contract.md)）
-- **lsp-latency**：pull request で動く。計測に影響する変更（`scripts/lsp-monitor-changes.mjs` の `shouldMeasure`）があれば、ベースとヘッドを同じ実行環境で `scripts/lsp-measure.sh` により測り、ヘッドの言語サーバーの編集応答時間の 12 件の中央値のどれかが 16 ms を超えると失敗する。ベースの値は比べるためだけにジョブサマリーに出す。計測に影響する変更が無ければ、測らずに成功する。両版のビルドと計測で、十数分かかる見込みである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）
+- **lsp-latency**：pull request で動く。計測に影響する変更（`scripts/lsp-monitor-changes.mjs` の `shouldMeasure`）があれば、ベースとヘッドを同じ実行環境で `scripts/lsp-measure.sh` により測り、ヘッドの言語サーバーの編集応答時間の 12 件の中央値のどれかが 16 ms を超えるか、12 件がそろわないと失敗する。ベースの値は比べるためだけにジョブサマリーに出す。計測に影響する変更が無ければ、測らずに成功する。両版のビルドと計測で、十数分かかる見込みである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）
 
 テストのジョブ（`test-*`）の中では、スイートを一つずつ動かす。
 各スイートが実行環境のすべてのコアを使えるようにするためである（[ADR 0041](docs/adr/0041-split-test-jobs-and-cores.md)）。
@@ -289,19 +289,25 @@ pull request ではマージベースからヘッドまでの差分を、main �
 
 `.github/workflows/adr.yml` の **adr** のジョブは、文書だけの変更も含むすべての変更で動き、adr-guard で ADR とベンチマークの記録、ADR の番号の重複を検査する（[ADR 0076](docs/adr/0076-adr-guard-v0.10.0.md)）。
 
+`.github/workflows/lsp-latency.yml` は、main への push のうち計測に影響する変更（`shouldMeasure`）を含むもので、`scripts/lsp-measure.sh` により言語サーバーの編集応答時間を測る。
+中央値が 16 ms を超えたケースを、一つの issue にまとめる。
+マージは止めない（[ADR 0099](docs/adr/0099-open-an-issue-for-lsp-median-latency.md)）。
+
 `.github/workflows/release.yml` は、`v` で始まるタグの push で動き、Release を作る。
 内容は「リリースの手順」の節に書く。
 
 ## ベンチマークと性能
 
-peg-hs は性能に絶対値の目標を置かない（[ADR 0007](docs/adr/0007-performance-discipline.md)）。
+peg-hs は、[`docs/budgets.md`](docs/budgets.md) の予算のほかは、性能に絶対値の目標を置かない（[ADR 0007](docs/adr/0007-performance-discipline.md)、[ADR 0103](docs/adr/0103-performance-budgets-as-an-exception-to-adr-0007.md)）。
 計測値は機械に依存するためである。
 退行は、変更の前と後を同じ機械で計測して比べることで見つける。
-CI で検査する性能は、[`docs/budgets.md`](docs/budgets.md) の予算だけである。いまの予算は、言語サーバーの編集応答時間の二つである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）。
-予算の合否は、GitHub Actions の `ubuntu-latest` のランナーでの計測で決める。開発の途中に手元で測って目安にしてよいが、手元の値は参考であり、CI の計測で満たすまでは予算を満たしたとしない。
+CI で壁時計の時間を検査する性能は、予算だけである。
+いまの予算は、言語サーバーの編集応答時間の二つである（[ADR 0102](docs/adr/0102-judge-performance-budgets-in-ci.md)）。
+その値の 16 ms は、60 FPS の 1 フレームを近似した値である（[ADR 0103](docs/adr/0103-performance-budgets-as-an-exception-to-adr-0007.md)）。
+予算の合否は、GitHub Actions の `ubuntu-latest` のランナーでの計測で決める。
+開発の途中に手元で測って目安にしてよいが、手元の値は参考であり、CI の計測で満たすまでは予算を満たしたとしない。
 手元では `scripts/lsp-budget.sh diagnostics` か `scripts/lsp-budget.sh semantic-tokens` で、その操作の 6 ケースの中央値の最大を ms で出せる（`CABAL=cabal-3.16.1.0` で cabal を選べる）。
 新しい予算を置く ADR は、その予算を CI で測る方法と、どのイベントで測るかを同じ ADR で決め、予算を ADR の受けいれ条件と `docs/budgets.md` の両方に書く。
-そのほかの性能は、共有の実行環境では計測のばらつきが大きいので、CI では検査しない。
 
 peg-runtime か peg-codegen に触れる変更では、変更の前後で次のベンチマークを動かして比べる。
 

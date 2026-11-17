@@ -89,11 +89,11 @@ import Pipeline
 import RenderExpression
 import AssembleValidation
 import AssemblePredicates
-import LabelCheckTheorems
 import AssembleBindings
 import NestedBindings
 import ImportResolution
 import LabelPropagation
+import LabelCheckTheorems
 import InnerGeneration
 import InnerUnicode
 import Pragmas
@@ -101,6 +101,38 @@ import RuleRejection
 import RuleRejectionRefs
 import RuleRejectionRepeat
 import RuleRejectionNullable
+import CertifiedPublicFiles
+import DirectiveSequence
+import EnvProjectionTests
+import ExtractedSignatures
+import HaskellDerivation
+import ItemSourceSplit
+import LayoutDerivation
+import RenderComposition
+import RenderDeclarationBinders
+import RenderDeclarationsGHC
+import RenderExpressionBoundary
+import RenderExpressionGHC
+import RenderExpressionLexer
+import RenderModuleGHC
+import RenderModuleNames
+import RenderPrimitiveChoice
+import RenderPrimitiveDo
+import RenderPrimitiveDoGHC
+import RenderPrimitiveStatement
+import RenderRuleBodyGHC
+import StrictCharMemo
+import StrictIdentifierMemo
+import StrictParameterGuards
+import StrictWhitespaceLexical
+import StrictWhitespaceMemo
+import TraceChunks
+import Verbatim47Data
+import VerbatimChunks
+import VerbatimItem47
+import VerbatimValue
+import DerivationPeg
+import DerivationPegSyntax
 
 namespace PegHs.RecursiveEval
 
@@ -153,30 +185,189 @@ theorem invariant1_actual_labeled_total (syntaxMode : Bool)
 
 end PegHs.ConcreteTerminalBody
 
+-- Every theorem of each listed module, and every theorem of this file, may use
+-- only the standard axioms. check-audit-coverage.sh compares this list with
+-- the modules that contain theorems. Keep one module per line between the
+-- markers.
+def auditedModules : List Lean.Name := [
+  -- audited modules begin
+  `AssembleBindings,
+  `AssemblePredicates,
+  `AssembleValidation,
+  `AssembleValidationHelpers,
+  `BoundedDecimal,
+  `CallOrder,
+  `CallTables,
+  `CaptureWindow,
+  `CapturedPredicates,
+  `CertifiedPublicFiles,
+  `ConcreteFileCertificates,
+  `ConcreteTables,
+  `ConcreteTerminal,
+  `ConcreteTerminalBody,
+  `Consumption,
+  `DerivationPeg,
+  `DerivationPegSyntax,
+  `DirectiveArgument,
+  `DirectiveArityProof,
+  `DirectiveAssembly,
+  `DirectiveCommentProof,
+  `DirectiveDecode,
+  `DirectiveDuplicates,
+  `DirectiveFailure,
+  `DirectiveHex,
+  `DirectiveNames,
+  `DirectiveSequence,
+  `DirectiveSourceDiagnostic,
+  `DirectiveStringDiagnostic,
+  `DirectiveSuccess,
+  `EnvProjection,
+  `EnvProjectionPredicate,
+  `EnvProjectionTests,
+  `EnvRunCongruence,
+  `EnvironmentActual,
+  `EnvironmentDepth,
+  `EnvironmentDerivation,
+  `EnvironmentEval,
+  `EnvironmentFuel,
+  `EscapePredicates,
+  `ExpressionDepth,
+  `ExtractedSignatures,
+  `FastWindow,
+  `File,
+  `FileEnd,
+  `FileEntry,
+  `FileExamples,
+  `FileItemChain,
+  `FileTopItems,
+  `FileTrees,
+  `GhcPredicates,
+  `Guard,
+  `HaskellDerivation,
+  `Header,
+  `ImportResolution,
+  `InitialWhitespace,
+  `InitialWhitespaceCall,
+  `InnerGeneration,
+  `InnerUnicode,
+  `ItemSourceSplit,
+  `ItemWindow,
+  `LabelCheckCharSet,
+  `LabelCheckModel,
+  `LabelCheckTermination,
+  `LabelCheckTheorems,
+  `LabelPropagation,
+  `LabeledConcreteBody,
+  `LayoutDerivation,
+  `Lexical,
+  `LineIndex,
+  `Literal,
+  `MemoKeyEnvironment,
+  `MemoKeyTransfer,
+  `MemoMetaNoLR,
+  `MemoRecognition,
+  `MemoTables,
+  `MemoTrace,
+  `MetaEnvCompatible,
+  `MetaExecution,
+  `MetagrammarPredicates,
+  `NestedBindings,
+  `NoArgInputReads,
+  `Nullable,
+  `ParameterPredicates,
+  `Parsing,
+  `Pipeline,
+  `Pragmas,
+  `PredicateBindings,
+  `PrefixReplay,
+  `PublicEntryProof,
+  `PublicParsing,
+  `Reachable,
+  `RecursiveEval,
+  `RenderComposition,
+  `RenderDeclarationBinders,
+  `RenderDeclarationsGHC,
+  `RenderExpression,
+  `RenderExpressionBoundary,
+  `RenderExpressionGHC,
+  `RenderExpressionLexer,
+  `RenderModuleGHC,
+  `RenderModuleNames,
+  `RenderPrimitiveChoice,
+  `RenderPrimitiveDo,
+  `RenderPrimitiveDoGHC,
+  `RenderPrimitiveStatement,
+  `RenderRuleBodyGHC,
+  `RuleRejection,
+  `RuleRejectionNullable,
+  `RuleRejectionRefs,
+  `RuleRejectionRepeat,
+  `RuntimeChoiceProof,
+  `SelfHostedFileProof,
+  `SemanticPredicates,
+  `Signatures,
+  `SimpleEscapeProof,
+  `StrictCharMemo,
+  `StrictComment,
+  `StrictDirective,
+  `StrictIdentifier,
+  `StrictIdentifierMemo,
+  `StrictInlineSpace,
+  `StrictParameterGuards,
+  `StrictSpaceChar,
+  `StrictWhitespace,
+  `StrictWhitespaceLexical,
+  `StrictWhitespaceMemo,
+  `StrictWhitespaceScan,
+  `TabstopProof,
+  `TemplateExpansion,
+  `TemplateExpansionFresh,
+  `TemplateExpansionWhole,
+  `TemplateQueue,
+  `TemplateSubstitution,
+  `TerminalCursor,
+  `TotalFile,
+  `TraceChunks,
+  `TranslatedArity,
+  `TranslatedEscapes,
+  `TranslatedTabstop,
+  `Utf8Terminals,
+  `Verbatim47Data,
+  `VerbatimChunks,
+  `VerbatimItem47,
+  `VerbatimRule,
+  `VerbatimScan,
+  `VerbatimValue,
+  `Whitespace,
+  `WindowReads,
+  `WindowReplay
+  -- audited modules end
+]
+
 open Lean Elab Command in
 run_cmd do
   let env ← getEnv
-  for moduleName in [`CallOrder, `CallTables, `RecursiveEval, `Utf8Terminals, `ConcreteTerminal, `TerminalCursor,
-      `ConcreteTerminalBody, `LabeledConcreteBody, `ConcreteTables, `MetagrammarPredicates, `PredicateBindings, `Guard, `LineIndex,
-      `Parsing, `Header, `Lexical, `Whitespace, `TemplateQueue, `TemplateSubstitution, `TemplateExpansion, `TemplateExpansionFresh, `TemplateExpansionWhole, `Nullable,
-      `Reachable, `Literal, `Signatures, `File, `Consumption, `FileTrees,
-      `Pipeline, `RenderExpression, `DirectiveNames, `AssembleValidationHelpers, `AssemblePredicates, `AssembleBindings, `AssembleValidation, `NestedBindings, `Pragmas, `RuleRejection, `RuleRejectionRefs, `RuleRejectionRepeat, `RuleRejectionNullable,
-      `EnvironmentEval, `CaptureWindow, `EnvironmentFuel, `EnvironmentDerivation, `EnvironmentActual, `MetaExecution, `VerbatimScan, `VerbatimRule,
-      `PrefixReplay, `WindowReplay, `WindowReads, `FastWindow, `MemoRecognition, `MemoTrace, `MemoTables, `MemoMetaNoLR, `EnvProjection, `EnvProjectionPredicate, `MemoKeyTransfer, `EnvRunCongruence, `MetaEnvCompatible, `MemoKeyEnvironment, `NoArgInputReads, `ItemWindow, `InitialWhitespace, `InitialWhitespaceCall, `FileTopItems, `FileEnd, `FileItemChain, `FileEntry, `TotalFile, `SelfHostedFileProof, `RuntimeChoiceProof, `StrictSpaceChar, `StrictInlineSpace, `StrictIdentifier, `StrictDirective, `DirectiveFailure, `DirectiveSuccess, `DirectiveAssembly, `DirectiveSourceDiagnostic, `DirectiveDecode, `SimpleEscapeProof, `TranslatedEscapes, `DirectiveHex, `DirectiveStringDiagnostic, `TabstopProof, `BoundedDecimal, `DirectiveDuplicates, `DirectiveArityProof, `TranslatedArity, `DirectiveArgument, `DirectiveCommentProof, `StrictComment, `StrictWhitespace, `StrictWhitespaceScan, `PublicParsing, `PublicEntryProof,
-      `FileExamples, `ConcreteFileCertificates, `EnvironmentDepth, `CapturedPredicates, `SemanticPredicates, `GhcPredicates,
-      `ParameterPredicates, `EscapePredicates, `ExpressionDepth, `ImportResolution, `InnerGeneration, `InnerUnicode,
-      `LabelPropagation, `LabelCheckCharSet, `LabelCheckModel, `LabelCheckTermination, `LabelCheckTheorems] do
+  let mut owners : Std.HashMap Nat Name := {}
+  let mut counts : Std.HashMap Name Nat := {}
+  for moduleName in auditedModules do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
-    let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop].contains moduleName
-    let mut checked := 0
-    for (name, info) in env.constants.toList do
-      if env.getModuleIdxFor? name != some idx then continue
-      if info.isAxiom then throwError "unexpected axiom declaration {name}"
-      if !info.isTheorem && !(generated && info.isDefinition) then continue
-      checked := checked + 1
-      let axioms ← collectAxioms name
-      logInfo m!"{name}: {axioms}"
-      for ax in axioms do
-        unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
-          throwError "{name} depends on unexpected axiom {ax}"
-    if checked == 0 then throwError "no audited declarations in {moduleName}"
+    owners := owners.insert idx.toNat moduleName
+    counts := counts.insert moduleName 0
+  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop]
+  let mut own := 0
+  for (name, info) in env.constants.toList do
+    -- Declarations of this file have no module index.
+    let owner? := (env.getModuleIdxFor? name).map (owners[·.toNat]?)
+    let some owner := owner?.getD (some `Audit) | continue
+    if info.isAxiom then throwError "unexpected axiom declaration {name}"
+    if !info.isTheorem && !(generated.contains owner && info.isDefinition) then continue
+    if owner == `Audit then own := own + 1
+    else counts := counts.insert owner (counts.getD owner 0 + 1)
+    let axioms ← collectAxioms name
+    logInfo m!"{name}: {axioms}"
+    for ax in axioms do
+      unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
+        throwError "{name} depends on unexpected axiom {ax}"
+  for moduleName in auditedModules do
+    if counts.getD moduleName 0 == 0 then throwError "no audited declarations in {moduleName}"
+  if own == 0 then throwError "no audited declarations in Audit"

@@ -1,6 +1,6 @@
 # ADR 0007: 計算量の保証を明文化し、性能規律は回帰検出のみとする
 
-Status: accepted
+Status: superseded [{"by":["docs/adr/0103-performance-budgets-as-an-exception-to-adr-0007.md"],"part":"実装しないこと（絶対値の性能目標は置かない）"},{"by":["docs/adr/0103-performance-budgets-as-an-exception-to-adr-0007.md"],"part":"実装しないこと（CI での自動性能ゲートは設けない）"}]
 
 ## 文脈
 

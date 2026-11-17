@@ -26,7 +26,6 @@ for name in Peg PegSyntax; do
   awk -v module="$name" -f extract-happy-trace.awk "$work/rows" "$work/$name.ids" "$work/$name.trace" > "$work/Derivation$name.lean"
   compile "Derivation$name"
 done
-lean -DwarningAsError=true AuditGHC.lean
 
 # Change the first terminal of the already checked Peg certificate. Check just
 # its first segment so later segments cannot mask the expected failure.
