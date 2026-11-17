@@ -110,6 +110,8 @@ import HaskellDerivation
 import ItemSourceSplit
 import LayoutDerivation
 import RenderComposition
+import RenderFinalize
+import RenderFinalizeModule
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
 import RenderExpressionBoundary
@@ -295,6 +297,8 @@ def auditedModules : List Lean.Name := [
   `RenderExpressionBoundary,
   `RenderExpressionGHC,
   `RenderExpressionLexer,
+  `RenderFinalize,
+  `RenderFinalizeModule,
   `RenderModuleGHC,
   `RenderModuleNames,
   `RenderPrimitiveChoice,
