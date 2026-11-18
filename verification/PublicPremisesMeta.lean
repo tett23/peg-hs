@@ -9,8 +9,8 @@ Concrete `Inputs` whose `Premises` hold, applied to the two metagrammars
 
 `baseInputs` fixes every unmodelled function to a constant; `metaInputs` is
 `modelInputs baseInputs` (PublicPremises), whose `expand` is the template
-expansion model and whose `assemblyErrors` are the errors of the
-AssembleValidation model. The derivation of each file is the certificate of
+expansion model; its items are a module directive and one rule, which the
+translated `assemble` accepts. The derivation of each file is the certificate of
 CertifiedPublicFiles (`invariant1_public_peg`, and
 `invariant1_public_syntax_as_peg` for PegSyntax.hpeg, which parseTops reads
 with the Peg grammar; CheckItemSources ties that source to the file).
@@ -41,15 +41,18 @@ def emptyGrammar (m : Loc × String) : Grammar where
   verbatim := []
   rules := []
 
+def tloc : AssembleTranslated.Loc := .Loc 0 0 0
+
+def baseItems : List AssembleTranslated.Top :=
+  [.TDirective tloc "module" tloc "M", .TDef tloc "S" [] []]
+
 def baseInputs : Inputs Unit where
   value _ _ := ()
   failure _ := "parse error"
-  assemblyErrors _ := []
-  moduleName _ := some (loc0, "M")
-  build _ m := emptyGrammar m
-  missingModule := "missing %module directive"
+  items _ := baseItems
+  diagText _ := "assemble"
+  grammar _ := emptyGrammar (loc0, "M")
   diagLoc _ := loc0
-  view _ := [.directive "module" "M", .definition "S" [] []]
   libraryRoot := ""
   directiveNames _ := []
   libraryText _ := none
@@ -80,8 +83,8 @@ noncomputable def metaInputs : Inputs Unit := modelInputs baseInputs
 
 theorem metaInputs_premises : Premises metaInputs := modelInputs_premises baseInputs
 
-theorem module_view_accepted :
-    AssembleValidation.assemble [.directive "module" "M", .definition "S" [] []] = .ok () := by rfl
+theorem module_view_accepted : ∃ g, AssembleTranslated.assemble baseItems = .ok g :=
+  (AssembleTranslatedProof.assemble_ok_iff baseItems).mpr (by rfl)
 
 -- A file that parseTops accepts is parsed by `parse metaInputs`.
 theorem metaInputs_parse (input : List Char)
@@ -92,13 +95,8 @@ theorem metaInputs_parse (input : List Char)
     (MetaExecution.recognizeFile false (String.ofList input).toList).property _).mp accepted
   rw [String.toList_ofList] at result
   obtain ⟨ts, hts⟩ := (FileTops.invariant1_parsesTo_iff metaInputs.value input).mpr ⟨env, result⟩
-  have errors : metaInputs.assemblyErrors ts = [] := by
-    simp only [metaInputs, modelInputs_assemblyErrors, checkedErrors]
-    simp only [baseInputs, module_view_accepted]
-  have name : metaInputs.moduleName ts = some (loc0, "M") := by
-    simp only [metaInputs, modelInputs]
-    rfl
-  exact ⟨_, (invariant1_parse_iff metaInputs input _).mpr ⟨ts, _, hts, errors, name, rfl⟩⟩
+  obtain ⟨tg, accepted⟩ := module_view_accepted
+  exact ⟨_, (invariant1_parse_iff metaInputs input _).mpr ⟨ts, tg, hts, accepted, rfl⟩⟩
 
 theorem metaInputs_peg :
     Premises metaInputs ∧ ∃ g, parse metaInputs MetaPieces.Peg.source = .ok g :=

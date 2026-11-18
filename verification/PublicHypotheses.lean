@@ -55,7 +55,7 @@ def reasons : List String :=
   ["ADR 0097:33", "ADR 0097:38", "ADR 0097:40", "ADR 0097:44", "ADR 0097:56", "ADR 0097:57",
    "ADR 0097:58", "UNRESOLVED"]
 
-def unresolvedLimit : Nat := 30
+def unresolvedLimit : Nat := 27
 
 def pp (e : Expr) : MetaM String := do
   return (← ppExpr e).pretty 100000

@@ -6,16 +6,22 @@ def pathChar (c : Char) :=
 def pathPart (s : String) :=
   !s.isEmpty && s != "." && s != ".." && s.toList.all pathChar
 
+-- The parts between the slashes (T.splitOn "/"), on the characters: Lean's
+-- String.splitOn has no lemmas, and AssembleTranslatedProof compares this
+-- with the translation of isImportPath.
+def pathParts (s : String) : List String :=
+  (s.toList.splitOn '/').map String.ofList
+
 def validImportPath (s : String) :=
-  (s.splitOn "/").all pathPart && s.endsWith ".hpeg"
+  (pathParts s).all pathPart && ".hpeg".toList.isSuffixOf s.toList
 
 def validExtension (s : String) := match s.toList with
   | [] => false
   | c :: cs => c.isUpper && cs.all Char.isAlphanum
 
 theorem invariant2_import_path (s : String) : validImportPath s = true ↔
-    (∀ p ∈ s.splitOn "/", p.isEmpty = false ∧ p ≠ "." ∧ p ≠ ".." ∧
-      ∀ c ∈ p.toList, pathChar c = true) ∧ s.endsWith ".hpeg" = true := by
+    (∀ p ∈ pathParts s, p.isEmpty = false ∧ p ≠ "." ∧ p ≠ ".." ∧
+      ∀ c ∈ p.toList, pathChar c = true) ∧ ".hpeg".toList.isSuffixOf s.toList = true := by
   simp [validImportPath, pathPart, List.all_eq_true, and_assoc]
 
 theorem invariant2_extension (s : String) : validExtension s = true ↔
