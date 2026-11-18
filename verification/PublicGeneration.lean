@@ -6,6 +6,8 @@ import ImportResolution
 import TemplateExpansionWhole
 import TemplateQueue
 import LabelCheckTheorems
+import LabelsBridgeCheck
+import LabelsTranslatedProof
 import CheckGroupsTheorems
 import InnerGeneration
 import RenderFinalize
@@ -42,7 +44,10 @@ The stages, in the order of Codegen's `generateWithWarnings`:
 - `Inputs.expand`: `expandTemplates` (see the premises);
 - `checkStage`: CheckGroups.check;
 - `notes`: TemplateQueue.templateNotes;
-- `stripAs` and `warningFor`: LabelCheck.stripLabelsAs and labelWarnings;
+- `stripAs` and `warningFor`: LabelCheck.stripLabelsAs and labelWarnings,
+  with the keys of the translated visited set (`labelWarningsBy tKeyOf`).
+  `stripAs_translated` and `warningFor_translated` show that they are what
+  the translated `stripLabelsAs` and `labelWarnings` return on the grammar;
 - `inner`: InnerGeneration.innerGenerate with InnerGeneration's file-name and
   module-name guards, the same expand, check and notes, `selectMarker`
   (Pragmas) for `freshRestoreMarker`, and RenderFinalize.finalize.
@@ -367,7 +372,7 @@ noncomputable def resolve (s : Inputs T) (g : Grammar) : Except Diagnostics Gram
   | .ok rs => .ok { g with rules := rs }
 
 noncomputable def warningFor (s : Inputs T) (g0 g : Grammar) : Diagnostics :=
-  notes s g0 ((LabelCheck.labelWarnings (toLabel g)).map s.diag)
+  notes s g0 ((LabelCheck.labelWarningsBy LabelsBridge.tKeyOf (toLabel g)).map s.diag)
 
 def finalizeStage (s : Inputs T) (marker text : String) : String :=
   RenderFinalize.finalize s.shown marker text
@@ -727,9 +732,138 @@ theorem invariant3_generateWithWarnings_text (s : Inputs T) (p : Premises s) (in
       (InnerGeneration.moduleNameValid_iff _ _ _).mp valid, hf, (expand_ok_accepted s p _ _ hf).2,
       hca', hm, hcode⟩
 
+/-! ## The translated label check on the grammar -/
+
+section Translated
+open PegHs.LabelsBridge (eLoc eLocated eItems eExpr eAlts eList eChar eCharPair)
+
+def Alt.toTranslated (a : Alt) : LabelsTranslated.Alt :=
+  .Alt (eLoc a.loc) (eItems a.items) (a.action.map eLocated) (a.constructor.map eLocated)
+
+def Rule.toTranslated (r : Rule) : LabelsTranslated.Rule :=
+  .Rule r.name (eLoc r.loc) (r.params.map fun p => .Param p.1 (.Located (eLoc ⟨0, 0, 0⟩) p.2))
+    (r.templateParams.map fun p => .TemplateParam p.1 p.2) (.Located (eLoc ⟨0, 0, 0⟩) r.type)
+    (r.annotation.map eLoc) (r.alts.map Alt.toTranslated)
+
+/-- The grammar as the value of the Haskell type that Peg.Grammar.Labels
+receives (LabelsTranslated.Grammar). The fields that `Grammar` leaves out
+(`grammarExports`, `grammarEnv`, `grammarTabstop`, `grammarDeriving`) are
+empty; the label check and the removal of labels do not read them. -/
+def toTranslated (g : Grammar) : LabelsTranslated.Grammar :=
+  .Grammar (eLocated g.module) (g.imports.map fun p => .Located (eLoc p.1) (p.2.toList.map HsChar.ofChar))
+    (g.library.map eLoc) (g.start.map eLocated) (g.entries.map eLocated) [] none none
+    (g.noMemo.map eLocated) (g.languages.map eLocated) (g.syntaxLoc.map eLoc) (g.tokens.map eLocated)
+    (g.trivia.map eLocated) (g.inline.map eLocated) (g.recovers.map fun p => (eLocated p.1, eLocated p.2))
+    (g.safe.map eLocated) (g.expects.map fun p => (eLocated p.1, eLocated p.2))
+    (g.messages.map fun p => (eLocated p.1, eLocated p.2)) none (g.verbatim.map eLocated)
+    (g.rules.map Rule.toTranslated)
+
+theorem toTranslated_corr (g : Grammar) : LabelsBridge.GrammarCorr (toTranslated g) (toLabel g) where
+  start := rfl
+  entries := rfl
+  recovers := rfl
+  safe := rfl
+  rules := by
+    show LabelsBridge.RulesCorr (g.rules.map Rule.toTranslated) (g.rules.map Rule.toLabel)
+    induction g.rules with
+    | nil => exact .nil
+    | cons r rs ih =>
+      refine .cons ⟨rfl, ?_, ?_⟩ ih
+      · simp [Rule.toTranslated, Rule.toLabel, LabelsTranslated.Rule.ruleParams, Function.comp_def,
+          LabelsTranslated.Param.paramName]
+      · simp [Rule.toTranslated, Rule.toLabel, LabelsTranslated.Rule.ruleAlts, Alt.toTranslated, Alt.toLabel,
+          LabelsTranslated.Alt.altLoc, LabelsTranslated.Alt.altItems, LabelsBridge.eGalts, Function.comp_def]
+
+/-- `warningFor` is what the translated `labelWarnings` returns on the grammar:
+at every fuel from some bound on, its warnings are the warnings `warningFor`
+renders, embedded in the translated types. -/
+theorem warningFor_translated (g : Grammar) :
+    LabelsBridge.Eventually (fun n => LabelsTranslated.labelWarnings n (toTranslated g) =
+      (LabelCheck.labelWarningsBy LabelsBridge.tKeyOf (toLabel g)).map LabelsBridge.eDiag) :=
+  LabelsBridge.labelWarnings_translated (toTranslated_corr g)
+
+open PegHs.LabelsTranslatedProof (pLoc pLocated pChar pExpr pItem pItems pAlts pList pRule pAlt pGrammar) in
+mutual
+theorem pExpr_e : (e : Expr) → pExpr (eExpr e) = e
+  | .lit .. | .any => by simp [LabelsBridge.eExpr, pExpr]
+  | .cls rs w => by
+    simp only [LabelsBridge.eExpr, pExpr, List.map_map]
+    congr 1
+    conv => rhs; rw [← List.map_id rs]
+    apply List.map_congr_left
+    intro p _
+    obtain ⟨⟨a, ha⟩, ⟨b, hb⟩⟩ := p
+    rfl
+  | .ref l n as => by
+    simp [LabelsBridge.eExpr, pExpr, LabelsBridge.eLoc, pLoc, LabelsBridge.eLocated, pLocated, Function.comp_def]
+  | .group alts => by simp only [LabelsBridge.eExpr, pExpr]; rw [pAlts_e alts]
+  | .star x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .plus x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .opt x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .and x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .not x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .capture x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .discard x => by simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+  | .label l x n => by
+    simp only [LabelsBridge.eExpr, pExpr]; rw [pExpr_e x]
+    simp [LabelsBridge.eLoc, pLoc]
+  | .pred b c => by simp [LabelsBridge.eExpr, pExpr, LabelsBridge.eLocated, pLocated, LabelsBridge.eLoc, pLoc]
+  | .template l n as vs => by
+    simp only [LabelsBridge.eExpr, pExpr]; rw [pList_e as]
+    simp [LabelsBridge.eLoc, pLoc, LabelsBridge.eLocated, pLocated, Function.comp_def]
+termination_by e => sizeOf e
+theorem pItems_e : (is : List Item) → pItems (eItems is) = is
+  | [] => by simp [LabelsBridge.eItems, pItems]
+  | (l, b, e) :: is => by
+    simp only [LabelsBridge.eItems, pItems, pItem]; rw [pExpr_e e, pItems_e is]
+    simp [LabelsBridge.eLoc, pLoc]
+termination_by is => sizeOf is
+theorem pAlts_e : (as : List (List Item)) → pAlts (eAlts as) = as
+  | [] => by simp [LabelsBridge.eAlts, pAlts]
+  | a :: as => by simp only [LabelsBridge.eAlts, pAlts]; rw [pItems_e a, pAlts_e as]
+termination_by as => sizeOf as
+theorem pList_e : (es : List Expr) → pList (eList es) = es
+  | [] => by simp [LabelsBridge.eList, pList]
+  | e :: es => by simp only [LabelsBridge.eList, pList]; rw [pExpr_e e, pList_e es]
+termination_by es => sizeOf es
+end
+
+open PegHs.LabelsTranslatedProof (pLoc pLocated pChar pExpr pItem pItems pAlts pList pRule pAlt pGrammar pPair) in
+theorem pGrammar_toTranslated (g : Grammar) : pGrammar (toTranslated g) = toLabel g := by
+  simp only [pGrammar, toTranslated, toLabel, LabelsTranslated.Grammar.grammarModule,
+    LabelsTranslated.Grammar.grammarStart, LabelsTranslated.Grammar.grammarEntries,
+    LabelsTranslated.Grammar.grammarRecovers, LabelsTranslated.Grammar.grammarSafe,
+    LabelsTranslated.Grammar.grammarMessages, LabelsTranslated.Grammar.grammarRules, List.map_map, Option.map_map]
+  have hl : ∀ p : Loc × String, pLocated (eLocated p) = p := by
+    intro p; obtain ⟨⟨f, l, c⟩, x⟩ := p; simp [LabelsBridge.eLocated, LabelsBridge.eLoc, pLocated, pLoc]
+  have hlf : (pLocated ∘ eLocated) = id := funext hl
+  have hpair : ∀ p : (Loc × String) × (Loc × String), pPair (eLocated p.1, eLocated p.2) = p := by
+    intro p; simp [pPair, hl]
+  have hloc : ∀ l : Loc, pLoc (eLoc l) = l := by
+    intro l; obtain ⟨f, l, c⟩ := l; simp [LabelsBridge.eLoc, pLoc]
+  have hrule : ∀ r : Rule, pRule r.toTranslated = r.toLabel := by
+    intro r
+    simp only [pRule, Rule.toTranslated, Rule.toLabel, List.map_map]
+    congr 1
+    apply List.map_congr_left
+    intro a _
+    simp [pAlt, Alt.toTranslated, Alt.toLabel, pItems_e, hloc]
+  simp [hl, hlf, hpair, hrule, Function.comp_def]
+
+/-- `stripAs` is what the translated `stripLabelsAs` returns on the grammar,
+under the projection of LabelsTranslatedProof. -/
+theorem stripAs_translated (m : String) (g : Grammar) :
+    PegHs.LabelsTranslatedProof.pGrammar (LabelsTranslated.stripLabelsAs m (toTranslated g)) =
+      toLabel (stripAs m g) := by
+  rw [PegHs.LabelsTranslatedProof.stripLabelsAs_translated, pGrammar_toTranslated, toLabel_stripAs]
+
+end Translated
+
 end PegHs.PublicGeneration
 
 #print axioms PegHs.PublicGeneration.toLabel_stripAs
+#print axioms PegHs.PublicGeneration.warningFor_translated
+#print axioms PegHs.PublicGeneration.stripAs_translated
 #print axioms PegHs.PublicGeneration.invariant2_generate
 #print axioms PegHs.PublicGeneration.invariant2_generateWithWarnings
 #print axioms PegHs.PublicGeneration.invariant2_generateFromSource

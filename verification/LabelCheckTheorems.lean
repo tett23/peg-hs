@@ -401,8 +401,8 @@ theorem sites_labels (r : Rule) :
 
 /-- The verdict the check gives to the label at a site: on the grammar and the frames without
 any label (ADR 0029, ADR 0087). -/
-noncomputable def siteVerdict (g : Grammar) (s : Site) (x : Expr) : Verdict :=
-  verdictOf (context (unlabelGrammar g)) s.rule (unlabelFrames s.frames) (unlabelExpr x)
+noncomputable def siteVerdict (keyOf : Nat → List Item → String) (g : Grammar) (s : Site) (x : Expr) : Verdict :=
+  verdictOf (contextWith keyOf (unlabelGrammar g)) s.rule (unlabelFrames s.frames) (unlabelExpr x)
 
 theorem verdictMessage_spec (name : String) (v : Verdict) (msg : String) :
     verdictMessage name v = some msg ↔
@@ -413,15 +413,15 @@ theorem verdictMessage_spec (name : String) (v : Verdict) (msg : String) :
 /-- A warning is a label of the grammar, not named in %safe, whose verdict is not `safe`; it is
 located at the item that holds the labelled expression, and its message names the label and
 says whether it may reject valid input or cannot be checked. -/
-theorem mem_labelWarnings (g : Grammar) (d : Diagnostic) :
-    d ∈ labelWarnings g ↔
+theorem mem_labelWarnings (keyOf : Nat → List Item → String) (g : Grammar) (d : Diagnostic) :
+    d ∈ labelWarningsBy keyOf g ↔
       ∃ s ∈ g.rules.flatMap sites, ∃ l x name, s.expr = .label l x name ∧
         name ∉ g.safe.map (·.2) ∧ d.loc = s.loc ∧
-        ((∃ why, siteVerdict g s x = .mayReject why ∧
+        ((∃ why, siteVerdict keyOf g s x = .mayReject why ∧
             d.msg = "the label " ++ name ++ " may reject valid input: where it fails, " ++ why) ∨
-         (∃ why, siteVerdict g s x = .unchecked why ∧
+         (∃ why, siteVerdict keyOf g s x = .unchecked why ∧
             d.msg = "the label " ++ name ++ " cannot be checked: " ++ why)) := by
-  unfold labelWarnings labelWarningsWith
+  unfold labelWarningsBy labelWarningsWith
   simp only [List.mem_filterMap]
   constructor
   · rintro ⟨s, hs, hd⟩
@@ -440,7 +440,7 @@ theorem mem_labelWarnings (g : Grammar) (d : Diagnostic) :
     simp only [hexpr]
     have hsafe' : ((g.safe.map (·.2)).contains name) = false := by simpa using hsafe
     simp only [hsafe', Bool.false_eq_true, ↓reduceIte]
-    have := (verdictMessage_spec name (siteVerdict g s x) d.msg).2 hv
+    have := (verdictMessage_spec name (siteVerdict keyOf g s x) d.msg).2 hv
     unfold siteVerdict at this
     rw [this]
     cases d
@@ -448,26 +448,26 @@ theorem mem_labelWarnings (g : Grammar) (d : Diagnostic) :
     simp [hloc]
 
 /-- No warning exactly when every label not named in %safe is safe. -/
-theorem labelWarnings_eq_nil_iff (g : Grammar) :
-    labelWarnings g = [] ↔
+theorem labelWarnings_eq_nil_iff (keyOf : Nat → List Item → String) (g : Grammar) :
+    labelWarningsBy keyOf g = [] ↔
       ∀ s ∈ g.rules.flatMap sites, ∀ l x name, s.expr = .label l x name →
-        name ∉ g.safe.map (·.2) → siteVerdict g s x = .safe := by
+        name ∉ g.safe.map (·.2) → siteVerdict keyOf g s x = .safe := by
   constructor
   · intro h s hs l x name hexpr hsafe
-    cases hv : siteVerdict g s x with
+    cases hv : siteVerdict keyOf g s x with
     | safe => rfl
     | mayReject why =>
-      have := (mem_labelWarnings g ⟨s.loc, "the label " ++ name ++ " may reject valid input: where it fails, " ++ why⟩).2
+      have := (mem_labelWarnings keyOf g ⟨s.loc, "the label " ++ name ++ " may reject valid input: where it fails, " ++ why⟩).2
         ⟨s, hs, l, x, name, hexpr, hsafe, rfl, Or.inl ⟨why, hv, rfl⟩⟩
       rw [h] at this; simp at this
     | unchecked why =>
-      have := (mem_labelWarnings g ⟨s.loc, "the label " ++ name ++ " cannot be checked: " ++ why⟩).2
+      have := (mem_labelWarnings keyOf g ⟨s.loc, "the label " ++ name ++ " cannot be checked: " ++ why⟩).2
         ⟨s, hs, l, x, name, hexpr, hsafe, rfl, Or.inr ⟨why, hv, rfl⟩⟩
       rw [h] at this; simp at this
   · intro h
     apply List.eq_nil_iff_forall_not_mem.2
     intro d hd
-    obtain ⟨s, hs, l, x, name, hexpr, hsafe, _, hv⟩ := (mem_labelWarnings g d).1 hd
+    obtain ⟨s, hs, l, x, name, hexpr, hsafe, _, hv⟩ := (mem_labelWarnings keyOf g d).1 hd
     rw [h s hs l x name hexpr hsafe] at hv
     rcases hv with ⟨_, h1, _⟩ | ⟨_, h1, _⟩ <;> cases h1
 
@@ -523,10 +523,10 @@ theorem unlabelFrames_noLabel (fs : List Frame) :
 
 /-- Two grammars that are the same after erasing labels, and labels whose frames and bodies are
 the same after erasing labels, get the same verdict: the other labels do not change it. -/
-theorem verdict_ignores_other_labels {g1 g2 : Grammar} {s1 s2 : Site} {x1 x2 : Expr}
+theorem verdict_ignores_other_labels (keyOf : Nat → List Item → String) {g1 g2 : Grammar} {s1 s2 : Site} {x1 x2 : Expr}
     (hg : unlabelGrammar g1 = unlabelGrammar g2) (hr : s1.rule = s2.rule)
     (hf : unlabelFrames s1.frames = unlabelFrames s2.frames) (hx : unlabelExpr x1 = unlabelExpr x2) :
-    siteVerdict g1 s1 x1 = siteVerdict g2 s2 x2 := by
+    siteVerdict keyOf g1 s1 x1 = siteVerdict keyOf g2 s2 x2 := by
   unfold siteVerdict
   rw [hg, hr, hf, hx]
 
@@ -538,7 +538,7 @@ theorem unlabelExpr_label (l : Loc) (x : Expr) (n : String) : unlabelExpr (.labe
 
 theorem run_one_failed (ctx : Ctx) (rule : String) (fs : List Frame) (k : CharSet) :
     (run ctx 1).failed rule fs ([], 0) k [] =
-      failedBody ctx (run ctx 0) rule fs [] 0 k [failedKey rule fs [] 0 k] := by
+      failedBody ctx (run ctx 0) rule fs [] 0 k [failedKey ctx rule fs [] 0 k] := by
   simp [run, step, visit, truncate, maxPrefix]
 
 /-- A label in a lookahead is safe: a throw there is a failure of the lookahead's body, as
@@ -602,9 +602,9 @@ theorem werror_rejects_iff (werror : Bool) (warnings : List Diagnostic) :
 
 /-- Labels make the generation fail only with `--Werror`, and then with at least one
 diagnostic; with `--strip-labels` there is no warning and no such failure. -/
-theorem labels_reject_with_diagnostic (g : Grammar) (werror : Bool) :
-    (werrorRejects werror (labelWarnings g) = true → 1 ≤ (labelWarnings g).length) ∧
-    werrorRejects false (labelWarnings g) = false ∧
+theorem labels_reject_with_diagnostic (keyOf : Nat → List Item → String) (g : Grammar) (werror : Bool) :
+    (werrorRejects werror (labelWarningsBy keyOf g) = true → 1 ≤ (labelWarningsBy keyOf g).length) ∧
+    werrorRejects false (labelWarningsBy keyOf g) = false ∧
     werrorRejects werror [] = false := by
   refine ⟨fun h => ((werror_rejects_iff _ _).1 h).2, by simp [werrorRejects], by simp [werrorRejects]⟩
 

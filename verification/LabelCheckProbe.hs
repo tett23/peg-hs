@@ -133,6 +133,35 @@ inline =
   , ("expect", grammar ["%expect l \"a b\"", "S :: ()", "S <- 'a' ('b' ^l) { () } / 'c' { () }"])
   , ("predicates", grammar ["S :: ()", "S <- &{ True } 'a' ('b' ^l) { () } / !{ False } 'a' 'c' { () } / &{ n } 'd' { () }"])
   , ("many-labels", grammar ["S :: ()", "S <- ('a' ^a) ('b' ^b) ('c' ^c) { () } / ('a' ^d) 'x' { () }", "T :: ()", "T <- (S ^e) ('y' ^f)* { () }", "%entry T"])
+  -- The bounds of the termination proof and of the translated check: the
+  -- number of matched items (maxPrefix = 8), the largest code point, and the
+  -- number of argument substitutions.
+  , ("prefix-eight", grammar ["S :: ()", "S <- 'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' ('i' ^l) { () } / 'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' 'j' { () }"])
+  , ("prefix-nine", grammar ["S :: ()", "S <- 'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' 'i' ('j' ^l) { () } / 'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' 'i' 'k' { () }"])
+  , ("prefix-calls", grammar ["S :: ()", "S <- P P P P P ('x' ^l) { () } / P P P P P 'y' { () }", "P :: ()", "P <- 'a' 'b' { () }"])
+  , ("max-code", grammar ["S :: ()", "S <- 'a' ('\1114111' ^l) { () } / 'a' [\1114110-\1114111] { () } / 'b' ('\1114110' ^m) { () } / 'b' '\1114111' { () }"])
+  , ("max-code-any", grammar ["S :: ()", "S <- 'a' ([\1114111] ^l) { () } / 'a' . { () }"])
+  , ( "lifts-four"
+    , grammar
+        [ "S :: ()", "S <- B(0) 'x' { () }", "B(n :: Int) :: ()", "B <- C(n) { () } / Orphan(n) { () }"
+        , "C(n :: Int) :: ()", "C <- D(n) { () }", "D(n :: Int) :: ()", "D <- E(n) { () }", "E(n :: Int) :: ()", "E <- Bad(n) { () }"
+        , "Bad(n :: Int) :: ()", "Bad <- Ind(n) [ \\t] (&{ False })^l { () }", "Orphan(n :: Int) :: ()", "Orphan <- Ind(n) '=:' { () }"
+        , "Ind(n :: Int) :: ()", "Ind <- &{ n == 0 } { () } / ' ' Ind(n - 1) { () }"
+        ]
+    )
+  -- The positions of a label: the first item, a whole sequence, a rule
+  -- call, a choice, the end of a rule that its caller continues, inside
+  -- a lookahead and a repetition, and the seed of left recursion.
+  , ("first-item", grammar ["S :: ()", "S <- ('a' ^l) 'b' { () } / 'a' 'c' { () }"])
+  , ("whole-sequence", grammar ["S :: ()", "S <- ('a' 'b') ^l { () } / 'a' 'c' { () }"])
+  , ("rule-call", grammar ["S :: ()", "S <- 'x' A ^l { () } / 'x' 'a' 'c' { () }", "A :: ()", "A <- 'a' 'b' { () }"])
+  , ("choice-group", grammar ["S :: ()", "S <- ('a' / 'b') ^l 'c' { () } / 'd' { () }"])
+  , ("rule-end", grammar ["S :: ()", "S <- A 'c' { () } / 'a' 'b' 'd' { () }", "A :: ()", "A <- 'a' ('b' ^l) { () }"])
+  , ("lookahead-not", grammar ["S :: ()", "S <- !('a' ('b' ^l)) 'a' { () }"])
+  , ("star-last", grammar ["S :: ()", "S <- ('a' ('b' ^l))* { () }"])
+  , ("lr-seed", grammar ["S :: ()", "S <- E { () }", "E :: ()", "E <- E '+' 'x' { () } / ('y' ^l) { () } / 'z' { () }"])
+  -- ADR 0028's unsafe example as ADR 0029 records it.
+  , ("adr0029-optional-same", grammar ["S :: ()", "S <- ('a' ^l)? 'a' { () }"])
   ]
 
 -- The grammar files of the repository, sorted.
