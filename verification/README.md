@@ -173,7 +173,7 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 | import の解決 | ImportResolution | 固定ソースの diff とプローブ | モデルを検証済み | check-import-resolution.sh |
 | テンプレートの展開 | TemplateExpansionWhole、TemplateSubstitution、TemplateQueue、TemplateExpansionFresh | 固定ソースの diff とプローブ | モデルを検証済み | check-template-expansion-whole.sh、check-template-queue.sh、check-template-expansion-fresh.sh、check-template-substitution.sh |
 | 規則の検査 | CheckGroupsModel、CheckGroupsReach、CheckGroupsTheorems、RuleRejection、Nullable、Reachable、Signatures、Guard | 固定ソースの diff とプローブ。署名は ExtractSignatures.hs、ファイル名の検査は check-guard.sh が翻訳する | モデルを検証済み（署名とファイル名の検査は翻訳を検証済み） | check-check-groups.sh、check-rule-rejection.sh、check-rule-rejection-nullable.sh、check-nullable.sh、check-reachable.sh、check-guard.sh |
-| ラベルの検査 | LabelCheckModel、LabelCheckCharSet、LabelCheckTermination、LabelCheckTheorems | 固定ソースの diff とプローブ | モデルを検証済み | check-label-check.sh |
+| ラベルの検査 | LabelCheckModel、LabelCheckCharSet、LabelCheckTermination、LabelCheckTheorems、LabelsTranslated（生成）、LabelsTranslatedProof | `stripLabels` と `stripLabelsAs` は GHC の構文木からの検査付きの翻訳（TranslateHaskell.hs）。`labelWarnings` は固定ソースの diff とプローブ | 翻訳を検証済み（`stripLabels`、`stripLabelsAs`）、モデルを検証済み（`labelWarnings`） | check-translate-labels.sh、check-label-check.sh |
 | 段のつなぎ | Pipeline、InnerGeneration、PublicGeneration、PublicGenerationGHC | 固定ソースの diff（Pipeline は実装だけの検査 PipelineProbe.hs も） | モデルを検証済み | check-pipeline.sh、check-inner-generation.sh、check-public-generation.sh |
 | `render` の合成 | RenderComposition、RenderModuleGHC、RenderDeclarationsGHC、RenderRuleBodyGHC、RenderExpressionGHC、RenderPrimitiveChoice、RenderPrimitiveDo、RenderPrimitiveDoGHC、RenderPrimitiveStatement、RenderModuleNames、RenderDeclarationBinders、RenderExpression、RenderExpressionBoundary | 固定ソースの diff とプローブ（生成したモジュールを GHC でトレースするか検査する） | モデルを検証済み | check-render-composition.sh ほか check-render-*.sh |
 | モジュールの先頭とリテラル | Header、Literal、Pragmas | 固定ソースの diff とプローブ（GHC の `Show` と比べる） | モデルを検証済み | check-header.sh、check-literal.sh、check-pragmas.sh |
@@ -386,6 +386,36 @@ check.sh は、未定義参照を加えた負例の証明を Lean が拒否す�
 `verdict_in_lookahead`、`verdict_unchecked_growing`、`ruleSucceeded_entry`、`ruleFailed_recovery` は、[ADR 0028](../docs/adr/0028-label-safety-check.md) の個々の場合を示す。
 不変条件 2 については、`labels_reject_with_diagnostic`（LabelCheckTheorems.lean:605）が、ラベルによる生成の失敗は `--Werror` のときだけ起き、そのとき警告が一件以上あることを示す。
 
+#### GHC の構文木からの翻訳
+
+`Labels.hs` は、行の辞書や固定の写しではなく、GHC の構文木から Lean へ翻訳する。
+[TranslateHaskell.hs](TranslateHaskell.hs) は、GHC 9.10.3 の GHC API でモジュールを構文解析、名前解決、型検査し、名前解決した構文木を読む。
+翻訳する関数は、公開の `labelWarnings`、`labelSafeAt`、`matchesEmpty`、`stripLabels`、`stripLabelsAs` と、それらが呼ぶモジュール内のすべての関数である。
+型は、型検査の結果から取る（束縛の型と、ライブラリ関数を使う箇所の型）。
+扱う構文の部分集合の外の構文と、ライブラリの表にない関数は、位置を付けて翻訳を止める。
+翻訳の規則は TranslateHaskell.hs の先頭の注釈に、ライブラリ関数の写しとその評価規則は [HsPrelude.lean](HsPrelude.lean) に書く（「残る前提」の X2、H1〜H8）。
+
+そのため、翻訳を信頼するときの基礎は、構文の種類ごとの規則とライブラリの表だけになる。
+行の辞書（ExtractRuntimeCore.hs）では辞書の項目ごとに人が対応を書くが、この翻訳器では関数を足しても人が書く対応は増えない。
+停止性は Lean が確かめる。
+Lean が停止を示せない再帰は、[translate-labels.hints](translate-labels.hints) に `termination_by` を書くか、燃料の組に入れる。
+燃料の組の関数は燃料を引数に取り、組の中の呼び出しごとに一つ使う（規則 H6）。
+`labelWarnings`、`labelSafeAt`、`matchesEmpty` は燃料を取り、`stripLabels` と `stripLabelsAs` は取らない。
+
+[LabelsTranslatedProof.lean](LabelsTranslatedProof.lean) は、翻訳した関数がモデルと一致することを、型の射影 `pGrammar` の上で示す。
+射影は、位置の整数を自然数に、コードポイントを同じ値に写し、モデルが持たない欄を空にする。
+`strip_expr`（LabelsTranslatedProof.lean:110）は、翻訳した `stripLabels` の式の書き換えが、モデルの `stripExpr` に一致することを示す。
+`stripLabels_translated`（LabelsTranslatedProof.lean:235）と `stripLabelsAs_translated`（LabelsTranslatedProof.lean:268）は、翻訳した `stripLabels` と `stripLabelsAs` がモデルの同名の関数に一致することを示す。
+これにより、LabelCheckTheorems.lean の `stripLabels` についての定理（`unlabelExpr_stripExpr`、`stripLabels_rules`、`stripLabels_fields`、`recoveryEntries_spec`）は、翻訳した関数についても成り立つ。
+`stripLabels_template_args`（LabelsTranslatedProof.lean:285）は、翻訳した `stripLabels` がテンプレートの呼び出しの引数を変えないことを示す。
+`labelWarnings` の翻訳は Lean で型検査と停止性の検査を通るが、モデルとの一致はまだ示していない。
+
+[check-translate-labels.sh](check-translate-labels.sh) は、翻訳器を作り、`Labels.hs` を翻訳し、翻訳と証明を Lean で検査する。
+さらに、三つの変異で検査の強さを確かめる。
+タプルの部分適用と、表にないライブラリ関数（`reverse`）を足した二つの変更は、翻訳で拒否される。
+`stripLabels` から `*` の場合を消した変更は、翻訳と型検査を通るが、証明で拒否される。
+`Data.Char.isSpace` の表は、GHC 9.10.3 で作り直して HsPrelude.lean と照合する。
+
 ### 段のつなぎ
 
 [Pipeline.lean](Pipeline.lean) は、警告付き生成で外側の診断または内側の `generationModule` を観測するまでの分岐を扱う。
@@ -588,6 +618,15 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | A5 | 引数のまま残る関数: 診断の文（`Inputs.failure`、`Inputs.diag`、`Inputs.templateDiag`）、`assemble` が組み立てる文法（`assemblyErrors`、`moduleName`、`build`）、ImportResolution のライブラリの入力、`classify`（`oracle`、`classify`）、`undefinedExports`（`missing`）、`render`、各項目の値（`value`）。Pipeline は `[Diagnostic]` を文字列の列で表すので、段のモデルの診断は `diag` と `templateDiag` で文字列にする。 | PublicGeneration.lean:245 | 段ごとのプローブ |
 | A6 | 段のモデルの前提。下の各表の前提である。 | 各モジュール | 各表のとおり |
 | X1 | ソースの抽出と照合のスクリプトと、そこで使う Haskell の構文の読み取り方を信頼する。 | 全体 | 抽出器ごとの変異の検査（check-runtime-core.sh、check-strict-file.sh、check-public-parsing.sh） |
+| X2 | TranslateHaskell.hs の構文の規則を信頼する。等式の上から順の照合と落ちる先、ガードとパターンガード、where の束縛の持ち上げ、レコードの構築と更新と選択、リストの内包表記、do ブロックを、Haskell と同じ値を返す Lean の項に写す。 | LabelsTranslated（生成） | check-translate-labels.sh（未対応の構文と表にない関数を足した二つの変異を拒否する） |
+| H1 | `Int` は Lean の `Int`、`Char` は 0x110000 未満のコードポイント、`Text` は `String` で写す。翻訳した関数は 64 ビットの `Int` の範囲を出ない。 | HsPrelude.lean | |
+| H2 | base のリスト、`Maybe`、組、真偽値、整数の関数は、HsPrelude.lean の同名の関数と同じ値を返す。`sortOn` は安定な整列である。`isSpace`、`isAlpha`、`isAlphaNum` は GHC 9.10.3 の表と一致する。 | HsPrelude.lean | check-translate-labels.sh（`isSpace` の表）、check-assemble-predicates.sh（`isAlpha` と `isAlphaNum` の表） |
+| H3 | `Data.Text` の関数は、テキストのスカラー値の列の上で HsPrelude.lean の関数と同じ値を返す。 | HsPrelude.lean | |
+| H4 | `Data.Map` と `Data.Set` は、キーの重ならない組の列と要素の重ならない列で写す。検索、所属、挿入、列からの構築は containers と同じに振る舞い、等しさは中身で比べる。`S.toList` は昇順に並べる。 | HsPrelude.lean | |
+| H5 | `Eq` を導出した型の `==` は、Lean が導出する `BEq` と同じく構成子と欄を比べる。 | HsPrelude.lean | |
+| H6 | 停止する Haskell の評価は、Lean の項が表す値を返す。Haskell がパターン照合で失敗する箇所は、型の既定値 `hsUndefined` とする。燃料で翻訳した関数は、十分な燃料で Haskell の関数と同じ値を返す。 | HsPrelude.lean | |
+| H7 | `Int` 以外の型の `show` は、結果どうしを比べるところだけで使われ、Lean の `Repr` で写す。Haskell の導出した `Show` と Lean の `Repr` はどちらも単射である。翻訳した `labelWarnings` の訪問済みの集合の鍵が使う。 | HsPrelude.lean | |
+| H8 | `Data.Graph.stronglyConnComp` は、containers 0.7 の手順（キーで整列した頂点、転置グラフの後順、深さ優先の森）を写した `HsGraph.stronglyConnComp` と同じ列を返す。キーは重ならない。 | HsPrelude.lean | check-label-check.sh（左再帰の分類を比べる） |
 
 ### 構文解析とランタイムの前提
 
@@ -614,7 +653,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | L1 | 訪問済みの集合の鍵に使う Haskell の `show` と Lean の `repr` は、どちらも単射である。 | LabelCheckModel.lean | check-label-check.sh |
 | L2 | `stronglyConnComp` の強連結成分は、規則名が重ならない文法では、モデルが到達可能性から求めるものと一致する。規則名の重複は `assemble` と `resolveImports` が拒否し、`expandTemplates` はインスタンスにどの規則とも異なる名前を付ける（TemplateExpansionWhole）。 | LabelCheckModel.lean | check-label-check.sh（左再帰の分類を比べる） |
 | L3 | `isAlpha` と `isAlphaNum` は AssembleChars の表と一致する。Haskell の `Int` は溢れない。 | LabelCheckModel.lean | check-assemble-predicates.sh（表を作り直して照合する） |
-| L4 | `stripExpr` はテンプレートの引数に入らない。`labelWarnings` と `stripLabelsAs` が受け取る文法は `expandTemplates` の後なので、テンプレートの呼び出しを含まない。 | LabelCheckTheorems.lean | check-pipeline.sh（呼び出しの順を固定する） |
+| L4 | `labelWarnings` と `stripLabelsAs` が受け取る文法は `expandTemplates` の後なので、テンプレートの呼び出しを含まない。`stripLabels` がテンプレートの引数に入らないことは、前提ではなく `stripLabels_template_args`（LabelsTranslatedProof.lean:285）が翻訳について示す。 | LabelCheckTheorems.lean | check-pipeline.sh（呼び出しの順を固定する） |
 | T1 | `haskellIdents`（`codeVariables`）、インスタンスの型を作る `instanceType`、型の分類 `classifiedTypes . classify` は任意の関数として扱う。プローブは型を比べない。 | TemplateExpansionWhole.lean | |
 | T2 | メモ表のキーは位置を除いた引数の `show` であり、導出された `Show` が単射である。モデルは引数を構造で比べる。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh（インスタンスの共有を比べる） |
 | T3 | `Data.Map` と `Data.Set` はリストで写す。`M.fromList` は同じキーの最後の束縛を残し、`S.toAscList` は整列して重複を除く。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh |
