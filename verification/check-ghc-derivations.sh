@@ -32,6 +32,11 @@ for name in Peg PegSyntax Extensions; do
   compile "Derivation$name"
 done
 lean -DwarningAsError=true -o "$work/CommittedModuleDerivations.olean" CommittedModuleDerivations.lean
+# ADR 0097 I3, boundary row 5: the module of a grammar with one valid action,
+# traced by check-ghc-parser-trace.sh.
+awk -v module=OneAction -f extract-happy-trace.awk "$work/rows" "$work/OneAction.ids" "$work/OneAction.trace" > "$work/DerivationOneAction.lean"
+compile DerivationOneAction
+lean -DwarningAsError=true -o "$work/BoundaryDerivations.olean" BoundaryDerivations.lean
 
 # Change the first terminal of the already checked Peg certificate. Check just
 # its first segment so later segments cannot mask the expected failure.

@@ -875,16 +875,16 @@ theorem invariant2_languageRepeatVisible {n : Nat} {G : Type}
 
 -- A recovery-only empty path changes the recovery fixed point, but does not
 -- make the language's repetition check accept that path as nullable.
-example : directRounds (n := 2)
+theorem directRounds_recovery_only_not_nullable : directRounds (n := 2)
     (fun name => if name == "R" then some ⟨1, by omega⟩ else none)
     (fun _ => none)
     (fun i => if i.val == 0 then [[.label 0 (.lit "x" "") "L"]] else [[.lit "" ""]])
-    2 ⟨0, by omega⟩ = false := by native_decide
-example : directRounds (n := 2)
+    2 ⟨0, by omega⟩ = false := by decide +kernel
+theorem directRounds_recovery_nullable : directRounds (n := 2)
     (fun name => if name == "R" then some ⟨1, by omega⟩ else none)
     (fun name => if name == "L" then some ⟨1, by omega⟩ else none)
     (fun i => if i.val == 0 then [[.label 0 (.lit "x" "") "L"]] else [[.lit "" ""]])
-    2 ⟨0, by omega⟩ = true := by native_decide
+    2 ⟨0, by omega⟩ = true := by decide +kernel
 
 -- Invariant 2 boundary examples were added before the translator.
 example : toPositive (n := 0) (fun _ => none) (fun _ => none)

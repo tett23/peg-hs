@@ -39,7 +39,9 @@ The stages, in the order of Codegen's `generateWithWarnings`:
   GHC's syntax tree (AssembleTranslated, TranslateHaskell.hs).
   `invariant1_runtimeStart_eq` shows that the start result is the
   `startTops` of FileTops for the derivation's reply;
-- `resolve`: ImportResolution.resolve;
+- `resolve`: ImportResolution.resolve, with `lookupLibrary` reading each
+  library with the same `tops` and `assembleTops` as `parse` and with
+  `libraryErrors` (Import.libraryErrors);
 - `Inputs.expand`: `expandTemplates` (see the premises);
 - `checkStage`: CheckGroups.check;
 - `notes`: TemplateQueue.templateNotes;
@@ -50,13 +52,19 @@ The stages, in the order of Codegen's `generateWithWarnings`:
 
 check-pipeline.sh, check-inner-generation.sh, check-assemble-validation.sh,
 check-public-parsing.sh and check-import-resolution.sh fix the Haskell that
-joins the stages; check-public-generation.sh fixes `generateFromSource` and
-the `Generation` record that `generateWithWarnings` returns.
+joins the stages; check-public-generation.sh fixes `generateFromSource`,
+the `Generation` record that `generateWithWarnings` returns and
+Import.libraryErrors.
 
 Theorems:
 - `invariant2_generateWithWarnings`, `invariant2_generate`,
   `invariant2_generateFromSource`: a rejection carries at least one
   diagnostic, and every input gives a diagnostic list or a module text.
+- `invariant2_check_rejects_public`, `invariant2_group_error_public`,
+  `invariant2_undefined_reference_public`: when `check` rejects the expanded
+  grammar (an error of one of its groups, such as a reference to an
+  undefined rule), the public entry returns at least one diagnostic and no
+  module text.
 - `invariant1_generateWithWarnings`: a module text implies that parseTops
   derived the whole input (FileTops.ParsesTo), that the translated assemble
   accepted its items, and that the assemble model accepts their view
@@ -76,18 +84,23 @@ Premises (the fields of `Inputs` and `Premises`, not proved here):
   of the Haskell result, and a rejection's diagnostics are the model's,
   rendered. TemplateExpansionWholeProbe compares the two on parsed grammars.
   The fields of `Grammar` that the view drops are not constrained.
-- `Premises.libraryParseNonempty`, `libraryAssembleNonempty`: the premises
-  of ImportResolution about the libraries that `resolveImports` reads.
 - Unmodelled functions, taken as parameters: the diagnostic texts
   (`Inputs.failure`, `Inputs.diag`, `Inputs.templateDiag`,
   `Inputs.diagText`), the view of the grammar that the translated `assemble`
-  builds (`Inputs.grammar`), the library inputs of ImportResolution,
-  `classify` (`oracle`, `classify`), `undefinedExports` (`missing`), `render`
-  and the value of each top item (`value`, and `top`, the Haskell `Top` it
-  is). Pipeline models `[Diagnostic]` as a list of strings, so the stage
-  models' diagnostics are rendered by `diag`, `templateDiag` and
-  `diagText`.
-- The premises of the stage modules that these theorems use.
+  builds (`Inputs.grammar`), the Haskell `Top` items of the parsed items
+  (`Inputs.items`), the functions of resolveImports that ImportResolution takes as
+  inputs, `classify` (`oracle`, `classify`), `undefinedExports` (`missing`),
+  `render` and the value of each top item (`value`). Pipeline models
+  `[Diagnostic]` as a list of strings, so the stage models' diagnostics are
+  rendered by `diag`, `templateDiag` and `diagText`. public-hypotheses.allow lists each
+  with the reason that permits it; PublicHypotheses.lean reads them from the
+  types of the public theorems.
+- The premises of the stage modules that these theorems use. The premises of
+  ImportResolution about the libraries are proved here
+  (`lookupLibrary_parse_nonempty`, `lookupLibrary_assemble_nonempty`).
+
+PublicPremises shows that `Premises` can be met (`modelInputs_premises`), and
+PublicPremisesMeta applies it to Peg.hpeg and PegSyntax.hpeg.
 -/
 
 namespace PegHs.PublicGeneration
@@ -244,24 +257,32 @@ theorem toLabel_stripAs (m : String) (g : Grammar) :
 
 /-! ## The inputs of the stages -/
 
+-- The order of `diagLoc`: the derived `Ord` of `Loc` (file, line, column).
+def locGt (a b : Loc) : Bool :=
+  decide (a.file > b.file ∨ (a.file = b.file ∧ (a.line > b.line ∨
+    (a.line = b.line ∧ a.col > b.col))))
+
 structure Inputs (T : Type) where
   -- parseTops: the value of each top item and the text of a failure.
   value : FileTops.Kind → Nat → T
   failure : PublicParsing.Failure → String
-  -- assemble (translated): the Haskell `Top` of each item, the text of a
-  -- diagnostic, and the view of the grammar it builds.
-  top : T → AssembleTranslated.Top
+  -- assemble (translated): the Haskell `Top` items of the parsed items, the
+  -- text of a diagnostic, the view of the grammar it builds, and the
+  -- location of a diagnostic text (resolveImports sorts by it).
+  items : List T → List AssembleTranslated.Top
   diagText : AssembleTranslated.Diagnostic → String
   grammar : AssembleTranslated.Grammar → Grammar
-  -- resolveImports (ImportResolution's inputs).
+  diagLoc : String → Loc
+  -- resolveImports (ImportResolution's inputs). A library is read by
+  -- `lookupLibrary` below from its text, `lookup p texts`.
   libraryRoot : String
   directiveNames : Grammar → List String
-  lookupLibrary : String → ImportResolution.Library String Rule
+  libraryText : String → Option (List Char)
+  hasLibraryDirective : List T → Bool
   inFile : Nat → String → String
   relocate : Nat → Rule → Rule
   noSuchFile : Loc → String → String
   notALibrary : Loc → String → String
-  locationLE : String → String → Bool
   refs : Rule → List String
   duplicate : Rule → String
   -- expandTemplates and templateNotes.
@@ -287,26 +308,34 @@ variable {T : Type}
 
 /-! ## The stages -/
 
--- assemble on the items, translated from GHC's syntax tree.
-def assembleStage (s : Inputs T) (ts : List T) : Except Diagnostics Grammar :=
-  match AssembleTranslated.assemble (ts.map s.top) with
-  | .ok g => .ok (s.grammar g)
-  | .error ds => .error (ds.map s.diagText)
+noncomputable def parse (s : Inputs T) (input : List Char) : Except Diagnostics Grammar :=
+  PublicParsing.translatedGrammar input.utf8Encode.size
+    (SelfHostedRuntime.runtimeStart s.value input) s.failure
+    (fun t => match AssembleTranslated.assemble (s.items t) with
+      | .ok g => .ok (s.grammar g)
+      | .error ds => .error (ds.map s.diagText))
 
 -- The view of the items that AssembleValidation reads.
 def view (s : Inputs T) (ts : List T) : List AssembleValidation.Top :=
-  AssembleTranslatedProof.view (ts.map s.top)
+  AssembleTranslatedProof.view (s.items ts)
 
-noncomputable def parse (s : Inputs T) (input : List Char) : Except Diagnostics Grammar :=
-  PublicParsing.translatedGrammar input.utf8Encode.size
-    (SelfHostedRuntime.runtimeStart s.value input) s.failure (assembleStage s)
+-- `(<=)` on `diagLoc`, the order of resolveImports' `sortOn diagLoc`, with the derived
+-- order of `Loc` (check-public-generation.sh fixes it).
+def locationLE (s : Inputs T) (a b : String) : Bool := !locGt (s.diagLoc a) (s.diagLoc b)
 
-def resolve (s : Inputs T) (g : Grammar) : Except Diagnostics Grammar :=
-  match ImportResolution.resolve g.library.isSome s.libraryRoot g.rules (s.directiveNames g)
-      g.imports s.lookupLibrary s.inFile s.relocate s.noSuchFile s.notALibrary s.locationLE
-      Rule.name (fun r => r.loc.file) s.refs s.duplicate with
-  | .error ds => .error ds
-  | .ok rs => .ok { g with rules := rs }
+-- parseTops and assemble, the two halves of `parse`
+-- (`parse s input = (tops s input).bind (assembleTops s)`, `parse_tops`).
+noncomputable def tops (s : Inputs T) (input : List Char) : Except Diagnostics (List T) :=
+  PublicParsing.translatedPublic s.failure (PublicParsing.translatedRuntime input.utf8Encode.size
+    (SelfHostedRuntime.runtimeStart s.value input))
+
+def assembleTops (s : Inputs T) (t : List T) : Except Diagnostics Grammar :=
+  match AssembleTranslated.assemble (s.items t) with
+  | .ok g => .ok (s.grammar g)
+  | .error ds => .error (ds.map s.diagText)
+
+theorem parse_tops (s : Inputs T) (input : List Char) :
+    parse s input = (tops s input).bind (assembleTops s) := rfl
 
 def checkStage (s : Inputs T) (g : Grammar) : Except Diagnostics CheckGroups.Analysis :=
   match CheckGroups.check (toCheck g) (s.oracle g) with
@@ -315,6 +344,35 @@ def checkStage (s : Inputs T) (g : Grammar) : Except Diagnostics CheckGroups.Ana
 
 def notes (s : Inputs T) (g0 : Grammar) : Diagnostics → Diagnostics :=
   TemplateQueue.templateNotes (s.note g0)
+
+-- Import.libraryErrors: `templateNotes g (either id checkLibrary (expandTemplates g))`.
+def libraryErrors (s : Inputs T) (g : Grammar) : Diagnostics :=
+  notes s g (match s.expand g with
+    | .error ds => ds
+    | .ok h => (CheckGroups.checkLibrary (toCheck h) (s.oracle h)).map s.diag)
+
+-- The local `library i (Located l p)` of resolveImports before it relocates
+-- anything: `lookup p texts`, parseTops, the `%library` check, assemble and
+-- libraryErrors.
+noncomputable def lookupLibrary (s : Inputs T) (p : String) : ImportResolution.Library String Rule :=
+  match s.libraryText p with
+  | none => .noText
+  | some text =>
+    match tops s text with
+    | .error ds => .parseError ds
+    | .ok ts =>
+      if s.hasLibraryDirective ts then
+        match assembleTops s ts with
+        | .error ds => .assemblyError ds
+        | .ok g => .assembled (libraryErrors s g) g.rules
+      else .notLibrary
+
+noncomputable def resolve (s : Inputs T) (g : Grammar) : Except Diagnostics Grammar :=
+  match ImportResolution.resolve g.library.isSome s.libraryRoot g.rules (s.directiveNames g)
+      g.imports (lookupLibrary s) s.inFile s.relocate s.noSuchFile s.notALibrary (locationLE s)
+      Rule.name (fun r => r.loc.file) s.refs s.duplicate with
+  | .error ds => .error ds
+  | .ok rs => .ok { g with rules := rs }
 
 noncomputable def warningFor (s : Inputs T) (g0 g : Grammar) : Diagnostics :=
   notes s g0 ((LabelCheck.labelWarnings (toLabel g)).map s.diag)
@@ -364,8 +422,6 @@ def Refines (s : Inputs T) :
 structure Premises (s : Inputs T) : Prop where
   expandRefines : ∀ g, ∃ r, TemplateExpansionWhole.ExpandTemplates s.env s.classify (toTemplate g) r ∧
     Refines s r (s.expand g)
-  libraryParseNonempty : ∀ p ds, s.lookupLibrary p = .parseError ds → ds ≠ []
-  libraryAssembleNonempty : ∀ p ds, s.lookupLibrary p = .assemblyError ds → ds ≠ []
 
 /-! ## Each stage: a rejection carries a diagnostic -/
 
@@ -383,7 +439,6 @@ theorem parse_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostic
   | ok t =>
     rw [hr] at h
     simp only [PublicParsing.translatedPublic, Except.bind] at h
-    unfold assembleStage at h
     split at h
     · cases h
     · rename_i es he
@@ -391,14 +446,65 @@ theorem parse_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostic
       have := AssembleTranslatedProof.assemble_error_nonempty _ es he
       simpa using this
 
-theorem resolve_error_nonempty (s : Inputs T) (p : Premises s) (g : Grammar) (ds : Diagnostics)
+theorem tops_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostics)
+    (h : tops s input = .error ds) : ds ≠ [] := by
+  unfold tops at h
+  rw [SelfHostedRuntime.invariant1_runtimeStart_eq] at h
+  cases hr : PublicParsing.translatedRuntime input.utf8Encode.size
+      (FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val) with
+  | error e =>
+    rw [hr] at h
+    simp [PublicParsing.translatedPublic] at h
+    rw [← h]
+    simp
+  | ok t =>
+    rw [hr] at h
+    simp [PublicParsing.translatedPublic] at h
+
+theorem assembleTops_error_nonempty (s : Inputs T) (t : List T) (ds : Diagnostics)
+    (h : assembleTops s t = .error ds) : ds ≠ [] := by
+  unfold assembleTops at h
+  split at h
+  · cases h
+  · rename_i es he
+    cases h
+    have := AssembleTranslatedProof.assemble_error_nonempty _ es he
+    simpa using this
+
+-- The premises of ImportResolution about the libraries hold: a library that
+-- parseTops or assemble rejects carries a diagnostic.
+theorem lookupLibrary_parse_nonempty (s : Inputs T) (p : String) (ds : Diagnostics)
+    (h : lookupLibrary s p = .parseError ds) : ds ≠ [] := by
+  unfold lookupLibrary at h
+  split at h
+  · cases h
+  · split at h
+    · cases h; exact tops_error_nonempty s _ _ (by assumption)
+    · split at h
+      · split at h <;> cases h
+      · cases h
+
+theorem lookupLibrary_assemble_nonempty (s : Inputs T) (p : String) (ds : Diagnostics)
+    (h : lookupLibrary s p = .assemblyError ds) : ds ≠ [] := by
+  unfold lookupLibrary at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · split at h
+      · split at h
+        · cases h; exact assembleTops_error_nonempty s _ _ (by assumption)
+        · cases h
+      · cases h
+
+theorem resolve_error_nonempty (s : Inputs T) (g : Grammar) (ds : Diagnostics)
     (h : resolve s g = .error ds) : ds ≠ [] := by
   unfold resolve at h
   split at h
   · rename_i es he
     cases h
     exact ImportResolution.invariant2_resolve_error_nonempty _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-      p.libraryParseNonempty p.libraryAssembleNonempty _ he
+      (lookupLibrary_parse_nonempty s) (lookupLibrary_assemble_nonempty s) _ he
   · cases h
 
 theorem expand_error_nonempty (s : Inputs T) (p : Premises s) (g : Grammar) (ds : Diagnostics)
@@ -466,7 +572,7 @@ theorem invariant2_generateWithWarnings (s : Inputs T) (p : Premises s) (input :
   Pipeline.invariant2_diagnosticOrModule (parse s input) (resolve s) s.expand
     (fun g => (checkStage s g).map (fun _ => ())) (notes s) (s.strip.map stripAs)
     (warningFor s) (inner s)
-    (parse_error_nonempty s input) (resolve_error_nonempty s p) (expand_error_nonempty s p)
+    (parse_error_nonempty s input) (resolve_error_nonempty s) (expand_error_nonempty s p)
     (fun g ds h => check_error_nonempty s g ds (by
       cases hc : checkStage s g <;> simp [hc, Except.map] at h ⊢; exact h))
     (fun g ds h => notes_nonempty s g ds h) (inner_error_nonempty s p)
@@ -480,29 +586,82 @@ theorem invariant2_generateFromSource (s : Inputs T) (p : Premises s) (input : L
   | ok g =>
     cases hr : resolve s g with
     | error ds =>
-      exact Or.inl ⟨ds, resolve_error_nonempty s p g ds hr, by simp only [Except.bind, hr]⟩
+      exact Or.inl ⟨ds, resolve_error_nonempty s g ds hr, by simp only [Except.bind, hr]⟩
     | ok r =>
       simp only [Except.bind, hr]
       rcases invariant2_generate s p r with ⟨ds, ne, h⟩ | ⟨code, h⟩
       · exact Or.inl ⟨ds, ne, h⟩
       · exact Or.inr ⟨code, h⟩
 
+/-! ## Invariant 2 at the public entry: the rejections of `check` -/
+
+-- When `check` rejects the expanded grammar, the public entry returns at
+-- least one diagnostic and no module text.
+theorem invariant2_check_rejects_public (s : Inputs T) (input : List Char) (parsed g0 g : Grammar)
+    (es : List LabelCheck.Diagnostic) (hp : parse s input = .ok parsed) (hr : resolve s parsed = .ok g0)
+    (he : s.expand g0 = .ok g) (hc : CheckGroups.check (toCheck g) (s.oracle g) = .error es) :
+    ∃ ds, ds ≠ [] ∧ publicModule s input = .error ds ∧ ¬ ∃ code, publicModule s input = .ok code := by
+  have hcs : (fun g => (checkStage s g).map (fun _ => ())) g = .error (es.map s.diag) := by
+    simp [checkStage, hc, Except.map]
+  have failed := Pipeline.invariant2_checkFailure parsed g0 g (es.map s.diag) (resolve s) s.expand
+    (fun g => (checkStage s g).map (fun _ => ())) (notes s) (s.strip.map stripAs) (warningFor s)
+    (inner s) hr he hcs
+  have visible : publicModule s input = .error (notes s g0 (es.map s.diag)) := by
+    unfold publicModule generateWithWarnings
+    rw [hp]
+    exact failed
+  refine ⟨_, notes_nonempty s g0 _ ?_, visible, ?_⟩
+  · simpa using CheckGroups.check_error_ne_nil _ _ hc
+  · rintro ⟨code, hcode⟩
+    rw [visible] at hcode
+    cases hcode
+
+-- An error of one of the fifteen groups of `check` (CheckGroups.check_rejects)
+-- reaches the public entry.
+theorem invariant2_group_error_public (s : Inputs T) (input : List Char) (parsed g0 g : Grammar)
+    (hp : parse s input = .ok parsed) (hr : resolve s parsed = .ok g0) (he : s.expand g0 = .ok g)
+    {fr : CheckGroups.Rule} {rs : List CheckGroups.Rule} (hl : (toCheck g).library = none)
+    (hrules : (toCheck g).rules = fr :: rs) {G : List LabelCheck.Diagnostic}
+    (hG : G ∈ CheckGroups.groups (toCheck g) fr (s.oracle g)) {d : LabelCheck.Diagnostic} (hd : d ∈ G) :
+    ∃ ds, ds ≠ [] ∧ publicModule s input = .error ds ∧ ¬ ∃ code, publicModule s input = .ok code := by
+  obtain ⟨es, hc, _⟩ := CheckGroups.check_rejects (toCheck g) (s.oracle g) hl hrules hG hd
+  exact invariant2_check_rejects_public s input parsed g0 g es hp hr he hc
+
+-- A reference to an undefined rule in the expanded grammar (the first group,
+-- `undefinedErrors`) reaches the public entry.
+theorem invariant2_undefined_reference_public (s : Inputs T) (input : List Char)
+    (parsed g0 g : Grammar) (hp : parse s input = .ok parsed) (hr : resolve s parsed = .ok g0)
+    (he : s.expand g0 = .ok g) (hl : g.library = none) (hrules : g.rules ≠ [])
+    {l : Loc} {n : String} {k : Nat} (href : (l, n, k) ∈ CheckGroups.refs (toCheck g))
+    (hundefined : n ∉ CheckGroups.ruleNames (toCheck g)) :
+    ∃ ds, ds ≠ [] ∧ publicModule s input = .error ds ∧ ¬ ∃ code, publicModule s input = .ok code := by
+  obtain ⟨fr, rs, hfr⟩ : ∃ fr rs, (toCheck g).rules = fr :: rs := by
+    cases hg : g.rules with
+    | nil => exact absurd hg hrules
+    | cons r rs => exact ⟨r.toCheck, rs.map Rule.toCheck, by simp [toCheck, hg]⟩
+  have nonempty : CheckGroups.undefinedErrors (toCheck g) ≠ [] := by
+    intro empty
+    exact hundefined ((CheckGroups.undefinedErrors_nil _).mp empty |>.1 l n k href)
+  obtain ⟨d, hd⟩ := List.exists_mem_of_ne_nil _ nonempty
+  exact invariant2_group_error_public s input parsed g0 g hp hr he (by simp [toCheck, hl]) hfr
+    (G := CheckGroups.undefinedErrors (toCheck g)) (by simp [CheckGroups.groups]) hd
+
 /-! ## Invariant 1 at the public entry -/
 
 -- parseGrammar succeeds exactly when parseTops derives the whole input and
 -- assemble accepts its items.
-theorem assembleStage_ok_iff (s : Inputs T) (ts : List T) (g : Grammar) :
-    assembleStage s ts = .ok g ↔ ∃ tg, AssembleTranslated.assemble (ts.map s.top) = .ok tg ∧ s.grammar tg = g := by
-  unfold assembleStage
-  split <;> simp_all
-
 theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
     parse s input = .ok g ↔
       ∃ ts tg, FileTops.ParsesTo s.value input ts ∧
-        AssembleTranslated.assemble (ts.map s.top) = .ok tg ∧ s.grammar tg = g := by
+        AssembleTranslated.assemble (s.items ts) = .ok tg ∧ s.grammar tg = g := by
   unfold parse
   rw [SelfHostedRuntime.invariant1_runtimeStart_eq, PublicParsing.invariant1_translated_grammar]
-  simp only [assembleStage_ok_iff]
+  have stage (ts : List T) : (match AssembleTranslated.assemble (s.items ts) with
+      | .ok g => .ok (s.grammar g)
+      | .error ds => .error (ds.map s.diagText) : Except Diagnostics Grammar) = .ok g ↔
+      ∃ tg, AssembleTranslated.assemble (s.items ts) = .ok tg ∧ s.grammar tg = g := by
+    split <;> simp_all
+  simp only [stage]
   have entry (ts : List T) :
       FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val =
           .ok input.utf8Encode.size ts ↔ FileTops.ParsesTo s.value input ts := by
@@ -514,7 +673,7 @@ theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
 theorem invariant1_generateWithWarnings (s : Inputs T) (input : List Char)
     (code : String) (success : publicModule s input = .ok code) :
     ∃ ts tg, FileTops.ParsesTo s.value input ts ∧
-      AssembleTranslated.assemble (ts.map s.top) = .ok tg ∧
+      AssembleTranslated.assemble (s.items ts) = .ok tg ∧
       AssembleValidation.assemble (s.view ts) = .ok () := by
   unfold publicModule generateWithWarnings at success
   obtain ⟨parsed, _, _, hp, _⟩ := (Pipeline.invariant3_visible_success_iff ..).mp success
@@ -584,3 +743,8 @@ end PegHs.PublicGeneration
 #print axioms PegHs.PublicGeneration.invariant1_generateWithWarnings
 #print axioms PegHs.PublicGeneration.invariant1_no_derivation
 #print axioms PegHs.PublicGeneration.invariant3_generateWithWarnings_text
+#print axioms PegHs.PublicGeneration.invariant2_check_rejects_public
+#print axioms PegHs.PublicGeneration.invariant2_group_error_public
+#print axioms PegHs.PublicGeneration.invariant2_undefined_reference_public
+#print axioms PegHs.PublicGeneration.lookupLibrary_parse_nonempty
+#print axioms PegHs.PublicGeneration.lookupLibrary_assemble_nonempty

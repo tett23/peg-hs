@@ -144,4 +144,26 @@ for grammar in Peg PegSyntax Extensions; do
     "$grammar" "$(wc -l < "$scratch/$grammar.tokens" | tr -d ' ')" \
     "$(wc -l < "$scratch/$grammar.trace" | tr -d ' ')"
 done
+
+# ADR 0097 I3, the boundary row "a grammar with one valid semantic action":
+# generate its module and trace it like the fixtures above. check-ghc-
+# derivations.sh writes the trace as the certificate DerivationOneAction, and
+# BoundaryDerivations.lean derives the module's token word from GHC's module
+# start symbol.
+printf '%s\n' '%module OneAction' 'S :: Int' "S <- 'a' { 1 }" > "$scratch/OneAction.hpeg"
+"$peg" gen "$scratch/OneAction.hpeg" -o "$scratch/OneAction.hs" >/dev/null
+"$scratch/trace-generated-module" "$libdir" "$scratch/OneAction.hs" "$scratch/OneAction.options" \
+  2> "$scratch/OneAction.raw-trace" > "$scratch/OneAction.result"
+[ ! -s "$scratch/OneAction.options" ] || {
+  echo 'ADR 0097 I3: the tracer applied header options to the boundary grammar' >&2
+  exit 1
+}
+awk -v callbacks="$scratch/OneAction.ids" -v shifts="$scratch/OneAction.shift.ids" \
+  -f verification/check-lexer-trace.awk "$scratch/OneAction.raw-trace"
+grep -v -e '^token: ' -e '^LEXID ' "$scratch/OneAction.raw-trace" > "$scratch/OneAction.trace"
+[ "$(cat "$scratch/OneAction.result")" = parsed-no-diagnostics ] || {
+  echo 'ADR 0097 I3: GHC did not parse the module of a grammar with one valid action' >&2
+  exit 1
+}
+printf 'ADR 0097 I3: one valid action: GHC parsed the generated module\n'
 printf 'GHC 9.10.3, Happy 2.1.7, Parser.y SHA-256 %s\n' "$digest"

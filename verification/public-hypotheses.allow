@@ -1,0 +1,98 @@
+# The hypotheses of the public theorems and the predicates that the public
+# entry functions depend on, as PublicHypotheses.lean records them, each with
+# the row of ADR 0097 that permits it, or UNRESOLVED when no row permits it
+# (their number is fixed by PublicHypotheses.unresolvedLimit).
+# Each line: <recorded line><TAB><reason>. Rows of ADR 0097: :33 the inputs,
+# :38 embedded code, :40 rules not checked against GHC, :44 the translator and
+# evaluation, :56 to :58 the antecedents of invariants 1 to 3.
+PegHs.CommittedModuleDerivations.invariant3_committed_text ghcLex : String → List PegHs.CFG.Symbol	ADR 0097:40 GHC の字句解析を Lean で定義していない (観測した字句列)
+PegHs.CommittedModuleDerivations.invariant3_committed_text certified : PegHs.CommittedModuleDerivations.Certified source	ADR 0097:58 不変条件 3 を当てる生成済みモジュール (コミット済みの三つ)
+PegHs.CommittedModuleDerivations.invariant3_committed_text lexed : ghcLex text = PegHs.CommittedModuleDerivations.certifiedWord source	ADR 0097:40 GHC の字句解析を Lean で定義していない (観測した字句列)
+PegHs.MetaExecution.invariant1_public_syntax diagnostic : PegHs.PublicParsing.Failure → String	ADR 0097:44 translate-public-entry.awk は parseTops の診断の文面を引数に抽象する
+PegHs.PublicGeneration.invariant2_check_rejects_public hp : PegHs.PublicGeneration.parse s input = Except.ok parsed	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_check_rejects_public hr : PegHs.PublicGeneration.resolve s parsed = Except.ok g0	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_check_rejects_public he : s.expand g0 = Except.ok g	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_check_rejects_public hc : PegHs.CheckGroups.check (PegHs.PublicGeneration.toCheck g) (s.oracle g) = Except.error es	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant1_generateWithWarnings success : PegHs.PublicGeneration.publicModule s input = Except.ok code	ADR 0097:56 不変条件 1 の前件
+PegHs.PublicGeneration.invariant2_undefined_reference_public hp : PegHs.PublicGeneration.parse s input = Except.ok parsed	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public hr : PegHs.PublicGeneration.resolve s parsed = Except.ok g0	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public he : s.expand g0 = Except.ok g	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public hl : g.library = none	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public hrules : g.rules ≠ []	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public href : (l, n, k) ∈ PegHs.CheckGroups.refs (PegHs.PublicGeneration.toCheck g)	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_undefined_reference_public hundefined : ¬n ∈ PegHs.CheckGroups.ruleNames (PegHs.PublicGeneration.toCheck g)	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGenerationGHC.invariant3_generateWithWarnings_ghc ghcLex : String → List PegHs.CFG.Symbol	ADR 0097:40 GHC の字句解析を Lean で定義していない (観測した字句列)
+PegHs.PublicGenerationGHC.invariant3_generateWithWarnings_ghc renderShape : ∀ (g : PegHs.PublicGeneration.Grammar) (a : PegHs.CheckGroups.Analysis), PegHs.CheckGroups.check (PegHs.PublicGeneration.toCheck g) (s.oracle g) = Except.ok a → s.missing g a = [] → PegHs.PublicGenerationGHC.ModuleShape ghcLex s.shown (Peg.Verification.selectMarker (s.render g a "")) (s.render g a (Peg.Verification.selectMarker (s.render g a "")))	UNRESOLVED render の出力の形の前提 (ADR に許可なし。render の翻訳は別の課題)
+PegHs.PublicGenerationGHC.invariant3_generateWithWarnings_ghc success : PegHs.PublicGeneration.publicModule s input = Except.ok code	ADR 0097:58 不変条件 3 の前件 (生成の成功)
+PegHs.PublicGeneration.invariant3_generateWithWarnings_text success : PegHs.PublicGeneration.publicModule s input = Except.ok code	ADR 0097:58 不変条件 3 の前件 (生成の成功)
+PegHs.CommittedModuleDerivations.invariant3_certified_word certified : PegHs.CommittedModuleDerivations.Certified source	ADR 0097:58 不変条件 3 を当てる生成済みモジュール (コミット済みの三つ)
+PegHs.MetaExecution.invariant1_public_peg diagnostic : PegHs.PublicParsing.Failure → String	ADR 0097:44 translate-public-entry.awk は parseTops の診断の文面を引数に抽象する
+PegHs.PublicGeneration.invariant1_no_derivation none : ¬∃ ts, PegHs.FileTops.ParsesTo s.value input ts	ADR 0097:56 不変条件 1 の前件
+PegHs.MetaExecution.invariant1_public_syntax_as_peg diagnostic : PegHs.PublicParsing.Failure → String	ADR 0097:44 translate-public-entry.awk は parseTops の診断の文面を引数に抽象する
+PegHs.PublicGeneration.invariant2_group_error_public hp : PegHs.PublicGeneration.parse s input = Except.ok parsed	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public hr : PegHs.PublicGeneration.resolve s parsed = Except.ok g0	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public he : s.expand g0 = Except.ok g	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public hl : (PegHs.PublicGeneration.toCheck g).library = none	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public hrules : (PegHs.PublicGeneration.toCheck g).rules = fr :: rs	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public hG : G ∈ PegHs.CheckGroups.groups (PegHs.PublicGeneration.toCheck g) fr (s.oracle g)	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+PegHs.PublicGeneration.invariant2_group_error_public hd : d ∈ G	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
+Inputs.value : PegHs.FileTops.Kind → Nat → T	UNRESOLVED 構文木の値 (Haskell のアクション) を翻訳していない
+Inputs.failure : PegHs.PublicParsing.Failure → String	ADR 0097:44 translate-public-entry.awk は parseTops の診断の文面を引数に抽象する
+Inputs.items : List T → List AssembleTranslated.Top	UNRESOLVED 構文木の値 (Haskell のアクション) を翻訳していない
+Inputs.diagText : AssembleTranslated.Diagnostic → String	UNRESOLVED 診断の文面を定義していない
+Inputs.grammar : AssembleTranslated.Grammar → PegHs.PublicGeneration.Grammar	UNRESOLVED 翻訳した assemble の文法から Grammar への写しを定義していない
+Inputs.diagLoc : String → PegHs.LabelCheck.Loc	UNRESOLVED 診断の位置を翻訳していない
+Inputs.libraryRoot : String	UNRESOLVED 診断の文面を定義していない
+Inputs.directiveNames : PegHs.PublicGeneration.Grammar → List String	UNRESOLVED directiveRules を翻訳していない
+Inputs.libraryText : String → Option (List Char)	ADR 0097:33 読み込み済みのライブラリの集合 (resolveImports の texts)
+Inputs.hasLibraryDirective : List T → Bool	UNRESOLVED %library の有無の判定を翻訳していない
+Inputs.inFile : Nat → String → String	UNRESOLVED 診断の書き換えを定義していない
+Inputs.relocate : Nat → PegHs.PublicGeneration.Rule → PegHs.PublicGeneration.Rule	UNRESOLVED relocateRule を翻訳していない
+Inputs.noSuchFile : PegHs.LabelCheck.Loc → String → String	UNRESOLVED 診断の文面を定義していない
+Inputs.notALibrary : PegHs.LabelCheck.Loc → String → String	UNRESOLVED 診断の文面を定義していない
+Inputs.refs : PegHs.PublicGeneration.Rule → List String	UNRESOLVED ruleRefs を翻訳していない
+Inputs.duplicate : PegHs.PublicGeneration.Rule → String	UNRESOLVED 診断の文面を定義していない
+Inputs.expand : PegHs.PublicGeneration.Grammar → Except PegHs.PublicGeneration.Diagnostics PegHs.PublicGeneration.Grammar	UNRESOLVED expandTemplates を翻訳していない (Premises.expandRefines でモデルに結ぶ)
+Inputs.env : PegHs.TemplateExpansionWhole.Env	UNRESOLVED テンプレート展開の環境を翻訳していない
+Inputs.classify : PegHs.TemplateExpansionWhole.Grammar → PegHs.TemplateExpansionWhole.Known	UNRESOLVED classify を翻訳していない
+Inputs.templateDiag : PegHs.TemplateSubstitution.Diagnostic → String	UNRESOLVED 診断の文面を定義していない
+Inputs.note : PegHs.PublicGeneration.Grammar → String → String	UNRESOLVED 診断の文面を定義していない
+Inputs.oracle : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Oracle	UNRESOLVED check の分類と述語を翻訳していない
+Inputs.diag : PegHs.LabelCheck.Diagnostic → String	UNRESOLVED 診断の文面を定義していない
+Inputs.strip : Option String	ADR 0097:33 生成オプション (stripLabelsAs のモジュール名)
+Inputs.source : List Nat	ADR 0097:33 生成オプション (入力ファイルの名前)
+Inputs.output : List Nat	ADR 0097:33 生成オプション (出力ファイルの名前)
+Inputs.upper : Char → Bool	UNRESOLVED isUpper を翻訳していない
+Inputs.alphaNum : Char → Bool	UNRESOLVED isAlphaNum を翻訳していない
+Inputs.missing : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Analysis → List String	UNRESOLVED undefinedExports を翻訳していない
+Inputs.render : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Analysis → String → String	UNRESOLVED render を翻訳していない (render の翻訳は別の課題)
+Inputs.shown : String	ADR 0097:33 生成オプション (LINE プラグマに書くファイルの名前)
+Premises.expandRefines : ∀ (g : PegHs.PublicGeneration.Grammar), ∃ r, PegHs.TemplateExpansionWhole.ExpandTemplates s.env s.classify (PegHs.PublicGeneration.toTemplate g) r ∧ PegHs.PublicGeneration.Refines s r (s.expand g)	UNRESOLVED 実装とモデルの対応の前提。プローブで比べるだけで証明していない
+definition PegHs.PublicGeneration.parse -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.parse -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.parse -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.parse -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.tops -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.tops -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.tops -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.tops -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.lookupLibrary -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.resolve -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.publicModule -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
+definition PegHs.PublicGeneration.generateFromSource -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
