@@ -571,11 +571,107 @@ theorem runTops_sound {input : List Char} {fuel : Nat} {items : List Item}
             | ok _ _ => simp [he] at h
             | throwLabel => simp [he] at h
 
+
+/-! The value list read from the run. -/
+
+/-- A derivation has a fuel from which every larger fuel returns its reply. -/
+theorem fuel_from {ctx : Inputs} {b : Body} {n : Nat} {env : Env} {r : Reply}
+    (d : Derives ctx b n env r) : ∃ f, ∀ g, f ≤ g → runFuel ctx g b n env = some r := by
+  obtain ⟨f, h⟩ := invariant1_derivation_has_fuel d
+  exact ⟨f, fun g le => invariant1_fuel_stable ctx le h⟩
+
+theorem runChoice_complete {ctx : Inputs} {n : Nat} {env : Env} {k : Kind}
+    (h : Chosen ctx n env k) : ∃ f, ∀ g, f ≤ g → runChoice ctx g n env = some k := by
+  cases h with
+  | verbatim v =>
+    obtain ⟨f, hv⟩ := fuel_from v
+    exact ⟨f, fun g le => by simp [runChoice, hv g le]⟩
+  | directive vf d =>
+    obtain ⟨f1, h1⟩ := fuel_from vf
+    obtain ⟨f2, h2⟩ := fuel_from d
+    exact ⟨max f1 f2, fun g le => by
+      simp [runChoice, h1 g (by omega), h2 g (by omega)]⟩
+  | declaration vf df c =>
+    obtain ⟨f1, h1⟩ := fuel_from vf
+    obtain ⟨f2, h2⟩ := fuel_from df
+    obtain ⟨f3, h3⟩ := fuel_from c
+    exact ⟨max f1 (max f2 f3), fun g le => by
+      simp [runChoice, h1 g (by omega), h2 g (by omega), h3 g (by omega)]⟩
+
+theorem runKind_complete {ctx : Inputs} {n : Nat} {env : Env} {k : Kind}
+    (h : ItemKind ctx n env k) : ∃ f, ∀ g, f ≤ g → runKind ctx g n env = some k := by
+  obtain ⟨c1, c2, e1, e2, ch⟩ := h
+  obtain ⟨f, hf⟩ := runChoice_complete ch
+  exact ⟨f, fun g le => by simp [runKind, e1, e2, hf g le]⟩
+
+theorem runItems_complete {ctx : Inputs} {n : Nat} {env : Env} {items : List Item} {rest : Nat}
+    {final : Env} (c : Chain ctx n env items rest final) :
+    ∃ f, ∀ g, f ≤ g → ∀ steps, n < steps → runItems ctx g steps n env = some (items, rest, final) := by
+  induction c with
+  | stop failed =>
+    obtain ⟨f, hf⟩ := fuel_from failed
+    refine ⟨f, fun g le steps lt => ?_⟩
+    obtain ⟨s, rfl⟩ : ∃ s, steps = s + 1 := ⟨steps - 1, by omega⟩
+    simp [runItems, hf g le]
+  | still d =>
+    obtain ⟨f, hf⟩ := fuel_from d
+    refine ⟨f, fun g le steps lt => ?_⟩
+    obtain ⟨s, rfl⟩ : ∃ s, steps = s + 1 := ⟨steps - 1, by omega⟩
+    simp [runItems, hf g le]
+  | @next n env mid inner k items rest final d progress kind _ ih =>
+    obtain ⟨f1, h1⟩ := fuel_from d
+    obtain ⟨f2, h2⟩ := runKind_complete kind
+    obtain ⟨f3, h3⟩ := ih
+    refine ⟨max f1 (max f2 f3), fun g le steps lt => ?_⟩
+    obtain ⟨s, rfl⟩ : ∃ s, steps = s + 1 := ⟨steps - 1, by omega⟩
+    simp [runItems, h1 g (by omega), progress, h2 g (by omega), h3 g (by omega) s (by omega)]
+
+/-- The executable form finds the item list of every derivation. -/
+theorem runTops_complete {input : List Char} {items : List Item} (h : Tops input items) :
+    ∃ fuel, runTops input fuel = some items := by
+  obtain ⟨afterWs, wsEnv, final, ws, chain, eof⟩ := h
+  obtain ⟨f1, h1⟩ := fuel_from ws
+  obtain ⟨f2, h2⟩ := runItems_complete chain
+  obtain ⟨f3, h3⟩ := fuel_from eof
+  refine ⟨max f1 (max f2 f3), ?_⟩
+  have e1 := h1 (max f1 (max f2 f3)) (by omega)
+  have e2 := h2 (max f1 (max f2 f3)) (by omega) (afterWs + 1) (by omega)
+  have e3 := h3 (max f1 (max f2 f3)) (by omega)
+  simp only [runTops, e1, e2, e3]
+
+/-- The item list that the executable form returns at some fuel (empty when
+it returns none at every fuel). -/
+noncomputable def runTopsItems (input : List Char) : List Item :=
+  open Classical in
+  if h : ∃ fuel items, runTops input fuel = some items then h.choose_spec.choose else []
+
+/-- The value list read from `runTopsItems` is the value list that
+`startTops` picks among the lists of `ParsesTo`. -/
+theorem invariant1_runTopsItems_value {T : Type} (value : Kind → Nat → T) (input : List Char) :
+    fileValue value (runTopsItems input) =
+      (open Classical in if h : ∃ tops, ParsesTo value input tops then h.choose else []) := by
+  by_cases run : ∃ fuel items, runTops input fuel = some items
+  · have spec := run.choose_spec.choose_spec
+    have parses : ParsesTo value input (fileValue value (runTopsItems input)) := by
+      refine ⟨_, ?_, rfl⟩
+      simp only [runTopsItems, dite_eq_left_of_eq_true (eq_true run)]
+      exact runTops_sound spec
+    have ex : ∃ tops, ParsesTo value input tops := ⟨_, parses⟩
+    rw [dite_eq_left_of_eq_true (eq_true ex)]
+    exact invariant1_parsesTo_unique parses ex.choose_spec
+  · have none : ¬ ∃ tops, ParsesTo value input tops := by
+      rintro ⟨_, items, t, rfl⟩
+      obtain ⟨fuel, hf⟩ := runTops_complete t
+      exact run ⟨fuel, items, hf⟩
+    simp only [runTopsItems, run, none, ↓reduceDIte, fileValue, List.map_nil]
+
 #print axioms invariant1_tops_iff
 #print axioms invariant1_tops_unique
 #print axioms invariant1_tops_linked
 #print axioms invariant1_parseTops_value
 #print axioms invariant1_parseTops_shape
 #print axioms runTops_sound
+#print axioms runTops_complete
+#print axioms invariant1_runTopsItems_value
 
 end PegHs.FileTops

@@ -949,12 +949,14 @@ theorem invariant1_runtimeResult_reply (input : List Char) :
   rw [← same]; exact agree
 
 /-- The start result of `runParser` with the value of File, read from the
-runtime run. The value list is that of FileTops, as in `startTops`. -/
+runtime run. The value list is read from the items that the executable
+`FileTops.runTops` returns (`FileTops.runTopsItems`); by
+`FileTops.invariant1_runTopsItems_value` it is the list that `startTops`
+picks. -/
 noncomputable def runtimeStart {T : Type} (value : FileTops.Kind → Nat → T) (input : List Char) :
     PublicParsing.StartResult (List T) :=
-  open Classical in
   match runtimeResult input with
-  | Ok j _ => .ok j (if h : ∃ tops, FileTops.ParsesTo value input tops then h.choose else [])
+  | Ok j _ => .ok j (FileTops.fileValue value (FileTops.runTopsItems input))
   | Fail => .fail
   | Throw t l m => .throwLabel t l m
 
@@ -966,6 +968,7 @@ theorem invariant1_runtimeStart_eq {T : Type} (value : FileTops.Kind → Nat →
   cases hr : (recognizeFile false input).val with
   | ok rest env =>
     rw [hr] at agree; rw [Option.some_inj.mp (agrees_ok agree)]
+    simp only [FileTops.startTops, FileTops.invariant1_runTopsItems_value]
     rfl
   | fail =>
     rw [hr] at agree; rw [Option.some_inj.mp (agrees_fail agree)]
