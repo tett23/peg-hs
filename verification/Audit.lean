@@ -114,6 +114,7 @@ import RenderComposition
 import RenderFinalize
 import RenderFinalizeModule
 import PublicGeneration
+import SelfHostedRuntime
 import PublicGenerationGHC
 import PublicPremises
 import PublicPremisesMeta
@@ -335,6 +336,7 @@ def auditedModules : List Lean.Name := [
   `RuntimeChoiceProof,
   `RuntimeCoreProof,
   `SelfHostedFileProof,
+  `SelfHostedRuntime,
   `SemanticPredicates,
   `Signatures,
   `SimpleEscapeProof,
