@@ -7,7 +7,8 @@
 # (resolveImports, with `Right root {grammarRules = ...}`). This script fixes
 # the rest of what PublicGeneration models: generateFromSource, the fields of
 # the Generation record in the order of Pipeline.Generation, the order of Loc
-# that `sortOn diagLoc` uses (PublicGeneration.locGt), and stripLabelsAs.
+# that `sortOn diagLoc` uses (PublicGeneration.locGt), stripLabelsAs, and
+# Import.libraryErrors (PublicGeneration.libraryErrors).
 # A change to any of them requires a review of PublicGeneration.lean.
 set -eu
 
@@ -15,6 +16,7 @@ cd "$(dirname "$0")/.."
 codegen=${1:-packages/peg-codegen/src/Peg/Codegen.hs}
 grammar=${2:-packages/peg-grammar/src/Peg/Grammar.hs}
 labels=${3:-packages/peg-grammar/src/Peg/Grammar/Labels.hs}
+imports=${4:-packages/peg-grammar/src/Peg/Grammar/Import.hs}
 expected=$(mktemp)
 trap 'rm -f "$expected"' EXIT HUP INT TERM
 
@@ -50,5 +52,11 @@ stripLabelsAs :: Text -> Grammar -> Grammar
 stripLabelsAs m g = (stripLabels g) {grammarModule = Located (locOf (grammarModule g)) m}
 SOURCE
 sed -n '/^stripLabelsAs ::/,/^stripLabelsAs m g = /p' "$labels" | diff -u "$expected" -
+
+cat > "$expected" <<'SOURCE'
+libraryErrors :: Grammar -> [Diagnostic]
+libraryErrors g = templateNotes g (either id checkLibrary (expandTemplates g))
+SOURCE
+sed -n '/^libraryErrors ::/,/^libraryErrors g = /p' "$imports" | diff -u "$expected" -
 
 printf 'Checked the public generation source contract.\n'

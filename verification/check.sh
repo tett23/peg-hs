@@ -37,7 +37,6 @@ lean -DwarningAsError=true -o "$work/DirectiveDecode.olean" DirectiveDecode.lean
 runghc-9.10.3 -Werror ExtractTabstop.hs ../packages/peg-grammar/src/Peg/Grammar/Assemble.hs > "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/TranslatedTabstop.olean" "$work/TranslatedTabstop.lean"
 lean -DwarningAsError=true -o "$work/TabstopProof.olean" TabstopProof.lean
-lean --run Boundary.lean > "$work/boundary-expected"
 cd ..
 verification/check-guard.sh
 verification/check-expression-depth.sh
@@ -169,6 +168,9 @@ grep -Fq 'is false' "$work/invalid-signatures.log" || {
   cat "$work/invalid-signatures.log" >&2
   exit 1
 }
+# The boundary rows of ADR 0097: Boundary.lean (the extracted metagrammar,
+# the models) and Boundary.hs (the public entries) print the same lines.
+(cd verification && lean -DwarningAsError=true --run Boundary.lean) > "$work/boundary-expected"
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-codegen -package=peg-grammar verification/Boundary.hs > "$work/boundary-actual"
 diff -u "$work/boundary-expected" "$work/boundary-actual"
 verification/check-core.sh "$work"
@@ -182,14 +184,18 @@ for grammar in Peg PegSyntax; do
   "$cabal" exec -- ghc-9.10.3 -fno-code -fforce-recomp -package peg-runtime \
     -package peg-grammar -outputdir "$work" "$work/$grammar.hs"
 done
+# ADR 0097 I3, the boundary row "an action closed for hpeg whose Haskell
+# expression is incomplete": the premise on embedded code fails, and GHC
+# rejects the module.
 printf '%s\n' '%module Broken' 'S :: ()' "S <- 'a' { let }" > "$work/Broken.hpeg"
 "$peg" gen "$work/Broken.hpeg" -o "$work/Broken.hs"
 if "$cabal" exec -- ghc-9.10.3 -fno-code -package peg-runtime -outputdir "$work" \
   "$work/Broken.hs" > "$work/ghc-error" 2>&1; then
-  echo 'invariant3: GHC unexpectedly accepted an incomplete expression' >&2
+  echo 'ADR 0097 I3: an incomplete expression in a closed action: GHC unexpectedly accepted it' >&2
   exit 1
 fi
 grep -q 'parse error' "$work/ghc-error" || { cat "$work/ghc-error" >&2; exit 1; }
+printf 'ADR 0097 I3: an incomplete expression in a closed action: GHC rejects the module\n'
 
 verification/check-render-expression-boundary.sh "$work"
 verification/check-ghc-parser-trace.sh "$work"
@@ -202,8 +208,14 @@ GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-ope
 # The public entries with the concrete stages (ADR 0097 invariants 1 to 3).
 # They import FileTops and RenderFinalizeModule, compiled above.
 (cd verification && lean -DwarningAsError=true -o "$work/PublicGeneration.olean" PublicGeneration.lean &&
-  lean -DwarningAsError=true -o "$work/PublicGenerationGHC.olean" PublicGenerationGHC.lean)
+  lean -DwarningAsError=true -o "$work/PublicGenerationGHC.olean" PublicGenerationGHC.lean &&
+  lean -DwarningAsError=true -o "$work/PublicPremises.olean" PublicPremises.lean &&
+  LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true \
+    -o "$work/PublicPremisesMeta.olean" PublicPremisesMeta.lean)
 verification/check-public-generation.sh
 
 # Every module is compiled by now. Audit.lean lists the axioms of each theorem.
 (cd verification && LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true Audit.lean)
+# The hypotheses of the public theorems, read from their types, against
+# public-hypotheses.allow.
+verification/check-public-hypotheses.sh "$work"
