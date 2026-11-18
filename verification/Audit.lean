@@ -119,6 +119,7 @@ import RenderFinalizeModule
 import PublicGeneration
 import SelfHostedRuntime
 import ScopedEnv
+import LoopBindings
 import SelfHostedMemo
 import RuntimeForms
 import PublicGenerationGHC
@@ -295,6 +296,7 @@ def auditedModules : List Lean.Name := [
   `Lexical,
   `LineIndex,
   `Literal,
+  `LoopBindings,
   `MemoKeyEnvironment,
   `MemoKeyTransfer,
   `MemoMetaNoLR,

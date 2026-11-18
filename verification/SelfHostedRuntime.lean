@@ -1,6 +1,7 @@
 import RuntimeCoreProof
 import TotalFile
 import FileTops
+import LoopBindings
 
 /-!
 The strict metagrammar parser run on the translated runtime (premise R7 of
@@ -15,10 +16,11 @@ SelfHosted.hs: `bindP` for a `do` sequence, `choice` for alternatives,
 `lit`, `cls` and `anyChar` for terminals, `andP` and `notP` for lookahead,
 `labeled` and `labeledMessage` for `^label`, `predicate` for a semantic
 predicate, and `nomemo` for a rule call. A repetition is the loop of
-`manyGo` and `skipManyGo`, with the environment of the model carried from one
-iteration to the next. The value of a parser is the model's remaining input
-and environment, which stand for the Haskell values (premise M2 and the
-hooks of MetaExecution.lean).
+`manyGo` and `skipManyGo`. As `many` and `skipMany` run the same action for
+every iteration, each iteration starts from the environment the loop started
+with, and only the result depth is carried. The value of a parser is the
+model's remaining input and environment, which stand for the Haskell values
+(premise M2 and the hooks of MetaExecution.lean).
 
 `predicate` is not in the translation; it is restated here from the source
 (check-runtime-core.sh compares the source lines). The generated predicates
@@ -28,7 +30,10 @@ Theorems:
 - `invariant1_exec_agrees`: for every fuel, `exec` returns, from every
   world, the result that `runFuel` of the model returns: the same
   remaining input and environment at the byte offset of that position,
-  the same label and message, or no result.
+  the same label and message, or no result. The model hands the
+  environment of an iteration to the next one; the two agree because no
+  repetition body binds a name (`LoopBindings.Frame`, which the strict
+  metagrammar meets).
 - `invariant1_runtime_file`: the File program, run from the context and
   world that `runParser defaultConfig` builds, returns a result that agrees
   with `FileResult`.
@@ -54,8 +59,7 @@ What ties `exec` to the generated SelfHosted.hs:
   result.
 - Premise R7 of verification/README.md, not proved here: the generated code
   computes Haskell values; `exec` computes the model's remaining input and
-  environment. In a repetition, `many` drops the bindings of an iteration and
-  `exec` passes the environment on.
+  environment.
 -/
 
 set_option linter.unusedSimpArgs false
@@ -502,7 +506,7 @@ noncomputable def exec (I : Inputs) : Nat → Body → Nat → Env → P ρ σ (
         unP (exec I fuel a rem env) c i >>= fun
           | Ok k r =>
             if k > i then exec I fuel (.starLoop a) r.1
-                { r.2 with resultDepth := max env.resultDepth r.2.resultDepth } c k
+                { env with resultDepth := max env.resultDepth r.2.resultDepth } c k
             else restoreErrors c saved >>= fun _ => pure (Ok i (rem, env))
           | Throw t l m => restoreErrors c saved >>= fun _ => pure (Throw t l m)
           | Fail => restoreErrors c saved >>= fun _ => pure (Ok i (rem, env))
@@ -558,15 +562,15 @@ theorem runs_predicateP (b : Bool) (c : Ctx ρ) (i : Nat) :
 /-- Invariant 1 on the runtime: for every fuel, the runtime parser of a body
 returns, from every world, the result that the model returns. -/
 theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input) (strict : Strict c)
-    (literals : ∀ site, I.terms site ≠ some (.lit [])) :
-    ∀ fuel body rem env, rem ≤ I.input.length →
+    (literals : ∀ site, I.terms site ≠ some (.lit [])) (frame : LoopBindings.Frame I) :
+    ∀ fuel body rem env, LoopBindings.loopsBindNothing body = true → rem ≤ I.input.length →
       ∃ o, Runs (exec I fuel body rem env : P ρ σ (Nat × Env)) c (off I.input rem) o ∧
         Agrees I.input o (runFuel I fuel body rem env) := by
   intro fuel
   induction fuel with
-  | zero => intro body rem env _; exact ⟨none, fun _ => rfl, trivial⟩
+  | zero => intro body rem env _ _; exact ⟨none, fun _ => rfl, trivial⟩
   | succ fuel ih =>
-    intro body rem env hrem
+    intro body rem env loops hrem
     cases body with
     | eps =>
       exact ⟨_, runs_pure _ c _, by simp only [runFuel]; exact ⟨rfl, rfl, rfl⟩⟩
@@ -621,7 +625,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
         · simp only [exec, he]; exact runs_fail c _
         · simp only [runFuel, he]; exact True.intro
       | some callee =>
-        obtain ⟨o, run, agree⟩ := ih (I.rules rule) rem callee hrem
+        obtain ⟨o, run, agree⟩ := ih (I.rules rule) rem callee (frame.rules rule) hrem
         have run' := runs_fmap (fun r => (r.1, I.hooks.leaveCall site env r.2))
           (runs_nomemo strict.recover strict.count "rule" run)
         refine ⟨_, by simp only [exec, he]; exact run', ?_⟩
@@ -635,7 +639,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
           | fail => rw [agrees_fail agree]; exact True.intro
           | throwLabel pos name msg => rw [agrees_throw agree]; exact ⟨rfl, rfl, rfl⟩
     | seq a b =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env (LoopBindings.loops_seq loops).1 hrem
       cases hr : runFuel I fuel a rem env with
       | none =>
         rw [hr] at agree1; rw [agrees_none agree1] at run1
@@ -648,7 +652,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
         | ok rest next =>
           rw [agrees_ok agree1] at run1
           have le := rest_le hr
-          obtain ⟨o2, run2, agree2⟩ := ih b rest next (by omega)
+          obtain ⟨o2, run2, agree2⟩ := ih b rest next (LoopBindings.loops_seq loops).2 (by omega)
           refine ⟨o2, ?_, ?_⟩
           · simp only [exec]; exact runs_bind_ok run1 run2
           · simp only [runFuel, hr]; exact agree2
@@ -663,8 +667,8 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
           · simp only [exec]; exact runs_bind_bad run1 (fun j x e => by cases e)
           · simp only [runFuel, hr]; exact ⟨rfl, rfl, rfl⟩
     | alt a b =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
-      obtain ⟨o2, run2, agree2⟩ := ih b rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env (LoopBindings.loops_alt loops).1 hrem
+      obtain ⟨o2, run2, agree2⟩ := ih b rem env (LoopBindings.loops_alt loops).2 hrem
       refine ⟨orRes o1 o2, ?_, ?_⟩
       · simp only [exec]; exact runs_choice strict.recover run1 (fun _ => run2)
       · simp only [runFuel]
@@ -677,7 +681,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
           | fail => rw [agrees_fail agree1]; exact agree2
           | throwLabel pos name msg => rw [agrees_throw agree1]; exact ⟨rfl, rfl, rfl⟩
     | ahead a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env loops hrem
       refine ⟨_, by simp only [exec]; exact runs_fmap _ (runs_andP strict.recover run1), ?_⟩
       simp only [runFuel]
       cases hr : runFuel I fuel a rem env with
@@ -689,7 +693,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
         | fail => rw [agrees_fail agree1]; exact True.intro
         | throwLabel pos name msg => rw [agrees_throw agree1]; exact True.intro
     | notAhead a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env loops hrem
       refine ⟨_, by simp only [exec]; exact runs_fmap _ (runs_notP strict.recover run1), ?_⟩
       simp only [runFuel]
       cases hr : runFuel I fuel a rem env with
@@ -701,10 +705,10 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
         | fail => rw [agrees_fail agree1]; exact ⟨rfl, rfl, rfl⟩
         | throwLabel pos name msg => rw [agrees_throw agree1]; exact ⟨rfl, rfl, rfl⟩
     | star a =>
-      obtain ⟨o, run, agree⟩ := ih (.starLoop a) rem { env with resultDepth := 0 } hrem
+      obtain ⟨o, run, agree⟩ := ih (.starLoop a) rem { env with resultDepth := 0 } loops hrem
       exact ⟨o, by simp only [exec]; exact run, by simp only [runFuel]; exact agree⟩
     | starLoop a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env (LoopBindings.loops_starLoop loops).2 hrem
       cases hr : runFuel I fuel a rem env with
       | none =>
         rw [hr] at agree1; rw [agrees_none agree1] at run1
@@ -721,9 +725,11 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
           have le := rest_le hr
           by_cases lt : rest < rem
           · obtain ⟨o2, run2, agree2⟩ := ih (.starLoop a) rest
-              { next with resultDepth := max env.resultDepth next.resultDepth } (by omega)
+              { env with resultDepth := max env.resultDepth next.resultDepth } loops (by omega)
+            have same := LoopBindings.invariant1_loop_env_same I frame.leave
+              (LoopBindings.loops_starLoop loops).1 hr
             have gt := (off_lt_iff le hrem).mpr lt
-            refine ⟨o2, fun w => ?_, by simp only [runFuel, hr, lt, ↓reduceIte]; exact agree2⟩
+            refine ⟨o2, fun w => ?_, by simp only [runFuel, hr, lt, ↓reduceIte]; rw [same]; exact agree2⟩
             have h := run1 w
             cases hx : exec I fuel a rem env c (off I.input rem) w with
             | none => rw [hx] at h; cases h
@@ -764,7 +770,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
             rw [hx] at h; simp only [Option.map_some, Option.some.injEq] at h; subst h
             simp [exec, saveErrors_strict strict.recover, unP, hx]
     | label name msg a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env loops hrem
       have run := runs_label strict.recover name (msg.map T.pack) run1
       rw [pack_map] at run
       refine ⟨_, by simp only [exec]; rw [labelP_eq, pack_map]; exact run, ?_⟩
@@ -778,10 +784,10 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
         | fail => rw [agrees_fail agree1]; exact ⟨rfl, rfl, rfl⟩
         | throwLabel pos name msg => rw [agrees_throw agree1]; exact ⟨rfl, rfl, rfl⟩
     | capture a =>
-      obtain ⟨o, run, agree⟩ := ih a rem env hrem
+      obtain ⟨o, run, agree⟩ := ih a rem env loops hrem
       exact ⟨o, by simp only [exec]; exact run, by simp only [runFuel]; exact agree⟩
     | bind site name a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env loops hrem
       cases hr : runFuel I fuel a rem env with
       | none =>
         rw [hr] at agree1; rw [agrees_none agree1] at run1
@@ -813,7 +819,7 @@ theorem invariant1_exec_agrees (I : Inputs) {c : Ctx ρ} (on : OnInput c I.input
           · simp only [exec]; exact runs_bind_bad run1 (fun j x e => by cases e)
           · simp only [runFuel, hr]; exact ⟨rfl, rfl, rfl⟩
     | action site a =>
-      obtain ⟨o1, run1, agree1⟩ := ih a rem env hrem
+      obtain ⟨o1, run1, agree1⟩ := ih a rem env loops hrem
       cases hr : runFuel I fuel a rem env with
       | none =>
         rw [hr] at agree1; rw [agrees_none agree1] at run1
@@ -890,8 +896,9 @@ theorem invariant1_runtime_file (input : List Char) (fuel : Nat) :
   have strict : Strict (fileCtx input) := ⟨rfl, rfl⟩
   have on : OnInput (fileCtx input) (context false input).input := ⟨rfl, rfl⟩
   obtain ⟨o, run, agree⟩ := invariant1_exec_agrees (ρ := Unit) (σ := Unit) (context false input) on strict
-    (invariant1_meta_literals_nonempty input) fuel ((context false input).rules (startRule false))
-    input.length {} (Nat.le_refl _)
+    (invariant1_meta_literals_nonempty input) (LoopBindings.invariant1_meta_loops_bind_nothing input)
+    fuel ((context false input).rules (startRule false)) input.length {}
+    ((LoopBindings.invariant1_meta_loops_bind_nothing input).rules _) (Nat.le_refl _)
   have at0 := run (startWorld heap0)
   have offEq : off (context false input).input input.length = 0 := off_start input
   rw [offEq] at at0
@@ -942,12 +949,14 @@ theorem invariant1_runtimeResult_reply (input : List Char) :
   rw [← same]; exact agree
 
 /-- The start result of `runParser` with the value of File, read from the
-runtime run. The value list is that of FileTops, as in `startTops`. -/
+runtime run. The value list is read from the items that the executable
+`FileTops.runTops` returns (`FileTops.runTopsItems`); by
+`FileTops.invariant1_runTopsItems_value` it is the list that `startTops`
+picks. -/
 noncomputable def runtimeStart {T : Type} (value : FileTops.Kind → Nat → T) (input : List Char) :
     PublicParsing.StartResult (List T) :=
-  open Classical in
   match runtimeResult input with
-  | Ok j _ => .ok j (if h : ∃ tops, FileTops.ParsesTo value input tops then h.choose else [])
+  | Ok j _ => .ok j (FileTops.fileValue value (FileTops.runTopsItems input))
   | Fail => .fail
   | Throw t l m => .throwLabel t l m
 
@@ -959,6 +968,7 @@ theorem invariant1_runtimeStart_eq {T : Type} (value : FileTops.Kind → Nat →
   cases hr : (recognizeFile false input).val with
   | ok rest env =>
     rw [hr] at agree; rw [Option.some_inj.mp (agrees_ok agree)]
+    simp only [FileTops.startTops, FileTops.invariant1_runTopsItems_value]
     rfl
   | fail =>
     rw [hr] at agree; rw [Option.some_inj.mp (agrees_fail agree)]

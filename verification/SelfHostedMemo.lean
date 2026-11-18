@@ -1,5 +1,6 @@
 import SelfHostedRuntime
 import ScopedEnv
+import LoopBindings
 
 /-!
 The memo tables of the generated parser (premise R7 of
@@ -106,7 +107,7 @@ noncomputable def execM (I : Inputs) : Nat → Body → Nat → Env → PM
         unP (execM I fuel a rem env) c i >>= fun
           | Ok k r =>
             if k > i then execM I fuel (.starLoop a) r.1
-                { r.2 with resultDepth := max env.resultDepth r.2.resultDepth } c k
+                { env with resultDepth := max env.resultDepth r.2.resultDepth } c k
             else restoreErrors c saved >>= fun _ => pure (Ok i (rem, env))
           | Throw t l m => restoreErrors c saved >>= fun _ => pure (Throw t l m)
           | Fail => restoreErrors c saved >>= fun _ => pure (Ok i (rem, env))
@@ -439,13 +440,16 @@ end Tables
 /-! ## The run with the tables -/
 
 /-- Every call without arguments in a body targets a rule that no call site
-passes an argument to. -/
+passes an argument to, and no repetition body binds a name
+(LoopBindings.lean: then `execM`, which drops the bindings of an iteration as
+`many` does, starts each iteration from the environment the model passes). -/
 def plainCalls (calls : Nat → Option EnvironmentDepth.CallSite) : Body → Bool
   | .call site rule => match calls site with
     | some (_, _, []) => metaPlain rule
     | _ => true
   | .seq a b | .alt a b => plainCalls calls a && plainCalls calls b
-  | .ahead a | .notAhead a | .star a | .starLoop a | .label _ _ a | .capture a | .bind _ _ a
+  | .star a | .starLoop a => (binders a).isEmpty && plainCalls calls a
+  | .ahead a | .notAhead a | .label _ _ a | .capture a | .bind _ _ a
   | .action _ a => plainCalls calls a
   | _ => true
 
@@ -457,12 +461,26 @@ theorem plainCalls_alt (a b : Body) :
     plainCalls calls (.alt a b) = (plainCalls calls a && plainCalls calls b) := rfl
 theorem plainCalls_one (a : Body) :
     (plainCalls calls (.ahead a) = plainCalls calls a) ∧ (plainCalls calls (.notAhead a) = plainCalls calls a) ∧
-    (plainCalls calls (.star a) = plainCalls calls a) ∧ (plainCalls calls (.starLoop a) = plainCalls calls a) ∧
+    (plainCalls calls (.star a) = plainCalls calls (.starLoop a)) ∧
+    (plainCalls calls (.starLoop a) = ((binders a).isEmpty && plainCalls calls a)) ∧
     (∀ n m, plainCalls calls (.label n m a) = plainCalls calls a) ∧
     (plainCalls calls (.capture a) = plainCalls calls a) ∧
     (∀ s n, plainCalls calls (.bind s n a) = plainCalls calls a) ∧
     (∀ s, plainCalls calls (.action s a) = plainCalls calls a) :=
   ⟨rfl, rfl, rfl, rfl, fun _ _ => rfl, rfl, fun _ _ => rfl, fun _ => rfl⟩
+theorem plainCalls_loops : ∀ body : Body, plainCalls calls body = true →
+    LoopBindings.loopsBindNothing body = true
+  | .eps, _ | .terminal _, _ | .predicate _, _ | .call _ _, _ => rfl
+  | .seq a b, h | .alt a b, h => by
+    simp only [plainCalls, Bool.and_eq_true] at h
+    simp only [LoopBindings.loopsBindNothing, Bool.and_eq_true]
+    exact ⟨plainCalls_loops a h.1, plainCalls_loops b h.2⟩
+  | .star a, h | .starLoop a, h => by
+    simp only [plainCalls, Bool.and_eq_true] at h
+    simp only [LoopBindings.loopsBindNothing, Bool.and_eq_true]
+    exact ⟨h.1, plainCalls_loops a h.2⟩
+  | .ahead a, h | .notAhead a, h | .label _ _ a, h | .capture a, h | .bind _ _ a, h
+  | .action _ a, h => plainCalls_loops a h
 theorem plainCalls_call_plain {site rule : Nat} {a b : String} (hs : calls site = some (a, b, []))
     (p : plainCalls calls (.call site rule) = true) : metaPlain rule = true := by
   simpa [plainCalls, hs] using p
@@ -763,9 +781,12 @@ theorem invariant1_memo_runs (on : OnInput c input) (strict : Strict c) :
     | star a =>
       simp only [runFuel] at hr
       simp only [execM]
-      exact ih (.starLoop a) rem _ reply (by rw [(plainCalls_one metaCalls a).2.2.2.1, ← (plainCalls_one metaCalls a).2.2.1]; exact plain) hrem hr
+      exact ih (.starLoop a) rem _ reply (by rw [← (plainCalls_one metaCalls a).2.2.1]; exact plain) hrem hr
     | starLoop a =>
-      have plainA : plainCalls metaCalls a = true := by rw [← (plainCalls_one metaCalls a).2.2.2.1]; exact plain
+      have loopA : (binders a).isEmpty = true ∧ plainCalls metaCalls a = true := by
+        have p := plain
+        rw [(plainCalls_one metaCalls a).2.2.2.1, Bool.and_eq_true] at p; exact p
+      have plainA := loopA.2
       simp only [runFuel] at hr
       cases ha : runFuel (context false input) fuel a rem env with
       | none => rw [ha] at hr; cases hr
@@ -777,6 +798,7 @@ theorem invariant1_memo_runs (on : OnInput c input) (strict : Strict c) :
           have le := rest_le ha
           by_cases lt : rest < rem
           · simp only [lt, ↓reduceIte] at hr
+            rw [LoopBindings.invariant1_loop_env_same _ (fun _ _ _ => rfl) loopA.1 ha] at hr
             have IL := ih (.starLoop a) rest _ reply plain (by omega) hr
             have gt := (off_lt_iff le hrem).mpr lt
             intro w hw
@@ -884,7 +906,8 @@ theorem invariant1_memo_exec_same {input : List Char} {c : Ctx Unit} (on : OnInp
       some (r, w0')) :
     RunsM input (execM (context false input) fuel body rem env) c (off input rem) r := by
   obtain ⟨o, runs, agree⟩ := invariant1_exec_agrees (ρ := Unit) (σ := Unit) (context false input) on strict
-    (invariant1_meta_literals_nonempty input) fuel body rem env hrem
+    (invariant1_meta_literals_nonempty input) (LoopBindings.invariant1_meta_loops_bind_nothing input)
+    fuel body rem env (plainCalls_loops metaCalls body plain) hrem
   have ho : ((exec (context false input) fuel body rem env : P Unit Unit Value) c (off input rem) w0).map
       Prod.fst = o := runs w0
   rw [run] at ho
