@@ -186,5 +186,11 @@ verification/check-ghc-derivations.sh "$work"
 verification/check-render-module-names.sh "$work/module-names"
 GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-operators.sh "$work/module-operators"
 
+# The public entries with the concrete stages (ADR 0097 invariants 1 to 3).
+# They import FileTops and RenderFinalizeModule, compiled above.
+(cd verification && lean -DwarningAsError=true -o "$work/PublicGeneration.olean" PublicGeneration.lean &&
+  lean -DwarningAsError=true -o "$work/PublicGenerationGHC.olean" PublicGenerationGHC.lean)
+verification/check-public-generation.sh
+
 # Every module is compiled by now. Audit.lean lists the axioms of each theorem.
 (cd verification && LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true Audit.lean)
