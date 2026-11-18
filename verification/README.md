@@ -162,14 +162,14 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 
 | 段 | 主な Lean のモジュール | 対応のしかた | 報告 | 主な検査 |
 | --- | --- | --- | --- | --- |
-| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
+| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、SelfHostedRuntime、SelfHostedMemo、ScopedEnv、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
 | 呼び出しの整礎性 | CallOrder、RecursiveEval | 検査付きの翻訳（ExtractCallOrder.hs） | 翻訳を検証済み | check-call-order.sh |
 | 開始規則と空白 | File、Consumption、Whitespace、Lexical | `File` は検査付きの翻訳（ExtractFile.hs）。空白とコメントは規則の行を `grep` で固定する | 翻訳を検証済み（File）、モデルを検証済み（Whitespace、Lexical） | check.sh、check-whitespace.sh、check-lexical.sh |
 | PEG の式の意味 | Parsing | 固定ソースの diff とプローブ（非回復時のランタイムの一部と比べる） | モデルを検証済み | check-core.sh |
 | `parseTops` の入口 | PublicParsing、PublicEntryProof、FileEntry、TotalFile | 検査付きの翻訳（translate-public-entry.awk） | 翻訳を検証済み | check-public-parsing.sh |
 | `parseTops` の値 | FileTops | 固定ソースの diff とプローブ | モデルを検証済み | check-file-tops.sh |
 | メタ文法の現行の内容 | CertifiedPublicFiles、SplitMetaFile、ConcreteFileCertificates | 証明書（ファイルの内容を照合する） | 証明書を検証済み | check-file-items.sh、check-file-certificates.sh |
-| ランタイム | RuntimeCore、RuntimeCoreProof、MemoRecognition、MemoTables、MemoTrace、LabelPropagation | 検査付きの翻訳（ExtractRuntimeCore.hs） | 翻訳を検証済み | check-runtime-core.sh、check-memo-tables.sh、check-memo-meta.sh |
+| ランタイム | RuntimeCore、RuntimeCoreProof、RuntimeForms、MemoRecognition、MemoTables、MemoTrace、LabelPropagation | 検査付きの翻訳（ExtractRuntimeCore.hs） | 翻訳を検証済み | check-runtime-core.sh、check-memo-tables.sh、check-memo-meta.sh |
 | 位置の行と列 | LineIndex | 固定ソースの diff（line-of.source）と実装だけの検査（CheckLineIndex.hs） | モデルを検証済み | check.sh |
 | `assemble` の検査 | AssembleValidation、AssemblePredicates、AssembleChars、AssembleBindings、NestedBindings | 固定ソースの diff とプローブ | モデルを検証済み | check-assemble-validation.sh、check-assemble-predicates.sh、check-assemble-validation-helpers.sh |
 | 指示の引数 | SimpleEscapeProof、TabstopProof、DirectiveArityProof、DirectiveCommentProof、DirectiveDecode | 検査付きの翻訳（ExtractSimpleEscapes.hs、ExtractTabstop.hs、ExtractDirectiveArity.hs、ExtractDirectiveComment.hs） | 翻訳を検証済み | check.sh、check-strict-file.sh、check-directive-comment.sh |
@@ -274,6 +274,30 @@ Lean のモデルはメモ化なしで動くので、その中には数分かか
 `invariant1_runtime_file`（SelfHostedRuntime.lean:887）は、これを `runParser defaultConfig` が作る文脈と世界の `File` に当てる。
 `invariant1_runtime_runParser`（SelfHostedRuntime.lean:973）は、その `runParser` が値を返すことと、開始結果を `PublicParsing.entry` に渡して同じ値が返ることが同値であることを示す。
 `PublicGeneration.parse` は、十分な燃料での実行の開始結果 `runtimeStart` の上に定義する。
+
+ただし、生成コードは規則の呼び出しを `nomemo` ではなくメモ表で包む。
+[SelfHostedMemo.lean](SelfHostedMemo.lean) の `execM`（SelfHostedMemo.lean:78）は、`exec` の呼び出しを、引数のない呼び出しでは `memo` に、引数のある呼び出しでは深さの引数を鍵にした `memoArg` に替えたものである。
+`invariant1_memoArg_rules`（SelfHostedMemo.lean:478）は、`memoArg` で呼ぶ規則が、ExtractSelfHostedFile.hs が `d` を取り `PegRt.memoArg` で定義されていると読む 12 個の規則に一致することを示す。
+表はストアの中の参照であり、キャッシュの不変条件 `Coherent`（SelfHostedMemo.lean:146）は、ストア全体のどの項目も、その鍵でモデルが返すどの返答とも、呼び出し元が使うもの（位置、ラベル、結果の深さ）で一致することをいう。
+`invariant1_memo_runs`（SelfHostedMemo.lean:585）は、燃料についての帰納法で、モデルが返答を返す燃料では、不変条件を満たすどの世界からも `execM` がその返答に当たる結果を返し、不変条件を保つことを示す。
+`invariant1_memo_file`（SelfHostedMemo.lean:918）と `invariant1_memo_runParser`（SelfHostedMemo.lean:947）は、空の表から始めた `File` の実行が `fileRun` と同じ結果を返し、`runParser defaultConfig` の値も `runtimeResult` から決まることを示す。
+
+引数のない呼び出しの鍵は位置だけであり、呼び出し元の環境を含まない。
+そこで、[ScopedEnv.lean](ScopedEnv.lean) の静的な解析 `check` は、規則の本体が、意味述語、アクション、呼び出しの引数で、自分で束縛した名前と深さの引数だけを読むことを確かめる。
+`invariant1_scope_sound`（ScopedEnv.lean:295）は解析の健全性を、`invariant1_meta_scoped`（ScopedEnv.lean:587）は、`parseTops` が使う Peg.hpeg のメタ文法のすべての規則が解析を通ることを示す。
+`invariant1_plain_call_independent`（ScopedEnv.lean:628）は、引数のない呼び出しを受ける規則が、どの環境から始めても、呼び出し元が使うものの等しい返答を返すことを示す。
+
+また、ExtractSelfHostedFile.hs が規則本体を読むときに落とす書き方は、[RuntimeForms.lean](RuntimeForms.lean) が結果を変えないことを示す。
+回復と計数を無効にした翻訳したランタイムでは、どの世界からも次の等式が成り立つ。
+
+- `getOffset_bind`（RuntimeForms.lean:62）、`spanFrom_bind`（RuntimeForms.lean:66）: `getOffset` と `spanFrom` の束縛は、同じ位置と世界で続きを走らせる。
+- `withCol_const`（RuntimeForms.lean:70）: 列を使わない関数の `withCol` は、その関数が返すパーサーに等しい。
+- `capture_same`（RuntimeForms.lean:79）: `capture p` は `p` と同じ形、位置、世界を返す。
+- `choice_one`（RuntimeForms.lean:88）: 一択の `choice [p]` は `p` に等しい。
+- `choice_cons`（RuntimeForms.lean:112）: 三択以上の `choice` は二択の入れ子に等しい。
+- `optional_choice`（RuntimeForms.lean:126）: `optional p` は `p` と空との選択に等しい。
+
+`getOffset`、`spanFrom`、`withCol`、`capture`、`Span` は翻訳の対象でないので、check-runtime-core.sh がソースの行を照合する。
 
 [check-runtime-core.sh](check-runtime-core.sh) は翻訳と証明を検査し、さらに変異で検査の強さを確かめる。
 辞書にない五つの変更は翻訳で拒否される。
@@ -655,7 +679,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | R4 | 位置はバイトオフセットのまま扱う。行と列への変換は [LineIndex.lean](LineIndex.lean) が別に証明する。 | RuntimeCore.lean:25 | check.sh（line-of.source と CheckLineIndex.hs） |
 | R5 | `ctxLogs` に積む取り消しの動作は消して写す。取り消しを実行する `endIteration` と、それを呼ぶ `memoLR` は翻訳しない。 | RuntimeCore.lean:27 | [check-memo-meta.sh](check-memo-meta.sh)（メタ文法のパーサーが `memoLR` を使わないことを確かめる） |
 | R6 | メモ化の定理は、回復と計数が無効であること、成長の反復が走っていないこと（`ctxLogs` が空）、規則本体が失敗の記録と依存を空にして始めたときに同じ結果を返すこと（`BodySpec`）、表の項目が本体を評価した結果に等しいこと（キャッシュの不変条件）を仮定に置く。`lit` の比較の繰り返しには、Lean の停止性の証明のために `k < n` の分岐を足す。`go 0` から呼ぶかぎり、足した分岐には到達しない。`many` と `skipMany` の定義には Lean の `partial_fixpoint` を使う。 | RuntimeCoreProof.lean:14、ExtractRuntimeCore.hs | check-runtime-core.sh（四つの行を消した変異を証明が拒否する）、check-memo-tables.sh |
-| R7 | 生成した `SelfHosted.hs` の規則は、`exec` が同じ本体に当てる組み合わせ子の木と同じ結果を返す。両者には三つの違いがある。一つ目に、生成コードは規則の呼び出しを `memo` と `memoArg` で包み（`defaultConfig` ではメモ化が有効）、`exec` は `nomemo` で包む。呼び出しごとの一致は `invariant1_translated_memo_off_same`（RuntimeCoreProof.lean:258）が示すが、表の項目が実行の全体を通じて本体を評価した結果に等しいこと（キャッシュの不変条件）は示していない。二つ目に、生成コードの値は Haskell の値と変数の束縛であり、`exec` の値はモデルの残りの入力と環境である。繰り返しでは、生成コードの `many` と `skipMany` は反復の束縛を捨て、`exec` は環境を次の反復に渡す。三つ目に、`getOffset`、`spanFrom`、`withCol`、`capture`、`optional`（`exec` では空との選択）、本体を包む一択の `choice`、選択肢が三つ以上の `choice`（`exec` では二択の入れ子）は、結果を変えないとする。 | SelfHostedRuntime.lean:474（`exec`）、SelfHostedRuntime.lean:887 | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-memo-tables.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
+| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。繰り返しでは、生成コードの `many` と `skipMany` は反復の束縛を捨て、`exec` と `execM` は環境を次の反復に渡す。ScopedEnv の解析は本体が読む名前を規則の中で束縛したものに限るが、二つの繰り返しの意味が同じ結果を返すことは示していない。生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）と、本体の読み取りで落とす書き方（RuntimeForms.lean）は、前提から外れた。 | SelfHostedRuntime.lean:474（`exec`）、SelfHostedMemo.lean:78（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
 
 ### 規則の検査、ラベル、テンプレート、import の前提
 
