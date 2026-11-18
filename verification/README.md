@@ -93,6 +93,27 @@
 
 [check-render-printing.sh](check-render-printing.sh) は、モデルを実装と GHC に結びつける。まず、`exprCodeU`、`itemStmt`、`passThroughOf`、`doBlock`、`fresh`、`ruleVar`、`showT` と `hsString` の定義を git hash-object で固定する。次に、Lexer.x の `reservedWordsFM` がモデルの予約語の一覧と一致することを確かめる。そのうえで、[RenderPrintingProbe.hs](RenderPrintingProbe.hs) がリポジトリのすべての文法を読み、生成器と同じ `Env` を作る。各規則の式とその部分式を、値を使う場合と捨てる場合で実際の `exprCodeU` に印字させ、同じ順に新しい名前を取りながら印字の木を作る。Lean の `render` がすべての木で `exprCodeU` と同じテキストを返すことを確かめる。`%syntax` のない文法では、各テキストが `generate` の返す `finalize` 後のモジュールに現れることも確かめる。最後に、すべてのテキストを一つのモジュールに並べ、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで読む。GHC の lexer がパーサーに渡す終端記号の番号が、`lexModel` の列と一致することを確かめる。
 
+[CommittedModuleDerivations.lean](CommittedModuleDerivations.lean) は、リポジトリにコミットした生成物の fixture のうち三つについて、不変条件 3 を埋め込みコードの前提なしで示す。三つは、`packages/peg-grammar/src/Peg/Grammar/SelfHosted.hs`、`SelfHostedSyntax.hs`、`packages/peg-codegen/test/generated/Fixture/Extensions.hs` である。以前の [check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) は、別の場所に生成し直したモジュールを読んでいた。そのため、導出の証明書とコミットした fixture は、パッケージのテスト（生成物がコミットしたファイルと一致すること）を介してしか結びついていなかった。いまの check-ghc-parser-trace.sh は、`scripts/regen-fixtures.sh` と同じ作業ディレクトリ、ソース名、出力名、オプションで三つを生成し直し、コミットしたファイルとバイト単位で一致することを確かめる。そのうえで、コミットしたファイルそのものを GHC 9.10.3 のトレーサーで読む。regen-fixtures.sh の該当行が変わったときは、この検査が失敗する。[check-ghc-derivations.sh](check-ghc-derivations.sh) は、三つのトレースから証明書 `DerivationPeg`、`DerivationPegSyntax`、`DerivationExtensions` を作る。`invariant3_certified_word` と `invariant3_committed_words` は、各証明書の字句の列が GHC のモジュールの開始記号から導出できることを示す。`invariant3_committed_text` は、GHC の lexer がテキストから証明書の字句の列を返すという前提だけから、RenderFinalizeModule.lean と同じ形の結論を導く。
+
+証明書は、モジュール全体の字句の列を覆う。そのため、二つのメタ文法と Extensions.hpeg の埋め込みブロック、アクション、意味述語、引数のコード、型は、すべて証明書の中にある。RenderComposition.lean と RenderFinalizeModule.lean の定理は任意の文法についての定理なので、埋め込みコードの前提（`verbatim_split`、`verbatim_imports_ok`、`verbatim_decls_ok`、規則本体の `user_ok` と `decls_ok`）を仮定に置く。この三つのモジュールについては、証明書がこれらの前提に置き換わる。ただし、次の前提は残る。
+
+- GHC の lexer がコミットしたファイルから証明書の字句の列を返すこと。これは、トレースの LEXID の呼び出しとして観測し、[check-lexer-trace.awk](check-lexer-trace.awk) が shift と照合する。GHC の lexer の Lean のモデルからは導いていない。
+- 任意の文法の埋め込みコードについての前提。利用者が書く Haskell 全体を形式化しない限り、検査では置き換えられない。この三つ以外の fixture は、GHC で検査するパッケージのテストに任せる。
+- `packages/peg-lsp` は、生成した `Peg.Lsp.JsonParser` を `default-extensions: LambdaCase OverloadedStrings` の下でコンパイルする。このモジュールの証明書は無い。
+
+[TraceGeneratedModule.hs](TraceGeneratedModule.hs) は、以前はセッションの既定のフラグで字句解析と構文解析をしていた。そのため、`%language` が生成する LANGUAGE プラグマは、トレースに反映されていなかった。いまのトレーサーは、GHC のドライバーと同じ順にフラグを決める。まず、パッケージの `default-language` に当たる `-XGHC2021` を置く。次に、`getOptions` でモジュールの先頭のプラグマを読み、`parseDynamicFilePragma` で適用する。lexer と parser は、その結果のフラグから作った `initParserOpts` の下で動く。check-ghc-parser-trace.sh は、トレーサーが適用したプラグマの一覧が文法の `%language` の並びと一致することを、三つの fixture で確かめる。
+
+[check-trace-language.sh](check-trace-language.sh) は、この反映を検査にする。まず、トレースするモジュールをコンパイルする `peg-grammar` と `peg-codegen` の cabal ファイルが、`default-language: GHC2021` だけを使い、`default-extensions` を持たないことを確かめる。次に、四つの文法を生成し、生成したモジュールと、そこから検査する拡張の LANGUAGE の行だけを消したモジュールを読む。二つの判定は逆になる必要がある。
+
+| 文法 | 拡張 | 段 | プラグマあり | プラグマなし |
+| --- | --- | --- | --- | --- |
+| Magic | `MagicHash`（`magic#` を一つの名前にする） | lexer | 受理 | 拒否 |
+| Arrows | `Arrows`（`proc` を予約語にする） | lexer | 拒否 | 受理 |
+| Block | `BlockArguments`（引数の位置の `do`） | parser | 受理 | 拒否 |
+| Qualified | `NoImportQualifiedPost`（GHC2021 の拡張を外す） | parser | 拒否 | 受理 |
+
+lexer の段の拡張では、二つのモジュールの字句の列が異なることも確かめる。Qualified は、トレーサーが GHC2021 から始めることも確かめる。最後に、先頭のプラグマを無視して GHC2021 のフラグだけで構文解析するトレーサーを作り、Magic を拒否することを確かめる。
+
 生成したパーサーが呼ぶランタイム `Peg.Runtime.Internal` は、[ExtractRuntimeCore.hs](ExtractRuntimeCore.hs) が Lean に翻訳する。対象は、メモ化（`memo`、`memoArg`、`nomemo`、`evalBody`、`replay`、`logUndo` など）、制御の組み合わせ子（モナドの連接、`choice`、`many`、`skipMany`、`optional`、`andP`、`notP`、`labeledWith`、`expecting`）、端末（`lit`、`cls`、`anyChar`）、公開入口の `runParser` と `defaultConfig` である。抽出器は関数ごとに、ソースの行または行の並びを Lean の行へ写す辞書を持ち、辞書にない行があると翻訳を止める。行を消したり並べ替えたりした変更は翻訳を通るので、正しいかどうかは証明が決める。翻訳先の型と ST の参照のモデルは [RuntimeCore.lean](RuntimeCore.lean) に置き、抽出器はそこで写したデータ宣言をソースと照合する。
 
 翻訳した定義についての定理は [RuntimeCoreProof.lean](RuntimeCoreProof.lean) にある。`invariant1_translated_memo_step` と `invariant1_translated_memoArg_step` は、翻訳した `memo` と `memoArg` が [MemoRecognition.lean](MemoRecognition.lean) の `memoStep` と同じ結果と状態を返すことを示す。`invariant1_translated_memo_off_same` は、メモ化の有無と hit・miss によらず、結果、最遠の失敗、依存、エラーの記録が一致することを示す。回復しない構文解析では、連接、選択、`optional`、ラベル、先読みの結果が [LabelPropagation.lean](LabelPropagation.lean) のフレームと先読みに一致し、`many` と `skipMany` は 1 回の反復ごとの式を満たす。端末の `lit`、`cls`、`anyChar` は、スカラー値の境界で `ConcreteTerminal.matchTerm` と同じ入力を受理する。`expecting` は翻訳するが、定理はない。`invariant1_translated_runParser_entry` は、`runParser` が値を返すことと、開始規則の結果を `PublicParsing.entry` に渡して成功することが同値であることを示す。これらの定理により、`check-public-parsing.sh` と `check-memo-recognition.sh` にあったランタイムの SHA-256 の照合を外した。
