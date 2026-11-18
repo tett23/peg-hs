@@ -1,0 +1,21 @@
+-- Hints for TranslateHaskell.hs on Peg.Runtime.Position. Lean checks every
+-- termination_by and decreasing_by.
+--
+-- The line starts: each step advances by the width of a scalar (at least one
+-- byte) towards the byte length.
+equations lineIndex.go
+decreasing lineIndex.go
+  termination_by (n - $1).toNat
+  decreasing_by
+    all_goals
+      have := HsTextU.iter_width (by assumption)
+      simp only [HsInt.ge, HsInt.add, decide_eq_true_eq] at *
+      omega
+-- The binary search for the line of an offset: the interval shrinks.
+decreasing lineOf.go
+  termination_by ($2 - $1).toNat
+  decreasing_by
+    all_goals
+      simp only [HsInt.ge, HsInt.add, HsInt.sub, HsInt.div, Int.fdiv_eq_ediv, decide_eq_true_eq] at *
+      simp at *
+      omega

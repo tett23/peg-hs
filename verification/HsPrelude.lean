@@ -611,3 +611,74 @@ def stronglyConnComp {α : Type} [Inhabited α] (edges0 : List (α × String × 
   (scc g).map decode
 
 end HsGraph
+
+/-! ## Data.Array.Unboxed and Data.Text.Unsafe
+
+Rules added for Peg.Runtime.Position (the positions of `here` in the
+generated Peg.Grammar.SelfHosted):
+
+- H14 `Data.Array.Unboxed`: a `UArray Int Int` is its lower bound and its
+  elements in order. `listArray (lo, hi) xs` takes the first `hi - lo + 1`
+  elements, `bounds` gives the bounds, and `arr ! i` the element at `i`.
+  The translated code builds an array from exactly as many elements as its
+  bounds hold and indexes it within them, where array's functions are
+  defined.
+- H15 `Data.Text.Unsafe`: a `Text` is the UTF-8 encoding of its scalar
+  values (as rule R3 of RuntimeCore.lean). `lengthWord8` is the byte length;
+  `iter t i` decodes the scalar that starts at the byte offset `i` and gives
+  its width in bytes; `takeWord8 k` and `dropWord8 k` keep the bytes before
+  and after the offset `k`. The translated code calls `iter` at a scalar
+  boundary below the length and cuts at scalar boundaries, where the
+  functions of text-2.1 are defined.
+-/
+
+structure HsUArray (α : Type) where
+  lo : Int
+  elems : List α
+  deriving Inhabited
+
+-- `maximum` at `[Int]` (rule H2), on a nonempty list.
+def HsList.maximum : List Int → Int
+  | [] => 0
+  | x :: xs => xs.foldl HsInt.max x
+
+-- `either` (rule H9).
+def HsEither.either {α β γ : Type} (f : α → γ) (g : β → γ) : Except α β → γ
+  | .error a => f a
+  | .ok b => g b
+
+-- `T.empty` (rule H12).
+def HsText.empty : String := ""
+
+-- `T.foldr` (rule H12).
+def HsText.foldr {α : Type} (f : HsChar → α → α) (z : α) (s : String) : α := (HsText.unpack s).foldr f z
+
+namespace HsUArray
+def listArray {α : Type} (b : Int × Int) (xs : List α) : HsUArray α := ⟨b.1, xs.take (b.2 - b.1 + 1).toNat⟩
+def bounds {α : Type} (a : HsUArray α) : Int × Int := (a.lo, a.lo + a.elems.length - 1)
+def index {α : Type} [Inhabited α] (a : HsUArray α) (i : Int) : α := a.elems.getD (i - a.lo).toNat default
+end HsUArray
+
+namespace HsTextU
+structure Iter where
+  Iter ::
+  c : HsChar
+  d : Int
+  deriving Inhabited
+
+def lengthWord8 (t : String) : Int := Int.ofNat t.utf8ByteSize
+def iter (t : String) (i : Int) : Iter :=
+  match t.toUTF8.utf8DecodeChar? i.toNat with
+  | some ch => ⟨HsChar.ofChar ch, Int.ofNat ch.utf8Size⟩
+  | none => ⟨default, 1⟩
+def takeWord8 (k : Int) (t : String) : String := (String.fromUTF8? (t.toUTF8.extract 0 k.toNat)).getD ""
+def dropWord8 (k : Int) (t : String) : String :=
+  (String.fromUTF8? (t.toUTF8.extract k.toNat t.utf8ByteSize)).getD ""
+
+/-- `iter` advances: the width is at least one byte. -/
+theorem iter_width {t : String} {i : Int} {c : HsChar} {d : Int} (h : iter t i = Iter.Iter c d) : 1 ≤ d := by
+  unfold iter at h
+  split at h <;> cases h
+  · next ch _ => have := Char.utf8Size_pos ch; simp only [Int.ofNat_eq_natCast]; omega
+  · omega
+end HsTextU

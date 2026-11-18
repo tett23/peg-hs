@@ -34,11 +34,14 @@ Theorems:
 - `runTops_sound`: the executable `runTops`, which the probe runs, returns
   only the item lists of `Tops`.
 
-Ties to the implementation (check-file-tops.sh): the generated `File`,
-`TopItem` and `TopOne` rules, `parse` and the runtime `many` are pinned by
-`git hash-object`, and FileTopsProbe compares the kinds, the order, the number
-and the locations of the items with the `Top` values that the real
-`parseTops` returns for every .hpeg file of the repository and for edge cases.
+Ties to the implementation: SelfHostedTranslatedProof.lean proves the form
+of the generated `File`, `TopItem` and `TopOne` rules on their translation
+from GHC's syntax tree (check-translate-selfhosted.sh), and
+`invariant1_translated_many_step` of RuntimeCoreProof.lean the values that
+the translated `many` collects. FileTopsProbe (check-file-tops.sh) compares
+the kinds, the order, the number and the locations of the items with the
+`Top` values that the real `parseTops` returns for every .hpeg file of the
+repository and for edge cases.
 
 Premises: the rule bodies are those that ExtractConcreteTerminals.hs and
 ExtractSelfHostedFile.hs translate (checked elsewhere); the value of
