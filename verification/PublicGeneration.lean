@@ -1,4 +1,5 @@
 import FileTops
+import SelfHostedRuntime
 import PublicEntryProof
 import AssembleValidation
 import ImportResolution
@@ -32,8 +33,9 @@ stage model reads a view of it:
 The stages, in the order of Codegen's `generateWithWarnings`:
 - `parse`: `parseGrammar src = parseTops src >>= assemble`, the checked
   translation of PublicParsing (TranslatedEntry, translate-public-entry.awk)
-  applied to the start result of FileTops (`startTops` of the recognizer's
-  total reply, `recognizeFile`);
+  applied to the start result of the File rule run on the translated runtime
+  (`SelfHostedRuntime.runtimeStart`). `invariant1_runtimeStart_eq` shows
+  that it is the `startTops` of FileTops for the derivation's reply;
 - `resolve`: ImportResolution.resolve;
 - `Inputs.expand`: `expandTemplates` (see the premises);
 - `checkStage`: CheckGroups.check;
@@ -291,7 +293,7 @@ variable {T : Type}
 
 noncomputable def parse (s : Inputs T) (input : List Char) : Except Diagnostics Grammar :=
   PublicParsing.translatedGrammar input.utf8Encode.size
-    (FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val) s.failure
+    (SelfHostedRuntime.runtimeStart s.value input) s.failure
     (fun t => PublicParsing.translatedAssemble (s.assemblyErrors t) (s.moduleName t) (s.build t)
       s.missingModule (PublicParsing.diagnosticSortOn s.diagLoc locGt))
 
@@ -368,6 +370,7 @@ structure Premises (s : Inputs T) : Prop where
 theorem parse_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostics)
     (h : parse s input = .error ds) : ds ≠ [] := by
   unfold parse PublicParsing.translatedGrammar at h
+  rw [SelfHostedRuntime.invariant1_runtimeStart_eq] at h
   cases hr : PublicParsing.translatedRuntime input.utf8Encode.size
       (FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val) with
   | error e =>
@@ -494,7 +497,7 @@ theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
       ∃ ts m, FileTops.ParsesTo s.value input ts ∧ s.assemblyErrors ts = [] ∧
         s.moduleName ts = some m ∧ s.build ts m = g := by
   unfold parse
-  rw [PublicParsing.invariant1_translated_grammar_assembled]
+  rw [SelfHostedRuntime.invariant1_runtimeStart_eq, PublicParsing.invariant1_translated_grammar_assembled]
   have entry (ts : List T) :
       FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val =
           .ok input.utf8Encode.size ts ↔ FileTops.ParsesTo s.value input ts := by

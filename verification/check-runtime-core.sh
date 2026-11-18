@@ -61,4 +61,14 @@ lose 'a memo hit that does not replay the failure' 'replay c (Entry r f errs d) 
 lose 'a body started with the caller failure record' 'evalBody c name i body =' '  writeSTRef (ctxFail c) NoFailure'
 lose 'a negative lookahead that reports its failures' 'notP p =' '  writeSTRef (ctxFail c) saved'
 lose 'an entry that skips the EOF diagnostic position' 'runParser cfg mkStore start input =' '      mergeFail ctx (Failure j (S.singleton ExpectedEnd))'
-echo 'Checked the runtime translation, 5 rejected edits and 4 deletions the proofs reject.'
+
+# SelfHostedRuntime.lean restates predicate, which the translation leaves out.
+# The generated predicates ignore the column (ExtractSelfHostedFile.hs reads
+# `PegRt.predicate (\_col -> ...)` only).
+cat > "$work/predicate.source" <<'SOURCE'
+predicate :: (Int -> Bool) -> P r s ()
+predicate f = P $ \c i ->
+  pure (if f (colAt c i) then Ok i () else Fail)
+SOURCE
+sed -n '/^predicate ::/,/^$/p' "$runtime" | sed '$d' | diff -u "$work/predicate.source" -
+echo 'Checked the runtime translation, 5 rejected edits, 4 deletions the proofs reject and predicate.'

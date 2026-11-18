@@ -106,6 +106,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/FileEntry.olean" FileEntry.lean &&
   lean -DwarningAsError=true -o "$work/TotalFile.olean" TotalFile.lean &&
   lean -DwarningAsError=true -o "$work/FileTops.olean" FileTops.lean &&
+  lean -DwarningAsError=true -o "$work/SelfHostedRuntime.olean" SelfHostedRuntime.lean &&
   ./check-file-tops.sh "$work" &&
   ./check-strict-file.sh "$work" &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&
