@@ -10,8 +10,15 @@ case "$version" in
   *) echo "Expected $toolchain; found $version" >&2; exit 1 ;;
 esac
 ./check-audit-coverage.sh
-work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+# CHECK_WORK names an empty directory to keep the compiled modules in (for
+# proof-graph.sh); without it, a fresh directory is removed on exit.
+if [ -n "${CHECK_WORK:-}" ]; then
+  mkdir -p "$CHECK_WORK"
+  work=$(cd "$CHECK_WORK" && pwd)
+else
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+fi
 export LEAN_PATH="$work"
 
 runghc-9.10.3 -Werror ExtractReservedWords.hs ../packages/peg-grammar/src/Peg/Grammar.hs > "$work/GrammarReservedWords.lean"
