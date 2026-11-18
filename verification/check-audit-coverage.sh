@@ -28,7 +28,7 @@ ExtractConcreteTerminals.hs ConcreteTables
 ExtractFile.hs FileTrees
 ExtractSemanticClasses.hs GhcPredicates
 ExtractSignatures.hs ExtractedSignatures
-extract-happy-trace.awk DerivationPeg DerivationPegSyntax DerivationExtensions
+extract-happy-trace.awk DerivationPeg DerivationPegSyntax DerivationExtensions DerivationOneAction
 SplitMetaFile.lean CertifiedPublicFiles
 TranslateHaskell.hs LabelsTranslated
 TABLE
@@ -45,6 +45,13 @@ sort -u "$work/required" -o "$work/required"
 missing=$(comm -23 "$work/required" "$work/listed")
 if [ -n "$missing" ]; then
   printf 'modules with theorems missing from Audit.lean:\n%s\n' "$missing" >&2
+  exit 1
+fi
+# native_decide proves by running compiled code (the axiom Lean.ofReduceBool).
+# Audit.lean rejects it in a theorem; an example is not audited, so no Lean
+# file may use it at all.
+if grep -n 'native_decide' -- *.lean; then
+  echo 'native_decide is not allowed in the verification' >&2
   exit 1
 fi
 printf '%s modules with theorems are audited\n' "$(wc -l < "$work/required" | tr -d ' ')"

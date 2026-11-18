@@ -49,21 +49,27 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 段 | Lean の定義 | 実装 |
 | --- | --- | --- |
-| 構文解析と組み立て | `parse`（PublicGeneration.lean:299）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:946）に、検査付きの翻訳 `translatedGrammar` と `translatedAssemble` を当てる | `parseGrammar src = parseTops src >>= assemble` |
-| import の解決 | `resolve`（PublicGeneration.lean:305） | `resolveImports` |
-| テンプレートの展開 | `Inputs.expand`（PublicGeneration.lean:277） | `expandTemplates` |
-| 規則の検査 | `checkStage`（PublicGeneration.lean:312） | `check` |
-| テンプレートの注記 | `notes`（PublicGeneration.lean:317） | `templateNotes` |
-| ラベルの除去と警告 | `stripAs`（PublicGeneration.lean:230）、`warningFor`（PublicGeneration.lean:320） | `stripLabelsAs`、`labelWarnings` |
-| 内側の生成 | `inner`（PublicGeneration.lean:327） | `generate` |
-| 公開の入口 | `generateWithWarnings`（PublicGeneration.lean:340）、`publicModule`（PublicGeneration.lean:348）、`generateFromSource`（PublicGeneration.lean:352） | `generateWithWarnings`、CLI が書き出す `generationModule`、`generateFromSource` |
+| 構文解析と組み立て | `parse`（PublicGeneration.lean:314）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:946）に、検査付きの翻訳 `translatedGrammar` と `translatedAssemble` を当てる | `parseGrammar src = parseTops src >>= assemble` |
+| import の解決 | `resolve`（PublicGeneration.lean:367）。ライブラリは `lookupLibrary`（PublicGeneration.lean:354）が `parse` と同じ `tops` と `assembleTops`、`libraryErrors`（PublicGeneration.lean:346）で読む | `resolveImports` |
+| テンプレートの展開 | `Inputs.expand`（PublicGeneration.lean:292） | `expandTemplates` |
+| 規則の検査 | `checkStage`（PublicGeneration.lean:337） | `check` |
+| テンプレートの注記 | `notes`（PublicGeneration.lean:342） | `templateNotes` |
+| ラベルの除去と警告 | `stripAs`（PublicGeneration.lean:244）、`warningFor`（PublicGeneration.lean:374） | `stripLabelsAs`、`labelWarnings` |
+| 内側の生成 | `inner`（PublicGeneration.lean:381） | `generate` |
+| 公開の入口 | `generateWithWarnings`（PublicGeneration.lean:394）、`publicModule`（PublicGeneration.lean:402）、`generateFromSource`（PublicGeneration.lean:406） | `generateWithWarnings`、CLI が書き出す `generationModule`、`generateFromSource` |
 
-段と段の間を流れる文法は、共通の型 `Grammar`（PublicGeneration.lean:116）で表す。
+段と段の間を流れる文法は、共通の型 `Grammar`（PublicGeneration.lean:130）で表す。
 式と位置には [LabelCheckModel.lean](LabelCheckModel.lean) の型を使う。
 各段のモデルは `Grammar` の射影を読む。
 `toLabel` はラベルの検査の文法、`toCheck` は `check` の文法、`toTemplate` はテンプレート展開の文法への射影である。
-`toLabel_stripAs`（PublicGeneration.lean:240）は、`stripAs` が射影 `toLabel` の上で `stripLabelsAs` と可換であることを示す。
-各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:365）の四つの欄 `Premises.expandRefines`、`libraryParseNonempty`、`libraryAssembleNonempty`、`assembleAgrees` に置く（前提 A1〜A3）。
+`toLabel_stripAs`（PublicGeneration.lean:254）は、`stripAs` が射影 `toLabel` の上で `stripLabelsAs` と可換であることを示す。
+各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:419）の二つの欄 `Premises.expandRefines` と `assembleAgrees` に置く（前提 A1、A3）。
+以前の前提 A2（ライブラリの構文解析と組み立ての失敗に診断があること）は、`lookupLibrary_parse_nonempty` と `lookupLibrary_assemble_nonempty` が示すので、前提から外した。番号 A2 は欠番とする。
+[PublicPremises.lean](PublicPremises.lean) の `modelInputs_premises` は、どの `Inputs` からも `Premises` を満たす `Inputs` を作れることを示す。
+その `expand` はテンプレート展開のモデルそのものであり、`assemblyErrors` は AssembleValidation のモデルの誤りである。
+したがって、`Premises` を仮定に取る定理は空虚に成り立つのではない。
+[PublicPremisesMeta.lean](PublicPremisesMeta.lean) の `metaInputs_peg` と `metaInputs_syntax` は、具体的な `metaInputs` について `Premises` が成り立ち、`parse` が `Peg.hpeg` と `PegSyntax.hpeg` を受理することを示す。
+ただし、`metaInputs` の `expand` と `assemblyErrors` はモデルであり、Haskell の関数ではない。
 
 ### 不変条件 1
 
@@ -72,10 +78,10 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 順 | 定理か定義 | 場所 | 示すこと |
 | --- | --- | --- | --- |
-| 1 | `invariant1_generateWithWarnings` | PublicGeneration.lean:514 | 生成テキストが返るなら、`parseTops` が入力全体を導出し（`FileTops.ParsesTo`）、`assemble` のモデルがその項目を受理する。 |
-| 2 | `invariant1_no_derivation` | PublicGeneration.lean:524 | 入力全体の導出がなければ、一件以上の診断を返す。 |
+| 1 | `invariant1_generateWithWarnings` | PublicGeneration.lean:673 | 生成テキストが返るなら、`parseTops` が入力全体を導出し（`FileTops.ParsesTo`）、`assemble` のモデルがその項目を受理する。 |
+| 2 | `invariant1_no_derivation` | PublicGeneration.lean:683 | 入力全体の導出がなければ、一件以上の診断を返す。 |
 | 3 | `invariant3_visible_success_iff` | Pipeline.lean:211 | 公開の結果が生成テキストなら、構文解析の段は成功している。 |
-| 4 | `invariant1_parse_iff` | PublicGeneration.lean:500 | `parseGrammar` の成功は、入力全体の導出と `assemble` の受理と同値である。 |
+| 4 | `invariant1_parse_iff` | PublicGeneration.lean:659 | `parseGrammar` の成功は、入力全体の導出と `assemble` の受理と同値である。 |
 | 5 | `invariant1_translated_grammar_assembled` | PublicEntryProof.lean:27 | 翻訳した `parseGrammar` の成功は、開始規則が入力の末尾で成功し、`assemble` が誤りを返さないことと同値である。 |
 | 6 | `invariant1_parseTops_iff` | PublicParsing.lean:28 | `parseTops` の入口は、開始規則の結果が入力のバイト長で終わるときだけ値を返す。 |
 | 7 | `invariant1_parseTops_value` | FileTops.lean:372 | `parseTops` が `ts` を返すことと、`ts` が入力全体の導出の値の列であることは同値である。 |
@@ -93,8 +99,8 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 `parseTops` はどの hpeg ファイルも `Peg.hpeg` の文法（モード `false`）で読むので、`invariant1_public_syntax_as_peg`（CertifiedPublicFiles.lean:25）は `PegSyntax.hpeg` をこの文法で受理することを示す。
 `invariant1_public_syntax`（CertifiedPublicFiles.lean:19）は、`PegSyntax.hpeg` を自身の規則の表（モード `true`）で受理することを示す。
 
-この連なりの定理は、構造体 `Premises` 全体を仮定に取る。
-そのうち証明が使う欄は A3 だけである。
+この連なりの定理のうち、構造体 `Premises` を仮定に取るのは `invariant1_generateWithWarnings` だけであり、その証明が使う欄は A3 だけである。
+`invariant1_parse_iff` と `invariant1_no_derivation` は `Premises` を取らない。
 ほかに、前提 A5、M1〜M3、R1〜R7、I1、X1 が残る（「残る前提」の節）。
 
 ### 不変条件 2
@@ -103,17 +109,20 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 順 | 定理 | 場所 | 示すこと |
 | --- | --- | --- | --- |
-| 1 | `invariant2_generateWithWarnings` | PublicGeneration.lean:469 | `generationModule` まで評価した公開の結果は、一件以上の診断か生成テキストである。 |
-| 2 | `invariant2_generate` | PublicGeneration.lean:458 | `generate` は、一件以上の診断か生成テキストを返す。 |
-| 3 | `invariant2_generateFromSource` | PublicGeneration.lean:480 | `generateFromSource` は、一件以上の診断か生成テキストを返す。 |
+| 1 | `invariant2_generateWithWarnings` | PublicGeneration.lean:575 | `generationModule` まで評価した公開の結果は、一件以上の診断か生成テキストである。 |
+| 2 | `invariant2_generate` | PublicGeneration.lean:564 | `generate` は、一件以上の診断か生成テキストを返す。 |
+| 3 | `invariant2_generateFromSource` | PublicGeneration.lean:586 | `generateFromSource` は、一件以上の診断か生成テキストを返す。 |
 | 4 | `invariant2_diagnosticOrModule` | Pipeline.lean:187 | 各段が失敗時に空でない診断を返し、注記が診断を空にしなければ、`generateWithWarnings` の公開の結果は空でない診断か生成テキストである。 |
 | 5 | `diagnosticOrModule`、`failureNonempty` | InnerGeneration.lean:189、InnerGeneration.lean:144 | 内側の `generate` について、4 と同じことを示す。 |
-| 6 | `parse_error_nonempty` | PublicGeneration.lean:375 | 構文解析と組み立ての失敗には診断がある。`invariant2_diagnosticSortOn_length`（PublicEntryProof.lean:177）により、整列は診断の数を変えない。 |
-| 7 | `resolve_error_nonempty` | PublicGeneration.lean:400 | import の解決の失敗には診断がある。`invariant2_resolve_error_nonempty`（ImportResolution.lean:337）を使う。 |
-| 8 | `expand_error_nonempty` | PublicGeneration.lean:410 | テンプレート展開の失敗には診断がある。`expandTemplates_whole`（TemplateExpansionWhole.lean:1298）を使う。 |
-| 9 | `check_error_nonempty` | PublicGeneration.lean:437 | 規則の検査の失敗には診断がある。`check_error_ne_nil`（CheckGroupsTheorems.lean:68）を使う。 |
-| 10 | `notes_nonempty` | PublicGeneration.lean:451 | テンプレートの注記は空でない診断を空にしない。`invariant2_templateNotes_nonempty`（TemplateQueue.lean:118）を使う。 |
-| 11 | `inner_error_nonempty` | PublicGeneration.lean:463 | 内側の生成の失敗には診断がある。 |
+| 6 | `parse_error_nonempty` | PublicGeneration.lean:427 | 構文解析と組み立ての失敗には診断がある。`invariant2_diagnosticSortOn_length`（PublicEntryProof.lean:177）により、整列は診断の数を変えない。 |
+| 7 | `resolve_error_nonempty` | PublicGeneration.lean:506 | import の解決の失敗には診断がある。`invariant2_resolve_error_nonempty`（ImportResolution.lean:337）を使う。その前提であるライブラリの構文解析と組み立ての失敗の診断は、`lookupLibrary_parse_nonempty`（PublicGeneration.lean:482）と `lookupLibrary_assemble_nonempty`（PublicGeneration.lean:493）が示す。 |
+| 8 | `expand_error_nonempty` | PublicGeneration.lean:516 | テンプレート展開の失敗には診断がある。`expandTemplates_whole`（TemplateExpansionWhole.lean:1298）を使う。 |
+| 9 | `check_error_nonempty` | PublicGeneration.lean:543 | 規則の検査の失敗には診断がある。`check_error_ne_nil`（CheckGroupsTheorems.lean:68）を使う。 |
+| 10 | `notes_nonempty` | PublicGeneration.lean:557 | テンプレートの注記は空でない診断を空にしない。`invariant2_templateNotes_nonempty`（TemplateQueue.lean:118）を使う。 |
+| 11 | `inner_error_nonempty` | PublicGeneration.lean:569 | 内側の生成の失敗には診断がある。 |
+| 12 | `invariant2_check_rejects_public` | PublicGeneration.lean:606 | 展開した文法を `check` が拒否すれば、公開の結果は一件以上の診断であり、生成テキストではない。 |
+| 13 | `invariant2_group_error_public` | PublicGeneration.lean:627 | `check` の 15 の群のどれかに誤りがあれば（`check_rejects`、CheckGroupsTheorems.lean:93）、12 と同じ結果になる。 |
+| 14 | `invariant2_undefined_reference_public` | PublicGeneration.lean:638 | 展開した文法に未定義の規則への参照があれば、12 と同じ結果になる。 |
 
 停止性は、各段のモデルが Lean の全域の定義であることから得る。
 Lean は、`partial def` と `partial_fixpoint` を使わない定義に停止の証明を求める。
@@ -127,7 +136,7 @@ Lean は、`partial def` と `partial_fixpoint` を使わない定義に停止�
 - 規則の検査: CheckGroupsModel.lean の `reach` は、減る量を持つ全域の関数である。`mem_reach_iff` などの性質は CheckGroupsReach.lean が示す。
 
 Haskell の実装が停止することは、モデルとの対応を通してだけ言える。
-したがって、この連なりには、前提 A1、A2、A5、構文解析の段の前提（M、R の各前提）、ほかの段の前提（T、L、C、I の各前提）、X1、ラベルの検査の翻訳の前提（X2、H1〜H8）が残る。
+したがって、この連なりには、前提 A1、A5、構文解析の段の前提（M、R の各前提）、ほかの段の前提（T、L、C、I の各前提）、X1、ラベルの検査の翻訳の前提（X2、H1〜H8）が残る。
 
 ### 不変条件 3
 
@@ -136,9 +145,9 @@ Haskell の実装が停止することは、モデルとの対応を通してだ
 | 順 | 定理 | 場所 | 示すこと |
 | --- | --- | --- | --- |
 | 1 | `invariant3_generateWithWarnings_ghc` | PublicGenerationGHC.lean:67 | 生成テキストを GHC の lexer で読んだ字句の列は、GHC のモジュールの開始記号（非終端記号 0）から `layoutGrammar productions` で導出できる。前提 `renderShape`（PublicGenerationGHC.lean:69）を置く。 |
-| 2 | `invariant3_generateWithWarnings_text` | PublicGeneration.lean:539 | 生成テキストは、テンプレート展開と `check` を通った文法 `final` の `render` の出力に `finalize` を当てたものである。マーカーは、最初の `render` から `selectMarker` が選ぶ。`final` はテンプレート、テンプレートの呼び出し、テンプレートへの参照を含まない（`TemplateExpansionWhole.Accepted`）。 |
+| 2 | `invariant3_generateWithWarnings_text` | PublicGeneration.lean:698 | 生成テキストは、テンプレート展開と `check` を通った文法 `final` の `render` の出力に `finalize` を当てたものである。マーカーは、最初の `render` から `selectMarker` が選ぶ。`final` はテンプレート、テンプレートの呼び出し、テンプレートへの参照を含まない（`TemplateExpansionWhole.Accepted`）。 |
 | 3 | `invariant3_public_render_iff` | InnerGeneration.lean:118 | 公開の結果が生成テキストであることと、各段が成功し、そのテキストが `finalize` の出力であることは同値である。 |
-| 4 | `expand_ok_accepted` | PublicGeneration.lean:423 | `expandTemplates` が成功すれば、その結果は `expandTemplates_whole` の受理の形を持つ。 |
+| 4 | `expand_ok_accepted` | PublicGeneration.lean:529 | `expandTemplates` が成功すれば、その結果は `expandTemplates_whole` の受理の形を持つ。 |
 | 5 | `finalized_module_derives` | PublicGenerationGHC.lean:52 | `render` の出力が `ModuleShape`（PublicGenerationGHC.lean:33）を満たせば、`finalize` の出力の字句の列は導出を持つ。 |
 | 6 | `generated_module_with_rules_finalized` | RenderFinalizeModule.lean:79 | RenderComposition.lean の結論を、`finalize` の出力まで延ばす。lexer に `finalizedLex`（`finalize` をかけてから GHC の lexer で読む関数）を入れる。 |
 | 7 | `finalize_prefix` | RenderFinalize.lean:220 | 改行で終わる前半に `finalize` をかけたものは、全体に `finalize` をかけたものの先頭である。 |
@@ -162,14 +171,14 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 
 | 段 | 主な Lean のモジュール | 対応のしかた | 報告 | 主な検査 |
 | --- | --- | --- | --- | --- |
-| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
+| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、SelfHostedRuntime、SelfHostedMemo、ScopedEnv、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
 | 呼び出しの整礎性 | CallOrder、RecursiveEval | 検査付きの翻訳（ExtractCallOrder.hs） | 翻訳を検証済み | check-call-order.sh |
 | 開始規則と空白 | File、Consumption、Whitespace、Lexical | `File` は検査付きの翻訳（ExtractFile.hs）。空白とコメントは規則の行を `grep` で固定する | 翻訳を検証済み（File）、モデルを検証済み（Whitespace、Lexical） | check.sh、check-whitespace.sh、check-lexical.sh |
 | PEG の式の意味 | Parsing | 固定ソースの diff とプローブ（非回復時のランタイムの一部と比べる） | モデルを検証済み | check-core.sh |
 | `parseTops` の入口 | PublicParsing、PublicEntryProof、FileEntry、TotalFile | 検査付きの翻訳（translate-public-entry.awk） | 翻訳を検証済み | check-public-parsing.sh |
 | `parseTops` の値 | FileTops | 固定ソースの diff とプローブ | モデルを検証済み | check-file-tops.sh |
 | メタ文法の現行の内容 | CertifiedPublicFiles、SplitMetaFile、ConcreteFileCertificates | 証明書（ファイルの内容を照合する） | 証明書を検証済み | check-file-items.sh、check-file-certificates.sh |
-| ランタイム | RuntimeCore、RuntimeCoreProof、MemoRecognition、MemoTables、MemoTrace、LabelPropagation | 検査付きの翻訳（ExtractRuntimeCore.hs） | 翻訳を検証済み | check-runtime-core.sh、check-memo-tables.sh、check-memo-meta.sh |
+| ランタイム | RuntimeCore、RuntimeCoreProof、RuntimeForms、MemoRecognition、MemoTables、MemoTrace、LabelPropagation | 検査付きの翻訳（ExtractRuntimeCore.hs） | 翻訳を検証済み | check-runtime-core.sh、check-memo-tables.sh、check-memo-meta.sh |
 | 位置の行と列 | LineIndex | 固定ソースの diff（line-of.source）と実装だけの検査（CheckLineIndex.hs） | モデルを検証済み | check.sh |
 | `assemble` の検査 | AssembleValidation、AssemblePredicates、AssembleChars、AssembleBindings、NestedBindings | 固定ソースの diff とプローブ | モデルを検証済み | check-assemble-validation.sh、check-assemble-predicates.sh、check-assemble-validation-helpers.sh |
 | 指示の引数 | SimpleEscapeProof、TabstopProof、DirectiveArityProof、DirectiveCommentProof、DirectiveDecode | 検査付きの翻訳（ExtractSimpleEscapes.hs、ExtractTabstop.hs、ExtractDirectiveArity.hs、ExtractDirectiveComment.hs） | 翻訳を検証済み | check.sh、check-strict-file.sh、check-directive-comment.sh |
@@ -274,6 +283,30 @@ Lean のモデルはメモ化なしで動くので、その中には数分かか
 `invariant1_runtime_file`（SelfHostedRuntime.lean:887）は、これを `runParser defaultConfig` が作る文脈と世界の `File` に当てる。
 `invariant1_runtime_runParser`（SelfHostedRuntime.lean:973）は、その `runParser` が値を返すことと、開始結果を `PublicParsing.entry` に渡して同じ値が返ることが同値であることを示す。
 `PublicGeneration.parse` は、十分な燃料での実行の開始結果 `runtimeStart` の上に定義する。
+
+ただし、生成コードは規則の呼び出しを `nomemo` ではなくメモ表で包む。
+[SelfHostedMemo.lean](SelfHostedMemo.lean) の `execM`（SelfHostedMemo.lean:78）は、`exec` の呼び出しを、引数のない呼び出しでは `memo` に、引数のある呼び出しでは深さの引数を鍵にした `memoArg` に替えたものである。
+`invariant1_memoArg_rules`（SelfHostedMemo.lean:478）は、`memoArg` で呼ぶ規則が、ExtractSelfHostedFile.hs が `d` を取り `PegRt.memoArg` で定義されていると読む 12 個の規則に一致することを示す。
+表はストアの中の参照であり、キャッシュの不変条件 `Coherent`（SelfHostedMemo.lean:146）は、ストア全体のどの項目も、その鍵でモデルが返すどの返答とも、呼び出し元が使うもの（位置、ラベル、結果の深さ）で一致することをいう。
+`invariant1_memo_runs`（SelfHostedMemo.lean:585）は、燃料についての帰納法で、モデルが返答を返す燃料では、不変条件を満たすどの世界からも `execM` がその返答に当たる結果を返し、不変条件を保つことを示す。
+`invariant1_memo_file`（SelfHostedMemo.lean:918）と `invariant1_memo_runParser`（SelfHostedMemo.lean:947）は、空の表から始めた `File` の実行が `fileRun` と同じ結果を返し、`runParser defaultConfig` の値も `runtimeResult` から決まることを示す。
+
+引数のない呼び出しの鍵は位置だけであり、呼び出し元の環境を含まない。
+そこで、[ScopedEnv.lean](ScopedEnv.lean) の静的な解析 `check` は、規則の本体が、意味述語、アクション、呼び出しの引数で、自分で束縛した名前と深さの引数だけを読むことを確かめる。
+`invariant1_scope_sound`（ScopedEnv.lean:295）は解析の健全性を、`invariant1_meta_scoped`（ScopedEnv.lean:587）は、`parseTops` が使う Peg.hpeg のメタ文法のすべての規則が解析を通ることを示す。
+`invariant1_plain_call_independent`（ScopedEnv.lean:628）は、引数のない呼び出しを受ける規則が、どの環境から始めても、呼び出し元が使うものの等しい返答を返すことを示す。
+
+また、ExtractSelfHostedFile.hs が規則本体を読むときに落とす書き方は、[RuntimeForms.lean](RuntimeForms.lean) が結果を変えないことを示す。
+回復と計数を無効にした翻訳したランタイムでは、どの世界からも次の等式が成り立つ。
+
+- `getOffset_bind`（RuntimeForms.lean:62）、`spanFrom_bind`（RuntimeForms.lean:66）: `getOffset` と `spanFrom` の束縛は、同じ位置と世界で続きを走らせる。
+- `withCol_const`（RuntimeForms.lean:70）: 列を使わない関数の `withCol` は、その関数が返すパーサーに等しい。
+- `capture_same`（RuntimeForms.lean:79）: `capture p` は `p` と同じ形、位置、世界を返す。
+- `choice_one`（RuntimeForms.lean:88）: 一択の `choice [p]` は `p` に等しい。
+- `choice_cons`（RuntimeForms.lean:112）: 三択以上の `choice` は二択の入れ子に等しい。
+- `optional_choice`（RuntimeForms.lean:126）: `optional p` は `p` と空との選択に等しい。
+
+`getOffset`、`spanFrom`、`withCol`、`capture`、`Span` は翻訳の対象でないので、check-runtime-core.sh がソースの行を照合する。
 
 [check-runtime-core.sh](check-runtime-core.sh) は翻訳と証明を検査し、さらに変異で検査の強さを確かめる。
 辞書にない五つの変更は翻訳で拒否される。
@@ -446,8 +479,8 @@ H5、H7、H8 は、翻訳器が Haskell のライブラリに置く評価規則�
 これらは、[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の 44 行目が記録を求める「Haskell の評価規則に置いた仮定」に当たる。
 
 PublicGeneration.lean の `warningFor` は、モデルの `labelWarningsBy tKeyOf` を使う。
-`warningFor_translated`（PublicGeneration.lean:621）は、`warningFor` の警告が、翻訳した `labelWarnings` を文法の埋め込み `toTranslated` に当てた結果と一致することを示す。
-`stripAs_translated`（PublicGeneration.lean:696）は、`stripAs` が、翻訳した `stripLabelsAs` を射影で読んだものと一致することを示す。
+`warningFor_translated`（PublicGeneration.lean:780）は、`warningFor` の警告が、翻訳した `labelWarnings` を文法の埋め込み `toTranslated` に当てた結果と一致することを示す。
+`stripAs_translated`（PublicGeneration.lean:855）は、`stripAs` が、翻訳した `stripLabelsAs` を射影で読んだものと一致することを示す。
 
 [check-translate-labels.sh](check-translate-labels.sh) は、翻訳器を作り、`Labels.hs` を翻訳し、翻訳と証明を Lean で検査する。
 さらに、五つの変異で検査の強さを確かめる。
@@ -651,11 +684,10 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 
 | 番号 | 前提 | 仮定する場所 | 見張る検査 |
 | --- | --- | --- | --- |
-| A1 | `Premises` の `expandRefines`: Haskell の `expandTemplates` が、射影 `toTemplate` の上でモデル `ExpandTemplates` の結果を実現する。拒否の診断はモデルの診断を `templateDiag` で文字列にしたものである。射影が落とす欄は制約しない。 | PublicGeneration.lean:366 | check-template-expansion-whole.sh（11 個の文法で、規則の型を除いて比べる） |
-| A2 | `Premises` の `libraryParseNonempty` と `libraryAssembleNonempty`: `resolveImports` が読むライブラリの構文解析と組み立ての失敗には、診断が一件以上ある。 | PublicGeneration.lean:368、PublicGeneration.lean:369 | check-import-resolution.sh（ライブラリの構文の誤りを含む場合を比べる）。翻訳した入口については `invariant2_parseTops_singleton`（PublicParsing.lean:36）と `invariant2_sorted_assembly_error_nonempty`（PublicEntryProof.lean:200）が同じことを示すが、PublicGeneration はこれを合成しない。 |
-| A3 | `Premises` の `assembleAgrees`（不変条件 1 だけ）: Haskell の `assemble` が受理した項目を、AssembleValidation のモデルも受理する。 | PublicGeneration.lean:370 | check-assemble-validation.sh、check-assemble-predicates.sh |
+| A1 | `Premises` の `expandRefines`: Haskell の `expandTemplates` が、射影 `toTemplate` の上でモデル `ExpandTemplates` の結果を実現する。拒否の診断はモデルの診断を `templateDiag` で文字列にしたものである。射影が落とす欄は制約しない。 | PublicGeneration.lean:420 | check-template-expansion-whole.sh（11 個の文法で、規則の型を除いて比べる） |
+| A3 | `Premises` の `assembleAgrees`（不変条件 1 だけ）: Haskell の `assemble` が受理した項目を、AssembleValidation のモデルも受理する。 | PublicGeneration.lean:422 | check-assemble-validation.sh、check-assemble-predicates.sh |
 | A4 | `renderShape`（不変条件 3 の GHC の導出だけ）: `check` を通り、export を定義した文法の `render` の出力は、選んだマーカーで `ModuleShape` を満たす。`ModuleShape` は、G1 の lexer の前提、E1 の埋め込みコードの前提、生成した宣言の部品 `GeneratedParts` の存在（規則の型と本体の導出を含む）からなる。 | PublicGenerationGHC.lean:69 | check-render-finalize.sh、check-render-composition.sh、check-render-printing.sh |
-| A5 | 引数のまま残る関数: 診断の文（`Inputs.failure`、`Inputs.diag`、`Inputs.templateDiag`）、`assemble` が組み立てる文法（`assemblyErrors`、`moduleName`、`build`）、ImportResolution のライブラリの入力、`classify`（`oracle`、`classify`）、`undefinedExports`（`missing`）、`render`、各項目の値（`value`）。Pipeline は `[Diagnostic]` を文字列の列で表すので、段のモデルの診断は `diag` と `templateDiag` で文字列にする。 | PublicGeneration.lean:252 | 段ごとのプローブ |
+| A5 | 引数のまま残る関数: 診断の文（`Inputs.failure`、`Inputs.diag`、`Inputs.templateDiag`）、`assemble` が組み立てる文法（`assemblyErrors`、`moduleName`、`build`）、ImportResolution が引数に取る `resolveImports` の関数（`relocate`、`refs`、`directiveNames` など）と `%library` の有無の判定（`hasLibraryDirective`）、`classify`（`oracle`、`classify`）、`undefinedExports`（`missing`）、`render`、各項目の値（`value`）。Pipeline は `[Diagnostic]` を文字列の列で表すので、段のモデルの診断は `diag` と `templateDiag` で文字列にする。 | PublicGeneration.lean:266 | 段ごとのプローブ |
 | A6 | 段のモデルの前提。下の各表の前提である。 | 各モジュール | 各表のとおり |
 | X1 | ソースの抽出と照合のスクリプトと、そこで使う Haskell の構文の読み取り方を信頼する。 | 全体 | 抽出器ごとの変異の検査（check-runtime-core.sh、check-strict-file.sh、check-public-parsing.sh） |
 | X2 | TranslateHaskell.hs の構文の規則を信頼する。等式の上から順の照合と落ちる先、ガードとパターンガード、where の束縛の持ち上げ、レコードの構築と更新と選択、リストの内包表記、do ブロックを、Haskell と同じ値を返す Lean の項に写す。 | LabelsTranslated（生成） | check-translate-labels.sh（未対応の構文と表にない関数を足した二つの変異を拒否する） |
@@ -681,7 +713,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | R4 | 位置はバイトオフセットのまま扱う。行と列への変換は [LineIndex.lean](LineIndex.lean) が別に証明する。 | RuntimeCore.lean:25 | check.sh（line-of.source と CheckLineIndex.hs） |
 | R5 | `ctxLogs` に積む取り消しの動作は消して写す。取り消しを実行する `endIteration` と、それを呼ぶ `memoLR` は翻訳しない。 | RuntimeCore.lean:27 | [check-memo-meta.sh](check-memo-meta.sh)（メタ文法のパーサーが `memoLR` を使わないことを確かめる） |
 | R6 | メモ化の定理は、回復と計数が無効であること、成長の反復が走っていないこと（`ctxLogs` が空）、規則本体が失敗の記録と依存を空にして始めたときに同じ結果を返すこと（`BodySpec`）、表の項目が本体を評価した結果に等しいこと（キャッシュの不変条件）を仮定に置く。`lit` の比較の繰り返しには、Lean の停止性の証明のために `k < n` の分岐を足す。`go 0` から呼ぶかぎり、足した分岐には到達しない。`many` と `skipMany` の定義には Lean の `partial_fixpoint` を使う。 | RuntimeCoreProof.lean:14、ExtractRuntimeCore.hs | check-runtime-core.sh（四つの行を消した変異を証明が拒否する）、check-memo-tables.sh |
-| R7 | 生成した `SelfHosted.hs` の規則は、`exec` が同じ本体に当てる組み合わせ子の木と同じ結果を返す。両者には三つの違いがある。一つ目に、生成コードは規則の呼び出しを `memo` と `memoArg` で包み（`defaultConfig` ではメモ化が有効）、`exec` は `nomemo` で包む。呼び出しごとの一致は `invariant1_translated_memo_off_same`（RuntimeCoreProof.lean:258）が示すが、表の項目が実行の全体を通じて本体を評価した結果に等しいこと（キャッシュの不変条件）は示していない。二つ目に、生成コードの値は Haskell の値と変数の束縛であり、`exec` の値はモデルの残りの入力と環境である。繰り返しでは、生成コードの `many` と `skipMany` は反復の束縛を捨て、`exec` は環境を次の反復に渡す。三つ目に、`getOffset`、`spanFrom`、`withCol`、`capture`、`optional`（`exec` では空との選択）、本体を包む一択の `choice`、選択肢が三つ以上の `choice`（`exec` では二択の入れ子）は、結果を変えないとする。 | SelfHostedRuntime.lean:474（`exec`）、SelfHostedRuntime.lean:887 | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-memo-tables.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
+| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。繰り返しでは、生成コードの `many` と `skipMany` は反復の束縛を捨て、`exec` と `execM` は環境を次の反復に渡す。ScopedEnv の解析は本体が読む名前を規則の中で束縛したものに限るが、二つの繰り返しの意味が同じ結果を返すことは示していない。生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）と、本体の読み取りで落とす書き方（RuntimeForms.lean）は、前提から外れた。 | SelfHostedRuntime.lean:474（`exec`）、SelfHostedMemo.lean:78（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
 
 ### 規則の検査、ラベル、テンプレート、import の前提
 
@@ -694,7 +726,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | T1 | `haskellIdents`（`codeVariables`）、インスタンスの型を作る `instanceType`、型の分類 `classifiedTypes . classify` は任意の関数として扱う。プローブは型を比べない。 | TemplateExpansionWhole.lean | |
 | T2 | メモ表のキーは位置を除いた引数の `show` であり、導出された `Show` が単射である。モデルは引数を構造で比べる。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh（インスタンスの共有を比べる） |
 | T3 | `Data.Map` と `Data.Set` はリストで写す。`M.fromList` は同じキーの最後の束縛を残し、`S.toAscList` は整列して重複を除く。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh |
-| T4 | 位置は自然数で写し、プローブは一つのファイルの `Loc f l c` を `l * 100000 + c` と書く。 | TemplateExpansionWhole.lean、PublicGeneration.lean:169 | check-template-expansion-whole.sh |
+| T4 | 位置は自然数で写し、プローブは一つのファイルの `Loc f l c` を `l * 100000 + c` と書く。 | TemplateExpansionWhole.lean、PublicGeneration.lean:183 | check-template-expansion-whole.sh |
 | T5 | `show (k :: Integer)` は `Nat.repr` と一致する。 | TemplateExpansionFresh.lean | [check-template-expansion-fresh.sh](check-template-expansion-fresh.sh)（プローブで確かめる） |
 | I1 | `assemble` のモデルでは、`Text` の操作を `List Char` で表し、`Int` は 64 ビットとし、診断の文言と位置を消す。 | AssembleValidation.lean、AssemblePredicates.lean | check-assemble-predicates.sh、check-assemble-validation.sh |
 
@@ -713,7 +745,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | G9 | RenderDeclarationsGHC.lean と RenderDeclarationBinders.lean では、子の型と式の導出、文字列から GHC のトークンへの対応、Haskell の遅延評価、任意の hpeg の構文木から名前の一覧を取り出す処理を前提に置く。 | RenderDeclarationsGHC.lean、RenderDeclarationBinders.lean | check-render-declarations-ghc.sh、check-render-declaration-binders.sh |
 | E1 | 埋め込みコードの前提（任意の文法）: `verbatim_split`、`verbatim_imports_ok`、`verbatim_decls_ok`、export の項目の `user_ok`、生成した宣言の `decls_ok`、`GeneratedParts` の中の規則本体の導出。埋め込みブロックのトークンは import 宣言の並びとトップレベル宣言の並びをこの順に連ねたものであり、アクション、意味述語、引数のコード、型は挿入箇所の構文カテゴリから導出できる。本文に含まれるコメントやレイアウトが周囲に及ぼす影響もここに含まれる。 | RenderComposition.lean、RenderFinalizeModule.lean | なし。利用者が書く Haskell 全体を形式化しない限り、検査では置き換えられない。二つのメタ文法と Extensions.hpeg では、証明書がこの前提に置き換わる。ほかの fixture は、GHC で検査するパッケージのテストに任せる。 |
 
-前提の数は、公開の入口と全体が 16、構文解析とランタイムが 10、規則の検査とラベルとテンプレートと import が 10、生成した Haskell と GHC が 10 で、合わせて 46 である。
+前提の数は、公開の入口と全体が 15、構文解析とランタイムが 10、規則の検査とラベルとテンプレートと import が 10、生成した Haskell と GHC が 10 で、合わせて 45 である。
 
 前提のほかに、証明書が覆わない範囲がある。
 `packages/peg-lsp` は、生成した `Peg.Lsp.JsonParser` を `default-extensions: LambdaCase OverloadedStrings` の下でコンパイルする。
@@ -722,10 +754,40 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 ## 公理の監査
 
 [Audit.lean](Audit.lean) は、一覧に挙げたモジュールと Audit.lean 自身の定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
-すべてのモジュールを作った後で動かすため、[check.sh](check.sh) の最後に置く。
+すべてのモジュールを作った後で動かすため、[check.sh](check.sh) の終わりに置く（後ろには公開の定理の仮定の検査だけが続く）。
 [check-audit-coverage.sh](check-audit-coverage.sh) は、定理を持つ手書きのモジュールと、定理を書き出す生成器が作るモジュールが、この一覧にすべて載っていることを確かめる。
-いまの main で動かすと、「159 modules with theorems are audited」と表示する。
+いまの main で動かすと、「163 modules with theorems are audited」と表示する。
 SplitMetaFile.lean が書き出す項目ごとの証明書は、CertifiedPublicFiles.lean の定理の前提になるので、その定理の公理の一覧に含まれる。
+
+check-audit-coverage.sh は、どの `.lean` ファイルも `native_decide` を使わないことも確かめる。
+`native_decide` は公理 `Lean.ofReduceBool` に頼るが、Audit.lean は `example` を監査しないので、`example` の中の `native_decide` を見落とすからである。
+
+公理の監査は、定理が仮定に取る命題を見ない。
+そこで、[PublicHypotheses.lean](PublicHypotheses.lean) は、公開の定理の仮定を定理の型から機械的に取り出す。
+公開の定理は、PublicGeneration.lean、PublicGenerationGHC.lean、CommittedModuleDerivations.lean、CertifiedPublicFiles.lean の `invariant1_*`、`invariant2_*`、`invariant3_*` である。
+仮定として取り出すのは、命題を型に持つ引数、関数を型に持つ引数（`ghcLex` など）、引数が `Inputs` か `Premises` のときのその構造体の各欄である。
+PublicHypotheses.lean は、公開の入口の関数（`parse`、`resolve`、`generateWithWarnings` など）の定義と、その定義が参照する定義を再帰的に調べ、計算に使う述語（`FileResult`、`FileTops.ParsesTo` など）を取り出す。
+取り出した組は、一覧に `definition <関数> -> <述語>` の行として書く。
+証明と、引数が仮定する命題（停止の証明に使う `Sub` など）は、計算に使う述語に数えない。
+
+取り出した各行は、[public-hypotheses.allow](public-hypotheses.allow) にある行と一致しなければならない。
+一覧の各行には、それを許す [ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の行か、`UNRESOLVED` を書く。
+許す行は次のとおりである。
+
+| [ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の行 | 許すもの |
+| --- | --- |
+| :33 | 入力（有限のテキスト、読み込み済みのライブラリの集合、生成オプション） |
+| :38 | 埋め込みコードが挿入箇所の構文カテゴリに属するという前提 |
+| :40 | GHC のパーサーとの一致を確かめていない規則 |
+| :44 | 翻訳器と Haskell の評価規則に置いた仮定 |
+| :56〜:58 | 不変条件 1〜3 の前件 |
+
+`UNRESOLVED` は、どの行も許さない仮定である。
+その数は `unresolvedLimit` に固定し、いまは 58 件である。
+内訳は、`Inputs` の翻訳していない関数と診断の文面の 27 件、`Premises` の 2 件、`renderShape` の 1 件、定義の依存の 28 件である。
+定義の依存の 28 件は、公開の入口の関数 7 個（`parse`、`tops`、`lookupLibrary`、`resolve`、`generateWithWarnings`、`publicModule`、`generateFromSource`）と、導出の述語 4 個（`FileTops.ParsesTo`、`FileTops.Tops`、`FileTops.Chain`、`EnvironmentEval.Derives`）の組である。
+これは、`runtimeStart`（SelfHostedRuntime.lean:946）が、値の列を `ParsesTo` を満たす列から選ぶことによる。
+[check-public-hypotheses.sh](check-public-hypotheses.sh) は Audit.lean の後にこの検査を動かし、一行を欠いた一覧と ADR の行でない理由が拒否されることも確かめる。
 
 ## 実行方法
 
@@ -741,11 +803,14 @@ cabal build exe:peg-hs
 verification/check.sh
 ```
 
-check.sh は、Lean の版を確かめた後に check-audit-coverage.sh を、最後に Audit.lean を動かし、そのあいだで各段のモジュールを作って検査スクリプトを呼ぶ。
+check.sh は、Lean の版を確かめた後に check-audit-coverage.sh を、終わりに Audit.lean と check-public-hypotheses.sh を動かし、そのあいだで各段のモジュールを作って検査スクリプトを呼ぶ。
 一部の検査スクリプトは、文法ファイルの該当の規則の範囲の SHA-256 を照合する（check-expression-depth.sh、check-escape-predicates.sh、check-parameter-predicates.sh）。
 
-対応テストでは、深さ 256 の前後で `parseTops` と Lean の結果を比較する。
-空ファイル、末尾の余分な文字、未定義参照については実際の診断を確認する。
+対応テストは、[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の境界の入力の表の 6 行を、行の不変条件の番号を名前に持つテストで確かめる（`ADR 0097 I1, I2: …` の形）。
+行 1〜4（空ファイル、正しい最小の文法と末尾の余分な文字、深さ 256 の前後、未定義参照）では、[Boundary.lean](Boundary.lean) の結果と、[Boundary.hs](Boundary.hs) が公開の入口から得た結果を、check.sh が比べる。
+Boundary.lean は、抽出したメタ文法の上の `parseFile`、AssembleValidation のモデル、深さの述語、CheckGroupsModel の `check` を使う。
+行 5（正しい意味アクションが一つある文法）では、check-ghc-parser-trace.sh が生成したモジュールを GHC で読み、[BoundaryDerivations.lean](BoundaryDerivations.lean) の `adr0097_i3_one_action_module_derives` がその字句の列を GHC のモジュールの開始記号から導出する。
+行 6 は、下に書く不完全な Haskell 式のケースである。
 実ファイルから抽出した規則の署名は三件とも Lean で証明し、未定義参照を加えた負例の証明は Lean が拒否することを確認する。
 二つのメタ文法は実ファイルから再生成し、出力を GHC で検査する。
 区切りが閉じたアクションに不完全な Haskell 式を入れたケースでは、GHC が構文エラーを返すことを確認する。

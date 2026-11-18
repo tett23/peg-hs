@@ -369,9 +369,11 @@ example : innerGenerate false true "M" ()
       .ok "#R|code:#R" := by rfl
 example : fileNameBad [0xd800] [] = false := by decide
 example : fileNameBad [0x7f] [] = true := by decide
-example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A.A0" = true := by native_decide
-example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A..A" = false := by native_decide
-example : moduleNameValid (fun c => c == 'A') (fun c => c == '0') "" = false := by native_decide
+-- String.splitOn does not reduce in the kernel, so these are evaluated
+-- checks, not proofs; they add no axiom and no theorem.
+#guard moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A.A0" = true
+#guard moduleNameValid (fun c => c == 'A') (fun c => c == '0') "A..A" = false
+#guard moduleNameValid (fun c => c == 'A') (fun c => c == '0') "" = false
 
 open Peg.Verification in
 theorem successful_output_preserves_original_lines {G A : Type} (bad valid : Bool)
