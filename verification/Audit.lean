@@ -154,6 +154,11 @@ import TraceChunks
 import Verbatim47Data
 import TranslatedRuntimeCore
 import RuntimeCoreProof
+import PositionTranslated
+import TranslatedRuntimeForms
+import HsPegRuntime
+import SelfHostedTranslated
+import SelfHostedTranslatedProof
 import VerbatimChunks
 import VerbatimItem47
 import VerbatimValue
@@ -283,6 +288,7 @@ def auditedModules : List Lean.Name := [
   `Guard,
   `HaskellDerivation,
   `Header,
+  `HsPegRuntime,
   `HsPrelude,
   `ImportResolution,
   `InitialWhitespace,
@@ -326,6 +332,7 @@ def auditedModules : List Lean.Name := [
   `ParameterPredicates,
   `Parsing,
   `Pipeline,
+  `PositionTranslated,
   `Pragmas,
   `PredicateBindings,
   `PrefixReplay,
@@ -365,6 +372,8 @@ def auditedModules : List Lean.Name := [
   `SelfHostedFileProof,
   `SelfHostedMemo,
   `SelfHostedRuntime,
+  `SelfHostedTranslated,
+  `SelfHostedTranslatedProof,
   `SemanticPredicates,
   `Signatures,
   `SimpleEscapeProof,
@@ -392,6 +401,7 @@ def auditedModules : List Lean.Name := [
   `TranslatedArity,
   `TranslatedEscapes,
   `TranslatedRuntimeCore,
+  `TranslatedRuntimeForms,
   `TranslatedTabstop,
   `Utf8Terminals,
   `Verbatim47Data,
@@ -416,7 +426,7 @@ run_cmd do
     owners := owners.insert idx.toNat moduleName
     counts := counts.insert moduleName 0
   let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore, `LabelsTranslated,
-    `AssembleTranslated]
+    `AssembleTranslated, `PositionTranslated, `TranslatedRuntimeForms, `SelfHostedTranslated]
   let mut own := 0
   for (name, info) in env.constants.toList do
     -- Declarations of this file have no module index.

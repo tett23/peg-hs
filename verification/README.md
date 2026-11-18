@@ -177,7 +177,7 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 | 開始規則と空白 | File、Consumption、Whitespace、Lexical | `File` は検査付きの翻訳（ExtractFile.hs）。空白とコメントは規則の行を `grep` で固定する | 翻訳を検証済み（File）、モデルを検証済み（Whitespace、Lexical） | check.sh、check-whitespace.sh、check-lexical.sh |
 | PEG の式の意味 | Parsing | 固定ソースの diff とプローブ（非回復時のランタイムの一部と比べる） | モデルを検証済み | check-core.sh |
 | `parseTops` の入口 | PublicParsing、PublicEntryProof、FileEntry、TotalFile | 検査付きの翻訳（translate-public-entry.awk） | 翻訳を検証済み | check-public-parsing.sh |
-| `parseTops` の値 | FileTops | 固定ソースの diff とプローブ | モデルを検証済み | check-file-tops.sh |
+| `parseTops` の値 | FileTops、SelfHostedTranslatedProof | 検査付きの翻訳（TranslateHaskell.hs、生成した `File`、`TopItem`、`TopOne` の形）とプローブ | モデルを検証済み | check-translate-selfhosted.sh、check-file-tops.sh |
 | メタ文法の現行の内容 | CertifiedPublicFiles、SplitMetaFile、ConcreteFileCertificates | 証明書（ファイルの内容を照合する） | 証明書を検証済み | check-file-items.sh、check-file-certificates.sh |
 | ランタイム | RuntimeCore、RuntimeCoreProof、RuntimeForms、MemoRecognition、MemoTables、MemoTrace、LabelPropagation | 検査付きの翻訳（ExtractRuntimeCore.hs） | 翻訳を検証済み | check-runtime-core.sh、check-memo-tables.sh、check-memo-meta.sh |
 | 位置の行と列 | LineIndex | 固定ソースの diff（line-of.source）と実装だけの検査（CheckLineIndex.hs） | モデルを検証済み | check.sh |
@@ -251,7 +251,9 @@ FileTops.lean は次の定理を示す。
 - `invariant1_parseTops_shape`（FileTops.lean:350）: その列は項目ごとに一つの値を項目の順に持ち、i 番目の値は i 番目の項目の選択肢の、その開始位置での値である。
 
 [check-file-tops.sh](check-file-tops.sh) は、このモデルを実装に結びつける。
-まず、生成した `File`、`TopItem`、`TopOne` の定義（LINE プラグマを除く）とランタイムの `many` を `git hash-object` で固定する。
+生成した `File`、`TopItem`、`TopOne` がこの形であることは、GHC の構文木からの翻訳の上で SelfHostedTranslatedProof.lean が示す（「GHC の構文木からの翻訳」の節）。
+`many` が値を集める仕方は、翻訳した `many` についての `invariant1_translated_many_step`（RuntimeCoreProof.lean:386）が示す。
+そのため、この規則の範囲と `many` を `git hash-object` で固定する検査は外した。
 次に、[FileTopsProbe.hs](FileTopsProbe.hs) が、`packages/` と `editors/` のすべての .hpeg ファイルと境界の入力について、実際の `parseTops` が返す `Top` の種類、順序、件数、位置を書き出す。
 [FileTopsProbe.lean](FileTopsProbe.lean) は、`runTops_sound` で `Tops` に結びつけた実行可能なモデルから同じものを書き出し、両者を比べる。
 `conformance/` の文法は比べない。
@@ -480,7 +482,7 @@ check.sh は、未定義参照を加えた負例の証明を Lean が拒否す�
 型は、型検査の結果から取る（束縛の型と、ライブラリ関数を使う箇所の型）。
 型クラスの制約を持つローカル関数は、使う箇所の型ごとに一つずつ翻訳する。
 扱う構文の部分集合の外の構文と、ライブラリの表にない関数は、位置を付けて翻訳を止める。
-翻訳の規則は TranslateHaskell.hs の先頭の注釈に、ライブラリ関数の写しとその評価規則は [HsPrelude.lean](HsPrelude.lean) に書く（「残る前提」の X2、H1〜H13）。
+翻訳の規則は TranslateHaskell.hs の先頭の注釈に、ライブラリ関数の写しとその評価規則は [HsPrelude.lean](HsPrelude.lean) に書く（「残る前提」の X2、H1〜H16）。
 
 そのため、翻訳を信頼するときの基礎は、構文の種類ごとの規則とライブラリの表だけになる。
 行の辞書（ExtractRuntimeCore.hs）では辞書の項目ごとに人が対応を書くが、この翻訳器では関数を足しても人が書く対応は増えない。
@@ -511,6 +513,30 @@ Lean が停止を示せない再帰は、[translate-labels.hints](translate-labe
 変異も同じ三種である。
 タプルの部分適用と表にないライブラリ関数（`init`）を足した変更は翻訳で拒否され、`nestedExpr` から `EStar` の場合を消した変更は、翻訳と型検査を通るが、AssembleTranslatedProof の証明で拒否される。
 `Data.Char.generalCategory` の表は、GHC 9.10.3 で作り直して [GeneralCategory.lean](GeneralCategory.lean) と照合する。
+
+生成したパーサー `Peg.Grammar.SelfHosted` も、同じ翻訳器で GHC の構文木から翻訳する。
+対象は、開始規則 `File` から届く 59 個の規則（`PegRt.P` の値）と、ヘッダーの関数（`here`、`tokens`、`deeper` など）である。
+`Peg.Grammar` の型と `Peg.Grammar.Assemble` の関数は、check-translate-assemble.sh の翻訳 AssembleTranslated のものを使う。
+ヒントの `extern MODULE:NAMESPACE` は、モジュールの型と関数を、先に作った翻訳の名前空間から取らせる。
+規則は互いに呼び合うので、再帰する組ごとに燃料を取る（[translate-selfhosted.hints](translate-selfhosted.hints)）。
+
+一方、ランタイム `Peg.Runtime.Internal` の関数は翻訳し直さず、翻訳器のランタイムの表で [HsPegRuntime.lean](HsPegRuntime.lean) の定義に写す。
+その定義は、ExtractRuntimeCore.hs が翻訳したランタイム（TranslatedRuntimeCore）の同名の関数を、TranslateHaskell.hs の型（`String` を `List HsChar`、オフセットを `Int`）で呼ぶ（規則 H16）。
+表にない `PegRt` の名前は、位置を付けて翻訳を止める。
+`capture`、`predicate`、`withCol`、`getOffset`、`spanFrom` と、それらが呼ぶ `slice`、`colAt`、`posAt` は、ExtractRuntimeCore.hs が引数 `forms` で TranslatedRuntimeForms に翻訳する。
+`here` が読む行と列は、`Peg.Runtime.Position` の `posIn` と `lineIndex` を TranslateHaskell.hs で翻訳した PositionTranslated から求める（規則 H14、H15、[translate-position.hints](translate-position.hints)）。
+RuntimeCore.lean の `posAt` はオフセットだけを残す（前提 R4）が、`posAtPos_offset`（HsPegRuntime.lean:73）は、それが翻訳した位置のオフセットに等しいことを示す。
+
+[SelfHostedTranslatedProof.lean](SelfHostedTranslatedProof.lean) は、翻訳した開始規則の値の形を、どの燃料でも示す。
+`invariant1_translated_file_value`（SelfHostedTranslatedProof.lean:73）は、`File` が `Ws`、`many TopItem`、ラベル `top` の終端の検査の順に走り、`many` のリストを返すことを示す。
+`invariant1_translated_topItem_value`（SelfHostedTranslatedProof.lean:63）は、`TopItem` が後ろの `Ws` を読んで `TopOne` の値を返すことを示す。
+`invariant1_translated_topOne_value`（SelfHostedTranslatedProof.lean:54）は、`TopOne` が `Verbatim`、`Directive`、`Declaration` の順序付き選択であり、選んだ選択肢の値を返すことを示す。
+ほかの規則の値と、翻訳した規則が SelfHostedRuntime.lean の `exec` に等しいことは、まだ示していない（前提 R7、M3）。
+
+[check-translate-selfhosted.sh](check-translate-selfhosted.sh) は、位置、ランタイムの形、生成したパーサーの順に翻訳し、翻訳と証明を Lean で検査する。
+変異は五つである。
+タプルの部分適用、表にないランタイムの関数（`PegRt.voidP`）、表にないライブラリ関数（`T.foldl`）を足した三つの変更は、翻訳で拒否される。
+`TopOne` の選択肢を入れ替えた変更と、`File` が項目を捨てる変更は、翻訳と型検査を通るが、SelfHostedTranslatedProof の証明で拒否される。
 
 ### 段のつなぎ
 
@@ -712,7 +738,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | A5 | 引数のまま残る関数: 診断の文（`Inputs.failure`、`Inputs.diag`、`Inputs.templateDiag`、`Inputs.diagText`）、翻訳した `assemble` が組み立てる文法の射影（`Inputs.grammar`）、ImportResolution が引数に取る `resolveImports` の関数（`relocate`、`refs`、`directiveNames` など）と `%library` の有無の判定（`hasLibraryDirective`）、`classify`（`oracle`、`classify`）、`undefinedExports`（`missing`）、`render`、各項目の値（`value`）とその Haskell の `Top`（`items`）。Pipeline は `[Diagnostic]` を文字列の列で表すので、段のモデルの診断は `diag`、`templateDiag`、`diagText` で文字列にする。 | PublicGeneration.lean:265 | 段ごとのプローブ |
 | A6 | 段のモデルの前提。下の各表の前提である。 | 各モジュール | 各表のとおり |
 | X1 | ソースの抽出と照合のスクリプトと、そこで使う Haskell の構文の読み取り方を信頼する。 | 全体 | 抽出器ごとの変異の検査（check-runtime-core.sh、check-strict-file.sh、check-public-parsing.sh） |
-| X2 | TranslateHaskell.hs の構文の規則を信頼する。等式の上から順の照合と落ちる先、ガードとパターンガード、where の束縛の持ち上げ、レコードの構築と更新と選択、リストの内包表記、do ブロック、ほかのモジュールの関数、制約付きのローカル関数の型ごとの写しを、Haskell と同じ値を返す Lean の項に写す。 | LabelsTranslated（生成）、AssembleTranslated（生成） | check-translate-labels.sh、check-translate-assemble.sh（どちらも未対応の構文と表にない関数を足した二つの変異を拒否する） |
+| X2 | TranslateHaskell.hs の構文の規則を信頼する。等式の上から順の照合と落ちる先、ガードとパターンガード、where の束縛の持ち上げ、レコードの構築と更新と選択、リストの内包表記、do ブロック、ほかのモジュールの関数、制約付きのローカル関数の型ごとの写し、`extern` で指したモジュールの型と関数を先の翻訳の名前で呼ぶこと、ランタイムの表の名前を HsPegRuntime.lean の定義で呼ぶことを、Haskell と同じ値を返す Lean の項に写す。 | LabelsTranslated、AssembleTranslated、PositionTranslated、SelfHostedTranslated（いずれも生成） | check-translate-labels.sh、check-translate-assemble.sh、check-translate-selfhosted.sh（未対応の構文と表にない関数を足した変異を拒否する） |
 | H1 | `Int` は Lean の `Int`、`Char` は 0x110000 未満のコードポイント、`Text` は `String` で写す。翻訳した関数は 64 ビットの `Int` の範囲を出ない。 | HsPrelude.lean | |
 | H2 | base のリスト、`Maybe`、組、真偽値、整数の関数は、HsPrelude.lean の同名の関数と同じ値を返す。`sortOn` は安定な整列である。`isSpace`、`isAlpha`、`isAlphaNum` は GHC 9.10.3 の表と一致する。 | HsPrelude.lean | check-translate-labels.sh（`isSpace` の表）、check-assemble-predicates.sh（`isAlpha` と `isAlphaNum` の表） |
 | H3 | `Data.Text` の関数は、テキストのスカラー値の列の上で HsPrelude.lean の関数と同じ値を返す。 | HsPrelude.lean | |
@@ -726,6 +752,9 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | H11 | `Ord` を導出した型の `compare` は、Lean が導出する `Ord` と同じく、構成子の順で比べ、次に欄を左から比べる。そのような型をキーにした `sortOn` は、`compare` による安定な整列である。 | HsPrelude.lean | |
 | H12 | H3 に加えて、`Data.Text` の `foldl'`、`breakOn`、`breakOnEnd`、`splitOn`、`takeWhile`、`takeWhileEnd`、`stripStart`、`stripEnd`、`splitAt`、`dropEnd`、`isSuffixOf`、`words`、`any`、`unpack`、`singleton` は、テキストのスカラー値の列の上で text-2.1 と同じ値を返す。`breakOn`、`breakOnEnd`、`splitOn` は空でない区切りで呼ばれる。 | HsPrelude.lean | |
 | H13 | `M.toList` と `M.elems` は、キーの `Ord` の昇順に並べる。 | HsPrelude.lean | |
+| H14 | `UArray Int Int` は下限と要素の列で写す。`listArray`、`bounds`、`!` は、境界の中で array の定義と同じ値を返す。 | HsPrelude.lean | |
+| H15 | `Data.Text.Unsafe` の `lengthWord8`、`iter`、`takeWord8`、`dropWord8` は、テキストの UTF-8 のバイト列の上で text-2.1 と同じ値を返す。`iter` はスカラー値の境界で、切り出しはスカラー値の境界で呼ばれる。 | HsPrelude.lean | |
+| H16 | 生成コードが呼ぶ `PegRt` の関数は、ExtractRuntimeCore.hs が翻訳したランタイムの同名の関数である。`String` の引数は `HsText.pack` した文字列で、オフセットの `Int` は `Nat` のオフセットに等しい。`P` の `(>>)` は base の `Monad` の既定の `m >>= \_ -> k` である。 | HsPegRuntime.lean | check-translate-selfhosted.sh（表にないランタイムの関数を拒否する） |
 
 ### 構文解析とランタイムの前提
 
@@ -733,14 +762,14 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | --- | --- | --- | --- |
 | M1 | 意味述語の Haskell 式は、モデルへ真偽値を渡す前に評価される。呼び出しの整礎性の証明は、意味述語を文字を消費しない演算として扱う。 | CallOrder.lean、MetaExecution.lean | check-semantic-predicates.sh（メタ文法の意味述語が使う `isAlpha`、`isAlphaNum`、`isSpace` の表を GHC の `Data.Char` から作る）、check-escape-predicates.sh と check-parameter-predicates.sh（意味述語を含む規則の範囲の SHA-256 を照合する） |
 | M2 | File.lean の翻訳では、束縛とキャプチャの値を捨て、成功時に値を作るアクションは入力位置を変えない。 | File.lean | check.sh（規則を書き換えた四つの変異を Lean が拒否する） |
-| M3 | `Verbatim`、`Directive`、`Declaration` の値は、位置の関数 `value` として抽象する。`parseTops` の各 `Top` の中身（埋め込みブロックの本文、ディレクティブの引数、規則の選択肢）は特徴づけない。規則の本体は、ExtractConcreteTerminals.hs と ExtractSelfHostedFile.hs の翻訳を信頼する。 | FileTops.lean | check-file-tops.sh |
+| M3 | `Verbatim`、`Directive`、`Declaration` の値は、位置の関数 `value` として抽象する。`parseTops` の各 `Top` の中身（埋め込みブロックの本文、ディレクティブの引数、規則の選択肢）は特徴づけない。規則の本体は、ExtractConcreteTerminals.hs と ExtractSelfHostedFile.hs の翻訳を信頼する。`File`、`TopItem`、`TopOne` が値を運ぶ形は、翻訳の上で証明した（SelfHostedTranslatedProof.lean）。 | FileTops.lean | check-file-tops.sh、check-translate-selfhosted.sh |
 | R1 | ST は世界の状態の遷移として写し、`newCtx` が作る参照は互いに別の固定の欄とする。メモ表は生成したストアの中を指す参照とし、miss の後に表を読み戻す定理はその参照のレンズ則を仮定する。 | RuntimeCore.lean:11 | |
 | R2 | `Data.Set`、`Data.IntSet`、`Data.IntMap`、`Data.Map` は、所属と検索の関数で写す。 | RuntimeCore.lean:16 | |
 | R3 | `Text` は Unicode スカラー値の UTF-8 符号化とし、オフセットを 0 に正規化した Lean の `String` で写す。`T.pack` は恒等、`TU.lengthWord8` はバイト長、`TA.unsafeIndex` は範囲内のバイトの読み出し、`TU.iter` はバイト位置から始まるスカラー値の復号とする。 | RuntimeCore.lean:19 | check-concrete-terminals.sh（[CheckUtf8Runtime.hs](CheckUtf8Runtime.hs) が最後の二つを実ライブラリで確かめる） |
 | R4 | 位置はバイトオフセットのまま扱う。行と列への変換は [LineIndex.lean](LineIndex.lean) が別に証明する。 | RuntimeCore.lean:25 | check.sh（line-of.source と CheckLineIndex.hs） |
 | R5 | `ctxLogs` に積む取り消しの動作は消して写す。取り消しを実行する `endIteration` と、それを呼ぶ `memoLR` は翻訳しない。 | RuntimeCore.lean:27 | [check-memo-meta.sh](check-memo-meta.sh)（メタ文法のパーサーが `memoLR` を使わないことを確かめる） |
 | R6 | メモ化の定理は、回復と計数が無効であること、成長の反復が走っていないこと（`ctxLogs` が空）、規則本体が失敗の記録と依存を空にして始めたときに同じ結果を返すこと（`BodySpec`）、表の項目が本体を評価した結果に等しいこと（キャッシュの不変条件）を仮定に置く。`lit` の比較の繰り返しには、Lean の停止性の証明のために `k < n` の分岐を足す。`go 0` から呼ぶかぎり、足した分岐には到達しない。`many` と `skipMany` の定義には Lean の `partial_fixpoint` を使う。 | RuntimeCoreProof.lean:14、ExtractRuntimeCore.hs | check-runtime-core.sh（四つの行を消した変異を証明が拒否する）、check-memo-tables.sh |
-| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）、本体の読み取りで落とす書き方（RuntimeForms.lean）、繰り返しの束縛の渡し方（LoopBindings.lean）は、前提から外れた。 | SelfHostedRuntime.lean:478（`exec`）、SelfHostedMemo.lean:79（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
+| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。生成コードは GHC の構文木から SelfHostedTranslated に翻訳した（規則 X2、H14〜H16）が、翻訳した規則が `exec` と `execM` に値を含めて等しいことはまだ示していない。そのため、生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）、本体の読み取りで落とす書き方（RuntimeForms.lean）、繰り返しの束縛の渡し方（LoopBindings.lean）は、前提から外れた。 | SelfHostedRuntime.lean:478（`exec`）、SelfHostedMemo.lean:79（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
 
 ### 規則の検査、ラベル、テンプレート、import の前提
 

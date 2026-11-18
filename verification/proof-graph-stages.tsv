@@ -44,6 +44,7 @@ CaptureWindow	メタ文法の規則本体と認識	translated
 SelfHostedFileProof	メタ文法の規則本体と認識	translated
 SelfHostedRuntime	メタ文法の規則本体と認識	translated
 SelfHostedMemo	メタ文法の規則本体と認識	translated
+SelfHostedTranslated*	メタ文法の規則本体と認識	translated
 ScopedEnv	メタ文法の規則本体と認識	translated
 LoopBindings	メタ文法の規則本体と認識	translated
 TranslatedStrictFile	メタ文法の規則本体と認識	translated
@@ -71,6 +72,9 @@ RuntimeCore	ランタイム	translated
 RuntimeCoreProof	ランタイム	translated
 RuntimeForms	ランタイム	translated
 TranslatedRuntimeCore	ランタイム	translated
+TranslatedRuntimeForms	ランタイム	translated
+HsPegRuntime	ランタイム	translated
+PositionTranslated	位置の行と列	translated
 Memo*	ランタイム	translated
 LabelPropagation	ランタイム	translated
 LineIndex	位置の行と列	model
