@@ -64,6 +64,7 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 `toLabel` はラベルの検査の文法、`toCheck` は `check` の文法、`toTemplate` はテンプレート展開の文法への射影である。
 `toLabel_stripAs`（PublicGeneration.lean:247）は、`stripAs` が射影 `toLabel` の上で `stripLabelsAs` と可換であることを示す。
 各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:412）の二つの欄 `Premises.expandRefines` と `assembleAgrees` に置く（前提 A1、A3）。
+以前の前提 A2（ライブラリの構文解析と組み立ての失敗に診断があること）は、`lookupLibrary_parse_nonempty` と `lookupLibrary_assemble_nonempty` が示すので、前提から外した。番号 A2 は欠番とする。
 [PublicPremises.lean](PublicPremises.lean) の `modelInputs_premises` は、どの `Inputs` からも `Premises` を満たす `Inputs` を作れることを示す。
 その `expand` はテンプレート展開のモデルそのものであり、`assemblyErrors` は AssembleValidation のモデルの誤りである。
 したがって、`Premises` を仮定に取る定理は空虚に成り立つのではない。
@@ -653,25 +654,39 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 ## 公理の監査
 
 [Audit.lean](Audit.lean) は、一覧に挙げたモジュールと Audit.lean 自身の定理ごとに依存する公理を列挙し、Lean 標準の `propext`、`Classical.choice`、`Quot.sound` 以外の公理を使うと失敗する。
-すべてのモジュールを作った後で動かすため、[check.sh](check.sh) の最後に置く。
+すべてのモジュールを作った後で動かすため、[check.sh](check.sh) の終わりに置く（後ろには公開の定理の仮定の検査だけが続く）。
 [check-audit-coverage.sh](check-audit-coverage.sh) は、定理を持つ手書きのモジュールと、定理を書き出す生成器が作るモジュールが、この一覧にすべて載っていることを確かめる。
 いまの main で動かすと、「163 modules with theorems are audited」と表示する。
 SplitMetaFile.lean が書き出す項目ごとの証明書は、CertifiedPublicFiles.lean の定理の前提になるので、その定理の公理の一覧に含まれる。
+
 check-audit-coverage.sh は、どの `.lean` ファイルも `native_decide` を使わないことも確かめる。
-`native_decide` は公理 `Lean.ofReduceBool` に頼り、Audit.lean は `example` を監査しないからである。
+`native_decide` は公理 `Lean.ofReduceBool` に頼るが、Audit.lean は `example` を監査しないので、`example` の中の `native_decide` を見落とすからである。
 
 公理の監査は、定理が仮定に取る命題を見ない。
 そこで、[PublicHypotheses.lean](PublicHypotheses.lean) は、公開の定理の仮定を定理の型から機械的に取り出す。
 公開の定理は、PublicGeneration.lean、PublicGenerationGHC.lean、CommittedModuleDerivations.lean、CertifiedPublicFiles.lean の `invariant1_*`、`invariant2_*`、`invariant3_*` である。
 仮定として取り出すのは、命題を型に持つ引数、関数を型に持つ引数（`ghcLex` など）、引数が `Inputs` か `Premises` のときのその構造体の各欄である。
-PublicHypotheses.lean は、公開の入口の関数（`parse`、`resolve`、`generateWithWarnings` など）の定義がたどる定義も調べ、計算に使う述語（`FileResult`、`FileTops.ParsesTo` など）を取り出す。
+PublicHypotheses.lean は、公開の入口の関数（`parse`、`resolve`、`generateWithWarnings` など）の定義と、その定義が参照する定義を再帰的に調べ、計算に使う述語（`FileResult`、`FileTops.ParsesTo` など）を取り出す。
+取り出した組は、一覧に `definition <関数> -> <述語>` の行として書く。
 証明と、引数が仮定する命題（停止の証明に使う `Sub` など）は、計算に使う述語に数えない。
 
 取り出した各行は、[public-hypotheses.allow](public-hypotheses.allow) にある行と一致しなければならない。
-一覧の各行には、それを許す [ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の行（:33 入力、:38 埋め込みコード、:40 GHC と一致を確かめていない規則、:44 翻訳器と評価規則、:56〜:58 不変条件 1〜3 の前件）か、`UNRESOLVED` を書く。
+一覧の各行には、それを許す [ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の行か、`UNRESOLVED` を書く。
+許す行は次のとおりである。
+
+| [ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の行 | 許すもの |
+| --- | --- |
+| :33 | 入力（有限のテキスト、読み込み済みのライブラリの集合、生成オプション） |
+| :38 | 埋め込みコードが挿入箇所の構文カテゴリに属するという前提 |
+| :40 | GHC のパーサーとの一致を確かめていない規則 |
+| :44 | 翻訳器と Haskell の評価規則に置いた仮定 |
+| :56〜:58 | 不変条件 1〜3 の前件 |
+
 `UNRESOLVED` は、どの行も許さない仮定である。
 その数は `unresolvedLimit` に固定し、いまは 65 件である。
-内訳は、`Inputs` の翻訳していない関数と診断の文面の 27 件、`Premises` の 2 件、`renderShape` の 1 件、`parse` を導出の探索で定義していること（前提 R7）による定義の依存の 35 件である。
+内訳は、`Inputs` の翻訳していない関数と診断の文面の 27 件、`Premises` の 2 件、`renderShape` の 1 件、定義の依存の 35 件である。
+定義の依存の 35 件は、公開の入口の関数 7 個（`parse`、`tops`、`lookupLibrary`、`resolve`、`generateWithWarnings`、`publicModule`、`generateFromSource`）と、導出の探索が使う述語 5 個の組である。
+これは、`parse` を導出の探索で定義していること（前提 R7）による。
 [check-public-hypotheses.sh](check-public-hypotheses.sh) は Audit.lean の後にこの検査を動かし、一行を欠いた一覧と ADR の行でない理由が拒否されることも確かめる。
 
 ## 実行方法
@@ -688,7 +703,7 @@ cabal build exe:peg-hs
 verification/check.sh
 ```
 
-check.sh は、Lean の版を確かめた後に check-audit-coverage.sh を、最後に Audit.lean を動かし、そのあいだで各段のモジュールを作って検査スクリプトを呼ぶ。
+check.sh は、Lean の版を確かめた後に check-audit-coverage.sh を、終わりに Audit.lean と check-public-hypotheses.sh を動かし、そのあいだで各段のモジュールを作って検査スクリプトを呼ぶ。
 一部の検査スクリプトは、文法ファイルの該当の規則の範囲の SHA-256 を照合する（check-expression-depth.sh、check-escape-predicates.sh、check-parameter-predicates.sh）。
 
 対応テストは、[ADR 0097](../docs/adr/0097-verify-hpeg-and-generated-haskell-in-lean.md) の境界の入力の表の 6 行を、行の不変条件の番号を名前に持つテストで確かめる（`ADR 0097 I1, I2: …` の形）。
