@@ -679,6 +679,25 @@ Lean は各 reduce の右辺をスタックと照合し、全トークンを消�
 GHC が暗黙のレイアウトを閉じるために挿入する `error` トークンは、元のトークン列と区別する。
 ソース文字列からトークンへの変換には GHC の lexer を使う。
 
+### 定理の関係の図
+
+[proof-graph.sh](proof-graph.sh) は、コンパイル済みのモジュールを読み、定理どうしの関係を Mermaid の図にして Markdown のファイルに書く。
+図は、[ProofGraph.lean](ProofGraph.lean) が Lean の環境の定理の証明項がどの定数を参照するかをたどって作るので、証明が変われば図も変わる。
+check.sh は図を作らない。
+モジュールを残すには、空のディレクトリを `CHECK_WORK` に指定して check.sh を動かし、そのディレクトリと、その下の `item-certificates` を `:` でつないで渡す。
+
+```sh
+CHECK_WORK=/tmp/work verification/check.sh
+verification/proof-graph.sh [-d 参照の回数] /tmp/work:/tmp/work/item-certificates 出力先
+```
+
+出力先には、全体図の overview.md と、不変条件ごとの図の invariant1.md〜invariant3.md を書く。
+全体図は、公開の入口の定理と段を節点にし、段から段への辺に定理の参照の数を付ける。
+どのモジュールがどの段に属し、段が実装とどう対応するかは、[proof-graph-stages.tsv](proof-graph-stages.tsv) が「段ごとの証明と実装との対応」の表に合わせて決める。
+不変条件ごとの図は、公開の入口から `-d`（既定は 2）回の参照で届く定理と、「公開の入口から結論までの定理の連なり」の表にある定理だけを節点にし、ほかの定理を通る参照を破線の辺に畳む。
+構造体 `Premises` の欄と、公開の入口の定理が仮定に取る全称の命題（`renderShape` など）は、前提の節点（六角形）として描く。
+表の定理が環境に無いとき、公開の入口から届かないとき、段の無いモジュールがあるときは、標準エラーに書く。
+
 ### CI での動き方
 
 CI（`.github/workflows/ci.yml`）の `haskell` ジョブは、ビルドの後に check.sh を動かす。

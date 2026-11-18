@@ -1,0 +1,120 @@
+# The stages of README.md ("段ごとの証明と実装との対応") for proof-graph.sh.
+# Columns, separated by a tab: module (a prefix ends in *), stage, and how the
+# module is tied to the implementation (translated, model or certificate).
+# The first matching line wins. A module that no line matches is reported.
+CallOrder	呼び出しの整礎性	translated
+CallTables	呼び出しの整礎性	translated
+RecursiveEval	呼び出しの整礎性	translated
+File	開始規則と空白	translated
+Consumption	開始規則と空白	translated
+Whitespace	開始規則と空白	model
+WhitespaceScalars	開始規則と空白	model
+Lexical	開始規則と空白	model
+Parsing	PEG の式の意味	model
+PublicParsing	parseTops の入口	translated
+PublicEntryProof	parseTops の入口	translated
+FileEntry	parseTops の入口	translated
+TotalFile	parseTops の入口	translated
+TranslatedEntry	parseTops の入口	translated
+FileTops	parseTops の値	model
+CertifiedPublicFiles	メタ文法の現行の内容	certificate
+SplitMetaFile	メタ文法の現行の内容	certificate
+ConcreteFileCertificates	メタ文法の現行の内容	certificate
+FileTrees	メタ文法の現行の内容	certificate
+PegItem*	メタ文法の現行の内容	certificate
+PegStep*	メタ文法の現行の内容	certificate
+PegChain*	メタ文法の現行の内容	certificate
+PegFull	メタ文法の現行の内容	certificate
+PegPieces	メタ文法の現行の内容	certificate
+SyntaxAsPeg*	メタ文法の現行の内容	certificate
+SyntaxItem*	メタ文法の現行の内容	certificate
+SyntaxStep*	メタ文法の現行の内容	certificate
+SyntaxChain*	メタ文法の現行の内容	certificate
+SyntaxFull	メタ文法の現行の内容	certificate
+SyntaxPieces	メタ文法の現行の内容	certificate
+MetaExecution	メタ文法の規則本体と認識	translated
+Environment*	メタ文法の規則本体と認識	translated
+EnvProjection*	メタ文法の規則本体と認識	translated
+EnvRunCongruence	メタ文法の規則本体と認識	translated
+MetaEnvCompatible	メタ文法の規則本体と認識	translated
+MetagrammarPredicates	メタ文法の規則本体と認識	translated
+PredicateBindings	メタ文法の規則本体と認識	translated
+NoArgInputReads	メタ文法の規則本体と認識	translated
+CaptureWindow	メタ文法の規則本体と認識	translated
+SelfHostedFileProof	メタ文法の規則本体と認識	translated
+SelfHostedRuntime	メタ文法の規則本体と認識	translated
+TranslatedStrictFile	メタ文法の規則本体と認識	translated
+TranslatedRuntimeChoice	メタ文法の規則本体と認識	translated
+TranslatedVerbatimBody	メタ文法の規則本体と認識	translated
+RuntimeChoiceProof	メタ文法の規則本体と認識	translated
+Concrete*	メタ文法の規則本体と認識	translated
+LabeledConcreteBody	メタ文法の規則本体と認識	translated
+TerminalCursor	メタ文法の規則本体と認識	translated
+Utf8Terminals	メタ文法の規則本体と認識	translated
+Strict*	メタ文法の規則本体と認識	translated
+Verbatim*	メタ文法の規則本体と認識	translated
+PrefixReplay	メタ文法の規則本体と認識	translated
+WindowReplay	メタ文法の規則本体と認識	translated
+WindowReads	メタ文法の規則本体と認識	translated
+FastWindow	メタ文法の規則本体と認識	translated
+ItemWindow	メタ文法の規則本体と認識	translated
+ItemSourceSplit	メタ文法の規則本体と認識	translated
+InitialWhitespace*	メタ文法の規則本体と認識	translated
+FileTopItems	メタ文法の規則本体と認識	translated
+FileEnd	メタ文法の規則本体と認識	translated
+FileItemChain	メタ文法の規則本体と認識	translated
+FileExamples	メタ文法の規則本体と認識	translated
+RuntimeCore	ランタイム	translated
+RuntimeCoreProof	ランタイム	translated
+TranslatedRuntimeCore	ランタイム	translated
+Memo*	ランタイム	translated
+LabelPropagation	ランタイム	translated
+LineIndex	位置の行と列	model
+Assemble*	assemble の検査	model
+NestedBindings	assemble の検査	model
+SimpleEscapeProof	指示の引数	translated
+TabstopProof	指示の引数	translated
+BoundedDecimal	指示の引数	translated
+Directive*	指示の引数	translated
+TranslatedEscapes	指示の引数	translated
+TranslatedTabstop	指示の引数	translated
+TranslatedArity	指示の引数	translated
+TranslatedDirectiveComment	指示の引数	translated
+ImportResolution	import の解決	model
+Template*	テンプレートの展開	model
+CheckGroups*	規則の検査	model
+RuleRejection*	規則の検査	model
+Nullable	規則の検査	model
+Reachable	規則の検査	model
+Signatures	規則の検査	model
+ExtractedSignatures	規則の検査	translated
+Guard	規則の検査	translated
+GrammarReservedWords	規則の検査	translated
+ExpressionDepth	規則の検査	model
+EscapePredicates	規則の検査	model
+ParameterPredicates	規則の検査	model
+SemanticPredicates	規則の検査	model
+CapturedPredicates	規則の検査	model
+LabelCheck*	ラベルの検査	model
+Pipeline	段のつなぎ	model
+InnerGeneration	段のつなぎ	model
+InnerUnicode	段のつなぎ	model
+PublicGeneration	段のつなぎ	model
+PublicGenerationGHC	段のつなぎ	model
+Header	モジュールの先頭とリテラル	model
+Literal	モジュールの先頭とリテラル	model
+Pragmas	モジュールの先頭とリテラル	model
+RenderFinalize	finalize	model
+RenderFinalizeModule	finalize	model
+RenderPrinting	式の印字と lexer の橋	model
+RenderExpressionLexer	式の印字と lexer の橋	model
+Render*	render の合成	model
+HaskellDerivation	GHC の文法	translated
+LayoutDerivation	GHC の文法	translated
+TraceChunks	GHC の文法	translated
+GHCGrammar	GHC の文法	translated
+GhcPredicates	GHC の文法	translated
+CommittedModuleDerivations	コミットした生成物	certificate
+DerivationPeg	コミットした生成物	certificate
+DerivationPegSyntax	コミットした生成物	certificate
+DerivationExtensions	コミットした生成物	certificate
