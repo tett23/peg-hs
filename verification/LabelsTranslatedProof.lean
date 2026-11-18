@@ -23,9 +23,10 @@ Theorems:
 
 The model's theorems on `stripLabels` (LabelCheckTheorems:
 `unlabelExpr_stripExpr`, `stripLabels_rules`, `stripLabels_fields`,
-`recoveryEntries_spec`) thus hold of the translated function. Premises: the
-translator's rules and the evaluation rules of HsPrelude.lean (README X2,
-H1-H8).
+`recoveryEntries_spec`) thus hold of the translated function. LabelsBridge,
+LabelsBridgeSim and LabelsBridgeCheck do the same for `labelWarnings` and
+`matchesEmpty`. Premises: the translator's rules and the evaluation rules of
+HsPrelude.lean (README X2, H1-H8).
 -/
 
 namespace PegHs.LabelsTranslatedProof

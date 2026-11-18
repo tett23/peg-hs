@@ -3,14 +3,84 @@
 -- (HsPrelude.lean, rule H6).
 decreasing normalise.merge
   termination_by ($1).length
+-- exprMentions and exprCodes recur on the subexpressions: `subExprs e` is a
+-- parameter of the termination check (so the membership of each element
+-- is known), and each subexpression is smaller than e.
+before exprMentions
+  @[wf_preprocess] theorem subExprs_wfParam {e : LabelsTranslated.Expr} : subExprs (wfParam e) = wfParam (subExprs e) := rfl
+  theorem subExprs_sizeOf {x e : LabelsTranslated.Expr} (h : x ∈ subExprs e) : sizeOf x < sizeOf e := by
+    cases e <;> simp only [subExprs, List.mem_cons, List.not_mem_nil, or_false, List.mem_map, HsList.concat, List.mem_flatten] at h
+    all_goals first
+      | (subst h; simp <;> omega)
+      | (obtain ⟨i, ⟨a, ha, hi⟩, rfl⟩ := h
+         have h1 := List.sizeOf_lt_of_mem ha
+         have h2 := List.sizeOf_lt_of_mem hi
+         have h3 := Item.itemExpr_sizeOf i
+         simp <;> omega)
+      | (have := List.sizeOf_lt_of_mem h; simp <;> omega)
+decreasing exprMentions
+  termination_by sizeOf $2
+  decreasing_by all_goals exact subExprs_sizeOf (by assumption)
+decreasing exprCodes
+  termination_by sizeOf $1
+  decreasing_by all_goals exact subExprs_sizeOf (by assumption)
+-- expansions recurs with the depth one less, under `depth > 0`.
+decreasing expansions
+  termination_by $2.toNat
+  decreasing_by all_goals (simp only [HsInt.gt, HsInt.sub, decide_eq_true_eq] at *; omega)
 fuel failed
 fuel nullableRules.go
 fuel simExpr
 fuel fixpoint.go
-fuel expansions
 fuel framesAt.go
 fuel sites.exprSites
-fuel exprMentions
-fuel exprCodes
 fuel substItems.rewrite
 fuel substItems.expr
+-- Lean derives BEq for the mutual and nested Expr with a `partial`, so
+-- opaque, function. Haskell's derived Eq compares the constructors and the
+-- fields (rule H5); this structural equality does the same, and is the `==`
+-- of commonPrefix, the only comparison of expressions.
+before commonPrefix.go
+  def Loc.structEq : LabelsTranslated.Loc → LabelsTranslated.Loc → Bool
+    | .Loc a b c, .Loc a' b' c' => a == a' && b == b' && c == c'
+  def Located.structEq : LabelsTranslated.Located String → LabelsTranslated.Located String → Bool
+    | .Located l x, .Located l' x' => Loc.structEq l l' && x == x'
+  def Located.listEq : List (LabelsTranslated.Located String) → List (LabelsTranslated.Located String) → Bool
+    | [], [] => true
+    | a :: as, b :: bs => Located.structEq a b && Located.listEq as bs
+    | _, _ => false
+  mutual
+  def Expr.structEq : LabelsTranslated.Expr → LabelsTranslated.Expr → Bool
+    | .ELit t w, .ELit t' w' => t == t' && w == w'
+    | .EClass rs w, .EClass rs' w' => rs == rs' && w == w'
+    | .EAny, .EAny => true
+    | .ERef l n as, .ERef l' n' as' => Loc.structEq l l' && n == n' && Located.listEq as as'
+    | .EGroup a, .EGroup a' => Expr.altsEq a a'
+    | .EStar x, .EStar x' => Expr.structEq x x'
+    | .EPlus x, .EPlus x' => Expr.structEq x x'
+    | .EOpt x, .EOpt x' => Expr.structEq x x'
+    | .EAnd x, .EAnd x' => Expr.structEq x x'
+    | .ENot x, .ENot x' => Expr.structEq x x'
+    | .ECapture x, .ECapture x' => Expr.structEq x x'
+    | .ELabel l x n, .ELabel l' x' n' => Loc.structEq l l' && Expr.structEq x x' && n == n'
+    | .EPred b c, .EPred b' c' => b == b' && Located.structEq c c'
+    | .ETemplate l n as vs, .ETemplate l' n' as' vs' =>
+      Loc.structEq l l' && n == n' && Expr.listEq as as' && Located.listEq vs vs'
+    | .EDiscard x, .EDiscard x' => Expr.structEq x x'
+    | _, _ => false
+  def Expr.itemEq : LabelsTranslated.Item → LabelsTranslated.Item → Bool
+    | .Item l b e, .Item l' b' e' => Loc.structEq l l' && b == b' && Expr.structEq e e'
+  def Expr.itemsEq : List LabelsTranslated.Item → List LabelsTranslated.Item → Bool
+    | [], [] => true
+    | a :: as, b :: bs => Expr.itemEq a b && Expr.itemsEq as bs
+    | _, _ => false
+  def Expr.altsEq : List (List LabelsTranslated.Item) → List (List LabelsTranslated.Item) → Bool
+    | [], [] => true
+    | a :: as, b :: bs => Expr.itemsEq a b && Expr.altsEq as bs
+    | _, _ => false
+  def Expr.listEq : List LabelsTranslated.Expr → List LabelsTranslated.Expr → Bool
+    | [], [] => true
+    | a :: as, b :: bs => Expr.structEq a b && Expr.listEq as bs
+    | _, _ => false
+  end
+  instance (priority := high) instBEqExprStructural : BEq LabelsTranslated.Expr := ⟨Expr.structEq⟩

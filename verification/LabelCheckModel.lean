@@ -1,5 +1,6 @@
 import LabelCheckCharSet
 import AssembleChars
+import HsPrelude
 
 /-!
 A model of packages/peg-grammar/src/Peg/Grammar/Labels.hs: `labelWarnings`,
@@ -17,9 +18,13 @@ The translation keeps the Haskell names. The differences of form:
   names; `envEq` compares the binding of every rule name.
 - `nullableRules` carries the proof that the known set only grows
   (`nullableGo`), which bounds its loop.
-- `stronglyConnComp` of Data.Graph is replaced by `lrTables` and `componentOf`, which find
-  the rules that reach themselves and the rules they reach and are reached
-  from (see the premises).
+- `stronglyConnComp` of Data.Graph is `HsGraph.stronglyConnComp` of
+  HsPrelude, the copy that the translation also uses (`lrSccs`).
+- The key of the visited set is a parameter of the context (`keyOf`):
+  `preKey` renders the matched items with `repr`, and LabelsBridgeCheck's
+  `tKeyOf` is the text that the translated function builds with `show`.
+- `==` on expressions is the structural `exprEq`, as in the hints of the
+  translation (Lean derives an opaque `BEq` for the nested type).
 - The recursion of `failed`, `succeeded`, `ruleFailed` and `ruleSucceeded`
   through the state monad is `run`, indexed by a fuel: `run (n + 1)` makes
   one step of each function and calls `run n`; `run 0` gives `none`.
@@ -32,20 +37,13 @@ The translation keeps the Haskell names. The differences of form:
 - Text is `String`, and the texts of the simulation (`Sim`) are lists of
   characters.
 
-Premises (not proved here; the probe compares the results):
-- The key of the visited set renders the matched items with `show`; the
-  model renders them with `repr` (`preKey`). Derived `Show` and `Repr` are
-  injective, so the two keys are equal exactly when the items are.
-- `Data.Char.isAlpha` and `isAlphaNum` are the tables of AssembleChars
-  (checked against GHC 9.10.3 by check-assemble-predicates.sh), and
-  `isSpace` is `spaceRanges`, checked by check-label-check.sh.
-- `stronglyConnComp` returns the strongly connected components of the graph
-  of the rules (containers' Data.Graph); `componentOf` computes the same
-  partition when the rule names are distinct. `assemble` and
-  `resolveImports` reject a rule named twice, and `expandTemplates` names
-  each instance with a name no rule has (TemplateExpansionWhole).
-- Haskell's `Int` arithmetic of indices, depths and counters does not
-  overflow; the model uses natural numbers.
+LabelsBridge, LabelsBridgeSim and LabelsBridgeCheck prove that the
+translation of Labels.hs (LabelsTranslated) gives what this model gives
+(`labelWarnings_translated`), so the model's premises are those of the
+translation: the translator's rules and the evaluation rules of HsPrelude
+(README X2, H1-H8). check-label-check.sh compares the model with the real
+functions on the grammars of LabelCheckProbe.hs, as a differential test of
+the translator.
 -/
 
 namespace PegHs.LabelCheck
@@ -494,6 +492,44 @@ def isTemplateOrEnv (e : Expr) : Bool :=
   | e => (exprCodes e).any (fun c => (identifiers c).contains "_env")
 end
 
+-- `==` of expressions: Haskell's derived Eq compares the constructors and
+-- the fields. (Lean derives BEq for a nested inductive type with an opaque
+-- function, which no proof can read.)
+mutual
+def exprEq : Expr → Expr → Bool
+  | .lit t w, .lit t' w' => t == t' && w == w'
+  | .cls rs w, .cls rs' w' => rs == rs' && w == w'
+  | .any, .any => true
+  | .ref l n as, .ref l' n' as' => l == l' && n == n' && as == as'
+  | .group a, .group a' => altsEq a a'
+  | .star x, .star x' => exprEq x x'
+  | .plus x, .plus x' => exprEq x x'
+  | .opt x, .opt x' => exprEq x x'
+  | .and x, .and x' => exprEq x x'
+  | .not x, .not x' => exprEq x x'
+  | .capture x, .capture x' => exprEq x x'
+  | .label l x n, .label l' x' n' => l == l' && exprEq x x' && n == n'
+  | .pred b c, .pred b' c' => b == b' && c == c'
+  | .template l n as vs, .template l' n' as' vs' => l == l' && n == n' && listEq as as' && vs == vs'
+  | .discard x, .discard x' => exprEq x x'
+  | _, _ => false
+
+def itemsEq : List Item → List Item → Bool
+  | [], [] => true
+  | (l, b, e) :: is, (l', b', e') :: is' => l == l' && b == b' && exprEq e e' && itemsEq is is'
+  | _, _ => false
+
+def altsEq : List (List Item) → List (List Item) → Bool
+  | [], [] => true
+  | a :: as, a' :: as' => itemsEq a a' && altsEq as as'
+  | _, _ => false
+
+def listEq : List Expr → List Expr → Bool
+  | [], [] => true
+  | e :: es, e' :: es' => exprEq e e' && listEq es es'
+  | _, _ => false
+end
+
 def itemBind (i : Item) : Option String := i.2.1
 def itemExpr (i : Item) : Expr := i.2.2
 def itemLoc (i : Item) : Loc := i.1
@@ -504,7 +540,7 @@ def readsAny (names : List String) (code : String) : Bool :=
 -- commonPrefix
 def commonPrefixGo (n : Nat) (bx by' : List (Option String)) : List Item → List Item → Nat
   | a :: as, b :: bs =>
-    if plainExpr (itemExpr a) == plainExpr (itemExpr b) &&
+    if exprEq (plainExpr (itemExpr a)) (plainExpr (itemExpr b)) &&
         (bx == by' || !((exprCodes (itemExpr a)).any (readsAny ((bx ++ by').filterMap id)))) then
       commonPrefixGo (n + 1) (itemBind a :: bx) (itemBind b :: by') as bs
     else n
@@ -790,50 +826,39 @@ where
 def leftCalls (known : List String) (items : List Item) : List String :=
   leftCallsCalls.leftCallsGo known items
 
--- The rules reachable from n by at least one edge: the rules the edges of
--- the rules in acc lead to, added until none is new.
-def reachStep (succ : String → List String) (acc : List String) : List String :=
-  acc ++ (acc.flatMap succ).filter (fun m => !acc.contains m)
+-- The edges of a rule in the graph of stronglyConnComp: its left calls,
+-- sorted and without repeats (`S.toList (S.fromList ...)`).
+def lrEdges (nullable : List String) (r : Rule) : List String :=
+  HsSet.toList (HsSet.fromList (r.alts.flatMap (fun a => leftCalls nullable a.items)))
 
-def reachIter (succ : String → List String) : Nat → List String → List String
-  | 0, acc => acc
-  | k + 1, acc =>
-    let next := reachStep succ acc
-    if next.length == acc.length then acc else reachIter succ k next
+-- `stronglyConnComp` of Data.Graph (HsPrelude.lean, rule H8) on the rules,
+-- each given by its name and its edges.
+def lrSccs (nullable : List String) (rules : List Rule) : List (HsSCC (String × List String)) :=
+  HsGraph.stronglyConnComp (rules.map fun r => ((r.name, lrEdges nullable r), r.name, lrEdges nullable r))
 
--- The tables of leftRecursion: the rule names, the left calls of each
--- alternative of each rule, the rules each rule reaches, and the component
--- of each rule in a cycle.
+-- The component of each rule in a cycle: the rules of a cyclic component,
+-- and a rule that calls itself alone. `M.fromList` keeps the last binding
+-- of a name, which `findLast` reads.
+def lrComps (sccs : List (HsSCC (String × List String))) : List (String × List String) :=
+  (sccs.flatMap fun s => match s with
+    | .CyclicSCC rs => rs.map fun r => (r.1, rs.map (·.1))
+    | .AcyclicSCC _ => []) ++
+  sccs.flatMap fun s => match s with
+    | .AcyclicSCC r => if r.2.contains r.1 then [(r.1, [r.1])] else []
+    | .CyclicSCC _ => []
+
+-- The tables of leftRecursion: the left calls of each alternative of each
+-- rule, and the component of each rule in a cycle.
 structure LrTables where
-  names : List String
   calls : List (String × List (List String))
-  reach : List (String × List String)
-  comps : List (String × Option (List String))
-
--- The edges of a rule in the graph of stronglyConnComp: its left calls of rules.
-def succOf (names : List String) (calls : List (String × List (List String))) (n : String) : List String :=
-  match lookupFirst calls n with
-  | some cs => cs.flatten.filter (fun m => names.contains m)
-  | none => []
-
-def reachOf (reach : List (String × List String)) (n : String) : List String :=
-  (lookupFirst reach n).getD []
-
--- The strongly connected component of n, when n is in a cycle.
-def componentOf (names : List String) (reach : List (String × List String)) (n : String) :
-    Option (List String) :=
-  if (reachOf reach n).contains n then
-    some (names.filter (fun m => (reachOf reach n).contains m && (reachOf reach m).contains n))
-  else none
+  comps : List (String × List String)
 
 def lrTables (rules : List Rule) : LrTables :=
   let nullable := nullableRules rules
-  let names := rules.map (·.name)
-  let calls := rules.map (fun r => (r.name, r.alts.map (fun a => leftCalls nullable a.items)))
-  let reach := names.map (fun n => (n, reachIter (succOf names calls) names.length (succOf names calls n)))
-  ⟨names, calls, reach, names.map (fun n => (n, componentOf names reach n))⟩
+  ⟨rules.map (fun r => (r.name, r.alts.map (fun a => leftCalls nullable a.items))),
+    lrComps (lrSccs nullable rules)⟩
 
-def componentIn (t : LrTables) (n : String) : Option (List String) := (lookupFirst t.comps n).getD none
+def componentIn (t : LrTables) (n : String) : Option (List String) := findLast t.comps n
 
 -- growing of leftRecursion: the alternative i of n calls a rule of its component.
 def growingIn (t : LrTables) (n : String) (i : Nat) : Bool :=
@@ -856,7 +881,7 @@ def isDirectIn (t : LrTables) (r : Rule) : Bool :=
 
 def leftRecursion (rules : List Rule) : List String × List String × (String → Nat → Bool) :=
   let t := lrTables rules
-  let inLr := t.names.filter (fun n => (componentIn t n).isSome)
+  let inLr := t.comps.map (·.1)
   let direct := (rules.filter (fun r => inLr.contains r.name && isDirectIn t r)).map (·.name)
   let other := inLr.filter (fun n => !direct.contains n)
   (direct, other, growingIn t)
@@ -871,6 +896,13 @@ structure Ctx where
   growing : String → Nat → Bool
   rules : List (String × Rule)
   expandable : List String
+  -- The text of the matched items and their number of lifts in the key of
+  -- the visited set (`T.pack (show (lifts, map (plainExpr . itemExpr) pre))`).
+  keyOf : Nat → List Item → String
+
+-- The key text of the Haskell function, with `show` written as `repr`.
+def preKey (lifts : Nat) (pre : List Item) : String :=
+  reprStr (lifts, pre.map (fun i => plainExpr (itemExpr i)))
 
 def startName (g : Grammar) : String :=
   match g.start, g.rules with
@@ -882,7 +914,8 @@ def isRef : Expr → Bool
   | .ref .. => true
   | _ => false
 
-def context (g : Grammar) : Ctx :=
+-- context, with the text of the keys of the visited set.
+def contextWith (keyOf : Nat → List Item → String) (g : Grammar) : Ctx :=
   let rules := g.rules
   let lr := leftRecursion rules
   let expandable := fun (r : Rule) => !(r.alts.any (fun a => itemsMention a.items))
@@ -895,7 +928,10 @@ def context (g : Grammar) : Ctx :=
     growing := lr.2.2
     rules := rules.map (fun r => (r.name, r))
     expandable := ((rules.filter expandable).map (·.name)).filter
-      (fun n => !lr.1.contains n && !lr.2.1.contains n) }
+      (fun n => !lr.1.contains n && !lr.2.1.contains n)
+    keyOf := keyOf }
+
+def context (g : Grammar) : Ctx := contextWith preKey g
 
 def refName : Expr → String
   | .ref _ n _ => n
@@ -1097,9 +1133,6 @@ abbrev Visited := List Key
 
 abbrev M := Visited → Option (Verdict × Visited)
 
-def preKey (lifts : Nat) (pre : List Item) : String :=
-  reprStr (lifts, pre.map (fun i => plainExpr (itemExpr i)))
-
 def visit (key : Key) (act : M) : M := fun s =>
   if s.contains key then some (.safe, s) else act (key :: s)
 
@@ -1231,18 +1264,18 @@ def succeededBody (ctx : Ctx) (R : Rec) (rule : String) (fs : List Frame) (k : C
 def truncate (ctx : Ctx) (pre0 : List Item) (k0 : CharSet) : List Item × CharSet :=
   if pre0.length > maxPrefix then ([], beforeItems ctx pre0 k0) else (pre0, k0)
 
-def failedKey (rule : String) (fs : List Frame) (pre : List Item) (lifts : Nat) (k : CharSet) : Key :=
-  (rule, fs.map frameKey, .failed, k, preKey lifts pre)
+def failedKey (ctx : Ctx) (rule : String) (fs : List Frame) (pre : List Item) (lifts : Nat) (k : CharSet) : Key :=
+  (rule, fs.map frameKey, .failed, k, ctx.keyOf lifts pre)
 
-def succeededKey (rule : String) (fs : List Frame) (k : CharSet) : Key :=
-  (rule, fs.map frameKey, .succeeded, k, preKey 0 [])
+def succeededKey (ctx : Ctx) (rule : String) (fs : List Frame) (k : CharSet) : Key :=
+  (rule, fs.map frameKey, .succeeded, k, ctx.keyOf 0 [])
 
 def step (ctx : Ctx) (R : Rec) : Rec :=
   { failed := fun rule fs p k0 =>
       let t := truncate ctx p.1 k0
-      visit (failedKey rule fs t.1 p.2 t.2) (failedBody ctx R rule fs t.1 p.2 t.2)
+      visit (failedKey ctx rule fs t.1 p.2 t.2) (failedBody ctx R rule fs t.1 p.2 t.2)
     succeeded := fun rule fs k =>
-      visit (succeededKey rule fs k) (succeededBody ctx R rule fs k) }
+      visit (succeededKey ctx rule fs k) (succeededBody ctx R rule fs k) }
 
 def run (ctx : Ctx) : Nat → Rec
   | 0 => ⟨fun _ _ _ _ _ => none, fun _ _ _ _ => none⟩
@@ -1261,10 +1294,10 @@ def verdictMessage (name : String) : Verdict → Option String
   | .unchecked why => some ("the label " ++ name ++ " cannot be checked: " ++ why)
 
 -- labelWarnings, for a function that gives the verdict on a label.
-def labelWarningsWith (verdict : Ctx → String → List Frame → Expr → Verdict) (g : Grammar) :
-    List Diagnostic :=
+def labelWarningsWith (keyOf : Nat → List Item → String) (verdict : Ctx → String → List Frame → Expr → Verdict)
+    (g : Grammar) : List Diagnostic :=
   let safe := g.safe.map (·.2)
-  let ctx := context (unlabelGrammar g)
+  let ctx := contextWith keyOf (unlabelGrammar g)
   (g.rules.flatMap sites).filterMap fun s =>
     match s.expr with
     | .label _ x name =>
@@ -1285,7 +1318,7 @@ def warningAt (safe : List String) (verdict : String → List Frame → Expr →
 
 -- labelWarnings with the fuel n; none when the fuel does not give a verdict on a label.
 def labelWarningsFuel (n : Nat) (g : Grammar) : Option (List Diagnostic) :=
-  let ctx := context (unlabelGrammar g)
+  let ctx := contextWith preKey (unlabelGrammar g)
   ((g.rules.flatMap sites).mapM (warningAt (g.safe.map (·.2)) (verdictFuel ctx n))).map (·.filterMap id)
 
 /-! ## Removing labels: stripLabels -/

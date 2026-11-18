@@ -199,6 +199,9 @@ theorem abstractions_wf (rules : List Rule) : PassWF (abstractions rules).2 := b
       fun x => minus_wf everything_wf (hposs x)⟩
   exact h3 _ (fixpoint_wf rules _ h3)
 
+theorem contextWith_pass_wf (keyOf : Nat → List Item → String) (g : Grammar) :
+    PassWF (contextWith keyOf g).pass := abstractions_wf g.rules
+
 theorem context_pass_wf (g : Grammar) : PassWF (context g).pass := abstractions_wf g.rules
 
 theorem beforeItems_wf {ctx : Ctx} (hp : PassWF ctx.pass) (pre : List Item) {k : CharSet} (hk : k.WF) :
@@ -431,7 +434,7 @@ theorem substItemsL_mem {pm : List (String × String)} :
 
 def preUniverse (ctx : Ctx) (fs0 : List Frame) : List String :=
   (List.range (maxLifts + 1)).flatMap fun l =>
-    (listsUpTo (itemUniverse ctx fs0 maxLifts) maxPrefix).map (preKey l)
+    (listsUpTo (itemUniverse ctx fs0 maxLifts) maxPrefix).map (ctx.keyOf l)
 
 def ruleUniverse (ctx : Ctx) (rule0 : String) : List String := rule0 :: ctx.refSites.map (·.rule)
 
@@ -466,14 +469,14 @@ theorem key_mem {ctx : Ctx} {rule0 rule : String} {fs0 fs : List Frame} {md : Mo
 
 theorem failedKey_mem {ctx : Ctx} {rule0 rule : String} {fs0 fs : List Frame} {pre : List Item} {lifts : Nat}
     {k : CharSet} (h : FInv ctx rule0 fs0 rule fs pre lifts k) (hlen : pre.length ≤ maxPrefix) :
-    failedKey rule fs pre lifts k ∈ keyUniverse ctx rule0 fs0 := by
+    failedKey ctx rule fs pre lifts k ∈ keyUniverse ctx rule0 fs0 := by
   apply key_mem h.hrule h.hframes h.hk
   simp only [preUniverse, List.mem_flatMap, List.mem_map, List.mem_range]
   refine ⟨lifts, by have := h.hlifts; omega, pre, ?_, rfl⟩
   exact mem_listsUpTo _ _ _ hlen (fun i hi => itemUniverse_mono (h.hpre i hi) _ h.hlifts)
 
 theorem succeededKey_mem {ctx : Ctx} {rule0 rule : String} {fs0 fs : List Frame} {k : CharSet}
-    (h : SInv ctx rule0 fs0 rule fs k) : succeededKey rule fs k ∈ keyUniverse ctx rule0 fs0 := by
+    (h : SInv ctx rule0 fs0 rule fs k) : succeededKey ctx rule fs k ∈ keyUniverse ctx rule0 fs0 := by
   apply key_mem h.hrule h.hframes h.hk
   simp only [preUniverse, List.mem_flatMap, List.mem_map, List.mem_range]
   exact ⟨0, by simp [maxLifts], [], mem_listsUpTo _ _ _ (by simp) (by simp), rfl⟩
@@ -947,8 +950,13 @@ theorem verdictFuel_eq {ctx : Ctx} (hp : PassWF ctx.pass) {n : Nat} {rule : Stri
   simp only [Option.some.injEq] at a2
   rw [← e2, a2]
 
-/-- `labelWarnings` of Labels.hs. -/
-noncomputable def labelWarnings (g : Grammar) : List Diagnostic := labelWarningsWith verdictOf g
+/-- `labelWarnings` of Labels.hs, with `keyOf` the text of the keys of the
+visited set. -/
+noncomputable def labelWarningsBy (keyOf : Nat → List Item → String) (g : Grammar) : List Diagnostic :=
+  labelWarningsWith keyOf verdictOf g
+
+/-- `labelWarnings` of Labels.hs, with the keys that `repr` writes. -/
+noncomputable def labelWarnings (g : Grammar) : List Diagnostic := labelWarningsBy preKey g
 
 theorem filterMap_congr' {α β : Type} {f g : α → Option β} :
     ∀ {l : List α}, (∀ x ∈ l, f x = g x) → l.filterMap f = l.filterMap g
@@ -979,11 +987,11 @@ theorem mapM_filterMap {α β : Type} {f : α → Option (Option β)} {h : α �
 /-- The warnings of the probe, whenever its fuel gives a verdict on every label, are `labelWarnings`. -/
 theorem labelWarnings_eq_fuel {n : Nat} {g : Grammar} {ws : List Diagnostic}
     (h : labelWarningsFuel n g = some ws) : ws = labelWarnings g := by
-  have hp := context_pass_wf (unlabelGrammar g)
+  have hp := contextWith_pass_wf preKey (unlabelGrammar g)
   unfold labelWarningsFuel at h
   simp only [Option.map_eq_some_iff] at h
   obtain ⟨l', hl', rfl⟩ := h
-  unfold labelWarnings labelWarningsWith
+  unfold labelWarnings labelWarningsBy labelWarningsWith
   apply mapM_filterMap _ hl'
   intro s _ y hy
   unfold warningAt at hy
