@@ -678,7 +678,7 @@ theorem invariant1_generateWithWarnings (s : Inputs T) (input : List Char)
     (code : String) (success : publicModule s input = .ok code) :
     ∃ ts tg, FileTops.ParsesTo s.value input ts ∧
       AssembleTranslated.assemble (s.items ts) = .ok tg ∧
-      AssembleValidation.assemble (s.view ts) = .ok () := by
+      AssembleValidation.assemble (view s ts) = .ok () := by
   unfold publicModule generateWithWarnings at success
   obtain ⟨parsed, _, _, hp, _⟩ := (Pipeline.invariant3_visible_success_iff ..).mp success
   obtain ⟨ts, tg, hts, ha, _⟩ := (invariant1_parse_iff s input parsed).mp hp
