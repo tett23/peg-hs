@@ -7,11 +7,11 @@ Rule bodies read only what they bind (premise R7 of verification/README.md,
 the memo key and the bindings of a repetition).
 
 The model passes one environment through a body: a call without arguments
-hands the caller's environment to the callee, and a repetition hands the
-environment of one iteration to the next. The generated Haskell does
-neither: a rule sees only its parameter and the variables it binds, and
-`many` and `skipMany` drop the variables of an iteration. This module shows
-that the difference is not observable in the metagrammar.
+hands the caller's environment to the callee. The generated Haskell does
+not: a rule sees only its parameter and the variables it binds. This module
+shows that the difference is not observable in the metagrammar. (The other
+difference, that `many` and `skipMany` drop the variables of an iteration
+while the model hands them to the next iteration, is LoopBindings.lean.)
 
 `check` is a static analysis of a body. A `Know` lists what two environments
 are known to agree on: the depth parameter, the result depth, and the
@@ -31,10 +31,6 @@ Theorems:
 - `invariant1_plain_call_independent`: a rule of the strict metagrammar
   called without arguments returns, from any two environments, replies with
   the same positions, labels and result depth.
-- `invariant1_loop_iteration_independent`: an iteration of a repetition
-  returns the same positions, labels and result depth whether it starts from
-  the environment the previous iteration left or from the environment the
-  repetition started with.
 
 Premises: none besides those of MetaExecution.lean. The analysis is checked
 by `decide` on the extracted rule table.

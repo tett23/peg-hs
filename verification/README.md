@@ -49,7 +49,7 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 段 | Lean の定義 | 実装 |
 | --- | --- | --- |
-| 構文解析と組み立て | `parse`（PublicGeneration.lean:294）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:946）に、検査付きの翻訳 `translatedGrammar` と `translatedAssemble` を当てる | `parseGrammar src = parseTops src >>= assemble` |
+| 構文解析と組み立て | `parse`（PublicGeneration.lean:294）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:953）に、検査付きの翻訳 `translatedGrammar` と `translatedAssemble` を当てる | `parseGrammar src = parseTops src >>= assemble` |
 | import の解決 | `resolve`（PublicGeneration.lean:300） | `resolveImports` |
 | テンプレートの展開 | `Inputs.expand`（PublicGeneration.lean:272） | `expandTemplates` |
 | 規則の検査 | `checkStage`（PublicGeneration.lean:307） | `check` |
@@ -80,9 +80,9 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 | 6 | `invariant1_parseTops_iff` | PublicParsing.lean:28 | `parseTops` の入口は、開始規則の結果が入力のバイト長で終わるときだけ値を返す。 |
 | 7 | `invariant1_parseTops_value` | FileTops.lean:372 | `parseTops` が `ts` を返すことと、`ts` が入力全体の導出の値の列であることは同値である。 |
 | 8 | `invariant1_parsesTo_iff`、`invariant1_tops_iff` | FileTops.lean:333、FileTops.lean:302 | 値の列を持つ導出があることと、認識器が入力全体を受理すること（`FileResult false input (.ok 0 env)`）は同値である。 |
-| 9 | `invariant1_runtimeStart_eq` | SelfHostedRuntime.lean:955 | `parse` が読む開始結果 `runtimeStart` は、`FileResult` の返答から作る FileTops の開始結果 `startTops` に等しい。 |
-| 10 | `invariant1_runtimeResult` | SelfHostedRuntime.lean:920 | `runParser defaultConfig` が作る文脈と世界から、翻訳したランタイムで `File` を走らせた結果は、`FileResult` のある返答と一致する（同じ残りの入力と環境をそのバイト位置で返すか、同じラベルとメッセージを投げるか、失敗する）。 |
-| 11 | `invariant1_exec_agrees` | SelfHostedRuntime.lean:560 | 燃料ごとに、規則本体のランタイムでの実行 `exec` は、どの世界から始めても、導出の文脈での実行 `runFuel` と一致する結果を返す。 |
+| 9 | `invariant1_runtimeStart_eq` | SelfHostedRuntime.lean:962 | `parse` が読む開始結果 `runtimeStart` は、`FileResult` の返答から作る FileTops の開始結果 `startTops` に等しい。 |
+| 10 | `invariant1_runtimeResult` | SelfHostedRuntime.lean:927 | `runParser defaultConfig` が作る文脈と世界から、翻訳したランタイムで `File` を走らせた結果は、`FileResult` のある返答と一致する（同じ残りの入力と環境をそのバイト位置で返すか、同じラベルとメッセージを投げるか、失敗する）。 |
+| 11 | `invariant1_exec_agrees` | SelfHostedRuntime.lean:564 | 燃料ごとに、規則本体のランタイムでの実行 `exec` は、どの世界から始めても、導出の文脈での実行 `runFuel` と一致する結果を返す。 |
 | 12 | `invariant1_file_result` | MetaExecution.lean:38 | どの入力にも `FileResult` の返答がちょうど一つある。 |
 | 13 | `recognizeFile` | TotalFile.lean:23 | その返答を燃料の探索で求める全域の関数である。手順 9 の右辺が使う。 |
 | 14 | `invariant1_strict_rule_table` | SelfHostedFileProof.lean:131 | 生成した `SelfHosted.hs` の規則を翻訳した本体の表は、導出の文脈の規則の表と同じものである。 |
@@ -162,7 +162,7 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 
 | 段 | 主な Lean のモジュール | 対応のしかた | 報告 | 主な検査 |
 | --- | --- | --- | --- | --- |
-| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、SelfHostedRuntime、SelfHostedMemo、ScopedEnv、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
+| メタ文法の規則本体と認識 | MetaExecution、EnvironmentEval、EnvironmentDerivation、SelfHostedFileProof、SelfHostedRuntime、SelfHostedMemo、ScopedEnv、LoopBindings、ConcreteTerminal、Strict で始まるモジュール | 検査付きの翻訳（ExtractSelfHostedFile.hs、ExtractConcreteTerminals.hs、ExtractRuntimeChoice.hs、ExtractVerbatimBody.hs） | 翻訳を検証済み | check-strict-file.sh、check-concrete-terminals.sh |
 | 呼び出しの整礎性 | CallOrder、RecursiveEval | 検査付きの翻訳（ExtractCallOrder.hs） | 翻訳を検証済み | check-call-order.sh |
 | 開始規則と空白 | File、Consumption、Whitespace、Lexical | `File` は検査付きの翻訳（ExtractFile.hs）。空白とコメントは規則の行を `grep` で固定する | 翻訳を検証済み（File）、モデルを検証済み（Whitespace、Lexical） | check.sh、check-whitespace.sh、check-lexical.sh |
 | PEG の式の意味 | Parsing | 固定ソースの diff とプローブ（非回復時のランタイムの一部と比べる） | モデルを検証済み | check-core.sh |
@@ -265,27 +265,40 @@ Lean のモデルはメモ化なしで動くので、その中には数分かか
 これらの定理があるので、`check-public-parsing.sh` と `check-memo-recognition.sh` はランタイムの SHA-256 を照合しない。
 
 [SelfHostedRuntime.lean](SelfHostedRuntime.lean) は、自己ホストしたパーサーをこの翻訳の上で走らせる。
-`exec`（SelfHostedRuntime.lean:474）は、規則本体の各構成子を、ExtractSelfHostedFile.hs がその構成子を読み取る生成コードの組み合わせ子で実行する。
+`exec`（SelfHostedRuntime.lean:478）は、規則本体の各構成子を、ExtractSelfHostedFile.hs がその構成子を読み取る生成コードの組み合わせ子で実行する。
 連接は `bindP`、選択は `choice`、端末は `lit`、`cls`、`anyChar`、先読みは `andP` と `notP`、ラベルは `labeled` と `labeledMessage`、意味述語は `predicate`、規則の呼び出しは `nomemo` である。
-繰り返しは `manyGo` と `skipManyGo` と同じ形のループで、反復から反復へモデルの環境を渡す。
+繰り返しは `manyGo` と `skipManyGo` と同じ形のループである。
+生成コードの `many` と `skipMany` は反復ごとに同じアクションを走らせるので、`exec` も各反復をループの始めの環境から走らせ、結果の深さだけを次の反復に渡す。
 値は、モデルの残りの入力と環境である（前提 R7）。
 `predicate` は翻訳の対象でないので、check-runtime-core.sh がソースの行を照合する。
-`invariant1_exec_agrees`（SelfHostedRuntime.lean:560）は、燃料についての帰納法で、`exec` と導出の文脈での実行 `runFuel` が一致することを示す。
-`invariant1_runtime_file`（SelfHostedRuntime.lean:887）は、これを `runParser defaultConfig` が作る文脈と世界の `File` に当てる。
-`invariant1_runtime_runParser`（SelfHostedRuntime.lean:973）は、その `runParser` が値を返すことと、開始結果を `PublicParsing.entry` に渡して同じ値が返ることが同値であることを示す。
+`invariant1_exec_agrees`（SelfHostedRuntime.lean:564）は、燃料についての帰納法で、`exec` と導出の文脈での実行 `runFuel` が一致することを示す。
+この定理は、呼び出しが呼び出し元の環境を結果の深さのほかは保ち、どの規則の繰り返しの本体も名前を束縛しないという条件 `Frame`（LoopBindings.lean:52）を仮定に取る。
+`invariant1_runtime_file`（SelfHostedRuntime.lean:893）は、これを `runParser defaultConfig` が作る文脈と世界の `File` に当てる。
+`invariant1_runtime_runParser`（SelfHostedRuntime.lean:980）は、その `runParser` が値を返すことと、開始結果を `PublicParsing.entry` に渡して同じ値が返ることが同値であることを示す。
 `PublicGeneration.parse` は、十分な燃料での実行の開始結果 `runtimeStart` の上に定義する。
 
 ただし、生成コードは規則の呼び出しを `nomemo` ではなくメモ表で包む。
-[SelfHostedMemo.lean](SelfHostedMemo.lean) の `execM`（SelfHostedMemo.lean:78）は、`exec` の呼び出しを、引数のない呼び出しでは `memo` に、引数のある呼び出しでは深さの引数を鍵にした `memoArg` に替えたものである。
-`invariant1_memoArg_rules`（SelfHostedMemo.lean:478）は、`memoArg` で呼ぶ規則が、ExtractSelfHostedFile.hs が `d` を取り `PegRt.memoArg` で定義されていると読む 12 個の規則に一致することを示す。
-表はストアの中の参照であり、キャッシュの不変条件 `Coherent`（SelfHostedMemo.lean:146）は、ストア全体のどの項目も、その鍵でモデルが返すどの返答とも、呼び出し元が使うもの（位置、ラベル、結果の深さ）で一致することをいう。
-`invariant1_memo_runs`（SelfHostedMemo.lean:585）は、燃料についての帰納法で、モデルが返答を返す燃料では、不変条件を満たすどの世界からも `execM` がその返答に当たる結果を返し、不変条件を保つことを示す。
-`invariant1_memo_file`（SelfHostedMemo.lean:918）と `invariant1_memo_runParser`（SelfHostedMemo.lean:947）は、空の表から始めた `File` の実行が `fileRun` と同じ結果を返し、`runParser defaultConfig` の値も `runtimeResult` から決まることを示す。
+[SelfHostedMemo.lean](SelfHostedMemo.lean) の `execM`（SelfHostedMemo.lean:79）は、`exec` の呼び出しを、引数のない呼び出しでは `memo` に、引数のある呼び出しでは深さの引数を鍵にした `memoArg` に替えたものである。
+`invariant1_memoArg_rules`（SelfHostedMemo.lean:496）は、`memoArg` で呼ぶ規則が、ExtractSelfHostedFile.hs が `d` を取り `PegRt.memoArg` で定義されていると読む 12 個の規則に一致することを示す。
+表はストアの中の参照であり、キャッシュの不変条件 `Coherent`（SelfHostedMemo.lean:147）は、ストア全体のどの項目も、その鍵でモデルが返すどの返答とも、呼び出し元が使うもの（位置、ラベル、結果の深さ）で一致することをいう。
+`invariant1_memo_runs`（SelfHostedMemo.lean:603）は、燃料についての帰納法で、モデルが返答を返す燃料では、不変条件を満たすどの世界からも `execM` がその返答に当たる結果を返し、不変条件を保つことを示す。
+`invariant1_memo_file`（SelfHostedMemo.lean:941）と `invariant1_memo_runParser`（SelfHostedMemo.lean:970）は、空の表から始めた `File` の実行が `fileRun` と同じ結果を返し、`runParser defaultConfig` の値も `runtimeResult` から決まることを示す。
 
 引数のない呼び出しの鍵は位置だけであり、呼び出し元の環境を含まない。
 そこで、[ScopedEnv.lean](ScopedEnv.lean) の静的な解析 `check` は、規則の本体が、意味述語、アクション、呼び出しの引数で、自分で束縛した名前と深さの引数だけを読むことを確かめる。
-`invariant1_scope_sound`（ScopedEnv.lean:295）は解析の健全性を、`invariant1_meta_scoped`（ScopedEnv.lean:587）は、`parseTops` が使う Peg.hpeg のメタ文法のすべての規則が解析を通ることを示す。
-`invariant1_plain_call_independent`（ScopedEnv.lean:628）は、引数のない呼び出しを受ける規則が、どの環境から始めても、呼び出し元が使うものの等しい返答を返すことを示す。
+`invariant1_scope_sound`（ScopedEnv.lean:291）は解析の健全性を、`invariant1_meta_scoped`（ScopedEnv.lean:583）は、`parseTops` が使う Peg.hpeg のメタ文法のすべての規則が解析を通ることを示す。
+`invariant1_plain_call_independent`（ScopedEnv.lean:624）は、引数のない呼び出しを受ける規則が、どの環境から始めても、呼び出し元が使うものの等しい返答を返すことを示す。
+
+繰り返しの環境の渡し方も、生成コードとモデルで異なる。
+`runFuel` は前の反復が残した環境から次の反復を始めるが、生成コードの `many` と `skipMany` は反復の束縛を捨てる。
+[LoopBindings.lean](LoopBindings.lean) は、繰り返しの本体が名前を束縛しなければ、二つの渡し方が同じ環境を次の反復に渡すことを示す。
+
+- `invariant1_bindfree_frame`（LoopBindings.lean:62）: 名前を束縛しない本体は、成功したとき、始めの環境の結果の深さだけを変えた環境を返す。呼び出しが呼び出し元の環境を結果の深さのほかは保つことを仮定に取る。
+- `invariant1_loop_env_same`（LoopBindings.lean:194）: そのため、繰り返しの本体が名前を束縛しなければ、`runFuel` が次の反復に渡す環境は、ループの始めの環境に結果の深さを載せたものに等しい。
+- `invariant1_meta_loops_bind_nothing`（LoopBindings.lean:236）: メタ文法の文脈は `Frame` を満たす。どの規則の繰り返しの本体も名前を束縛しないことは、抽出した規則の表の上で `decide` が確かめる。
+
+`execM` も `exec` と同じく反復の束縛を捨てる。
+`invariant1_memo_runs` の仮定 `plainCalls`（SelfHostedMemo.lean:446）は、繰り返しの本体が名前を束縛しないことを含む。
 
 また、ExtractSelfHostedFile.hs が規則本体を読むときに落とす書き方は、[RuntimeForms.lean](RuntimeForms.lean) が結果を変えないことを示す。
 回復と計数を無効にした翻訳したランタイムでは、どの世界からも次の等式が成り立つ。
@@ -679,7 +692,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | R4 | 位置はバイトオフセットのまま扱う。行と列への変換は [LineIndex.lean](LineIndex.lean) が別に証明する。 | RuntimeCore.lean:25 | check.sh（line-of.source と CheckLineIndex.hs） |
 | R5 | `ctxLogs` に積む取り消しの動作は消して写す。取り消しを実行する `endIteration` と、それを呼ぶ `memoLR` は翻訳しない。 | RuntimeCore.lean:27 | [check-memo-meta.sh](check-memo-meta.sh)（メタ文法のパーサーが `memoLR` を使わないことを確かめる） |
 | R6 | メモ化の定理は、回復と計数が無効であること、成長の反復が走っていないこと（`ctxLogs` が空）、規則本体が失敗の記録と依存を空にして始めたときに同じ結果を返すこと（`BodySpec`）、表の項目が本体を評価した結果に等しいこと（キャッシュの不変条件）を仮定に置く。`lit` の比較の繰り返しには、Lean の停止性の証明のために `k < n` の分岐を足す。`go 0` から呼ぶかぎり、足した分岐には到達しない。`many` と `skipMany` の定義には Lean の `partial_fixpoint` を使う。 | RuntimeCoreProof.lean:14、ExtractRuntimeCore.hs | check-runtime-core.sh（四つの行を消した変異を証明が拒否する）、check-memo-tables.sh |
-| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。繰り返しでは、生成コードの `many` と `skipMany` は反復の束縛を捨て、`exec` と `execM` は環境を次の反復に渡す。ScopedEnv の解析は本体が読む名前を規則の中で束縛したものに限るが、二つの繰り返しの意味が同じ結果を返すことは示していない。生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）と、本体の読み取りで落とす書き方（RuntimeForms.lean）は、前提から外れた。 | SelfHostedRuntime.lean:474（`exec`）、SelfHostedMemo.lean:78（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
+| R7 | 生成コードの値は Haskell の値と変数の束縛であり、`exec` と `execM` の値はモデルの残りの入力と環境である。`parseTops` が返す `[Top]` の中身は、前提 M3 のとおり特徴づけない。生成コードの組み合わせ子の並びが本体に対応することは、ExtractSelfHostedFile.hs の読み取り（前提 X1）に拠る。メモ表（SelfHostedMemo.lean）、本体の読み取りで落とす書き方（RuntimeForms.lean）、繰り返しの束縛の渡し方（LoopBindings.lean）は、前提から外れた。 | SelfHostedRuntime.lean:478（`exec`）、SelfHostedMemo.lean:79（`execM`） | check-strict-file.sh（ExtractSelfHostedFile.hs が生成コードの組み合わせ子の並びを照合する）、check-runtime-core.sh、check-file-tops.sh、check.sh の境界の入力の比較 |
 
 ### 規則の検査、ラベル、テンプレート、import の前提
 

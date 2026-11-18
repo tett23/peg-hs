@@ -93,6 +93,7 @@ mkdir "$work/meta-cases"
   ./check-env-projection.sh "$work" &&
   lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
   lean -DwarningAsError=true -o "$work/ScopedEnv.olean" ScopedEnv.lean &&
+  lean -DwarningAsError=true -o "$work/LoopBindings.olean" LoopBindings.lean &&
   lean -DwarningAsError=true -o "$work/EnvRunCongruence.olean" EnvRunCongruence.lean &&
   lean -DwarningAsError=true EnvRunCongruenceTests.lean &&
   lean -DwarningAsError=true -o "$work/MetaEnvCompatible.olean" MetaEnvCompatible.lean &&
