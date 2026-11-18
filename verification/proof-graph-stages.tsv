@@ -73,8 +73,8 @@ TranslatedRuntimeCore	ランタイム	translated
 Memo*	ランタイム	translated
 LabelPropagation	ランタイム	translated
 LineIndex	位置の行と列	model
-Assemble*	assemble の検査	model
-NestedBindings	assemble の検査	model
+Assemble*	assemble の検査	translated
+NestedBindings	assemble の検査	translated
 SimpleEscapeProof	指示の引数	translated
 TabstopProof	指示の引数	translated
 BoundedDecimal	指示の引数	translated

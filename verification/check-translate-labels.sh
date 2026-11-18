@@ -84,12 +84,12 @@ if translate "$work/mutant" > "$work/mutant.lean" 2> "$work/mutant.err"; then
 fi
 grep -q 'unsupported: a tuple section' "$work/mutant.err"
 rejected=$((rejected + 1))
-mutant 's/    recoveryEntries = go (start : map unLoc (grammarEntries g))/    recoveryEntries = go (start : reverse (map unLoc (grammarEntries g)))/' library
+mutant 's/    recoveryEntries = go (start : map unLoc (grammarEntries g))/    recoveryEntries = go (start : init (map unLoc (grammarEntries g)))/' library
 if translate "$work/mutant" > "$work/mutant.lean" 2> "$work/mutant.err"; then
   echo 'the translator took a library function outside its table' >&2
   exit 1
 fi
-grep -q 'unsupported: the name GHC.List.reverse' "$work/mutant.err"
+grep -q 'unsupported: the name GHC.List.init' "$work/mutant.err"
 rejected=$((rejected + 1))
 mutant '/^      EStar x -> EStar (expr x)$/d' strip-star
 translate "$work/mutant" > "$work/mutant/LabelsTranslated.lean"

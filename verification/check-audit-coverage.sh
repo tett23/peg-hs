@@ -30,7 +30,7 @@ ExtractSemanticClasses.hs GhcPredicates
 ExtractSignatures.hs ExtractedSignatures
 extract-happy-trace.awk DerivationPeg DerivationPegSyntax DerivationExtensions
 SplitMetaFile.lean CertifiedPublicFiles
-TranslateHaskell.hs LabelsTranslated
+TranslateHaskell.hs LabelsTranslated AssembleTranslated
 TABLE
 grep -lE '"[^"]*(theorem|lemma) ' -- *.hs *.awk *.lean | sort > "$work/writers"
 cut -d ' ' -f 1 "$work/generators" | sort > "$work/known"

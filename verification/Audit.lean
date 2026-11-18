@@ -98,6 +98,13 @@ import LabelCheckTheorems
 import HsPrelude
 import LabelsTranslated
 import LabelsTranslatedProof
+import GeneralCategory
+import AssembleTranslated
+import AssembleTextProof
+import AssembleExportProof
+import AssembleStringProof
+import AssembleDirectiveProof
+import AssembleTranslatedProof
 import CheckGroupsTheorems
 import InnerGeneration
 import InnerUnicode
@@ -284,6 +291,13 @@ def auditedModules : List Lean.Name := [
   `LabelPropagation,
   `LabelsTranslated,
   `LabelsTranslatedProof,
+  `GeneralCategory,
+  `AssembleTranslated,
+  `AssembleTextProof,
+  `AssembleExportProof,
+  `AssembleStringProof,
+  `AssembleDirectiveProof,
+  `AssembleTranslatedProof,
   `LabeledConcreteBody,
   `LayoutDerivation,
   `Lexical,
@@ -391,7 +405,8 @@ run_cmd do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     owners := owners.insert idx.toNat moduleName
     counts := counts.insert moduleName 0
-  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore, `LabelsTranslated]
+  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore, `LabelsTranslated,
+    `AssembleTranslated]
   let mut own := 0
   for (name, info) in env.constants.toList do
     -- Declarations of this file have no module index.

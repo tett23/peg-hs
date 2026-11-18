@@ -7,7 +7,9 @@
 -- The module is read by GHC 9.10.3's own front end through the GHC API: it is
 -- parsed, renamed and typechecked as the packages compile it (GHC2021 and the
 -- module's LANGUAGE pragmas). The translator walks the renamed syntax tree of
--- the requested functions and of every function of the module they reach.
+-- the requested functions and of every function they reach, in the module or
+-- in the other modules of the same source directories (named after their
+-- module, as Peg_Grammar_reservedWords).
 -- Types come from the typechecker: the type of each binder, and the type at
 -- which each library function is used (which picks the instance of a class
 -- method). A construct outside the subset below stops the translation with
@@ -23,7 +25,10 @@
 --   the type (Haskell raises an error there).
 -- - Local function bindings are lifted to top-level definitions that take
 --   the local variables they use as leading arguments. A local value
---   binding becomes a `let`; a recursive local value is rejected.
+--   binding becomes a `let`; a recursive local value is rejected. The hint
+--   `lift NAME` lifts the local values of NAME too, so that proofs can name
+--   them. A local function generalised with class constraints is translated
+--   once for each type that it is used at outside its recursive group.
 -- - Expressions: variables, constructors, application, operators (with
 --   GHC's fixities), sections, lambda, \case, case, if, multi-way if, let,
 --   tuples, lists, list comprehensions, do-blocks (the bind of the block's
@@ -39,7 +44,10 @@
 --   in that monad, call the definitions (with base's default methods).
 -- - Recursion: Lean must prove every recursive group terminating, possibly
 --   with a termination_by/decreasing_by text from the hints file (Lean checks
---   it), or the group is in the hints file's fuel list. A function of a fuel
+--   it), or the group is in the hints file's fuel list. The hint
+--   `equations NAME` makes the matches and pattern bindings of NAME keep the
+--   equations of their values (`match h : x with`), for the decreasing
+--   proofs; the value is the same. A function of a fuel
 --   group takes a fuel argument first; a call inside the group spends one;
 --   an empty fuel gives `hsUndefined`; a caller outside the group passes its
 --   own fuel, and so takes one too. The fuel translation agrees with the
@@ -61,7 +69,7 @@ import Data.Char (isAlphaNum, ord)
 import Data.Data (Data, cast, gmapQ)
 import Data.Graph (SCC (..), stronglyConnComp)
 import Data.IORef
-import Data.List (intercalate, isPrefixOf, nub)
+import Data.List (intercalate, isPrefixOf, nub, sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (fromMaybe, isJust)
 import qualified Data.Set as S
@@ -189,13 +197,17 @@ data G = G
   , gInstances :: M.Map (String, String) String -- (tycon, method) -> Lean name
   , gProject :: S.Set String -- project modules
   , gEqTypes :: S.Set String -- project types deriving Eq (module.occ)
+  , gOrdTypes :: S.Set String -- project types deriving Ord (module.occ)
   , gTyCons :: IORef (M.Map String TyCon) -- project type constructors met
   , gFresh :: IORef Int
   , gLibraryUsed :: IORef (S.Set String)
   , gSubst :: Maybe Subst -- the specialisation of the definition being translated
-  , gSpecial :: M.Map Int (Type, Subst) -- constrained local functions: their type at their uses
+  , gSpecial :: M.Map Int (Int, [(Type, Subst)]) -- constrained local functions: their group and copies
+  , gCopy :: M.Map Int Int -- the copy of each constrained group being translated
   , gNamespace :: String
   , gHints :: M.Map String String -- Lean name without the line -> termination_by/decreasing_by
+  , gEquations :: S.Set String -- definitions whose pattern bindings keep their equation
+  , gEquationHere :: Bool -- the definition being translated is one of them
   , gBefore :: M.Map String String -- Lean name without the line -> lemmas before the definition
   }
 
@@ -234,6 +246,10 @@ leanType g ty0 = go (expandTypeSynonyms ty0)
             ("Data.Text.Internal", "Text", []) -> pure "String"
             ("GHC.Types", "List", [a]) -> pure (appT "List" [a])
             ("GHC.Maybe", "Maybe", [a]) -> pure (appT "Option" [a])
+            ("Data.Either", "Either", [a, b]) -> pure (appT "Except" [a, b])
+            ("GHC.Num.Integer", "Integer", []) -> pure "Int"
+            ("GHC.Num.Natural", "Natural", []) -> pure "Nat"
+            ("GHC.Unicode", "GeneralCategory", []) -> pure "HsGeneralCategory"
             (m, "Unit", []) | "GHC.Tuple" `isPrefixOf` m -> pure "Unit"
             ("Data.Map.Internal", "Map", [k, v]) -> pure (appT "HsMap" [k, v])
             ("Data.Set.Internal", "Set", [a]) -> pure (appT "HsSet" [a])
@@ -274,7 +290,10 @@ resHead n ty = case splitArgs n ty of
   Just (_, _, r) -> headOf r
   Nothing -> "?"
 
-tText, tList, tMaybe, tInt, tChar, tBool :: String
+tText, tList, tMaybe, tInt, tChar, tBool, tEither, tInteger, tNatural :: String
+tEither = "Data.Either.Either"
+tInteger = "GHC.Num.Integer.Integer"
+tNatural = "GHC.Num.Natural.Natural"
 tText = "Data.Text.Internal.Text"
 tList = "GHC.Types.List"
 tMaybe = "GHC.Maybe.Maybe"
@@ -289,7 +308,7 @@ eqAllowed g t = case splitTyConApp_maybe (expandTypeSynonyms t) of
   Just (tc, args) ->
     let n = qual (tyConName tc)
         ok =
-          n `elem` [tText, tList, tMaybe, tInt, tChar, tBool, "Data.Map.Internal.Map", "Data.Set.Internal.Set"]
+          n `elem` [tText, tList, tMaybe, tInt, tChar, tBool, tEither, tInteger, tNatural, "GHC.Unicode.GeneralCategory", "Data.Map.Internal.Map", "Data.Set.Internal.Set"]
             || isTupleTyCon tc
             || S.member n (gEqTypes g)
      in ok && all (eqAllowed g) args
@@ -333,6 +352,8 @@ library g m o mty = case o of
   "length" | base, a0 == tList -> Just "HsList.length"
   "foldr" | base, a2 == tList -> Just "HsList.foldr"
   "sortOn" | base, ordArg -> Just "HsList.sortOn"
+  -- Rule H11: a key of a project type that derives Ord.
+  "sortOn" | base, derivedOrdArg -> Just "HsList.sortOnOrd"
   "fromEnum" | base, a0 == tChar -> Just "HsChar.fromEnum"
   "max" | base, a0 == tInt -> Just "HsInt.max"
   "min" | base, a0 == tInt -> Just "HsInt.min"
@@ -342,14 +363,35 @@ library g m o mty = case o of
   "show" | base, eqArg 0 -> Just "HsShow.viaRepr"
   "==" | base, eqArg 0 -> Just "HsBase.eq"
   "/=" | base, eqArg 0 -> Just "HsBase.ne"
-  "<" | base, a0 == tInt -> Just "HsInt.lt"
-  "<=" | base, a0 == tInt -> Just "HsInt.le"
-  ">" | base, a0 == tInt -> Just "HsInt.gt"
-  ">=" | base, a0 == tInt -> Just "HsInt.ge"
+  "<" | base, integral a0 -> Just "HsInt.lt"
+  "<=" | base, integral a0 -> Just "HsInt.le"
+  ">" | base, integral a0 -> Just "HsInt.gt"
+  ">=" | base, integral a0 -> Just "HsInt.ge"
   "<=" | base, a0 == tChar -> Just "HsChar.le"
-  "+" | base, a0 == tInt -> Just "HsInt.add"
-  "-" | base, a0 == tInt -> Just "HsInt.sub"
-  "negate" | base, a0 == tInt -> Just "HsInt.neg"
+  "<" | base, a0 == tChar -> Just "HsChar.lt"
+  "*" | base, integral a0 -> Just "HsInt.mul"
+  "div" | base, integral a0 -> Just "HsInt.div"
+  "toInteger" | base, a0 == tInt -> Just "HsInt.toInteger"
+  "fromInteger" | base, a0 == tInteger, r0' == tInt -> Just "HsInt.fromInteger"
+  "maxBound" | base, maybe "?" headOf mty == tInt -> Just "HsInt.maxBound"
+  "reverse" | base, a0 == tList -> Just "HsList.reverse"
+  "lookup" | base, a1 == tList, eqArg 0 -> Just "HsList.lookup"
+  "span" | base, a1 == tList -> Just "HsList.span"
+  "break" | base, a1 == tList -> Just "HsList.break"
+  "foldl" | base, a2 == tList -> Just "HsList.foldl"
+  "foldM" | base, a2 == tList, r3 == tMaybe -> Just "HsMaybe.foldM"
+  "isJust" | base -> Just "HsMaybe.isJust"
+  "pure" | base, r0' == tList -> Just "HsList.pure"
+  "pure" | base, r0' == tEither -> Just "HsEither.pure"
+  ">>=" | base, a0 == tEither -> Just "HsEither.bind"
+  "<$>" | base, a1 == tEither -> Just "HsEither.fmap"
+  "fmap" | base, a1 == tEither -> Just "HsEither.fmap"
+  "chr" | base -> Just "HsChar.chr"
+  "digitToInt" | base -> Just "HsChar.digitToInt"
+  f | m == "GHC.Unicode", f `elem` ["isSpace", "isUpper", "isDigit", "isHexDigit", "isAscii", "isAsciiUpper", "generalCategory"] -> Just ("HsChar." ++ f)
+  "+" | base, integral a0 -> Just "HsInt.add"
+  "-" | base, integral a0 -> Just "HsInt.sub"
+  "negate" | base, integral a0 -> Just "HsInt.neg"
   "<>" | base, a0 == tText -> Just "HsText.append"
   "<$>" | base, a1 == tMaybe -> Just "HsMaybe.fmap"
   "fmap" | base, a1 == tMaybe -> Just "HsMaybe.fmap"
@@ -371,16 +413,25 @@ library g m o mty = case o of
   "all" | text -> Just "HsText.all"
   "isInfixOf" | text -> Just "HsText.isInfixOf"
   "concat" | text -> Just "HsText.concat"
-  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith"] -> Just ("HsMap." ++ f)
+  f | text, f `elem` textFunctions -> Just ("HsText." ++ sanitize f)
+  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems"] -> Just ("HsMap." ++ f)
   f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList"] -> Just ("HsSet." ++ f)
   "stronglyConnComp" | m == "Data.Graph" -> Just "HsGraph.stronglyConnComp"
   "isAlpha" | m == "GHC.Unicode" -> Just "HsChar.isAlpha"
   "isAlphaNum" | m == "GHC.Unicode" -> Just "HsChar.isAlphaNum"
   _ -> Nothing
   where
-    base = any (`isPrefixOf` m) ["GHC.Prim", "GHC.Base", "GHC.List", "GHC.Classes", "GHC.Num", "GHC.Show", "GHC.Enum", "Data.Foldable", "Data.Maybe", "Data.OldList", "Data.Tuple", "Data.Function", "Data.Traversable", "Data.Functor", "GHC.Maybe", "GHC.Types"]
+    base = any (`isPrefixOf` m) ["GHC.Prim", "GHC.Base", "GHC.List", "GHC.Classes", "GHC.Num", "GHC.Show", "GHC.Enum", "Data.Foldable", "Data.Maybe", "Data.OldList", "Data.Tuple", "Data.Function", "Data.Traversable", "Data.Functor", "GHC.Maybe", "GHC.Types", "GHC.Real", "GHC.Char", "Data.Char", "Data.Either", "GHC.Control.Monad", "Control.Monad"]
     text = m `elem` ["Data.Text", "Data.Text.Show", "Data.Text.Internal"]
     known = base || text || m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal", "Data.Set.Internal", "Data.Graph", "GHC.Unicode"]
+    integral a = a `elem` [tInt, tInteger]
+    r3 = maybe "?" (resHead 3) mty
+    -- sortOn's key of a project type that derives Ord.
+    derivedOrdArg = case mty >>= splitArgs 1 of
+      Just (_, [k], _) -> case splitArgs 1 k of
+        Just (_, _, r) -> S.member (headOf r) (gOrdTypes g)
+        Nothing -> False
+      _ -> False
     a0 = maybe "?" (argHead 0) mty
     a1 = maybe "?" (argHead 1) mty
     a2 = maybe "?" (argHead 2) mty
@@ -395,6 +446,13 @@ library g m o mty = case o of
         Just (_, _, r) -> headOf r == tInt
         Nothing -> False
       _ -> False
+
+-- The functions of Data.Text translated as HsText.NAME (rule H3, H12).
+textFunctions :: [String]
+textFunctions =
+  [ "foldl'", "breakOn", "takeWhile", "stripStart", "stripEnd", "splitAt", "unpack", "singleton", "any", "words"
+  , "splitOn", "isSuffixOf", "takeWhileEnd", "breakOnEnd", "dropEnd"
+  ]
 
 -- Literals ---------------------------------------------------------------------------
 
@@ -427,7 +485,7 @@ specialise g t = maybe t (\su -> substTy su t) (gSubst g)
 -- The type of a binder, specialised.
 binderType :: G -> Name -> Maybe Type
 binderType g n = case M.lookup (nkey n) (gSpecial g) of
-  Just (t, _) -> Just t
+  Just (grp, copies) -> fmap fst (lookup (M.findWithDefault 0 grp (gCopy g)) (zip [0 ..] copies))
   Nothing -> fmap (specialise g) (M.lookup (nkey n) (gTypes g))
 
 -- Scopes ----------------------------------------------------------------------------
@@ -614,9 +672,12 @@ lambda g sc sp mg = case unLoc (mg_alts mg) of
 overLit :: G -> SrcSpan -> HsOverLit GhcRn -> X String
 overLit g sp ol = case ol_val ol of
   HsIntegral il
-    | maybe True ((== tInt) . headOf) (typeAt g sp) -> pure (intLit (il_value il))
+    | maybe True ((`elem` [tInt, tInteger]) . headOf) (typeAt g sp) -> pure (intLit (il_value il))
+    | maybe False ((== tNatural) . headOf) (typeAt g sp), il_value il >= 0 -> pure ("(" ++ show (il_value il) ++ " : Nat)")
   HsIsString _ s
     | maybe False ((== tText) . headOf) (typeAt g sp) -> pure (stringLit (unpackFS s))
+    -- A String: the list of its characters.
+    | maybe False ((== tList) . headOf) (typeAt g sp) -> pure ("[" ++ intercalate ", " (map charLit (unpackFS s)) ++ "]")
   _ -> bad sp ("the literal " ++ showPprUnsafe ol ++ " at " ++ maybe "?" showPprUnsafe (typeAt g sp))
 
 litE :: SrcSpan -> HsLit GhcRn -> X String
@@ -681,13 +742,26 @@ var g sc sp n
         Just grp
           | sGroup sc == Just grp -> pure ["fuel"]
           | otherwise -> maybe (bad sp ("a call of " ++ occ n ++ " from a function without fuel")) (pure . pure) (sFuel sc)
-      pure (app (dLean d) (fuelArg ++ map (sanitize . occ) (dCaptured d)))
+      name <- case M.lookup (nkey n) (gSpecial g) of
+        Nothing -> pure (dLean d)
+        Just (grp, copies) -> case M.lookup grp (gCopy g) of
+          Just i -> pure (copyName (dLean d) i (length copies))
+          Nothing -> case [i | Just u <- [typeAt g sp], (i, (t, _)) <- zip [0 ..] copies, eqType t u] of
+            i : _ -> pure (copyName (dLean d) i (length copies))
+            [] -> bad sp ("a use of " ++ occ n ++ " at a type without a copy")
+      -- A lifted function by its full name: inside its outer function, the
+      -- outer name is the function being defined.
+      let full = if '.' `elem` name then gNamespace g ++ "." ++ name else name
+      pure (app full (fuelArg ++ map (sanitize . occ) (dCaptured d)))
   | isInternalName n = pure (sanitize (occ n))
   | otherwise = case (modOf n, occ n) of
       (_, "True") -> pure "true"
       (_, "False") -> pure "false"
       ("GHC.Maybe", "Just") -> pure "Option.some"
       ("GHC.Maybe", "Nothing") -> pure "Option.none"
+      ("Data.Either", "Left") -> pure "Except.error"
+      ("Data.Either", "Right") -> pure "Except.ok"
+      ("GHC.Unicode", c) | c `elem` generalCategories -> pure ("HsGeneralCategory." ++ c)
       ("GHC.Types", ":") -> pure "List.cons"
       ("GHC.Types", "[]") -> pure "List.nil"
       (m, "(,)") | "GHC.Tuple" `isPrefixOf` m -> pure "Prod.mk"
@@ -735,7 +809,19 @@ data PT = PAny | PCon String [(String, Int)] [PT] | PLitT
 pRefutable :: P -> Bool
 pRefutable p = not (null (pGuards p)) || not (exhaustive [[pTree p]] 1)
 
-boolSig, maybeSig, listSig, sccSig :: [(String, Int)]
+-- The constructors of Data.Char.GeneralCategory, in order.
+generalCategories :: [String]
+generalCategories =
+  [ "UppercaseLetter", "LowercaseLetter", "TitlecaseLetter", "ModifierLetter", "OtherLetter", "NonSpacingMark"
+  , "SpacingCombiningMark", "EnclosingMark", "DecimalNumber", "LetterNumber", "OtherNumber", "ConnectorPunctuation"
+  , "DashPunctuation", "OpenPunctuation", "ClosePunctuation", "InitialQuote", "FinalQuote", "OtherPunctuation"
+  , "MathSymbol", "CurrencySymbol", "ModifierSymbol", "OtherSymbol", "Space", "LineSeparator", "ParagraphSeparator"
+  , "Control", "Format", "Surrogate", "PrivateUse", "NotAssigned"
+  ]
+
+boolSig, maybeSig, listSig, sccSig, eitherSig, categorySig :: [(String, Int)]
+eitherSig = [("Except.error", 1), ("Except.ok", 1)]
+categorySig = [("HsGeneralCategory." ++ c, 0) | c <- generalCategories]
 boolSig = [("true", 0), ("false", 0)]
 maybeSig = [("Option.none", 0), ("Option.some", 1)]
 listSig = [("List.nil", 0), ("List.cons", 2)]
@@ -767,6 +853,9 @@ pat g (L l p) = case p of
       (_, "False") -> pure ("false", boolSig, [])
       ("GHC.Maybe", "Just") -> pure ("Option.some", maybeSig, [])
       ("GHC.Maybe", "Nothing") -> pure ("Option.none", maybeSig, [])
+      ("Data.Either", "Left") -> pure ("Except.error", eitherSig, [])
+      ("Data.Either", "Right") -> pure ("Except.ok", eitherSig, [])
+      ("GHC.Unicode", c) | c `elem` generalCategories -> pure ("HsGeneralCategory." ++ c, categorySig, [])
       ("GHC.Types", ":") -> pure ("List.cons", listSig, [])
       ("GHC.Types", "[]") -> pure ("List.nil", listSig, [])
       ("Data.Graph", "AcyclicSCC") -> pure ("HsSCC.AcyclicSCC", sccSig, [])
@@ -867,7 +956,15 @@ matchGroup g sc vs mg fallback = go (unLoc (mg_alts mg))
         ([], []) -> pure fallback
         -- One arm that binds nothing new: no match.
         (_, [(_, a, body)]) | null wildcard, all (== "_") (splitArm a) -> pure body
-        _ -> pure ("(match " ++ intercalate ", " vs ++ " with" ++ concatMap ("\n  | " ++) ([a ++ " => " ++ b | (_, a, b) <- arms] ++ wildcard) ++ ")")
+        _ -> do
+          -- The hints may ask for the equations of the discriminants, for
+          -- Lean's termination checker; the discriminants then stay as they
+          -- are in the arms.
+          discs <-
+            if gEquationHere g
+              then forM vs (\v -> fmap (\h -> "h" ++ h ++ " : " ++ v) (fresh g))
+              else pure vs
+          pure ("(match " ++ intercalate ", " discs ++ " with" ++ concatMap ("\n  | " ++) ([a ++ " => " ++ b | (_, a, b) <- arms] ++ wildcard) ++ ")")
     armsOf _ [] = pure []
     armsOf rows (L ml m : ms) = do
       when (length (m_pats m) /= length vs) (bad (locA ml) "equations with different numbers of arguments")
@@ -916,7 +1013,7 @@ stmtsChain g sc stmts0 body next = go stmts0
               [] -> rest
               gs -> "(if " ++ intercalate " && " gs ++ " then " ++ rest ++ " else " ++ next ++ ")"
         pure $
-          if pRefutable p'
+          if not (exhaustive [[pTree p']] 1)
             then "(match " ++ e' ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ "\n  | _ => " ++ next ++ ")"
             else "(match " ++ e' ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ ")"
       LetStmt _ binds -> localBinds g sc binds (go ss)
@@ -928,6 +1025,7 @@ localBinds :: G -> Scope -> HsLocalBinds GhcRn -> X String -> X String
 localBinds g sc binds body = case binds of
   EmptyLocalBinds _ -> body
   HsValBinds _ (XValBindsLR (NValBinds groups _)) -> do
+    -- Each binding wraps the rest of the expression.
     lets <- fmap concat $ forM groups $ \(rec, bs) -> fmap concat $ forM (bagToList bs) $ \(L l b) -> case b of
       FunBind {fun_id = L _ n}
         | M.member (nkey n) (gDefs g) -> pure []
@@ -935,17 +1033,23 @@ localBinds g sc binds body = case binds of
         | otherwise -> do
             ty <- maybe (pure Nothing) (fmap Just . leanType g) (binderType g n)
             rhs <- matchGroup g sc [] (fun_matches b) "hsUndefined"
-            pure ["let " ++ sanitize (occ n) ++ maybe "" (" : " ++) ty ++ " := " ++ rhs ++ ";\n"]
+            pure [\rest -> "let " ++ sanitize (occ n) ++ maybe "" (" : " ++) ty ++ " := " ++ rhs ++ ";\n" ++ rest]
       PatBind {pat_lhs = p, pat_rhs = rhs}
         | rec == Recursive -> bad (locA l) "a recursive local value"
         | otherwise -> do
             p' <- pat g p
             unless (null (pGuards p') && not (pRefutable p')) (bad (locA l) "a refutable pattern binding")
             rhs' <- grhss g sc rhs "hsUndefined"
-            pure ["let " ++ pText p' ++ " := " ++ rhs' ++ ";\n"]
+            if gEquationHere g
+              then do
+                -- The hints ask for the equation of the value, for Lean's
+                -- termination checker: the same value, matched.
+                h <- fresh g
+                pure [\rest -> "match h" ++ h ++ " : " ++ rhs' ++ " with\n  | " ++ pText p' ++ " => (" ++ rest ++ ")"]
+              else pure [\rest -> "let " ++ pText p' ++ " := " ++ rhs' ++ ";\n" ++ rest]
       _ -> bad (locA l) "this local binding"
     b <- body
-    pure ("(" ++ concat lets ++ b ++ ")")
+    pure ("(" ++ foldr ($) b lets ++ ")")
   _ -> badN "implicit parameters"
 
 -- List comprehensions ---------------------------------------------------------------
@@ -967,7 +1071,7 @@ listComp g sc = go
               [] -> rest
               gs -> "(if " ++ intercalate " && " gs ++ " then " ++ rest ++ " else [])"
             body
-              | pRefutable p' = "(match " ++ v ++ " with\n  | " ++ pText p' ++ " => " ++ inner ++ "\n  | _ => [])"
+              | not (exhaustive [[pTree p']] 1) = "(match " ++ v ++ " with\n  | " ++ pText p' ++ " => " ++ inner ++ "\n  | _ => [])"
               | otherwise = "(match " ++ v ++ " with\n  | " ++ pText p' ++ " => " ++ inner ++ ")"
         pure (app "HsList.concatMap" ["(fun " ++ v ++ " => " ++ body ++ ")", e'])
       BodyStmt _ c _ _ -> do
@@ -983,6 +1087,7 @@ doBlock :: G -> Scope -> SrcSpan -> String -> [ExprLStmt GhcRn] -> X String
 doBlock g sc sp monad stmts = do
   (bindF, thenF) <- case monad of
     m | m == tMaybe -> pure ("HsMaybe.bind", Nothing)
+    m | m == tEither -> pure ("HsEither.bind", Nothing)
     m -> case (M.lookup (m, ">>=") (gInstances g), M.lookup (m, "fmap") (gInstances g), M.lookup (m, "<*>") (gInstances g)) of
       (Just b, Just f, Just a) -> pure (b, Just (f, a))
       _ -> bad sp ("a do-block in the monad " ++ m)
@@ -1019,7 +1124,8 @@ namesIn x = case cast x of
   Nothing -> concat (gmapQ namesIn x)
 
 -- The local function bindings (with at least one argument, or of a function
--- type, or recursive) inside a binding, with their bindings.
+-- type, or recursive) inside a binding, with their bindings; with g0Lift,
+-- the local value bindings too (the hints' `lift`).
 localFunctions :: Data a => G0 -> a -> [(Name, HsBind GhcRn, SrcSpan)]
 localFunctions g0 x = case cast x of
   Just (HsValBinds _ (XValBindsLR (NValBinds groups _)) :: HsLocalBinds GhcRn) ->
@@ -1027,11 +1133,12 @@ localFunctions g0 x = case cast x of
       ++ concat (gmapQ (localFunctions g0) x)
   _ -> concat (gmapQ (localFunctions g0) x)
 
-data G0 = G0 {g0Types :: M.Map Int Type}
+data G0 = G0 {g0Types :: M.Map Int Type, g0Lift :: Bool}
 
 liftable :: G0 -> RecFlag -> Name -> HsBind GhcRn -> Bool
 liftable g0 rec n b =
-  rec == Recursive
+  g0Lift g0
+    || rec == Recursive
     || any (\(L _ m) -> not (null (m_pats m))) (unLoc (mg_alts (fun_matches b)))
     || maybe False isFunOrForall (M.lookup (nkey n) (g0Types g0))
   where
@@ -1114,6 +1221,10 @@ emitTypes g = do
         names = [sanitize (occ (tyConName tc)) | tc <- group]
         inh = "deriving instance Inhabited for " ++ intercalate ", " names
         beq = ["deriving instance BEq, Repr for " ++ intercalate ", " [sanitize (occ (tyConName tc)) | tc <- eqs] | not (null eqs)]
+          -- Haskell's derived Ord and Lean's both compare the constructors in
+          -- their order, then the fields from left to right (rule H11).
+          ++ ["deriving instance Ord for " ++ intercalate ", " [sanitize (occ (tyConName tc)) | tc <- ords] | not (null ords)]
+        ords = [tc | tc <- group, S.member (qual (tyConName tc)) (gOrdTypes g)]
     accessors <- fmap concat $ forM group $ \tc -> fmap concat $ forM (tyConDataCons tc) $ \dc -> do
       let fs = map (occ . flSelector) (dataConFieldLabels dc)
           tname = sanitize (occ (tyConName tc))
@@ -1142,13 +1253,37 @@ tyConsOf t = case splitTyConApp_maybe (expandTypeSynonyms t) of
 
 -- Definitions ------------------------------------------------------------------------
 
+-- A hint names a lifted function by `@{outer.inner}`, without the line of
+-- its definition, which this replaces with the Lean name.
+leanNames :: G -> String -> String
+leanNames g = go
+  where
+    go ('@' : '{' : rest) = case break (== '}') rest of
+      (key, '}' : more) -> fromMaybe ("@{" ++ key ++ "}") (leanOf key) ++ go more
+      _ -> "@{" ++ go rest
+    go (c : rest) = c : go rest
+    go [] = []
+    leanOf key = case [dLean d | d <- M.elems (gDefs g), hintKeyOf (dLean d) == key] of
+      [n] -> Just n
+      _ -> Nothing
+
+-- The name of a copy of a constrained local function, when it has several.
+copyName :: String -> Int -> Int -> String
+copyName base i k = if k == 1 then base else base ++ "'" ++ show i
+
+-- The definitions of an SCC, once for each copy when it is a constrained group.
+emitGroup :: G -> Int -> [Def] -> X [String]
+emitGroup g grp ds = case [copies | d <- ds, Just (_, copies) <- [M.lookup (nkey (dName d)) (gSpecial g)]] of
+  copies : _ -> fmap concat $ forM (zip [0 ..] copies) $ \(i, (_, su)) ->
+    let g' = g {gSubst = Just su, gCopy = M.insert grp i (gCopy g)}
+     in forM ds $ \d -> emitDef g' d {dLean = copyName (dLean d) i (length copies)}
+  [] -> forM ds (emitDef g)
+
 emitDef :: G -> Def -> X String
-emitDef g0' d = do
+emitDef g1 d = do
   let n = dName d
       b = dBind d
-      g = case M.lookup (nkey n) (gSpecial g0') of
-        Just (_, su) -> g0' {gSubst = Just su}
-        Nothing -> g0'
+      g = g1 {gEquationHere = S.member (hintKeyOf (dLean d)) (gEquations g1)}
   ty <- maybe (bad (dSpan d) ("no type for " ++ occ n)) pure (binderType g n)
   capTys <- forM (dCaptured d) $ \c -> do
     t <- maybe (bad (dSpan d) ("no type for the captured " ++ occ c)) pure (binderType g c)
@@ -1193,6 +1328,9 @@ emitDef g0' d = do
   let hintKey = takeWhile (/= '_') (dLean d) ++ dropWhile (/= '_') (takeWhile (\c -> c /= '_' || True) "")
       key = if '.' `elem` dLean d then reverse (drop 1 (dropWhile (/= '_') (reverse (dLean d)))) else dLean d
       subst ('$' : c : rest) | c >= '1' && c <= '9' = (vs !! (fromEnum c - fromEnum '1')) ++ subst rest
+      subst ('@' : '{' : rest) = case break (== '}') rest of
+        (k, '}' : more) -> leanNames g ("@{" ++ k ++ "}") ++ subst more
+        _ -> "@{" ++ subst rest
       subst (c : rest) = c : subst rest
       subst [] = []
       hint = maybe "" (\h -> subst h ++ "\n") (M.lookup key (gHints g))
@@ -1215,9 +1353,13 @@ run libdir srcdir file namespace hintsFile roots = do
   -- definition NAME). "--" lines are comments.
   let blocks = hintBlocks (filter (not . ("--" `isPrefixOf`)) hintLines)
       fuelNames = [w | ("fuel", w, _) <- blocks]
+      equationNames = [w | ("equations", w, _) <- blocks]
+      -- A function whose local values become definitions of their own, so
+      -- that proofs can name them.
+      liftNames = [w | ("lift", w, _) <- blocks]
       decreasing = M.fromList [(w, t) | ("decreasing", w, t) <- blocks]
       before = M.fromList [(w, t) | ("before", w, t) <- blocks]
-  (renamed, tcBinds, modName, projectMods, eqTypes) <- runGhc (Just libdir) $ do
+  (renamed, others, (tcBinds, tcAll), modName, projectMods, (eqTypes, ordTypes)) <- runGhc (Just libdir) $ do
     df <- getSessionDynFlags
     _ <- setSessionDynFlags (lang_set df {importPaths = splitColons srcdir, backend = noBackend, ghcLink = NoLink} (Just GHC2021))
     t <- guessTarget file Nothing Nothing
@@ -1237,9 +1379,9 @@ run libdir srcdir file namespace hintsFile roots = do
     grp <- case tm_renamed_source tcm of
       Just (hg, _, _, _, _) -> pure hg
       Nothing -> liftIO (die "GHC kept no renamed source")
-    let mods =S.fromList [moduleNameString (ms_mod_name ms) | (ms, _) <- infos]
-        -- Types that derive Eq, by their deriving clauses in the renamed source.
-        eqs =
+    let mods = S.fromList [moduleNameString (ms_mod_name ms) | (ms, _) <- infos]
+        -- Types that derive a class, by their deriving clauses in the renamed source.
+        deriving' cls =
           S.fromList
             [ moduleNameString (ms_mod_name ms) ++ "." ++ occ tn
             | (ms, tc) <- infos
@@ -1247,11 +1389,27 @@ run libdir srcdir file namespace hintsFile roots = do
             , tg <- hs_tyclds hg
             , L _ (DataDecl {tcdLName = L _ tn, tcdDataDefn = defn}) <- group_tyclds tg
             , L _ clause <- dd_derivs defn
-            , "Eq" `elem` words (filter (`notElem` "(),") (showPprUnsafe (deriv_clause_tys clause)))
+            , cls `elem` words (filter (`notElem` "(),") (showPprUnsafe (deriv_clause_tys clause)))
             ]
-    pure (grp, tm_typechecked_source tcm, moduleNameString (ms_mod_name (pm_mod_summary (tm_parsed_module tcm))), mods, eqs)
-  let (tyPairs, exprPairs) = collectTc tcBinds
-  let patTypes = collectNPat tcBinds
+        -- The top-level bindings of the other modules of the graph.
+        otherGroups =
+          [ g'
+          | (ms, tc) <- infos
+          , msHsFilePath ms /= msHsFilePath (pm_mod_summary (tm_parsed_module tcm))
+          , Just (hg, _, _, _, _) <- [tm_renamed_source tc]
+          , XValBindsLR (NValBinds gs _) <- [hs_valds hg]
+          , g' <- gs
+          ]
+    pure
+      ( grp
+      , otherGroups
+      , (tm_typechecked_source tcm, [tm_typechecked_source tc | (_, tc) <- infos])
+      , moduleNameString (ms_mod_name (pm_mod_summary (tm_parsed_module tcm)))
+      , mods
+      , (deriving' "Eq", deriving' "Ord")
+      )
+  let (tyPairs, exprPairs) = collectTc tcAll
+  let patTypes = collectNPat tcAll
   exprTypes0 <- fmap (M.fromListWith (\_ old -> old) . concat) $ forM exprPairs $ \(r, le) -> do
     res <- try (evaluate (forceType (lhsExprType le)))
     pure $ case res of
@@ -1266,12 +1424,14 @@ run libdir srcdir file namespace hintsFile roots = do
       tyNamed = collectNamed tcBinds
       instMethodType n = M.lookup (occ n) dollarC
       types0 = M.fromList tyPairs
-      g0 = G0 types0
+      g0 = G0 types0 False
       topGroups = case hs_valds renamed of
         XValBindsLR (NValBinds gs _) -> gs
         ValBinds {} -> []
       topBinds = [(n, b, locA l) | (_, bs) <- topGroups, L l b@FunBind {fun_id = L _ n} <- bagToList bs]
       topByOcc = M.fromList [(occ n, x) | x@(n, _, _) <- topBinds]
+      -- The functions of the other project modules that the roots reach.
+      otherBinds = [(n, b, locA l) | (_, bs) <- others, L l b@FunBind {fun_id = L _ n} <- bagToList bs]
       -- Instances of the module: methods by (tycon, method).
       instBinds =
         [ (cls, tyc, n, b, locA l)
@@ -1283,7 +1443,7 @@ run libdir srcdir file namespace hintsFile roots = do
         ]
   -- Reachable top-level functions from the roots, and instance methods.
   rootBinds <- forM roots $ \r -> maybe (die ("no top-level function " ++ r)) pure (M.lookup r topByOcc)
-  let topKeys = M.fromList [(nkey n, x) | x@(n, _, _) <- topBinds]
+  let topKeys = M.fromList [(nkey n, x) | x@(n, _, _) <- topBinds ++ otherBinds]
       reach seen [] = seen
       reach seen ((n, b, sp) : rest)
         | M.member (nkey n) seen = reach seen rest
@@ -1297,7 +1457,7 @@ run libdir srcdir file namespace hintsFile roots = do
   let topDefs = M.elems reached
       lifted =
         concat
-          [ [(ln, lb, lsp, n) | (ln, lb, lsp) <- localFunctions g0 b]
+          [ [(ln, lb, lsp, n) | (ln, lb, lsp) <- localFunctions g0 {g0Lift = occ n `elem` liftNames} b]
           | (n, b, _) <- topDefs
           ]
       liftedKeys = S.fromList [nkey ln | (ln, _, _, _) <- lifted]
@@ -1315,9 +1475,12 @@ run libdir srcdir file namespace hintsFile roots = do
       minusBound vs lb = let bound = boundIn lb in [v | v <- vs, not (S.member (nkey v) bound)]
       fixCap cap = let cap' = step cap in if M.map (map nkey) cap' == M.map (map nkey) cap then cap else fixCap cap'
       captured = fixCap capture0
+      -- A function of another module is named after its module.
       leanNameOf n outer = case outer of
-        Nothing -> sanitize (occ n)
-        Just o -> sanitize (occ o) ++ "." ++ sanitize (occ n) ++ "_" ++ show (srcLine n)
+        Nothing
+          | modOf n == modName -> sanitize (occ n)
+          | otherwise -> sanitize (map (\c -> if c == '.' then '_' else c) (modOf n) ++ "_" ++ occ n)
+        Just o -> leanNameOf o Nothing ++ "." ++ sanitize (occ n) ++ "_" ++ show (srcLine n)
       srcLine n = case nameSrcSpan n of
         RealSrcSpan r _ -> srcSpanStartLine r
         _ -> 0
@@ -1369,25 +1532,68 @@ run libdir srcdir file namespace hintsFile roots = do
           [ (k, if S.member (groupOf M.! k) fuelGroups then "g" ++ show (groupOf M.! k) else "caller" ++ show k)
           | k <- S.toList withFuel
           ]
-  -- A local function generalised with class constraints is translated at the
-  -- one type of all its uses outside itself.
+  -- A local function generalised with class constraints is translated once
+  -- for each type it is used at outside its recursive group: the copies of a
+  -- group share the substitution of the group's type variables, a use outside
+  -- the group calls the copy of its type, and a use inside the group calls
+  -- the copy being translated.
   types <- pure (foldr (\(_, _, n, _, _) m -> case instMethodType n of
                     Just (Just t) -> M.insert (nkey n) t m
                     _ -> M.delete (nkey n) m) types0 instBinds)
-  special <- fmap (M.fromList . concat) $ forM (M.elems defs) $ \d -> case M.lookup (nkey (dName d)) types of
-    Just t
-      | (_ : _, body) <- splitForAllTyCoVars (expandTypeSynonyms t)
-      , hasConstraint body -> do
-          let uses = [sp | d' <- M.elems defs, sp <- occurrences (dName d) (dBind d'), not (sp `isSubspanOf` dSpan d)]
-              useTypes = nub' [ty | RealSrcSpan r _ <- uses, Just ty <- [M.lookup r exprTypes]]
-          case useTypes of
-            [u] | Just su <- tcMatchTy (dropConstraints body) u -> pure [(nkey (dName d), (u, su))]
-            _ -> die (showPprUnsafe (dSpan d) ++ ": unsupported: a constrained local function used at several types: " ++ showPprUnsafe uses ++ showPprUnsafe useTypes)
-    _ -> pure []
+  let constrainedBody d = case M.lookup (nkey (dName d)) types of
+        Just t
+          | (_ : _, body) <- splitForAllTyCoVars (expandTypeSynonyms t)
+          , hasConstraint body -> Just (dropConstraints body)
+        _ -> Nothing
+      constrainedGroups =
+        M.fromListWith (++) [(groupOf M.! nkey (dName d), [(d, b)]) | d <- M.elems defs, Just b <- [constrainedBody d]]
+  special <- fmap (M.fromList . concat) $ forM (M.toList constrainedGroups) $ \(grpId, members) -> do
+    let inGroup sp = any (\(m, _) -> sp `isSubspanOf` dSpan m) members
+        external =
+          map snd $ sortOn fst
+            [ (r, (body, ty))
+            | (m, body) <- members
+            , d' <- M.elems defs
+            , sp@(RealSrcSpan r _) <- occurrences (dName m) (dBind d')
+            , not (inGroup sp)
+            , Just ty <- [M.lookup r exprTypes]
+            ]
+        defSpans = [dSpan m | (m, _) <- members]
+    substs <- forM external $ \(body, u) -> case tcMatchTy body u of
+      Just su -> pure su
+      Nothing -> die (showPprUnsafe defSpans ++ ": unsupported: a constrained local function used at the type " ++ showPprUnsafe u)
+    let copyTypes su = [substTy su body | (_, body) <- members]
+        same su su' = and (zipWith eqType (copyTypes su) (copyTypes su'))
+        distinct = foldl (\acc su -> if any (same su) acc then acc else acc ++ [su]) [] substs
+    when (null distinct) (die (showPprUnsafe defSpans ++ ": unsupported: a constrained local function without a use outside its group"))
+    pure [(nkey (dName m), (grpId, [(substTy su body, su) | su <- distinct])) | (m, body) <- members]
+  -- The project types whose derived Ord is used: the keys of sortOn, and
+  -- the types of their fields that derive Ord.
+  let sortKeys =
+        [ k
+        | d <- M.elems defs
+        , RealSrcSpan r _ <- occurrencesBy (\m -> occ m == "sortOn") (dBind d)
+        , Just t <- [M.lookup r exprTypes]
+        , Just (_, [kf], _) <- [splitArgs 1 t]
+        , Just (_, _, k) <- [splitArgs 1 kf]
+        ]
+      ordClosure seen [] = seen
+      ordClosure seen (t : ts) = case splitTyConApp_maybe (expandTypeSynonyms t) of
+        Just (tc, args)
+          | let k = qual (tyConName tc)
+          , S.member k ordTypes
+          , not (S.member k seen) ->
+              ordClosure (S.insert k seen) (args ++ concatMap (map scaledThing . dataConOrigArgTys) (tyConDataCons tc) ++ ts)
+          | otherwise -> ordClosure seen (args ++ ts)
+        Nothing -> ordClosure seen ts
+      ordUsed = ordClosure S.empty sortKeys
   tyConsRef <- newIORef M.empty
   freshRef <- newIORef 0
   usedRef <- newIORef S.empty
-  let defsTyped = M.map (\d -> d {dArity = max (dArity d) (maybe 0 typeArity (maybe (M.lookup (nkey (dName d)) types) (Just . fst) (M.lookup (nkey (dName d)) special)))}) defs
+  let firstCopy (_, copies) = case copies of
+        (t, _) : _ -> Just t
+        [] -> Nothing
+      defsTyped = M.map (\d -> d {dArity = max (dArity d) (maybe 0 typeArity (maybe (M.lookup (nkey (dName d)) types) firstCopy (M.lookup (nkey (dName d)) special)))}) defs
   let g =
         G
           { gTypes = types
@@ -1399,24 +1605,28 @@ run libdir srcdir file namespace hintsFile roots = do
           , gInstances = instances
           , gProject = projectMods
           , gEqTypes = eqTypes
+          , gOrdTypes = ordUsed
           , gTyCons = tyConsRef
           , gFresh = freshRef
           , gLibraryUsed = usedRef
           , gSubst = Nothing
           , gSpecial = special
+          , gCopy = M.empty
           , gNamespace = namespace
           , gHints = decreasing
+          , gEquations = S.fromList equationNames
+          , gEquationHere = False
           , gBefore = before
           }
   -- Types: collect the type constructors of every definition's type first,
   -- so that constructors and fields are known while translating bodies.
   r0 <- runX $ do
-    let gFor d = case M.lookup (nkey (dName d)) special of
-          Just (_, su) -> g {gSubst = Just su}
-          Nothing -> g
-    forM_ (M.elems defs) $ \d -> do
-      mapM_ (\c -> maybe (pure ()) (fmap (const ()) . leanType (gFor d)) (binderType (gFor d) c)) (dCaptured d)
-      maybe (pure ()) (fmap (const ()) . leanType (gFor d)) (binderType (gFor d) (dName d))
+    let gsFor d = case M.lookup (nkey (dName d)) special of
+          Just (grp, copies) -> [g {gSubst = Just su, gCopy = M.singleton grp i} | (i, (_, su)) <- zip [0 ..] copies]
+          Nothing -> [g]
+    forM_ (M.elems defs) $ \d -> forM_ (gsFor d) $ \gd -> do
+      mapM_ (\c -> maybe (pure ()) (fmap (const ()) . leanType gd) (binderType gd c)) (dCaptured d)
+      maybe (pure ()) (fmap (const ()) . leanType gd) (binderType gd (dName d))
     -- Constructor and pattern types inside bodies.
     forM_ (M.elems defs) $ \d -> forM_ (namesIn (dBind d)) $ \m -> case M.lookup (nkey m) types of
       Just t | S.member (modOf m) projectMods || isInternalName m -> X (fmap (const (Right ())) (runX (leanType g t)))
@@ -1442,20 +1652,14 @@ run libdir srcdir file namespace hintsFile roots = do
       fields = M.fromList [(f, (ci, i)) | ci <- M.elems cons, (i, f) <- zip [0 ..] (ciFields ci)]
       g' = g {gCons = cons, gFields = fields}
   -- Definitions in dependency order, mutual groups together.
-  out <- forM sccs $ \scc -> do
+  out <- forM (zip [0 ..] sccs) $ \(grp, scc) -> do
     let ds = flattenSCC' scc
-        recursive = case scc of
-          CyclicSCC _ -> True
-          AcyclicSCC d -> nkey (dName d) `elem` callsOf (dBind d)
-    texts <- forM ds $ \d -> do
-      r <- runX (emitDef g' d)
-      txt <- either die pure r
-      pure txt
-    let pre = concat [t ++ "\n" | d <- ds, Just t <- [M.lookup (hintKeyOf (dLean d)) before]]
+    texts <- runX (emitGroup g' grp ds) >>= either die pure
+    let pre = concat [leanNames g' t ++ "\n" | d <- ds, Just t <- [M.lookup (hintKeyOf (dLean d)) before]]
     pure $ (pre ++) $
-      if length ds > 1
+      if length texts > 1
         then "mutual\n" ++ concat texts ++ "end\n"
-        else concat texts ++ (if recursive then "" else "")
+        else concat texts
   used <- readIORef usedRef
   putStr $
     unlines
@@ -1496,19 +1700,14 @@ dropConstraints t = case splitFunTy_maybe t of
   Just (af, _, _, r) | isInvisibleFunArg af -> dropConstraints r
   _ -> t
 
-nub' :: [Type] -> [Type]
-nub' = go []
-  where
-    go seen [] = reverse seen
-    go seen (x : xs)
-      | any (eqType x) seen = go seen xs
-      | otherwise = go (x : seen) xs
-
 -- The spans of the occurrences of a name.
 occurrences :: Data a => Name -> a -> [SrcSpan]
-occurrences n x = case cast x of
-  Just (HsVar _ (L l m) :: HsExpr GhcRn) | m == n -> [locA l]
-  _ -> concat (gmapQ (occurrences n) x)
+occurrences n = occurrencesBy (== n)
+
+occurrencesBy :: Data a => (Name -> Bool) -> a -> [SrcSpan]
+occurrencesBy p x = case cast x of
+  Just (HsVar _ (L l m) :: HsExpr GhcRn) | p m -> [locA l]
+  _ -> concat (gmapQ (occurrencesBy p) x)
 
 -- A definition `f = \p1 .. pn -> e` or `f = \case alts` (one equation, no
 -- guards, no where) takes the lambda's arguments: `f p1 .. pn = e`, or one
