@@ -82,6 +82,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/PredicateBindings.olean" PredicateBindings.lean &&
   ./check-env-projection.sh "$work" &&
   lean -DwarningAsError=true -o "$work/MetaExecution.olean" MetaExecution.lean &&
+  lean -DwarningAsError=true -o "$work/ScopedEnv.olean" ScopedEnv.lean &&
   lean -DwarningAsError=true -o "$work/EnvRunCongruence.olean" EnvRunCongruence.lean &&
   lean -DwarningAsError=true EnvRunCongruenceTests.lean &&
   lean -DwarningAsError=true -o "$work/MetaEnvCompatible.olean" MetaEnvCompatible.lean &&
@@ -107,6 +108,7 @@ mkdir "$work/meta-cases"
   lean -DwarningAsError=true -o "$work/TotalFile.olean" TotalFile.lean &&
   lean -DwarningAsError=true -o "$work/FileTops.olean" FileTops.lean &&
   lean -DwarningAsError=true -o "$work/SelfHostedRuntime.olean" SelfHostedRuntime.lean &&
+  lean -DwarningAsError=true -o "$work/SelfHostedMemo.olean" SelfHostedMemo.lean &&
   ./check-file-tops.sh "$work" &&
   ./check-strict-file.sh "$work" &&
   lean -DwarningAsError=true -o "$work/FileExamples.olean" FileExamples.lean &&

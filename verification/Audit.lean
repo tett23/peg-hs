@@ -115,6 +115,9 @@ import RenderFinalize
 import RenderFinalizeModule
 import PublicGeneration
 import SelfHostedRuntime
+import ScopedEnv
+import SelfHostedMemo
+import RuntimeForms
 import PublicGenerationGHC
 import RenderPrinting
 import RenderDeclarationBinders
@@ -327,7 +330,10 @@ def auditedModules : List Lean.Name := [
   `RuleRejectionRepeat,
   `RuntimeChoiceProof,
   `RuntimeCoreProof,
+  `RuntimeForms,
+  `ScopedEnv,
   `SelfHostedFileProof,
+  `SelfHostedMemo,
   `SelfHostedRuntime,
   `SemanticPredicates,
   `Signatures,

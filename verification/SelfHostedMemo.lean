@@ -468,6 +468,17 @@ theorem plainCalls_call_plain {site rule : Nat} {a b : String} (hs : calls site 
   simpa [plainCalls, hs] using p
 end PlainCalls
 
+/-- The rules that `callP` calls through `memoArg` are the rules that the
+generated code defines with the parameter `d` and `PegRt.memoArg`:
+ExtractSelfHostedFile.hs reads `depthHeader` for Item (24), PrefixE (27),
+Labeled (28), LabelPart (29), SuffixE (30), PostOps (31), PostOp (32),
+Primary (33), TemplateArgs (34), TemplateArg (35), GroupAlts (37) and
+MoreGroup (38), numbered by its `call` table, and `header` (`PegRt.memo`) for
+every other rule. -/
+theorem invariant1_memoArg_rules :
+    (List.range MetaTerminal1.environmentBodyTable.size).filter (fun r => !metaPlain r) =
+      [24, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38] := by decide +kernel
+
 def metaPlainCalls : Bool :=
   (List.range MetaTerminal1.environmentBodyTable.size).all fun r =>
     plainCalls metaCalls (MetaTerminal1.environmentBody r)
