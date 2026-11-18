@@ -308,12 +308,15 @@ variable {T : Type}
 
 /-! ## The stages -/
 
+-- assemble on the parsed items: the translation of `Assemble.hs`.
+def assembleTops (s : Inputs T) (t : List T) : Except Diagnostics Grammar :=
+  match AssembleTranslated.assemble (s.items t) with
+  | .ok g => .ok (s.grammar g)
+  | .error ds => .error (ds.map s.diagText)
+
 noncomputable def parse (s : Inputs T) (input : List Char) : Except Diagnostics Grammar :=
   PublicParsing.translatedGrammar input.utf8Encode.size
-    (SelfHostedRuntime.runtimeStart s.value input) s.failure
-    (fun t => match AssembleTranslated.assemble (s.items t) with
-      | .ok g => .ok (s.grammar g)
-      | .error ds => .error (ds.map s.diagText))
+    (SelfHostedRuntime.runtimeStart s.value input) s.failure (assembleTops s)
 
 -- The view of the items that AssembleValidation reads.
 def view (s : Inputs T) (ts : List T) : List AssembleValidation.Top :=
@@ -329,10 +332,10 @@ noncomputable def tops (s : Inputs T) (input : List Char) : Except Diagnostics (
   PublicParsing.translatedPublic s.failure (PublicParsing.translatedRuntime input.utf8Encode.size
     (SelfHostedRuntime.runtimeStart s.value input))
 
-def assembleTops (s : Inputs T) (t : List T) : Except Diagnostics Grammar :=
-  match AssembleTranslated.assemble (s.items t) with
-  | .ok g => .ok (s.grammar g)
-  | .error ds => .error (ds.map s.diagText)
+theorem assembleTops_ok_iff (s : Inputs T) (t : List T) (g : Grammar) :
+    assembleTops s t = .ok g ↔ ∃ tg, AssembleTranslated.assemble (s.items t) = .ok tg ∧ s.grammar tg = g := by
+  unfold assembleTops
+  split <;> simp_all
 
 theorem parse_tops (s : Inputs T) (input : List Char) :
     parse s input = (tops s input).bind (assembleTops s) := rfl
@@ -439,6 +442,7 @@ theorem parse_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostic
   | ok t =>
     rw [hr] at h
     simp only [PublicParsing.translatedPublic, Except.bind] at h
+    unfold assembleTops at h
     split at h
     · cases h
     · rename_i es he
@@ -656,12 +660,7 @@ theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
         AssembleTranslated.assemble (s.items ts) = .ok tg ∧ s.grammar tg = g := by
   unfold parse
   rw [SelfHostedRuntime.invariant1_runtimeStart_eq, PublicParsing.invariant1_translated_grammar]
-  have stage (ts : List T) : (match AssembleTranslated.assemble (s.items ts) with
-      | .ok g => .ok (s.grammar g)
-      | .error ds => .error (ds.map s.diagText) : Except Diagnostics Grammar) = .ok g ↔
-      ∃ tg, AssembleTranslated.assemble (s.items ts) = .ok tg ∧ s.grammar tg = g := by
-    split <;> simp_all
-  simp only [stage]
+  simp only [assembleTops_ok_iff]
   have entry (ts : List T) :
       FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val =
           .ok input.utf8Encode.size ts ↔ FileTops.ParsesTo s.value input ts := by
@@ -669,6 +668,11 @@ theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
     exact FileTops.invariant1_parseTops_value s.value (MetaExecution.recognizeFile false input).property
       s.failure ts
   simp only [entry]
+  constructor
+  · rintro ⟨ts, hts, tg, ha, hg⟩
+    exact ⟨ts, tg, hts, ha, hg⟩
+  · rintro ⟨ts, tg, hts, ha, hg⟩
+    exact ⟨ts, hts, tg, ha, hg⟩
 
 theorem invariant1_generateWithWarnings (s : Inputs T) (input : List Char)
     (code : String) (success : publicModule s input = .ok code) :

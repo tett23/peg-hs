@@ -49,21 +49,21 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 段 | Lean の定義 | 実装 |
 | --- | --- | --- |
-| 構文解析と組み立て | `parse`（PublicGeneration.lean:311）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:946）に、検査付きの翻訳 `translatedGrammar` と、GHC の構文木から翻訳した `assemble` を呼ぶ `assembleTops`（PublicGeneration.lean:332）を当てる | `parseGrammar src = parseTops src >>= assemble` |
-| import の解決 | `resolve`（PublicGeneration.lean:370）。ライブラリは `lookupLibrary`（PublicGeneration.lean:357）が `parse` と同じ `tops` と `assembleTops`、`libraryErrors`（PublicGeneration.lean:349）で読む | `resolveImports` |
+| 構文解析と組み立て | `parse`（PublicGeneration.lean:317）。翻訳したランタイムで `File` を走らせた開始結果 `runtimeStart`（SelfHostedRuntime.lean:946）に、検査付きの翻訳 `translatedGrammar` と、GHC の構文木から翻訳した `assemble` を呼ぶ `assembleTops`（PublicGeneration.lean:312）を当てる | `parseGrammar src = parseTops src >>= assemble` |
+| import の解決 | `resolve`（PublicGeneration.lean:373）。ライブラリは `lookupLibrary`（PublicGeneration.lean:360）が `parse` と同じ `tops` と `assembleTops`、`libraryErrors`（PublicGeneration.lean:352）で読む | `resolveImports` |
 | テンプレートの展開 | `Inputs.expand`（PublicGeneration.lean:289） | `expandTemplates` |
-| 規則の検査 | `checkStage`（PublicGeneration.lean:340） | `check` |
-| テンプレートの注記 | `notes`（PublicGeneration.lean:345） | `templateNotes` |
-| ラベルの除去と警告 | `stripAs`（PublicGeneration.lean:243）、`warningFor`（PublicGeneration.lean:377） | `stripLabelsAs`、`labelWarnings` |
-| 内側の生成 | `inner`（PublicGeneration.lean:384） | `generate` |
-| 公開の入口 | `generateWithWarnings`（PublicGeneration.lean:397）、`publicModule`（PublicGeneration.lean:405）、`generateFromSource`（PublicGeneration.lean:409） | `generateWithWarnings`、CLI が書き出す `generationModule`、`generateFromSource` |
+| 規則の検査 | `checkStage`（PublicGeneration.lean:343） | `check` |
+| テンプレートの注記 | `notes`（PublicGeneration.lean:348） | `templateNotes` |
+| ラベルの除去と警告 | `stripAs`（PublicGeneration.lean:243）、`warningFor`（PublicGeneration.lean:380） | `stripLabelsAs`、`labelWarnings` |
+| 内側の生成 | `inner`（PublicGeneration.lean:387） | `generate` |
+| 公開の入口 | `generateWithWarnings`（PublicGeneration.lean:400）、`publicModule`（PublicGeneration.lean:408）、`generateFromSource`（PublicGeneration.lean:412） | `generateWithWarnings`、CLI が書き出す `generationModule`、`generateFromSource` |
 
 段と段の間を流れる文法は、共通の型 `Grammar`（PublicGeneration.lean:129）で表す。
 式と位置には [LabelCheckModel.lean](LabelCheckModel.lean) の型を使う。
 各段のモデルは `Grammar` の射影を読む。
 `toLabel` はラベルの検査の文法、`toCheck` は `check` の文法、`toTemplate` はテンプレート展開の文法への射影である。
 `toLabel_stripAs`（PublicGeneration.lean:253）は、`stripAs` が射影 `toLabel` の上で `stripLabelsAs` と可換であることを示す。
-各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:422）の欄 `Premises.expandRefines` に置く（前提 A1）。
+各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:425）の欄 `Premises.expandRefines` に置く（前提 A1）。
 以前の前提 A2（ライブラリの構文解析と組み立ての失敗に診断があること）は、`lookupLibrary_parse_nonempty` と `lookupLibrary_assemble_nonempty` が示すので、前提から外した。番号 A2 は欠番とする。
 以前の前提 A3（Haskell の `assemble` が受理した項目をモデルも受理すること）は、`assemble` の翻訳と AssembleValidation のモデルの一致を示す定理 `assemble_agrees`（AssembleTranslatedProof.lean:1680）が示すので、前提から外した。番号 A3 も欠番とする。
 [PublicPremises.lean](PublicPremises.lean) の `modelInputs_premises` は、どの `Inputs` からも `Premises` を満たす `Inputs` を作れることを示す。
@@ -79,10 +79,10 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 順 | 定理か定義 | 場所 | 示すこと |
 | --- | --- | --- | --- |
-| 1 | `invariant1_generateWithWarnings` | PublicGeneration.lean:673 | 生成テキストが返るなら、`parseTops` が入力全体を導出し（`FileTops.ParsesTo`）、翻訳した `assemble` がその項目から文法を組み立て、`assemble` のモデルがその項目を受理する。 |
-| 2 | `invariant1_no_derivation` | PublicGeneration.lean:684 | 入力全体の導出がなければ、一件以上の診断を返す。 |
+| 1 | `invariant1_generateWithWarnings` | PublicGeneration.lean:677 | 生成テキストが返るなら、`parseTops` が入力全体を導出し（`FileTops.ParsesTo`）、翻訳した `assemble` がその項目から文法を組み立て、`assemble` のモデルがその項目を受理する。 |
+| 2 | `invariant1_no_derivation` | PublicGeneration.lean:688 | 入力全体の導出がなければ、一件以上の診断を返す。 |
 | 3 | `invariant3_visible_success_iff` | Pipeline.lean:211 | 公開の結果が生成テキストなら、構文解析の段は成功している。 |
-| 4 | `invariant1_parse_iff` | PublicGeneration.lean:653 | `parseGrammar` の成功は、入力全体の導出と、翻訳した `assemble` の成功と同値である。 |
+| 4 | `invariant1_parse_iff` | PublicGeneration.lean:657 | `parseGrammar` の成功は、入力全体の導出と、翻訳した `assemble` の成功と同値である。 |
 | 5 | `invariant1_translated_grammar` | PublicEntryProof.lean:15 | 翻訳した `parseGrammar` の成功は、開始規則が入力の末尾で成功し、`assemble` が文法を返すことと同値である。 |
 | 5a | `assemble_agrees`、`assemble_ok_iff` | AssembleTranslatedProof.lean:1680、AssembleTranslatedProof.lean:1659 | 翻訳した `assemble` は、AssembleValidation のモデルが項目の射影 `view` を受理するときだけ文法を返す。 |
 | 6 | `invariant1_parseTops_iff` | PublicParsing.lean:28 | `parseTops` の入口は、開始規則の結果が入力のバイト長で終わるときだけ値を返す。 |
@@ -110,20 +110,20 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 
 | 順 | 定理 | 場所 | 示すこと |
 | --- | --- | --- | --- |
-| 1 | `invariant2_generateWithWarnings` | PublicGeneration.lean:569 | `generationModule` まで評価した公開の結果は、一件以上の診断か生成テキストである。 |
-| 2 | `invariant2_generate` | PublicGeneration.lean:558 | `generate` は、一件以上の診断か生成テキストを返す。 |
-| 3 | `invariant2_generateFromSource` | PublicGeneration.lean:580 | `generateFromSource` は、一件以上の診断か生成テキストを返す。 |
+| 1 | `invariant2_generateWithWarnings` | PublicGeneration.lean:573 | `generationModule` まで評価した公開の結果は、一件以上の診断か生成テキストである。 |
+| 2 | `invariant2_generate` | PublicGeneration.lean:562 | `generate` は、一件以上の診断か生成テキストを返す。 |
+| 3 | `invariant2_generateFromSource` | PublicGeneration.lean:584 | `generateFromSource` は、一件以上の診断か生成テキストを返す。 |
 | 4 | `invariant2_diagnosticOrModule` | Pipeline.lean:187 | 各段が失敗時に空でない診断を返し、注記が診断を空にしなければ、`generateWithWarnings` の公開の結果は空でない診断か生成テキストである。 |
 | 5 | `diagnosticOrModule`、`failureNonempty` | InnerGeneration.lean:189、InnerGeneration.lean:144 | 内側の `generate` について、4 と同じことを示す。 |
-| 6 | `parse_error_nonempty` | PublicGeneration.lean:428 | 構文解析と組み立ての失敗には診断がある。組み立ての失敗は `assemble_error_nonempty`（AssembleTranslatedProof.lean:1684）を使う。 |
-| 7 | `resolve_error_nonempty` | PublicGeneration.lean:500 | import の解決の失敗には診断がある。`invariant2_resolve_error_nonempty`（ImportResolution.lean:337）を使う。その前提であるライブラリの構文解析と組み立ての失敗の診断は、`lookupLibrary_parse_nonempty`（PublicGeneration.lean:476）と `lookupLibrary_assemble_nonempty`（PublicGeneration.lean:487）が示す。 |
-| 8 | `expand_error_nonempty` | PublicGeneration.lean:510 | テンプレート展開の失敗には診断がある。`expandTemplates_whole`（TemplateExpansionWhole.lean:1298）を使う。 |
-| 9 | `check_error_nonempty` | PublicGeneration.lean:537 | 規則の検査の失敗には診断がある。`check_error_ne_nil`（CheckGroupsTheorems.lean:68）を使う。 |
-| 10 | `notes_nonempty` | PublicGeneration.lean:551 | テンプレートの注記は空でない診断を空にしない。`invariant2_templateNotes_nonempty`（TemplateQueue.lean:118）を使う。 |
-| 11 | `inner_error_nonempty` | PublicGeneration.lean:563 | 内側の生成の失敗には診断がある。 |
-| 12 | `invariant2_check_rejects_public` | PublicGeneration.lean:600 | 展開した文法を `check` が拒否すれば、公開の結果は一件以上の診断であり、生成テキストではない。 |
-| 13 | `invariant2_group_error_public` | PublicGeneration.lean:621 | `check` の 15 の群のどれかに誤りがあれば（`check_rejects`、CheckGroupsTheorems.lean:93）、12 と同じ結果になる。 |
-| 14 | `invariant2_undefined_reference_public` | PublicGeneration.lean:632 | 展開した文法に未定義の規則への参照があれば、12 と同じ結果になる。 |
+| 6 | `parse_error_nonempty` | PublicGeneration.lean:431 | 構文解析と組み立ての失敗には診断がある。組み立ての失敗は `assemble_error_nonempty`（AssembleTranslatedProof.lean:1684）を使う。 |
+| 7 | `resolve_error_nonempty` | PublicGeneration.lean:504 | import の解決の失敗には診断がある。`invariant2_resolve_error_nonempty`（ImportResolution.lean:337）を使う。その前提であるライブラリの構文解析と組み立ての失敗の診断は、`lookupLibrary_parse_nonempty`（PublicGeneration.lean:480）と `lookupLibrary_assemble_nonempty`（PublicGeneration.lean:491）が示す。 |
+| 8 | `expand_error_nonempty` | PublicGeneration.lean:514 | テンプレート展開の失敗には診断がある。`expandTemplates_whole`（TemplateExpansionWhole.lean:1298）を使う。 |
+| 9 | `check_error_nonempty` | PublicGeneration.lean:541 | 規則の検査の失敗には診断がある。`check_error_ne_nil`（CheckGroupsTheorems.lean:68）を使う。 |
+| 10 | `notes_nonempty` | PublicGeneration.lean:555 | テンプレートの注記は空でない診断を空にしない。`invariant2_templateNotes_nonempty`（TemplateQueue.lean:118）を使う。 |
+| 11 | `inner_error_nonempty` | PublicGeneration.lean:567 | 内側の生成の失敗には診断がある。 |
+| 12 | `invariant2_check_rejects_public` | PublicGeneration.lean:604 | 展開した文法を `check` が拒否すれば、公開の結果は一件以上の診断であり、生成テキストではない。 |
+| 13 | `invariant2_group_error_public` | PublicGeneration.lean:625 | `check` の 15 の群のどれかに誤りがあれば（`check_rejects`、CheckGroupsTheorems.lean:93）、12 と同じ結果になる。 |
+| 14 | `invariant2_undefined_reference_public` | PublicGeneration.lean:636 | 展開した文法に未定義の規則への参照があれば、12 と同じ結果になる。 |
 
 停止性は、各段のモデルが Lean の全域の定義であることから得る。
 Lean は、`partial def` と `partial_fixpoint` を使わない定義に停止の証明を求める。
@@ -146,9 +146,9 @@ Haskell の実装が停止することは、モデルとの対応を通してだ
 | 順 | 定理 | 場所 | 示すこと |
 | --- | --- | --- | --- |
 | 1 | `invariant3_generateWithWarnings_ghc` | PublicGenerationGHC.lean:67 | 生成テキストを GHC の lexer で読んだ字句の列は、GHC のモジュールの開始記号（非終端記号 0）から `layoutGrammar productions` で導出できる。前提 `renderShape`（PublicGenerationGHC.lean:69）を置く。 |
-| 2 | `invariant3_generateWithWarnings_text` | PublicGeneration.lean:699 | 生成テキストは、テンプレート展開と `check` を通った文法 `final` の `render` の出力に `finalize` を当てたものである。マーカーは、最初の `render` から `selectMarker` が選ぶ。`final` はテンプレート、テンプレートの呼び出し、テンプレートへの参照を含まない（`TemplateExpansionWhole.Accepted`）。 |
+| 2 | `invariant3_generateWithWarnings_text` | PublicGeneration.lean:703 | 生成テキストは、テンプレート展開と `check` を通った文法 `final` の `render` の出力に `finalize` を当てたものである。マーカーは、最初の `render` から `selectMarker` が選ぶ。`final` はテンプレート、テンプレートの呼び出し、テンプレートへの参照を含まない（`TemplateExpansionWhole.Accepted`）。 |
 | 3 | `invariant3_public_render_iff` | InnerGeneration.lean:118 | 公開の結果が生成テキストであることと、各段が成功し、そのテキストが `finalize` の出力であることは同値である。 |
-| 4 | `expand_ok_accepted` | PublicGeneration.lean:523 | `expandTemplates` が成功すれば、その結果は `expandTemplates_whole` の受理の形を持つ。 |
+| 4 | `expand_ok_accepted` | PublicGeneration.lean:527 | `expandTemplates` が成功すれば、その結果は `expandTemplates_whole` の受理の形を持つ。 |
 | 5 | `finalized_module_derives` | PublicGenerationGHC.lean:52 | `render` の出力が `ModuleShape`（PublicGenerationGHC.lean:33）を満たせば、`finalize` の出力の字句の列は導出を持つ。 |
 | 6 | `generated_module_with_rules_finalized` | RenderFinalizeModule.lean:79 | RenderComposition.lean の結論を、`finalize` の出力まで延ばす。lexer に `finalizedLex`（`finalize` をかけてから GHC の lexer で読む関数）を入れる。 |
 | 7 | `finalize_prefix` | RenderFinalize.lean:220 | 改行で終わる前半に `finalize` をかけたものは、全体に `finalize` をかけたものの先頭である。 |
@@ -694,7 +694,7 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 
 | 番号 | 前提 | 仮定する場所 | 見張る検査 |
 | --- | --- | --- | --- |
-| A1 | `Premises` の `expandRefines`: Haskell の `expandTemplates` が、射影 `toTemplate` の上でモデル `ExpandTemplates` の結果を実現する。拒否の診断はモデルの診断を `templateDiag` で文字列にしたものである。射影が落とす欄は制約しない。 | PublicGeneration.lean:423 | check-template-expansion-whole.sh（11 個の文法で、規則の型を除いて比べる） |
+| A1 | `Premises` の `expandRefines`: Haskell の `expandTemplates` が、射影 `toTemplate` の上でモデル `ExpandTemplates` の結果を実現する。拒否の診断はモデルの診断を `templateDiag` で文字列にしたものである。射影が落とす欄は制約しない。 | PublicGeneration.lean:426 | check-template-expansion-whole.sh（11 個の文法で、規則の型を除いて比べる） |
 | A4 | `renderShape`（不変条件 3 の GHC の導出だけ）: `check` を通り、export を定義した文法の `render` の出力は、選んだマーカーで `ModuleShape` を満たす。`ModuleShape` は、G1 の lexer の前提、E1 の埋め込みコードの前提、生成した宣言の部品 `GeneratedParts` の存在（規則の型と本体の導出を含む）からなる。 | PublicGenerationGHC.lean:69 | check-render-finalize.sh、check-render-composition.sh、check-render-printing.sh |
 | A5 | 引数のまま残る関数: 診断の文（`Inputs.failure`、`Inputs.diag`、`Inputs.templateDiag`、`Inputs.diagText`）、翻訳した `assemble` が組み立てる文法の射影（`Inputs.grammar`）、ImportResolution が引数に取る `resolveImports` の関数（`relocate`、`refs`、`directiveNames` など）と `%library` の有無の判定（`hasLibraryDirective`）、`classify`（`oracle`、`classify`）、`undefinedExports`（`missing`）、`render`、各項目の値（`value`）とその Haskell の `Top`（`items`）。Pipeline は `[Diagnostic]` を文字列の列で表すので、段のモデルの診断は `diag`、`templateDiag`、`diagText` で文字列にする。 | PublicGeneration.lean:265 | 段ごとのプローブ |
 | A6 | 段のモデルの前提。下の各表の前提である。 | 各モジュール | 各表のとおり |
