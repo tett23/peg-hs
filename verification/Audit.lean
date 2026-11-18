@@ -115,6 +115,8 @@ import RenderFinalize
 import RenderFinalizeModule
 import PublicGeneration
 import PublicGenerationGHC
+import PublicPremises
+import PublicPremisesMeta
 import RenderPrinting
 import RenderDeclarationBinders
 import RenderDeclarationsGHC
@@ -144,6 +146,8 @@ import DerivationPeg
 import DerivationPegSyntax
 import DerivationExtensions
 import CommittedModuleDerivations
+import DerivationOneAction
+import BoundaryDerivations
 
 namespace PegHs.RecursiveEval
 
@@ -215,6 +219,7 @@ def auditedModules : List Lean.Name := [
   `CheckGroupsModel,
   `CheckGroupsReach,
   `CheckGroupsTheorems,
+  `BoundaryDerivations,
   `CommittedModuleDerivations,
   `ConcreteFileCertificates,
   `ConcreteTables,
@@ -222,6 +227,7 @@ def auditedModules : List Lean.Name := [
   `ConcreteTerminalBody,
   `Consumption,
   `DerivationExtensions,
+  `DerivationOneAction,
   `DerivationPeg,
   `DerivationPegSyntax,
   `DirectiveArgument,
@@ -300,6 +306,8 @@ def auditedModules : List Lean.Name := [
   `PublicEntryProof,
   `PublicGeneration,
   `PublicGenerationGHC,
+  `PublicPremises,
+  `PublicPremisesMeta,
   `PublicParsing,
   `Reachable,
   `RecursiveEval,
