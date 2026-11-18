@@ -42,20 +42,20 @@ Premises, besides R1 to R6 of RuntimeCore.lean and RuntimeCoreProof.lean:
 - The literal terminals of the context are not empty
   (`invariant1_meta_literals_nonempty` shows it for the metagrammar).
 
-What ties `exec` to the generated SelfHosted.hs, and is not proved here, is
-premise R7 of verification/README.md:
+What ties `exec` to the generated SelfHosted.hs:
 - A call in the generated code is `memo` or `memoArg`, and `exec` calls
-  `nomemo`. RuntimeCoreProof's `invariant1_translated_memo_off_same` shows
-  that `memo` with the table in either cache state returns the same outcome
-  as `nomemo`; that every table entry is in one of those states during a
-  whole run is not shown.
-- The generated code computes Haskell values; `exec` computes the model's
-  remaining input and environment. In a repetition, `many` drops the
-  bindings of an iteration and `exec` passes the environment on.
+  `nomemo`. SelfHostedMemo.lean runs the same bodies with the tables and
+  proves that the result is the same (the cache invariant over the whole
+  store, with ScopedEnv.lean for the key of a call without arguments).
 - `getOffset`, `spanFrom`, `withCol`, `capture`, `optional` (here an
   alternative with the empty parser), the one-alternative `choice` around a
   rule body and a `choice` of three or more alternatives (here nested
-  two-way choices) do not change the result.
+  two-way choices): RuntimeForms.lean proves that they do not change the
+  result.
+- Premise R7 of verification/README.md, not proved here: the generated code
+  computes Haskell values; `exec` computes the model's remaining input and
+  environment. In a repetition, `many` drops the bindings of an iteration and
+  `exec` passes the environment on.
 -/
 
 set_option linter.unusedSimpArgs false
