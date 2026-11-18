@@ -1,0 +1,16 @@
+-- Hints for TranslateHaskell.hs on Peg.Grammar.Labels. Lean checks every
+-- termination_by and decreasing_by; a fuel group is translated with fuel
+-- (HsPrelude.lean, rule H6).
+decreasing normalise.merge
+  termination_by ($1).length
+fuel failed
+fuel nullableRules.go
+fuel simExpr
+fuel fixpoint.go
+fuel expansions
+fuel framesAt.go
+fuel sites.exprSites
+fuel exprMentions
+fuel exprCodes
+fuel substItems.rewrite
+fuel substItems.expr
