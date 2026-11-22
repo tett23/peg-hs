@@ -27,8 +27,8 @@ stage model reads a view of it:
   `stripLabelsAs`), and `stripAs` is `stripLabelsAs` on `Grammar`
   (`toLabel_stripAs`);
 - `toCheck` is the grammar of CheckGroupsModel (`check`);
-- `toTemplate` is the grammar of TemplateExpansionWhole, with a location
-  `Loc f l c` written `l * 100000 + c` as in its probe;
+- `toTemplate` is the grammar of TemplateExpansionWhole; the locations
+  retained by this model keep all three components;
 - ImportResolution takes the rules of `Grammar` as its rules, and `resolve`
   puts the merged rules back into the root grammar
   (`Right root {grammarRules = ...}`).
@@ -184,16 +184,16 @@ def toCheck (g : Grammar) : CheckGroups.Grammar where
   rules := g.rules.map Rule.toCheck
 
 -- The location of TemplateExpansionWhole, as its probe writes `Loc f l c`.
-def locNat (l : Loc) : Nat := l.line * 100000 + l.col
+def templateLoc (l : Loc) : TemplateSubstitution.Location := ⟨l.file, l.line, l.col⟩
 
-def located (p : Loc × String) : Nat × String := (locNat p.1, p.2)
+def located (p : Loc × String) : TemplateSubstitution.Location × String := (templateLoc p.1, p.2)
 
 mutual
 def exprT : Expr → TemplateSubstitution.Expr
   | .lit t w => .lit t w
   | .cls _ w => .charClass w
   | .any => .any
-  | .ref l n args => .ref (locNat l) n (args.map (·.2))
+  | .ref l n args => .ref (templateLoc l) n (args.map (·.2))
   | .group alts => .group (altsT alts)
   | .star x => .star (exprT x)
   | .plus x => .plus (exprT x)
@@ -201,9 +201,9 @@ def exprT : Expr → TemplateSubstitution.Expr
   | .and x => .and (exprT x)
   | .not x => .not (exprT x)
   | .capture x => .capture (exprT x)
-  | .label l x n => .label (locNat l) (exprT x) n
+  | .label l x n => .label (templateLoc l) (exprT x) n
   | .pred b c => .predicate b c.2
-  | .template l n as vs => .template (locNat l) n (listT as) (vs.map (·.2))
+  | .template l n as vs => .template (templateLoc l) n (listT as) (vs.map (·.2))
   | .discard x => .discard (exprT x)
 termination_by e => sizeOf e
 
@@ -225,13 +225,13 @@ end
 
 def Rule.toTemplate (r : Rule) : TemplateExpansionWhole.Rule where
   name := r.name
-  location := locNat r.loc
+  location := templateLoc r.loc
   params := r.params
   templateParams := r.templateParams
   type := r.type
   alts := r.alts.map fun a =>
     { items := itemsT a.items, action := a.action.map (·.2), constructor := a.constructor.map Prod.snd }
-  annotation := r.annotation.map locNat
+  annotation := r.annotation.map templateLoc
 
 def toTemplate (g : Grammar) : TemplateExpansionWhole.Grammar where
   rules := g.rules.map Rule.toTemplate

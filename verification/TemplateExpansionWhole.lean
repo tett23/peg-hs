@@ -38,15 +38,14 @@ Premises (explicit parameters, not proved here):
 - `Data.Map` and `Data.Set` are modelled by lists: `M.fromList` keeps the last
   binding of a key, `M.insert` puts the newest binding first, `S.toAscList`
   sorts and removes duplicates, and membership is list membership.
-- A location is a natural number; the probe writes `Loc f l c` as
-  `l * 100000 + c` for the one file it parses.
+- A location retains the file, line and column as separate natural numbers.
 - Haskell's `Int` depth and `Integer` sizes and counter never overflow here:
   the depth is incremented only while it is at most 64.
 -/
 
 namespace PegHs.TemplateExpansionWhole
 
-open TemplateSubstitution (Expr Diagnostic Substitution substitute substituteAlt valueErrors)
+open TemplateSubstitution (Location Expr Diagnostic Substitution substitute substituteAlt valueErrors)
 
 abbrev Item := Option String × Expr
 
@@ -58,26 +57,26 @@ structure Alt where
 
 structure Rule where
   name : String
-  location : Nat
+  location : Location
   params : List (String × String)
   templateParams : List (String × Option String)
   type : String
   alts : List Alt
-  annotation : Option Nat := none
+  annotation : Option Location := none
   deriving Repr
 
 -- The fields of the grammar that expandTemplates reads or writes; the others
 -- are returned as they are.
 structure Grammar where
   rules : List Rule
-  start : List (Nat × String)
-  entries : List (Nat × String)
-  recovers : List (Nat × String)
-  nomemo : List (Nat × String)
-  tokens : List (Nat × String)
-  trivia : List (Nat × String)
-  inline : List (Nat × String)
-  expects : List (Nat × String)
+  start : List (Location × String)
+  entries : List (Location × String)
+  recovers : List (Location × String)
+  nomemo : List (Location × String)
+  tokens : List (Location × String)
+  trivia : List (Location × String)
+  inline : List (Location × String)
+  expects : List (Location × String)
   syntaxMode : Bool
   deriving Repr
 
@@ -203,7 +202,7 @@ structure Job where
   args : List Expr
   captured : List (String × String)
   depth : Nat
-  location : Nat
+  location : Location
 
 abbrev Key := String × String × List (String × String)
 
@@ -246,7 +245,7 @@ def freshName (used : List String) (base : String) (n : Nat) (generated : List S
   | some k => TemplateExpansion.decimalName base k
   | none => base
 
-def captures (c : Ctx) (caller : Caller) (scope : List String) (l : Nat) (t : Rule)
+def captures (c : Ctx) (caller : Caller) (scope : List String) (l : Location) (t : Rule)
     (args : List Expr) : List (String × String) × List Diagnostic :=
   let names := ascending (args.flatMap fun a => (exprCode a).flatMap c.env.idents)
   let bound := names.filter (· ∈ scope)
@@ -259,7 +258,7 @@ def captures (c : Ctx) (caller : Caller) (scope : List String) (l : Nat) (t : Ru
       " in its body, so its argument cannot take the parameter " ++ p.1 ++ " of the rule " ++ caller.name ++
       "; rename the parameter"))
 
-def argType (c : Ctx) (st : State) (l : Nat) (p : String × Option String) (a : Expr) :
+def argType (c : Ctx) (st : State) (l : Location) (p : String × Option String) (a : Expr) :
     Option String × List Diagnostic :=
   match p.2 with
   | none => (none, [])
@@ -269,7 +268,7 @@ def argType (c : Ctx) (st : State) (l : Nat) (p : String × Option String) (a : 
     | .capture _ => (some "PegRt.Text", [])
     | _ => (some "()", [(l, "the argument for " ++ p.1 ++ " must be a rule, a capture or a template call, since its value is used")])
 
-def instanceOf (c : Ctx) (l depth : Nat) (t : Rule) (args : List Expr) (tys : List (Option String))
+def instanceOf (c : Ctx) (l : Location) (depth : Nat) (t : Rule) (args : List Expr) (tys : List (Option String))
     (captured : List (String × String)) (st : State) : String × State :=
   let key := keyOf t args captured
   match lookupFirst st.instances key with
@@ -617,7 +616,7 @@ theorem lookupLast_mem {α : Type} {xs : List (String × α)} {n : String} {v : 
     cases p
     simp_all
 
-theorem instanceOf_spec (c : Ctx) (wf : WF c) (l depth : Nat) (t : Rule) (args : List Expr)
+theorem instanceOf_spec (c : Ctx) (wf : WF c) (l : Location) (depth : Nat) (t : Rule) (args : List Expr)
     (tys : List (Option String)) (captured : List (String × String)) (st : State) :
     Spec c depth st (instanceOf c l depth t args tys captured st).2
       (isT c (instanceOf c l depth t args tys captured st).1 = false) := by

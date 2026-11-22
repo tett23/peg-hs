@@ -38,6 +38,7 @@ cat "$work/source" verification/TemplateExpansionFreshProbe.hs >> "$work/Probe.h
   "$work/Probe.hs" > "$work/haskell-output"
 
 (cd verification &&
+  LEAN_PATH="$work" lean -o "$work/TemplateLocation.olean" TemplateLocation.lean > /dev/null &&
   LEAN_PATH="$work" lean -o "$work/TemplateSubstitution.olean" TemplateSubstitution.lean > /dev/null &&
   LEAN_PATH="$work" lean -o "$work/TemplateQueue.olean" TemplateQueue.lean > /dev/null &&
   LEAN_PATH="$work" lean -o "$work/TemplateExpansion.olean" TemplateExpansion.lean > /dev/null &&

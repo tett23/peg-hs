@@ -158,8 +158,11 @@ main = do
     _ -> die "usage: TemplateExpansionWholeProbe (lean|expect)"
 
 -- The model's location of a Loc in the one file parsed.
-loc :: Loc -> Int
-loc (Loc _ l c) = l * 100000 + c
+loc :: Loc -> String
+loc (Loc f l c) = show f ++ ":" ++ show l ++ ":" ++ show c
+
+locLean :: Loc -> String
+locLean (Loc f l c) = "{ file := " ++ show f ++ ", line := " ++ show l ++ ", col := " ++ show c ++ " }"
 
 -- The projection, written the same way by TemplateExpansionWholeProbe.lean.
 project :: String -> Either [Diagnostic] Grammar -> String
@@ -167,17 +170,17 @@ project n res =
   unlines $
     ("case " ++ n)
       : case res of
-        Left ds -> "error" : ["  " ++ show (loc l) ++ " " ++ T.unpack m | Diagnostic l m <- ds]
+        Left ds -> "error" : ["  " ++ loc l ++ " " ++ T.unpack m | Diagnostic l m <- ds]
         Right g ->
           "ok"
             : concatMap rule (grammarRules g)
-              ++ ["inline " ++ show (loc l) ++ " " ++ T.unpack x | Located l x <- grammarInline g]
+              ++ ["inline " ++ loc l ++ " " ++ T.unpack x | Located l x <- grammarInline g]
   where
     rule r =
-      ( "rule " ++ T.unpack (ruleName r) ++ " @" ++ show (loc (ruleLoc r)) ++ " params="
+      ( "rule " ++ T.unpack (ruleName r) ++ " @" ++ loc (ruleLoc r) ++ " params="
           ++ intercalate "," [T.unpack (paramName p) ++ ":" ++ T.unpack (unLoc (paramType p)) | p <- ruleParams r]
           ++ " tparams=" ++ intercalate "," [T.unpack (templateParamName p) ++ maybe "" (\t -> "::" ++ T.unpack t) (templateParamType p) | p <- ruleTemplateParams r]
-          ++ " annotation=" ++ maybe "-" (show . loc) (ruleAnnotation r)
+          ++ " annotation=" ++ maybe "-" loc (ruleAnnotation r)
       )
         : concatMap alt (ruleAlts r)
     alt a = ("  alt " ++ maybe "-" (\t -> "{" ++ T.unpack (unLoc t) ++ "}") (altAction a)
@@ -187,7 +190,7 @@ project n res =
       ELit _ w -> "(lit " ++ T.unpack w ++ ")"
       EClass _ w -> "(class " ++ T.unpack w ++ ")"
       EAny -> "any"
-      ERef l x as -> "(ref@" ++ show (loc l) ++ " " ++ T.unpack x ++ " [" ++ intercalate "," (map (T.unpack . unLoc) as) ++ "])"
+      ERef l x as -> "(ref@" ++ loc l ++ " " ++ T.unpack x ++ " [" ++ intercalate "," (map (T.unpack . unLoc) as) ++ "])"
       EGroup alts -> "(group " ++ intercalate " / " (map (unwords . map item) alts) ++ ")"
       EStar x -> "(star " ++ expr x ++ ")"
       EPlus x -> "(plus " ++ expr x ++ ")"
@@ -195,9 +198,9 @@ project n res =
       EAnd x -> "(and " ++ expr x ++ ")"
       ENot x -> "(not " ++ expr x ++ ")"
       ECapture x -> "(capture " ++ expr x ++ ")"
-      ELabel l x m -> "(label@" ++ show (loc l) ++ " " ++ expr x ++ " " ++ T.unpack m ++ ")"
+      ELabel l x m -> "(label@" ++ loc l ++ " " ++ expr x ++ " " ++ T.unpack m ++ ")"
       EPred b c -> "(pred " ++ (if b then "T" else "F") ++ " {" ++ T.unpack (unLoc c) ++ "})"
-      ETemplate l x as vs -> "(template@" ++ show (loc l) ++ " " ++ T.unpack x ++ " [" ++ unwords (map expr as) ++ "] [" ++ intercalate "," (map (T.unpack . unLoc) vs) ++ "])"
+      ETemplate l x as vs -> "(template@" ++ loc l ++ " " ++ T.unpack x ++ " [" ++ unwords (map expr as) ++ "] [" ++ intercalate "," (map (T.unpack . unLoc) vs) ++ "])"
       EDiscard x -> "(discard " ++ expr x ++ ")"
 
 leanModule :: [(String, Grammar)] -> String
@@ -226,14 +229,14 @@ leanModule gs =
         ++ ", expects := " ++ located (map fst (grammarExpects g))
         ++ ", syntaxMode := " ++ (if isJust (grammarSyntax g) then "true" else "false")
         ++ " }"
-    located xs = list [pair (show (loc l)) (str x) | Located l x <- xs]
+    located xs = list [pair (locLean l) (str x) | Located l x <- xs]
     rule r =
       "{ name := " ++ str (ruleName r)
-        ++ ", location := " ++ show (loc (ruleLoc r))
+        ++ ", location := " ++ locLean (ruleLoc r)
         ++ ", params := " ++ list [pair (str (paramName p)) (str (unLoc (paramType p))) | p <- ruleParams r]
         ++ ", templateParams := " ++ list [pair (str (templateParamName p)) (maybe "none" (\t -> "(some " ++ str t ++ ")") (templateParamType p)) | p <- ruleTemplateParams r]
         ++ ", type := " ++ str (unLoc (ruleType r))
-        ++ ", annotation := " ++ maybe "none" (\l -> "(some " ++ show (loc l) ++ ")") (ruleAnnotation r)
+        ++ ", annotation := " ++ maybe "none" (\l -> "(some " ++ locLean l ++ ")") (ruleAnnotation r)
         ++ ", alts := " ++ list (map alt (ruleAlts r))
         ++ " }"
     alt a = "{ items := " ++ list (map item (altItems a)) ++ ", action := " ++ maybe "none" (\t -> "(some " ++ str (unLoc t) ++ ")") (altAction a)
@@ -243,7 +246,7 @@ leanModule gs =
       ELit v w -> "(.lit " ++ str v ++ " " ++ str w ++ ")"
       EClass _ w -> "(.charClass " ++ str w ++ ")"
       EAny -> ".any"
-      ERef l x as -> "(.ref " ++ show (loc l) ++ " " ++ str x ++ " " ++ list (map (str . unLoc) as) ++ ")"
+      ERef l x as -> "(.ref " ++ locLean l ++ " " ++ str x ++ " " ++ list (map (str . unLoc) as) ++ ")"
       EGroup alts -> "(.group " ++ list (map (list . map item) alts) ++ ")"
       EStar x -> "(.star " ++ expr x ++ ")"
       EPlus x -> "(.plus " ++ expr x ++ ")"
@@ -251,9 +254,9 @@ leanModule gs =
       EAnd x -> "(.and " ++ expr x ++ ")"
       ENot x -> "(.not " ++ expr x ++ ")"
       ECapture x -> "(.capture " ++ expr x ++ ")"
-      ELabel l x m -> "(.label " ++ show (loc l) ++ " " ++ expr x ++ " " ++ str m ++ ")"
+      ELabel l x m -> "(.label " ++ locLean l ++ " " ++ expr x ++ " " ++ str m ++ ")"
       EPred b c -> "(.predicate " ++ (if b then "true" else "false") ++ " " ++ str (unLoc c) ++ ")"
-      ETemplate l x as vs -> "(.template " ++ show (loc l) ++ " " ++ str x ++ " " ++ list (map expr as) ++ " " ++ list (map (str . unLoc) vs) ++ ")"
+      ETemplate l x as vs -> "(.template " ++ locLean l ++ " " ++ str x ++ " " ++ list (map expr as) ++ " " ++ list (map (str . unLoc) vs) ++ ")"
       EDiscard x -> "(.discard " ++ expr x ++ ")"
     list xs = "[" ++ intercalate ", " xs ++ "]"
     pair a b = "(" ++ a ++ ", " ++ b ++ ")"

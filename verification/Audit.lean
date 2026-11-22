@@ -309,6 +309,7 @@ def auditedModules : List Lean.Name := [
   `TemplatesTranslatedProof,
   `TemplateCollectionsProof,
   `TemplateProjectionProof,
+  `TemplateLocation,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,

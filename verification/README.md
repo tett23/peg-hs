@@ -403,10 +403,16 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 型注釈の位置と選択肢の構成子名も、プローブの入力と比較結果に含める。
 
 テンプレート展開のモデルへの射影 `toTemplate` は、分類処理が読む型注釈と構成子名を保つ。
-[TemplateProjectionProof.lean](TemplateProjectionProof.lean) は、任意の規則について、型注釈の位置を `locNat` で写し、構成子名を各選択肢に保つことを示す。
+[TemplateProjectionProof.lean](TemplateProjectionProof.lean) は、任意の規則について、型注釈の位置を `templateLoc` で写し、構成子名を各選択肢に保つことを示す。
 モデルから戻す `Rule.lift` もこの二つを戻し、`Rule.toTemplate_lift` が射影し直すと元のモデルの規則に一致することを示す。
 [check-template-projection.sh](check-template-projection.sh) は、型注釈または構成子名を捨てる変更が型検査を通り、保存の証明が拒否することを確かめる。
 分類結果そのものとモデルの対応は、引き続き前提 A1 に残る。
+
+位置は、[TemplateLocation.lean](TemplateLocation.lean) の `Location` にファイル番号、行、列を別々に持つ。
+`templateLoc` はこの三つを保ち、射影が単射であることと、`unloc` との往復が元の位置に戻ることを証明する。
+ファイルの違いと、100000 を超える列による衝突を省略した以前の前提 T4 は不要になった。
+`check-template-projection.sh` は、ファイル番号を捨てる変更と行・列を一つの数へまとめる変更も、型検査を通った後に保存の証明が拒否することを確かめる。
+プローブの入力と比較結果も三つの成分を含む。
 
 [InfiniteHeadProof.lean](InfiniteHeadProof.lean) は、`freshName` と同じ形の式を持つ [InfiniteHeadProbe.hs](InfiniteHeadProbe.hs) の GHC 構文木からの翻訳について、名前の探索の一致を示す。
 `root_adr0097_i2_first_name_agrees` は、任意の元の名前の列、生成済みの名前の列、非負の開始カウンターについて、十分な燃料で翻訳の結果が `boundedSearch` の結果の名前に等しいことを示す。
@@ -886,7 +892,6 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | T1 | `haskellIdents`（`codeVariables`）、インスタンスの型を作る `instanceType`、型の分類 `classifiedTypes . classify` は任意の関数として扱う。プローブは型を比べない。 | TemplateExpansionWhole.lean | |
 | T2 | メモ表のキーは位置を除いた引数の `show` であり、導出された `Show` が単射である。モデルは引数を構造で比べる。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh（インスタンスの共有を比べる） |
 | T3 | `Data.Map` と `Data.Set` はリストで写す。`M.fromList` は同じキーの最後の束縛を残し、`S.toAscList` は整列して重複を除く。 | TemplateExpansionWhole.lean | check-template-expansion-whole.sh |
-| T4 | 位置は自然数で写し、プローブは一つのファイルの `Loc f l c` を `l * 100000 + c` と書く。 | TemplateExpansionWhole.lean、PublicGeneration.lean:182 | check-template-expansion-whole.sh |
 | T5 | `show (k :: Integer)` は `Nat.repr` と一致する。 | TemplateExpansionFresh.lean | [check-template-expansion-fresh.sh](check-template-expansion-fresh.sh)（プローブで確かめる） |
 | I1 | `assemble` のモデルでは、`Text` の操作を `List Char` で表し、`Int` は 64 ビットとし、診断の文言と位置を消す。 | AssembleValidation.lean、AssemblePredicates.lean | check-assemble-predicates.sh、check-assemble-validation.sh |
 

@@ -25,15 +25,19 @@ open PegHs.LabelCheck (Loc Expr Item)
 
 /-! ## A right inverse of the template view -/
 
-def unloc (n : Nat) : Loc := ⟨0, 0, n⟩
+def unloc (n : TemplateSubstitution.Location) : Loc := ⟨n.file, n.line, n.col⟩
 
-theorem locNat_unloc (n : Nat) : locNat (unloc n) = n := by
-  simp [locNat, unloc]
+theorem templateLoc_unloc (n : TemplateSubstitution.Location) : templateLoc (unloc n) = n := by
+  simp [templateLoc, unloc]
 
-def unlocated (p : Nat × String) : Loc × String := (unloc p.1, p.2)
+theorem unloc_templateLoc (l : Loc) : unloc (templateLoc l) = l := by
+  cases l
+  rfl
 
-theorem located_unlocated (p : Nat × String) : located (unlocated p) = p := by
-  simp [located, unlocated, locNat_unloc]
+def unlocated (p : TemplateSubstitution.Location × String) : Loc × String := (unloc p.1, p.2)
+
+theorem located_unlocated (p : TemplateSubstitution.Location × String) : located (unlocated p) = p := by
+  simp [located, unlocated, templateLoc_unloc]
 
 mutual
 def exprF : TemplateSubstitution.Expr → Expr
@@ -71,7 +75,7 @@ theorem exprT_exprF : ∀ e, exprT (exprF e) = e
   | .lit t w => by simp [exprF, exprT]
   | .charClass w => by simp [exprF, exprT]
   | .any => by simp [exprF, exprT]
-  | .ref l n args => by simp [exprF, exprT, locNat_unloc, Function.comp_def]
+  | .ref l n args => by simp [exprF, exprT, templateLoc_unloc, Function.comp_def]
   | .group alts => by simp [exprF, exprT, altsT_altsF alts]
   | .star x => by simp [exprF, exprT, exprT_exprF x]
   | .plus x => by simp [exprF, exprT, exprT_exprF x]
@@ -79,10 +83,10 @@ theorem exprT_exprF : ∀ e, exprT (exprF e) = e
   | .and x => by simp [exprF, exprT, exprT_exprF x]
   | .not x => by simp [exprF, exprT, exprT_exprF x]
   | .capture x => by simp [exprF, exprT, exprT_exprF x]
-  | .label l x n => by simp [exprF, exprT, exprT_exprF x, locNat_unloc]
+  | .label l x n => by simp [exprF, exprT, exprT_exprF x, templateLoc_unloc]
   | .predicate b c => by simp [exprF, exprT]
   | .template l n as vs => by
-    simp [exprF, exprT, listT_listF as, locNat_unloc, Function.comp_def]
+    simp [exprF, exprT, listT_listF as, templateLoc_unloc, Function.comp_def]
   | .discard x => by simp [exprF, exprT, exprT_exprF x]
 
 theorem itemsT_itemsF : ∀ is, itemsT (itemsF is) = is
@@ -111,7 +115,7 @@ def Rule.lift (r : TemplateExpansionWhole.Rule) : Rule where
 
 theorem Rule.toTemplate_lift (r : TemplateExpansionWhole.Rule) : (Rule.lift r).toTemplate = r := by
   simp only [Rule.lift, Rule.toTemplate, List.map_map, Function.comp_def, itemsT_itemsF,
-    locNat_unloc, Option.map_map]
+    templateLoc_unloc, Option.map_map]
   simp
 
 -- `g` supplies the fields that the template view drops, and the start
