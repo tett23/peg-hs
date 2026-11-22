@@ -410,6 +410,14 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 `root_adr0097_i2_fresh_name_eventually_fresh` は、開始カウンターが非負なら、元の名前の列と生成済みの名前の列の長さの合計に 2 を加えた以上の燃料で、両方の列にない同じ名前を返すことを示す。
 `expandTemplates` 全体の対応は前提 A1 に残り、実装の状態 `stCount` が非負であることを呼び出し元から示す証明も残る。
 
+[TemplateStateProof.lean](TemplateStateProof.lean) は、実際の `expandOnce.instanceOf` を翻訳し、その状態の変化を示す。
+`root_adr0097_i2_instance_count_delta` は、任意の状態と燃料について、カウンターが変わらないか 1 だけ増えることを示す。
+`root_adr0097_i2_instance_count_nonnegative` は、この処理がカウンターの非負性を保つことを示す。
+`root_adr0097_i2_new_instance_name_free` は、カウンターが増えた場合、十分な燃料と実行前のカウンターの非負性から、返した名前が元の名前と実行前の生成済みの名前に属さないことを示す。
+初期状態から `instanceOf` までの呼び出し全体の証明は残る。
+[check-translate-template-state.sh](check-translate-template-state.sh) は、この翻訳を再生成して証明を検査し、カウンターを減らす変更と 2 ずつ増やす変更を拒否する。
+追加した `M.insert` の翻訳も、空のマップ、既存キーの上書き、ほかのキーの保存を GHC と比べる。
+
 [check-translate-infinite-head.sh](check-translate-infinite-head.sh) は、この翻訳を再生成し、証明を検査する。
 負の開始値、大きい `Integer`、名前の衝突を含む実行結果も GHC と比較し、燃料の境界を検査する。
 無限列の末尾を読む変更、`Int` の列への変更、燃料の指定を消す変更は翻訳が拒否し、プローブと実際の `freshName` の所属判定をそれぞれ反転する変更は一致の証明が拒否する。

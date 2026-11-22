@@ -449,7 +449,7 @@ library g m o mty = case o of
   "concat" | text -> Just "HsText.concat"
   "empty" | text -> Just "HsText.empty"
   f | text, f `elem` textFunctions -> Just ("HsText." ++ sanitize f)
-  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems"] -> Just ("HsMap." ++ f)
+  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems", "insert"] -> Just ("HsMap." ++ f)
   f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList", "null"] -> Just ("HsSet." ++ f)
   "toAscList" | m == "Data.Set.Internal" -> Just "HsSet.toList"
   "stronglyConnComp" | m == "Data.Graph" -> Just "HsGraph.stronglyConnComp"
