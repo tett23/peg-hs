@@ -27,6 +27,7 @@ compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateCollectionsProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
+compile "$PWD/verification/TemplateIdentifiersProof.lean"
 
 # Reuse the same eleven grammars as the model's probe, without copying its
 # projection: Generic serialization writes every field, including types.
@@ -116,6 +117,27 @@ for mutation in intersection union; do
   }
 done
 cp -R packages/peg-grammar/src "$work/grammar"
+# Dropping the consumed text still terminates, but reconstruction must fail.
+sed 's/a : identifierSplit b/identifierSplit b/' packages/peg-grammar/src/Peg/Grammar/Templates.hs \
+  > "$work/grammar/Peg/Grammar/Templates.hs"
+cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+compile "$lean_objects/TemplatesTranslated.lean"
+if compile "$PWD/verification/TemplateIdentifiersProof.lean" > "$work/identifiers-drop.log" 2>&1; then
+  echo 'root ADR 0097 I2: accepted discarded identifier segment' >&2; exit 1
+fi
+grep -E "TemplateIdentifiersProof.lean:[0-9]+:[0-9]+: error: (Tactic|unsolved goals|Type mismatch|'change' tactic failed)" \
+  "$work/identifiers-drop.log" > /dev/null || { cat "$work/identifiers-drop.log" >&2; exit 1; }
+# Keeping the original remainder makes the recursion non-decreasing.
+sed 's/a : identifierSplit b/a : identifierSplit t/' packages/peg-grammar/src/Peg/Grammar/Templates.hs \
+  > "$work/grammar/Peg/Grammar/Templates.hs"
+translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+if compile "$lean_objects/TemplatesTranslated.lean" > "$work/identifiers-loop.log" 2>&1; then
+  echo 'root ADR 0097 I2: accepted non-decreasing identifier split' >&2; exit 1
+fi
+grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: (well-founded recursion cannot be used|unsolved goals|Tactic)' "$work/identifiers-loop.log" > /dev/null || {
+  cat "$work/identifiers-loop.log" >&2; exit 1;
+}
 # Three well-typed semantic errors in the actual substitution: reverse the
 # typed/untyped result, discard a passed argument, or drop an action.
 for mutation in typed passed action; do
@@ -181,4 +203,5 @@ translate packages/peg-grammar/src > "$lean_objects/TemplatesTranslated.lean"
 compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 8 mutants checked.'
+compile "$PWD/verification/TemplateIdentifiersProof.lean"
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 10 mutants checked.'

@@ -1,7 +1,16 @@
 -- Every explicit fuel group is checked by the Lean kernel. Adequate fuel
 -- for the whole template pass remains a separate refinement obligation.
 fuel expandOnce.freshName
-fuel identifierSplit
+equations identifierSplit
+decreasing identifierSplit
+  termination_by ($1).toList.length
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (have bound := HsText.span_shrinks (fun c => @{identifierSplit.isIdent} c) t (by simpa using (by assumption)) (by assumption)
+         simp_all)
+      | (have bound := HsText.break_shrinks (fun c => @{identifierSplit.isIdent} c) t (by simpa using (by assumption)) (by simpa using (by assumption))
+         simp_all)
 decreasing plain
   termination_by sizeOf $1
   decreasing_by
