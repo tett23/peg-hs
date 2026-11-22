@@ -140,6 +140,7 @@ grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: (well-founded recursion 
   cat "$work/identifiers-loop.log" >&2; exit 1;
 }
 # Two actual lexical loops must fail their length-based termination checks.
+cp packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs"
 for mutation in string scan; do
   case "$mutation" in
     string) sed 's/_ : r -> string r/_ : r -> string s/' packages/peg-grammar/src/Peg/Grammar.hs ;;
