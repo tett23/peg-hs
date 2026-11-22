@@ -1182,10 +1182,13 @@ stmtsChain g sc stmts0 body next = go stmts0
         let rest' = case pGuards p' of
               [] -> rest
               gs -> "(if " ++ intercalate " && " gs ++ " then " ++ rest ++ " else " ++ next ++ ")"
+        disc <- if gEquationHere g
+          then fmap (\h -> "h" ++ h ++ " : " ++ e') (fresh g)
+          else pure e'
         pure $
           if not (exhaustive [[pTree p']] 1)
-            then "(match " ++ e' ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ "\n  | _ => " ++ next ++ ")"
-            else "(match " ++ e' ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ ")"
+            then "(match " ++ disc ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ "\n  | _ => " ++ next ++ ")"
+            else "(match " ++ disc ++ " with\n  | " ++ pText p' ++ " => " ++ rest' ++ ")"
       LetStmt _ binds -> localBinds g sc binds (go ss)
       _ -> bad (locA l) "this guard"
 

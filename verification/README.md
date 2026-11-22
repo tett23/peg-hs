@@ -424,6 +424,17 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 `root_adr0097_i2_instance_type_fields` は、型のコードとテンプレート引数の定義が同じ二つの規則について、同じ引数の型から `instanceType` が同じ結果を返すことを示す。
 `check-translate-templates.sh` は、消費した区間を捨てる変更を連結の証明が拒否し、同じテキストへ再帰する変更を停止性の検査が拒否することも確かめる。
 
+[CodeLexerProof.lean](CodeLexerProof.lean) は、意味アクション中の変数名を拾う実際の `codeVariables` の補助関数について、返す残りのリストが元のリストより長くならないことを示す。
+識別子の先頭を受理した場合は、少なくとも一文字を消費することも示す。
+この証明で使う `HsChar.alpha_isAlphaNum` は、記録した Unicode のアルファベットの各範囲が英数字の一つの範囲に収まることをカーネルで検査する。
+GHC の文字判定との対応には、`isAlpha` と `isAlphaNum` の前提 H2、およびほかの文字判定の前提 H10 が残る。
+
+`codeVariables` の五つの再帰は、残りのリストの長さの減少を使い、燃料を取らない。
+翻訳器の `equations` 指定はパターンガードの一致条件も残し、`HsBase.maybe_eq_maybeAttach` は成功結果と再帰に渡す値の一致を保つ。
+`check-translate-templates.sh` は、コメント、引用符、Unicode、修飾名、レコードフィールドなどの 20 ケースで、抽出した名前と位置を実装と比較する。
+同じ入力への文字列の読み飛ばしと走査の再帰を、停止性の検査が拒否することも確かめる。
+この比較と停止性は、抽出結果が Haskell の自由変数と一致することや、展開全体の前提 A1 の証明を含まない。
+
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。

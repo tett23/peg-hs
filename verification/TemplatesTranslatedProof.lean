@@ -132,9 +132,9 @@ theorem argType_safe (ruleTypes : HsMap String String) (l : Loc)
 
 attribute [local simp] argType_safe
 
-theorem captures_safe (fuel : Nat) (bodyNames : HsMap String (HsSet String))
+theorem captures_safe (bodyNames : HsMap String (HsSet String))
     (l : Loc) (caller : Caller) (scope : HsSet String) (t : Rule) (args : List Expr) :
-    CountSafe (expandOnce.captures_188 fuel bodyNames l caller scope t args) := by
+    CountSafe (expandOnce.captures_188 bodyNames l caller scope t args) := by
   unfold expandOnce.captures_188
   dsimp only
   apply bind_safe
@@ -198,7 +198,7 @@ theorem root_adr0097_i2_expansion_count_nonnegative (fuel : Nat) :
             split
             · simp
             · apply bind_safe
-              · exact captures_safe fuel bodyNames l caller scope t expanded
+              · exact captures_safe bodyNames l caller scope t expanded
               · intro captured
                 apply bind_safe
                 · apply traverse_safe

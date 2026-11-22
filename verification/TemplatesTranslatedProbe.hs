@@ -91,6 +91,28 @@ main :: IO ()
 main = do
   shared <- TemplateCases.cases
   let inputs = shared ++ [("unicode", T.pack "%module M\nS <- Box<[空]> Box<'𐐨'>\nBox<x> :: ()\nBox<x> <- x\n")]
+      codeCases = map (\(name,source) -> (name,T.pack source))
+        [ ("empty", "")
+        , ("variable", "x")
+        , ("identifiers", "alpha beta_2 gamma' _delta")
+        , ("unicode", "空 𐐨 𝛂 _値")
+        , ("reserved", "let x = y in x")
+        , ("string", "\"ignored \\\" quote\" x")
+        , ("open-string", "\"ignored x")
+        , ("character", "'x' y")
+        , ("escaped-character", "'\\n' y")
+        , ("open-character", "'x y")
+        , ("promoted", "'Just x")
+        , ("line-comment", "-- ignored\nx")
+        , ("dashes-symbol", "x --> y")
+        , ("block-comment", "{- outer {- inner -} tail -} x")
+        , ("open-comment", "{- outer {- inner -}")
+        , ("qualified", "Data.Map.lookup x M.N.z y")
+        , ("qualified-operator", "M.+ x")
+        , ("record-fields", "record.x.y z")
+        , ("numbers", "123abc 0xff x")
+        , ("positions", "x\ny\tz")
+        ]
   if null inputs then die "no template cases" else pure ()
   putStrLn "import TemplatesTranslated"
   putStrLn "def sameResult : Except (List TemplatesTranslated.Diagnostic) TemplatesTranslated.Grammar → Except (List TemplatesTranslated.Diagnostic) TemplatesTranslated.Grammar → Bool"
@@ -109,4 +131,9 @@ main = do
     putStrLn ("  unless sameResult (TemplatesTranslated.expandTemplates 4096 input" ++ show index ++ ") expected" ++ show index ++ " do")
     putStrLn ("    throw (IO.userError \"root ADR 0097 I2: translated template result differs: " ++ name ++ "\")"))
     (zip [0 :: Int ..] parsed)
+  mapM_ (\(name,source) -> do
+    let start = Loc 7 3 8
+    putStrLn ("  unless TemplatesTranslated.Peg_Grammar_codeVariables " ++ toLean start ++ " " ++ toLean source ++ " == " ++ toLean (codeVariables start source) ++ " do")
+    putStrLn ("    throw (IO.userError \"root ADR 0097 I2: translated code variables differ: " ++ name ++ "\")")) codeCases
   putStrLn ("  IO.println \"root ADR 0097 I2: compared all grammar fields and diagnostics in " ++ show (length parsed) ++ " template cases.\"")
+  putStrLn ("  IO.println \"root ADR 0097 I2: compared code variables and locations in " ++ show (length codeCases) ++ " lexical cases.\"")

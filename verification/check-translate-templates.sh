@@ -28,6 +28,7 @@ compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateCollectionsProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
+compile "$PWD/verification/CodeLexerProof.lean"
 
 # Reuse the same eleven grammars as the model's probe, without copying its
 # projection: Generic serialization writes every field, including types.
@@ -138,6 +139,23 @@ fi
 grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: (well-founded recursion cannot be used|unsolved goals|Tactic)' "$work/identifiers-loop.log" > /dev/null || {
   cat "$work/identifiers-loop.log" >&2; exit 1;
 }
+# Two actual lexical loops must fail their length-based termination checks.
+cp packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs"
+for mutation in string scan; do
+  case "$mutation" in
+    string) sed 's/_ : r -> string r/_ : r -> string s/' packages/peg-grammar/src/Peg/Grammar.hs ;;
+    scan) sed 's/otherwise = go rest/otherwise = go s/' packages/peg-grammar/src/Peg/Grammar.hs ;;
+  esac > "$work/grammar/Peg/Grammar.hs"
+  cmp -s packages/peg-grammar/src/Peg/Grammar.hs "$work/grammar/Peg/Grammar.hs" && exit 1
+  translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+  if compile "$lean_objects/TemplatesTranslated.lean" > "$work/lexer-$mutation.log" 2>&1; then
+    echo "root ADR 0097 I2: accepted non-decreasing lexical $mutation" >&2; exit 1
+  fi
+  grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: (unsolved goals|well-founded recursion cannot be used)' "$work/lexer-$mutation.log" > /dev/null || {
+    cat "$work/lexer-$mutation.log" >&2; exit 1;
+  }
+  cp packages/peg-grammar/src/Peg/Grammar.hs "$work/grammar/Peg/Grammar.hs"
+done
 # Three well-typed semantic errors in the actual substitution: reverse the
 # typed/untyped result, discard a passed argument, or drop an action.
 for mutation in typed passed action; do
@@ -204,4 +222,5 @@ compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 10 mutants checked.'
+compile "$PWD/verification/CodeLexerProof.lean"
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 12 mutants checked.'

@@ -114,6 +114,27 @@ def isSpaceChar (c : Char) : Bool := inRangesNat spaceRanges c.toNat
 def HsChar.isAlpha (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.alphaRanges c.val
 def HsChar.isAlphaNum (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.alphaNumRanges c.val
 
+theorem inRangesNat_mono (xs ys : List (Nat × Nat))
+    (covers : xs.all (fun r => ys.any (fun t => decide (t.1 ≤ r.1 ∧ r.2 ≤ t.2))) = true)
+    (n : Nat) (member : inRangesNat xs n = true) : inRangesNat ys n = true := by
+  simp only [inRangesNat, List.any_eq_true, decide_eq_true_eq] at member ⊢
+  obtain ⟨r, hr, lower, upper⟩ := member
+  have cover := (List.all_eq_true.mp covers) r hr
+  simp only [List.any_eq_true, decide_eq_true_eq] at cover
+  obtain ⟨t, ht, left, right⟩ := cover
+  exact ⟨t, ht, by omega, by omega⟩
+
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 1000000 in
+private theorem alphaRanges_covered :
+    PegHs.AssembleChars.alphaRanges.all (fun r =>
+      PegHs.AssembleChars.alphaNumRanges.any (fun t => decide (t.1 ≤ r.1 ∧ r.2 ≤ t.2))) = true := by
+  decide
+
+theorem HsChar.alpha_isAlphaNum (c : HsChar) (alpha : c.isAlpha = true) :
+    c.isAlphaNum = true :=
+  inRangesNat_mono _ _ alphaRanges_covered c.val alpha
+
 -- Rule H10: Data.Char's classifications.
 def HsChar.isSpace (c : HsChar) : Bool := inRangesNat spaceRanges c.val
 def HsChar.toUpper (c : HsChar) : HsChar :=
@@ -183,6 +204,14 @@ def uncurry {α β γ : Type} (f : α → β → γ) (p : α × β) : γ := f p.
 def maybe {α β : Type} (d : β) (f : α → β) : Option α → β
   | none => d
   | some a => f a
+def maybeAttach {α β : Type} (d : β) :
+    (o : Option α) → ((a : α) → o = some a → β) → β
+  | none, _ => d
+  | some a, f => f a rfl
+@[wf_preprocess] theorem maybe_eq_maybeAttach {α β : Type} (d : β)
+    (f : α → β) (o : Option α) :
+    maybe d f o = maybeAttach d o (fun a _ => f a) := by
+  cases o <;> rfl
 def seq {α β : Type} (_ : α) (b : β) : β := b
 end HsBase
 

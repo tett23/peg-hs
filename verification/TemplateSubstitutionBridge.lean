@@ -86,7 +86,8 @@ theorem root_adr0097_i2_substitution_refines (e : Expr) :
         | some pair =>
           rcases pair with ⟨p, arg⟩
           cases flag : HsMaybe.isJust p.templateParamType <;>
-            simp [substituteAlt.expr_303, pSub, pExpr, TemplateSubstitution.substitute, found, flag]
+            simp [substituteAlt.expr_303, pSub, TemplateSubstitution.substitute, found, flag] <;>
+            split <;> simp_all [pExpr]
       | cons arg rest => simp [substituteAlt.expr_303, pExpr, TemplateSubstitution.substitute]
     case EGroup alts =>
       congr 1
@@ -125,7 +126,8 @@ theorem root_adr0097_i2_substitution_refines (e : Expr) :
           TemplateSubstitution.substitute, found]
       | some pair =>
         rcases pair with ⟨p, arg⟩
-        simp [substituteAlt.passed_318, pSub, pExpr, TemplateSubstitution.substitute, found]
+        simp [substituteAlt.passed_318, pSub, pExpr, TemplateSubstitution.substitute, found] <;>
+          split <;> simp_all [pExpr]
     | cons arg rest =>
       simpa only [substituteAlt.passed_318, pExpr, TemplateSubstitution.substitute, List.map_cons] using exprPart
 
