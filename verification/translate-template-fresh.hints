@@ -1,0 +1,2 @@
+-- Local root: its lexical usedNames becomes an explicit argument.
+fuel expandOnce.freshName

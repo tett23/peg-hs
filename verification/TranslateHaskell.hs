@@ -33,8 +33,9 @@
 --   GHC's fixities), sections, lambda, \case, case, if, multi-way if, let,
 --   tuples, lists, list comprehensions, do-blocks (the bind of the block's
 --   monad, by its type), record construction, update and field selection,
---   literals, type signatures, `zip [n ..] xs` (the only infinite list) and
---   `[a .. b]`.
+--   literals, type signatures, `zip [n ..] xs` and `[a .. b]`. A filtered
+--   infinite Integer enumeration can be consumed by a head-only case
+--   (`c : _`, then `[]`), using fuel; no other infinite list is translated.
 -- - Data and newtype declarations of the module and of the modules it
 --   imports from the same source directory, as Lean inductive types, when a
 --   translated function's types reach them. A type that derives Eq gets
@@ -68,6 +69,8 @@
 --
 -- Usage: TranslateHaskell LIBDIR SRCDIRS MODULE NAMESPACE HINTS ROOT...
 -- (SRCDIRS: source directories separated by colons)
+-- A ROOT may be OUTER.LOCAL: only that lifted local function and its
+-- dependencies are translated, with its captured environment as arguments.
 module Main (main) where
 
 import Control.Exception (SomeException, evaluate, try)
@@ -372,6 +375,9 @@ library g m o mty = case o of
   "null" | base, a0 == tList -> Just "HsList.null"
   "length" | base, a0 == tList -> Just "HsList.length"
   "foldr" | base, a2 == tList -> Just "HsList.foldr"
+  "dropWhile" | base, a1 == tList -> Just "List.dropWhile"
+  "scanl" | base -> Just "List.scanl"
+  "sum" | base, a0 == tList, maybe False ((== tInteger) . resHead 1) mty -> Just "HsList.sumInteger"
   "maximum" | base, a0 == tList, maybe False ((== tInt) . resHead 1) mty -> Just "HsList.maximum"
   "sortOn" | base, ordArg -> Just "HsList.sortOn"
   -- Rule H11: a key of a project type that derives Ord.
@@ -379,7 +385,7 @@ library g m o mty = case o of
   "fromEnum" | base, a0 == tChar -> Just "HsChar.fromEnum"
   "max" | base, a0 == tInt -> Just "HsInt.max"
   "min" | base, a0 == tInt -> Just "HsInt.min"
-  "show" | base, a0 == tInt -> Just "HsInt.«show»"
+  "show" | base, integral a0 -> Just "HsInt.«show»"
   -- Rule H7: show at another type is only compared for equality (the key of
   -- a set); it becomes Lean's Repr, and both are injective.
   "show" | base, eqArg 0 -> Just "HsShow.viaRepr"
@@ -391,6 +397,7 @@ library g m o mty = case o of
   ">=" | base, integral a0 -> Just "HsInt.ge"
   "<=" | base, a0 == tChar -> Just "HsChar.le"
   "<" | base, a0 == tChar -> Just "HsChar.lt"
+  ">" | base, a0 == tChar -> Just "HsChar.gt"
   "*" | base, integral a0 -> Just "HsInt.mul"
   "div" | base, integral a0 -> Just "HsInt.div"
   "toInteger" | base, a0 == tInt -> Just "HsInt.toInteger"
@@ -403,6 +410,7 @@ library g m o mty = case o of
   "foldl" | base, a2 == tList -> Just "HsList.foldl"
   "foldM" | base, a2 == tList, r3 == tMaybe -> Just "HsMaybe.foldM"
   "isJust" | base -> Just "HsMaybe.isJust"
+  "isNothing" | base -> Just "HsMaybe.isNothing"
   "pure" | base, r0' == tList -> Just "HsList.pure"
   "pure" | base, r0' == tEither -> Just "HsEither.pure"
   ">>=" | base, a0 == tEither -> Just "HsEither.bind"
@@ -428,6 +436,9 @@ library g m o mty = case o of
   "strip" | text -> Just "HsText.strip"
   "split" | text -> Just "HsText.split"
   "pack" | text -> Just "HsText.pack"
+  "cons" | text -> Just "HsText.cons"
+  "filter" | text -> Just "HsText.filter"
+  "head" | text -> Just "HsText.head"
   "length" | text -> Just "HsText.length"
   "take" | text -> Just "HsText.take"
   "drop" | text -> Just "HsText.drop"
@@ -439,8 +450,12 @@ library g m o mty = case o of
   "empty" | text -> Just "HsText.empty"
   f | text, f `elem` textFunctions -> Just ("HsText." ++ sanitize f)
   f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems"] -> Just ("HsMap." ++ f)
-  f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList"] -> Just ("HsSet." ++ f)
+  f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList", "null"] -> Just ("HsSet." ++ f)
+  "toAscList" | m == "Data.Set.Internal" -> Just "HsSet.toList"
   "stronglyConnComp" | m == "Data.Graph" -> Just "HsGraph.stronglyConnComp"
+  "toUpper" | m == "GHC.Unicode" -> Just "HsChar.toUpper"
+  "isSymbol" | m == "GHC.Unicode" -> Just "HsChar.isSymbol"
+  "isPunctuation" | m == "GHC.Unicode" -> Just "HsChar.isPunctuation"
   "isAlpha" | m == "GHC.Unicode" -> Just "HsChar.isAlpha"
   "isAlphaNum" | m == "GHC.Unicode" -> Just "HsChar.isAlphaNum"
   -- Rule H14: an unboxed array of Int indexed from its lower bound.
@@ -544,8 +559,8 @@ stringLit s = "\"" ++ concatMap esc s ++ "\""
     esc ch
       | ch == '"' = "\\\""
       | ch == '\\' = "\\\\"
-      | ord ch >= 0x20 && ord ch < 0x7f = [ch]
-      | otherwise = "\\u{" ++ hex (ord ch) ++ "}"
+      | ord ch >= 0x20 && ord ch /= 0x7f = [ch]
+      | otherwise = "\\x" ++ replicate (2 - length (hex (ord ch))) '0' ++ hex (ord ch)
     hex n = if n < 16 then [digit n] else hex (n `div` 16) ++ [digit (n `mod` 16)]
     digit k = "0123456789abcdef" !! k
 
@@ -648,10 +663,26 @@ expr g sc (L l e) = case e of
     tyAnn <- lamArgs g (locA l) 1
     pure ("(fun " ++ binder v (head' tyAnn) ++ " => " ++ body ++ ")")
   HsCase _ scrut mg -> do
-    s <- expr g sc scrut
-    v <- fresh g
-    body <- matchGroup g sc [v] mg "hsUndefined"
-    pure ("(let " ++ v ++ " := " ++ s ++ "; " ++ body ++ ")")
+    case infiniteHead scrut of
+      Just (p, start, rest) -> do
+        unless (headOnlyCase mg) (bad (locA l) "an infinite enumeration whose tail is inspected")
+        unless (maybe False ((== tInteger) . headOf) (typeAt g (locA (getLoc start))))
+          (bad (locA l) "an infinite enumeration at a type other than Integer")
+        fuel <- maybe (bad (locA l) "an infinite head search without a fuel hint") pure (sFuel sc)
+        start' <- expr g sc start
+        p' <- pat g p
+        step <- listComp g sc rest
+        value <- fresh g
+        body <- matchGroup g sc ["[" ++ value ++ "]"] mg "hsUndefined"
+        io (modifyIORef (gLibraryUsed g) (S.insert "HsList.firstFrom"))
+        pure (app "HsList.firstFrom"
+          [fuel, start', "(fun " ++ pText p' ++ " => " ++ step ++ ")",
+           "(fun " ++ value ++ " => " ++ body ++ ")"])
+      Nothing -> do
+        s <- expr g sc scrut
+        v <- fresh g
+        body <- matchGroup g sc [v] mg "hsUndefined"
+        pure ("(let " ++ v ++ " := " ++ s ++ "; " ++ body ++ ")")
   HsIf _ c t f -> do
     c' <- expr g sc c
     t' <- expr g sc t
@@ -807,8 +838,8 @@ saturate' g f n as = do
 -- lambda that Lean's termination checker can attach membership to.
 higherOrder :: [(String, Int)]
 higherOrder =
-  [ ("List.map", 2), ("List.filter", 2), ("HsList.concatMap", 2), ("HsList.any", 2), ("HsList.all", 2)
-  , ("HsList.foldr", 3), ("HsMaybe.mapM", 2), ("HsBase.comp", 3), ("HsBase.maybe", 3)
+  [ ("List.map", 2), ("List.filter", 2), ("List.dropWhile", 2), ("HsList.concatMap", 2), ("HsList.any", 2), ("HsList.all", 2)
+  , ("List.scanl", 3), ("HsList.foldr", 3), ("HsMaybe.mapM", 2), ("HsBase.comp", 3), ("HsBase.maybe", 3)
   ]
 
 -- A variable, constructor, field or library function.
@@ -1142,6 +1173,32 @@ localBinds g sc binds body = case binds of
   _ -> badN "implicit parameters"
 
 -- List comprehensions ---------------------------------------------------------------
+
+-- Only the head is demanded. The first generator is an unbounded Integer
+-- enumeration; subsequent statements may only bind values or filter it.
+-- A tail binding, another generator, or another consumer fails closed.
+infiniteHead :: LHsExpr GhcRn -> Maybe (LPat GhcRn, LHsExpr GhcRn, [ExprLStmt GhcRn])
+infiniteHead (L _ e) = case e of
+  HsPar _ inner -> infiniteHead inner
+  HsDo _ ListComp (L _ (L _ (BindStmt _ p@(L _ VarPat {}) (L _ (ArithSeq _ Nothing (From start)))) : rest))
+    | all finiteStatement rest -> Just (p, start, rest)
+  _ -> Nothing
+  where
+    finiteStatement (L _ s) = case s of
+      LetStmt {} -> True
+      BodyStmt {} -> True
+      LastStmt {} -> True
+      _ -> False
+
+headOnlyCase :: MatchGroup GhcRn (LHsExpr GhcRn) -> Bool
+headOnlyCase mg = case map (m_pats . unLoc) (unLoc (mg_alts mg)) of
+  [[L _ (ConPat _ (L _ n) (InfixCon (L _ VarPat {}) (L _ WildPat {})))],
+   [L _ nil]] -> modOf n == "GHC.Types" && occ n == ":" && nilPattern nil
+  _ -> False
+  where
+    nilPattern (ListPat _ []) = True
+    nilPattern (ConPat _ (L _ n) (PrefixCon [] [])) = modOf n == "GHC.Types" && occ n == "[]"
+    nilPattern _ = False
 
 listComp :: G -> Scope -> [ExprLStmt GhcRn] -> X String
 listComp g sc = go
@@ -1546,7 +1603,7 @@ run libdir srcdir file namespace hintsFile roots = do
         , L l b@FunBind {fun_id = L _ n} <- bagToList bs
         ]
   -- Reachable top-level functions from the roots, and instance methods.
-  rootBinds <- forM roots $ \r -> maybe (die ("no top-level function " ++ r)) pure (M.lookup r topByOcc)
+  rootBinds <- forM roots $ \r -> maybe (die ("no top-level function " ++ r)) pure (M.lookup (takeWhile (/= '.') r) topByOcc)
   let topKeys = M.fromList [(nkey n, x) | x@(n, _, _) <- topBinds ++ otherBinds]
       reach seen [] = seen
       reach seen ((n, b, sp) : rest)
@@ -1596,7 +1653,7 @@ run libdir srcdir file namespace hintsFile roots = do
         '*' -> "star"
         '$' -> "dollar"
         _ -> [c]
-      defs =
+      allDefs =
         M.fromList
           [ ( nkey n
             , Def
@@ -1615,6 +1672,19 @@ run libdir srcdir file namespace hintsFile roots = do
             )
           | (n, b, sp, outer) <- allBinds
           ]
+      selected r d = if '.' `elem` r then hintKeyOf (dLean d) == r else occ (dName d) == r
+      selectedKeys = [nkey (dName d) | d <- M.elems allDefs, any (`selected` d) roots]
+      rootClosure seen [] = seen
+      rootClosure seen (k : ks)
+        | S.member k seen = rootClosure seen ks
+        | otherwise = case M.lookup k allDefs of
+            Nothing -> rootClosure seen ks
+            Just d -> rootClosure (S.insert k seen)
+              ([nkey n | n <- namesIn (dBind d), M.member (nkey n) allDefs] ++ ks)
+      wanted = rootClosure S.empty selectedKeys
+      defs = if any (elem '.') roots
+        then M.filterWithKey (\k _ -> S.member k wanted) allDefs
+        else allDefs
       -- Instance methods by (tycon head, method).
       instances =
         M.fromList
@@ -1641,6 +1711,11 @@ run libdir srcdir file namespace hintsFile roots = do
   -- group share the substitution of the group's type variables, a use outside
   -- the group calls the copy of its type, and a use inside the group calls
   -- the copy being translated.
+  unless (all (\r -> any (selected r) (M.elems allDefs)) roots)
+    (die "no matching function root")
+  forM_ [r | r <- roots, '.' `elem` r] $ \r ->
+    unless (length (filter (selected r) (M.elems allDefs)) == 1)
+      (die ("ambiguous local function root " ++ r))
   types <- pure (foldr (\(_, _, n, _, _) m -> case instMethodType n of
                     Just (Just t) -> M.insert (nkey n) t m
                     _ -> M.delete (nkey n) m) types0 instBinds)

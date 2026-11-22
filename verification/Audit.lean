@@ -96,12 +96,15 @@ import ImportResolution
 import LabelPropagation
 import LabelCheckTheorems
 import HsPrelude
+import InfiniteHeadProof
+import TemplateFreshProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
 import LabelsBridgeSim
 import LabelsBridgeCheck
 import GeneralCategory
+import UpperCase
 import AssembleTranslated
 import AssembleTextProof
 import AssembleExportProof
@@ -293,6 +296,8 @@ def auditedModules : List Lean.Name := [
   `Header,
   `HsPegRuntime,
   `HsPrelude,
+  `InfiniteHeadProof,
+  `TemplateFreshProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,
@@ -311,6 +316,7 @@ def auditedModules : List Lean.Name := [
   `LabelsTranslated,
   `LabelsTranslatedProof,
   `GeneralCategory,
+  `UpperCase,
   `AssembleTranslated,
   `AssembleTextProof,
   `AssembleExportProof,

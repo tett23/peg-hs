@@ -401,6 +401,21 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。
 比べる文法は、受理、インスタンスの共有、名前の衝突の回避、`%syntax` でのインライン化、各診断、深さの上限を含む。
 
+[InfiniteHeadProof.lean](InfiniteHeadProof.lean) は、`freshName` と同じ形の式を持つ [InfiniteHeadProbe.hs](InfiniteHeadProbe.hs) の GHC 構文木からの翻訳について、名前の探索の一致を示す。
+`root_adr0097_i2_first_name_agrees` は、任意の元の名前の列、生成済みの名前の列、非負の開始カウンターについて、十分な燃料で翻訳の結果が `boundedSearch` の結果の名前に等しいことを示す。
+`boundedSearch_eq_iff_first`（TemplateExpansionFresh.lean）は、有限探索の結果を、開始位置以降の最初の未使用名として特徴づける。
+
+[TemplateFreshProof.lean](TemplateFreshProof.lean) は、実際の `Templates.hs` のローカル定義 `expandOnce.freshName` を翻訳し、自由変数 `usedNames` を明示的な引数として扱う。
+`root_adr0097_i2_fresh_name_translation` は、その翻訳が、任意の燃料と入力についてプローブの翻訳と等しいことを示す。
+`root_adr0097_i2_fresh_name_eventually_fresh` は、開始カウンターが非負なら、元の名前の列と生成済みの名前の列の長さの合計に 2 を加えた以上の燃料で、両方の列にない同じ名前を返すことを示す。
+`expandTemplates` 全体の対応は前提 A1 に残り、実装の状態 `stCount` が非負であることを呼び出し元から示す証明も残る。
+
+[check-translate-infinite-head.sh](check-translate-infinite-head.sh) は、この翻訳を再生成し、証明を検査する。
+負の開始値、大きい `Integer`、名前の衝突を含む実行結果も GHC と比較し、燃料の境界を検査する。
+無限列の末尾を読む変更、`Int` の列への変更、燃料の指定を消す変更は翻訳が拒否し、プローブと実際の `freshName` の所属判定をそれぞれ反転する変更は一致の証明が拒否する。
+存在しないローカル定義を翻訳の入口に指定した場合も拒否する。
+[TemplateLibraryProbe.hs](TemplateLibraryProbe.hs) では、この作業で翻訳器に加えたライブラリ関数の具体例を GHC と比較する。
+
 ### 規則の検査
 
 [Guard.lean](Guard.lean) は、二つのファイル名に制御文字がある場合の診断との同値を証明する。
@@ -493,9 +508,17 @@ Lean が停止を示せない再帰は、[translate-labels.hints](translate-labe
 ヒントの `equations` は、その関数の照合とパターンの束縛に値の等式を残させ、減少の証明に使わせる。
 ヒントの `lift` は、関数の where の値の束縛もそれぞれ定義にし、証明がその値を名前で呼べるようにする。
 ヒントの `before` は、定義の前に置く補題を書く。
+翻訳の入口に `外側の関数.ローカル関数` を指定すると、そのローカル関数と依存先を翻訳し、捕捉する変数を引数に残す。
+一致する定義がない場合と、同じ名前の定義が複数ある場合は拒否する。
 `Assemble.hs` の翻訳は燃料を取らない。
 燃料の組の関数は燃料を引数に取り、組の中の呼び出しごとに一つ使う（規則 H6）。
 `labelWarnings`、`labelSafeAt`、`matchesEmpty` は燃料を取り、`stripLabels` と `stripLabelsAs` は取らない。
+
+無限の `Integer` 列を先頭のジェネレーターとするリスト内包表記は、`c : _` と `[]` の二つの分岐で先頭だけを読む場合に限り、燃料付きの探索 `HsList.firstFrom` へ翻訳する。
+後続の文は let とガードに限る。
+燃料が尽きると `hsUndefined` を返し、元コードの `[]` 分岐は実行しない。
+`HsList.firstFrom_hit` は、最初の成功位置までの燃料があれば、その位置の値を返すことを示す。
+末尾を束縛するパターンや、`Int` などほかの列挙型、燃料の指定がない関数は拒否する。
 
 [LabelsTranslatedProof.lean](LabelsTranslatedProof.lean) は、翻訳した関数がモデルと一致することを、型の射影 `pGrammar` の上で示す。
 射影は、位置の整数を自然数に、コードポイントを同じ値に写し、モデルが持たない欄を空にする。
@@ -771,10 +794,10 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | H4 | `Data.Map` と `Data.Set` は、キーの重ならない組の列と要素の重ならない列で写す。検索、所属、挿入、列からの構築は containers と同じに振る舞い、等しさは中身で比べる。`S.toList` は昇順に並べる。 | HsPrelude.lean | |
 | H5 | `Eq` を導出した型の `==` は、Lean が導出する `BEq` と同じく構成子と欄を比べる。Lean は入れ子の相互帰納型 `Expr` に中身を展開できない `BEq` を導出するので、translate-labels.hints が構造の等しさ `Expr.structEq` を与え、`==` はそれを使う。 | HsPrelude.lean、translate-labels.hints | |
 | H6 | 停止する Haskell の評価は、Lean の項が表す値を返す。Haskell がパターン照合で失敗する箇所は、型の既定値 `hsUndefined` とする。燃料で翻訳した関数は、十分な燃料で Haskell の関数と同じ値を返す。 | HsPrelude.lean | |
-| H7 | `Int` 以外の型の `show` は、結果どうしを比べるところだけで使われ、Lean の `Repr` で写す。Haskell の導出した `Show` と Lean の `Repr` はどちらも単射である。翻訳した `labelWarnings` の訪問済みの集合の鍵が使い、モデルも同じ鍵 `tKeyOf` を使う。 | HsPrelude.lean | check-label-check.sh |
+| H7 | `Int` と `Integer` 以外の型の `show` は、結果どうしを比べるところだけで使われ、Lean の `Repr` で写す。Haskell の導出した `Show` と Lean の `Repr` はどちらも単射である。翻訳した `labelWarnings` の訪問済みの集合の鍵が使い、モデルも同じ鍵 `tKeyOf` を使う。 | HsPrelude.lean | check-label-check.sh |
 | H8 | `Data.Graph.stronglyConnComp` は、containers 0.7 の手順（キーで整列した頂点、転置グラフの後順、深さ優先の森）を写した `HsGraph.stronglyConnComp` と同じ列を返す。キーは重ならない。 | HsPrelude.lean | check-label-check.sh（左再帰の分類を比べる） |
 | H9 | `Either a b` は `Except a b`、`Integer` は `Int`、`Natural` は `Nat`、`GeneralCategory` は `HsGeneralCategory` で写す。`Int` と `Integer` の間の `fromInteger` と `toInteger` は値を変えず（H1）、`Int` の `maxBound` は 2^63 - 1 である。`Either` のモナドは base のインスタンスと同じく束縛する。 | HsPrelude.lean | |
-| H10 | `Data.Char` の `isUpper` は AssembleChars の表、`generalCategory` は GeneralCategory.lean の表と一致する。`isDigit`、`isHexDigit`、`isAscii`、`isAsciiUpper`、`digitToInt`、`chr` は、コードポイントの上の base の定義と同じ値を返す。`isSpace` は H2 に従う。 | HsPrelude.lean、GeneralCategory.lean | check-assemble-predicates.sh（`isUpper` の表）、check-translate-assemble.sh（`generalCategory` の表） |
+| H10 | `Data.Char` の `isUpper` は AssembleChars の表、`generalCategory` は GeneralCategory.lean の表と一致する。`isDigit`、`isHexDigit`、`isAscii`、`isAsciiUpper`、`digitToInt`、`chr` は、コードポイントの上の base の定義と同じ値を返す。`isSpace` は H2 に従う。`toUpper` は UpperCase.lean の表、`isSymbol` と `isPunctuation` は一般カテゴリの所属判定で写す。 | HsPrelude.lean、GeneralCategory.lean、UpperCase.lean | check-assemble-predicates.sh（`isUpper` の表）、check-translate-assemble.sh（`generalCategory` の表）、check-uppercase.sh（大文字変換の全コードポイント、文字分類のカテゴリ境界と変異） |
 | H11 | `Ord` を導出した型の `compare` は、Lean が導出する `Ord` と同じく、構成子の順で比べ、次に欄を左から比べる。そのような型をキーにした `sortOn` は、`compare` による安定な整列である。 | HsPrelude.lean | |
 | H12 | H3 に加えて、`Data.Text` の `foldl'`、`breakOn`、`breakOnEnd`、`splitOn`、`takeWhile`、`takeWhileEnd`、`stripStart`、`stripEnd`、`splitAt`、`dropEnd`、`isSuffixOf`、`words`、`any`、`unpack`、`singleton` は、テキストのスカラー値の列の上で text-2.1 と同じ値を返す。`breakOn`、`breakOnEnd`、`splitOn` は空でない区切りで呼ばれる。 | HsPrelude.lean | |
 | H13 | `M.toList` と `M.elems` は、キーの `Ord` の昇順に並べる。 | HsPrelude.lean | |
