@@ -125,6 +125,7 @@ extra = 1
 GRAMMAR
 
 languages_of() {
+  [ -r "$1" ] || { echo "cannot read grammar languages: $1" >&2; return 1; }
   sed -n 's/^%language //p' "$1" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' || true
 }
 
@@ -165,10 +166,14 @@ check_grammar() {
   }
 
   # The header lines open the module as headerLines predicts.
-  # shellcheck disable=SC2046
+  # Read the source before changing directory. Compare the entire header,
+  # so omitting LANGUAGE or OPTIONS_GHC lines cannot pass as a short prefix.
+  languages=$(languages_of "$grammar")
+  # LANGUAGE names are whitespace-separated tokens, not shell patterns.
+  # shellcheck disable=SC2086
   (cd verification && lean --run RenderFinalizeProbe.lean header "$grammar" "$pruned" \
-    $(languages_of "$grammar")) > "$probe/$name.header"
-  head -n "$(wc -l < "$probe/$name.header")" "$out" | cmp - "$probe/$name.header" || {
+    $languages) > "$probe/$name.header"
+  awk '/^module / { exit } { print }' "$out" | cmp - "$probe/$name.header" || {
     echo "$name: the header lines differ from headerLines" >&2
     exit 1
   }
