@@ -35,6 +35,7 @@ done
 ./check-translate-infinite-head.sh "$work"
 ./check-translate-template-state.sh "$work"
 ./check-translate-monad.sh "$work"
+./check-translate-templates.sh "$work"
 # Peg.Grammar.Assemble translated from GHC's syntax tree and proved equal to
 # the AssembleValidation models (AssembleTranslatedProof).
 ./check-translate-assemble.sh "$work"

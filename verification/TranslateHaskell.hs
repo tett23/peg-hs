@@ -379,6 +379,7 @@ library g m o mty = case o of
   "foldr" | base, a2 == tList -> Just "HsList.foldr"
   "dropWhile" | base, a1 == tList -> Just "List.dropWhile"
   "mapMaybe" | m == "Data.Maybe", a1 == tList -> Just "List.filterMap"
+  "nub" | base, eqArg 0 -> Just "List.eraseDups"
   "scanl" | base -> Just "List.scanl"
   "sum" | base, a0 == tList, maybe False ((== tInteger) . resHead 1) mty -> Just "HsList.sumInteger"
   "maximum" | base, a0 == tList, maybe False ((== tInt) . resHead 1) mty -> Just "HsList.maximum"
@@ -452,8 +453,8 @@ library g m o mty = case o of
   "concat" | text -> Just "HsText.concat"
   "empty" | text -> Just "HsText.empty"
   f | text, f `elem` textFunctions -> Just ("HsText." ++ sanitize f)
-  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems", "insert"] -> Just ("HsMap." ++ f)
-  f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList", "null"] -> Just ("HsSet." ++ f)
+  f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems", "insert", "union", "map", "empty", "null"] -> Just ("HsMap." ++ f)
+  f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "intersection", "singleton", "empty", "toList", "null"] -> Just ("HsSet." ++ f)
   "toAscList" | m == "Data.Set.Internal" -> Just "HsSet.toList"
   "stronglyConnComp" | m == "Data.Graph" -> Just "HsGraph.stronglyConnComp"
   "toUpper" | m == "GHC.Unicode" -> Just "HsChar.toUpper"

@@ -1,0 +1,23 @@
+-- Every explicit fuel group is checked by the Lean kernel. Adequate fuel
+-- for the whole template pass remains a separate refinement obligation.
+fuel expandOnce.freshName
+fuel identifierSplit
+fuel plain
+fuel exprCode
+fuel Peg_Grammar_codeVariables.blockComment
+fuel Peg_Grammar_codeVariables.string
+fuel Peg_Grammar_codeVariables.qualified
+fuel Peg_Grammar_codeVariables.fields
+fuel Peg_Grammar_codeVariables.go
+fuel expandOnce.itemBinds
+fuel substituteAlt.passed
+fuel Peg_Grammar_Types_classify.unknownFix
+fuel Peg_Grammar_Types_parens.needsParens
+fuel Peg_Grammar_Types_countedItems
+fuel Peg_Grammar_Types_classify.exprType
+fuel Peg_Grammar_Types_classify.unitFix
+fuel Peg_Grammar_Types_classify.go
+fuel Peg_Grammar_Types_classify.resolve
+fuel expandOnce.expandExpr
+fuel expandOnce.drain
+fuel expandTemplates.go
