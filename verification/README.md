@@ -63,6 +63,13 @@ PublicGeneration.lean は、公開の入口を各段のモデルの合成とし�
 各段のモデルは `Grammar` の射影を読む。
 `toLabel` はラベルの検査の文法、`toCheck` は `check` の文法、`toTemplate` はテンプレート展開の文法への射影である。
 `toLabel_stripAs`（PublicGeneration.lean:253）は、`stripAs` が射影 `toLabel` の上で `stripLabelsAs` と可換であることを示す。
+
+公開段の `Grammar` は、生成時に使う export、環境の型、タブ幅、deriving の指定も保持する。
+規則と引数の型は、コードとその位置の組で持つ。
+[PublicGrammarFieldsProof.lean](PublicGrammarFieldsProof.lean) は、`toTranslated` が `LabelsTranslated.Grammar` の値へ戻す際に、この四つの指定と型の位置を保つことを示す。
+[check-public-grammar-fields.sh](check-public-grammar-fields.sh) は、指定を空にする四つの変更と、規則または引数の型の位置をゼロにする二つの変更を、型検査後に証明が拒否することを確かめる。
+`render` の翻訳と公開段への接続は、引き続き未完了である。
+
 各段のモデルと実装の関係のうち合成できないものは、構造体 `Premises`（PublicGeneration.lean:425）の欄 `Premises.expandRefines` に置く（前提 A1）。
 以前の前提 A2（ライブラリの構文解析と組み立ての失敗に診断があること）は、`lookupLibrary_parse_nonempty` と `lookupLibrary_assemble_nonempty` が示すので、前提から外した。番号 A2 は欠番とする。
 以前の前提 A3（Haskell の `assemble` が受理した項目をモデルも受理すること）は、`assemble` の翻訳と AssembleValidation のモデルの一致を示す定理 `assemble_agrees`（AssembleTranslatedProof.lean:1680）が示すので、前提から外した。番号 A3 も欠番とする。

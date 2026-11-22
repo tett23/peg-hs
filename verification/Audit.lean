@@ -103,6 +103,7 @@ import MonadMethodsProof
 import TemplatesTranslatedProof
 import TemplateCollectionsProof
 import TemplateProjectionProof
+import PublicGrammarFieldsProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
@@ -310,6 +311,7 @@ def auditedModules : List Lean.Name := [
   `TemplateCollectionsProof,
   `TemplateProjectionProof,
   `TemplateLocation,
+  `PublicGrammarFieldsProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,

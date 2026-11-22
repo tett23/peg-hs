@@ -125,9 +125,9 @@ structure Alt where
 structure Rule where
   name : String
   loc : Loc
-  params : List (String × String)
+  params : List (String × (Loc × String))
   templateParams : List (String × Option String)
-  type : String
+  type : Loc × String
   annotation : Option Loc
   alts : List Alt
 
@@ -149,6 +149,10 @@ structure Grammar where
   messages : List ((Loc × String) × (Loc × String))
   verbatim : List (Loc × String)
   rules : List Rule
+  exports : List (Loc × String) := []
+  env : Option (Loc × String) := none
+  tabstop : Option (Loc × Int) := none
+  derivingClasses : Option (Loc × List (Loc × String)) := none
 
 /-! ## The views of the stage models -/
 
@@ -226,9 +230,9 @@ end
 def Rule.toTemplate (r : Rule) : TemplateExpansionWhole.Rule where
   name := r.name
   location := templateLoc r.loc
-  params := r.params
+  params := r.params.map fun p => (p.1, p.2.2)
   templateParams := r.templateParams
-  type := r.type
+  type := r.type.2
   alts := r.alts.map fun a =>
     { items := itemsT a.items, action := a.action.map (·.2), constructor := a.constructor.map Prod.snd }
   annotation := r.annotation.map templateLoc
@@ -753,21 +757,22 @@ def Alt.toTranslated (a : Alt) : LabelsTranslated.Alt :=
   .Alt (eLoc a.loc) (eItems a.items) (a.action.map eLocated) (a.constructor.map eLocated)
 
 def Rule.toTranslated (r : Rule) : LabelsTranslated.Rule :=
-  .Rule r.name (eLoc r.loc) (r.params.map fun p => .Param p.1 (.Located (eLoc ⟨0, 0, 0⟩) p.2))
-    (r.templateParams.map fun p => .TemplateParam p.1 p.2) (.Located (eLoc ⟨0, 0, 0⟩) r.type)
+  .Rule r.name (eLoc r.loc) (r.params.map fun p => .Param p.1 (eLocated p.2))
+    (r.templateParams.map fun p => .TemplateParam p.1 p.2) (eLocated r.type)
     (r.annotation.map eLoc) (r.alts.map Alt.toTranslated)
 
 /-- The grammar as the value of the Haskell type that Peg.Grammar.Labels
-receives (LabelsTranslated.Grammar). The fields that `Grammar` leaves out
-(`grammarExports`, `grammarEnv`, `grammarTabstop`, `grammarDeriving`) are
-empty; the label check and the removal of labels do not read them. -/
+receives (LabelsTranslated.Grammar), including the fields that the label
+check and the removal of labels do not read. -/
 def toTranslated (g : Grammar) : LabelsTranslated.Grammar :=
   .Grammar (eLocated g.module) (g.imports.map fun p => .Located (eLoc p.1) (p.2.toList.map HsChar.ofChar))
-    (g.library.map eLoc) (g.start.map eLocated) (g.entries.map eLocated) [] none none
+    (g.library.map eLoc) (g.start.map eLocated) (g.entries.map eLocated) (g.exports.map eLocated)
+    (g.env.map eLocated) (g.tabstop.map fun p => .Located (eLoc p.1) p.2)
     (g.noMemo.map eLocated) (g.languages.map eLocated) (g.syntaxLoc.map eLoc) (g.tokens.map eLocated)
     (g.trivia.map eLocated) (g.inline.map eLocated) (g.recovers.map fun p => (eLocated p.1, eLocated p.2))
     (g.safe.map eLocated) (g.expects.map fun p => (eLocated p.1, eLocated p.2))
-    (g.messages.map fun p => (eLocated p.1, eLocated p.2)) none (g.verbatim.map eLocated)
+    (g.messages.map fun p => (eLocated p.1, eLocated p.2))
+    (g.derivingClasses.map fun p => .Located (eLoc p.1) (p.2.map eLocated)) (g.verbatim.map eLocated)
     (g.rules.map Rule.toTranslated)
 
 theorem toTranslated_corr (g : Grammar) : LabelsBridge.GrammarCorr (toTranslated g) (toLabel g) where
