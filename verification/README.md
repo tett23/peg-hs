@@ -418,13 +418,19 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 [check-translate-template-state.sh](check-translate-template-state.sh) は、この翻訳を再生成して証明を検査し、カウンターを減らす変更と 2 ずつ増やす変更を拒否する。
 追加した `M.insert` の翻訳も、空のマップ、既存キーの上書き、ほかのキーの保存を GHC と比べる。
 
-さらに、[translate-templates.hints](translate-templates.hints) を使い、`Templates.hs` の公開入口 `expandTemplates` と依存先全体を燃料付きの Lean 関数へ翻訳する。
+さらに、[translate-templates.hints](translate-templates.hints) を使い、`Templates.hs` の公開入口 `expandTemplates` と依存先全体を Lean 関数へ翻訳し、停止性を直接示せない再帰には燃料を付ける。
 [TemplatesTranslatedProof.lean](TemplatesTranslatedProof.lean) は、この翻訳の式と要素の展開、および生成待ちの規則を処理する `drain` がカウンターの非負性を保つことを示す。
 `root_adr0097_i2_instance_count_delta` は、翻訳した `instanceOf` がカウンターを保つか 1 増やすことを示す。
 `root_adr0097_i2_expand_once_error_nonempty` は、一回の展開が `Left` を返した場合の診断が空でないことを示す。
 `root_adr0097_i2_expand_templates_error_nonempty` は、燃料が 9 以上なら、公開入口の `Left` も空でないことを示す。
 この 9 は、外側の反復が最大 9 回であることから得た、この性質のための下限である。
 Haskell と同じ展開結果を得るための十分な燃料、Haskell の停止性、全体とモデルの対応（前提 A1）の証明は残る。
+
+メモ化キーを作る `plain` の翻訳は、燃料を取らない。
+`plain` は式と引数から位置情報を除き、再帰呼び出しでは元の式の真の部分式へ進む。
+[translate-template-state.hints](translate-template-state.hints) と [translate-templates.hints](translate-templates.hints) は、入れ子のグループの要素とテンプレート引数も式のサイズを減らすことを示す。
+Lean のカーネルがこの減少を検査するので、この処理について十分な燃料の前提は要らない。
+`check-translate-templates.sh` は、`plain` が部分式の代わりに同じ式へ再帰する変更を翻訳し、減少の証明が拒否することも確かめる。
 
 [check-translate-templates.sh](check-translate-templates.sh) は、全体の翻訳と証明を検査する。
 [TemplatesTranslatedProbe.hs](TemplatesTranslatedProbe.hs) は、既存の 11 文法と Unicode の文法 1 件について、実際の公開入口の結果を全フィールドで Lean へ書き出す。
