@@ -105,9 +105,9 @@ end
 def Rule.lift (r : TemplateExpansionWhole.Rule) : Rule where
   name := r.name
   loc := unloc r.location
-  params := r.params
+  params := r.params.map fun p => (p.1, (unloc 0, p.2))
   templateParams := r.templateParams
-  type := r.type
+  type := (unloc 0, r.type)
   annotation := r.annotation.map unloc
   alts := r.alts.map fun a =>
     { loc := unloc 0, items := itemsF a.items, action := a.action.map fun c => (unloc 0, c),
