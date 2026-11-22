@@ -162,8 +162,8 @@ theorem run_visit (rule : String) (fs : List LabelsTranslated.Frame) (mode : Lab
   · simp only [tVisitKey] at hm
     simp [hm, tVisitKey, LabelsTranslated.instApplicative_pure_State]
   · simp only [tVisitKey] at hm
-    simp [hm, tVisitKey, LabelsTranslated.instApplicative_ltstargt_State, LabelsTranslated.instFunctor_fmap_State,
-      LabelsTranslated.modify', HsBase.seq, HsBase.const, HsBase.id]
+    simp [hm, tVisitKey, LabelsTranslated.instMonad_gtgteq_State,
+      LabelsTranslated.modify', LabelsTranslated.State.runState, HsBase.seq]
 
 theorem run_allOf_cons (a : TSt) (as : List TSt) (s : HsSet TKey) :
     (LabelsTranslated.allOf (a :: as)).runState s =
