@@ -115,6 +115,18 @@ for mutation in intersection union; do
   }
 done
 cp -R packages/peg-grammar/src "$work/grammar"
+# Recur on the same expression instead of its child. GHC still accepts the
+# definition; the translation must fail its kernel-checked size decrease.
+sed 's/EStar x -> EStar (plain x)/EStar x -> EStar (plain (EStar x))/' \
+  packages/peg-grammar/src/Peg/Grammar/Templates.hs > "$work/grammar/Peg/Grammar/Templates.hs"
+cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+if compile "$lean_objects/TemplatesTranslated.lean" > "$work/plain-loop-rejected.log" 2>&1; then
+  echo 'root ADR 0097 I2: accepted non-decreasing plain recursion' >&2; exit 1
+fi
+grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: Tactic' "$work/plain-loop-rejected.log" > /dev/null || {
+  cat "$work/plain-loop-rejected.log" >&2; exit 1;
+}
 sed 's/Left (nub (reverse errs))/Left []/' packages/peg-grammar/src/Peg/Grammar/Templates.hs \
   > "$work/grammar/Peg/Grammar/Templates.hs"
 cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
@@ -130,4 +142,4 @@ grep -E 'error: (Type mismatch|Application type mismatch|unsolved goals|Tactic)'
 translate packages/peg-grammar/src > "$lean_objects/TemplatesTranslated.lean"
 compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 3 mutants checked.'
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 4 mutants checked.'

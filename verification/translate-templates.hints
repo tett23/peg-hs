@@ -2,7 +2,17 @@
 -- for the whole template pass remains a separate refinement obligation.
 fuel expandOnce.freshName
 fuel identifierSplit
-fuel plain
+decreasing plain
+  termination_by sizeOf $1
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (have outer := List.sizeOf_lt_of_mem (α := List Item) (by assumption)
+         have inner := List.sizeOf_lt_of_mem (α := Item) (by assumption)
+         have field := Item.itemExpr_sizeOf (by assumption)
+         omega)
+      | (have smaller := List.sizeOf_lt_of_mem (α := Expr) (by assumption)
+         omega)
 fuel exprCode
 fuel Peg_Grammar_codeVariables.blockComment
 fuel Peg_Grammar_codeVariables.string
