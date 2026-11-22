@@ -98,6 +98,9 @@ import LabelCheckTheorems
 import HsPrelude
 import LabelsTranslated
 import LabelsTranslatedProof
+import LabelsBridge
+import LabelsBridgeSim
+import LabelsBridgeCheck
 import GeneralCategory
 import AssembleTranslated
 import AssembleTextProof
@@ -296,6 +299,9 @@ def auditedModules : List Lean.Name := [
   `LabelCheckTermination,
   `LabelCheckTheorems,
   `LabelPropagation,
+  `LabelsBridge,
+  `LabelsBridgeCheck,
+  `LabelsBridgeSim,
   `LabelsTranslated,
   `LabelsTranslatedProof,
   `GeneralCategory,

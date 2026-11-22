@@ -99,7 +99,9 @@ EscapePredicates	規則の検査	model
 ParameterPredicates	規則の検査	model
 SemanticPredicates	規則の検査	model
 CapturedPredicates	規則の検査	model
-LabelCheck*	ラベルの検査	model
+LabelCheck*	ラベルの検査	translated
+Labels*	ラベルの検査	translated
+HsPrelude	ラベルの検査	translated
 Pipeline	段のつなぎ	model
 InnerGeneration	段のつなぎ	model
 InnerUnicode	段のつなぎ	model

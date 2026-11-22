@@ -1,15 +1,18 @@
 #!/bin/sh
 # ADR 0097: Peg.Grammar.Labels is translated into Lean from GHC's syntax tree
 # by TranslateHaskell.hs (no fixed copy of the source), and
-# LabelsTranslatedProof.lean proves the translation equal to the model
-# LabelCheckModel. Pass the directory of the compiled Lean modules (check.sh's
-# work directory, with AssembleChars and LabelCheckModel compiled); the script
-# writes HsPrelude, LabelsTranslated and LabelsTranslatedProof there.
+# LabelsTranslatedProof.lean and LabelsBridge*.lean prove the translation
+# equal to the model LabelCheckModel (stripLabels, stripLabelsAs,
+# labelWarnings, matchesEmpty). Pass the directory of the compiled Lean
+# modules (check.sh's work directory, with HsPrelude and LabelCheckTermination
+# compiled); the script writes LabelsTranslated, LabelsTranslatedProof and
+# LabelsBridge* there.
 #
 # Mutants: two changes of Labels.hs outside the translator's subset (a tuple
-# section, a library function outside the table) stop the translation; a
-# change that drops a case of stripLabels translates and compiles, and the
-# proof rejects it.
+# section, a library function outside the table) stop the translation; three
+# changes translate and compile, and the proofs reject them: a dropped case of
+# stripLabels, another largest code point (the character sets), and another
+# bound on the matched items (the check of a label).
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -59,11 +62,11 @@ mkdir -p "$work/src"
 cp -R packages/peg-grammar "$work/src/peg-grammar"
 translate "$work/src" > "$lean_objects/LabelsTranslated.lean"
 (cd verification &&
-  LEAN_PATH="$lean_objects" lean -DwarningAsError=true -o "$lean_objects/HsPrelude.olean" HsPrelude.lean &&
   LEAN_PATH="$lean_objects" lean -DwarningAsError=true -R "$lean_objects" \
     -o "$lean_objects/LabelsTranslated.olean" "$lean_objects/LabelsTranslated.lean" &&
-  LEAN_PATH="$lean_objects" lean -DwarningAsError=true \
-    -o "$lean_objects/LabelsTranslatedProof.olean" LabelsTranslatedProof.lean)
+  for proof in LabelsTranslatedProof LabelsBridge LabelsBridgeSim LabelsBridgeCheck; do
+    LEAN_PATH="$lean_objects" lean -DwarningAsError=true -o "$lean_objects/$proof.olean" "$proof.lean" || exit 1
+  done)
 
 # 4. Mutants.
 mutant() {
@@ -101,5 +104,34 @@ if (cd verification && LEAN_PATH="$work/mutant/olean:$lean_objects" lean -Dwarni
   echo 'the proof took stripLabels without its case for *' >&2
   exit 1
 fi
+rejected=$((rejected + 1))
+# A mutant of the label check translates and compiles, and the bridge rejects
+# it in the module named.
+reject_check() {
+  translate "$work/mutant" > "$work/mutant/LabelsTranslated.lean"
+  rm -rf "$work/mutant/olean"
+  mkdir -p "$work/mutant/olean"
+  (cd verification &&
+    LEAN_PATH="$work/mutant/olean:$lean_objects" lean -DwarningAsError=true -R "$work/mutant" \
+      -o "$work/mutant/olean/LabelsTranslated.olean" "$work/mutant/LabelsTranslated.lean")
+  for proof in LabelsBridge LabelsBridgeSim LabelsBridgeCheck; do
+    if ! (cd verification && LEAN_PATH="$work/mutant/olean:$lean_objects" lean -DwarningAsError=true \
+        -o "$work/mutant/olean/$proof.olean" "$proof.lean" > "$work/mutant-proof.log" 2>&1); then
+      [ "$proof" = "$1" ] || {
+        cat "$work/mutant-proof.log" >&2
+        echo "the mutant $2 failed in $proof, not in $1" >&2
+        exit 1
+      }
+      return 0
+    fi
+  done
+  echo "the proofs took the mutant $2" >&2
+  exit 1
+}
+mutant 's/^maxCode = 0x10FFFF$/maxCode = 0x10FFFE/' max-code
+reject_check LabelsBridge max-code
+rejected=$((rejected + 1))
+mutant 's/^maxPrefix = 8$/maxPrefix = 9/' max-prefix
+reject_check LabelsBridgeCheck max-prefix
 rejected=$((rejected + 1))
 printf 'Labels.hs translated from the GHC syntax tree; %s mutants rejected.\n' "$rejected"
