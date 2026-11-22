@@ -418,6 +418,24 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 [check-translate-template-state.sh](check-translate-template-state.sh) は、この翻訳を再生成して証明を検査し、カウンターを減らす変更と 2 ずつ増やす変更を拒否する。
 追加した `M.insert` の翻訳も、空のマップ、既存キーの上書き、ほかのキーの保存を GHC と比べる。
 
+さらに、[translate-templates.hints](translate-templates.hints) を使い、`Templates.hs` の公開入口 `expandTemplates` と依存先全体を燃料付きの Lean 関数へ翻訳する。
+[TemplatesTranslatedProof.lean](TemplatesTranslatedProof.lean) は、この翻訳の式と要素の展開、および生成待ちの規則を処理する `drain` がカウンターの非負性を保つことを示す。
+`root_adr0097_i2_instance_count_delta` は、翻訳した `instanceOf` がカウンターを保つか 1 増やすことを示す。
+`root_adr0097_i2_expand_once_error_nonempty` は、一回の展開が `Left` を返した場合の診断が空でないことを示す。
+`root_adr0097_i2_expand_templates_error_nonempty` は、燃料が 9 以上なら、公開入口の `Left` も空でないことを示す。
+この 9 は、外側の反復が最大 9 回であることから得た、この性質のための下限である。
+Haskell と同じ展開結果を得るための十分な燃料、Haskell の停止性、全体とモデルの対応（前提 A1）の証明は残る。
+
+[check-translate-templates.sh](check-translate-templates.sh) は、全体の翻訳と証明を検査する。
+[TemplatesTranslatedProbe.hs](TemplatesTranslatedProbe.hs) は、既存の 11 文法と Unicode の文法 1 件について、実際の公開入口の結果を全フィールドで Lean へ書き出す。
+スクリプトは、この結果を燃料 4096 の翻訳の実行結果と比べる。
+この比較は具体例の検査であり、任意の入力での一致の証明ではない。
+
+[TemplateCollectionsProof.lean](TemplateCollectionsProof.lean) は、全体の翻訳に加えた集合の積の所属条件、マップの和の左優先、マップの値への写像と検索の対応を証明する。
+スクリプトは、これらの演算、空のマップ、`nub`、挿入順の違うマップと集合の表示による等値比較を GHC と比べる。
+マップと集合の Lean の表示は、キーまたは要素を整列してから作る。
+集合の所属を反転する変更とマップの和を右優先にする変更は集合の証明が拒否し、実際の `Templates.hs` の診断を `Left []` に変える変更は全体の証明が拒否する。
+
 [check-translate-infinite-head.sh](check-translate-infinite-head.sh) は、この翻訳を再生成し、証明を検査する。
 負の開始値、大きい `Integer`、名前の衝突を含む実行結果も GHC と比較し、燃料の境界を検査する。
 無限列の末尾を読む変更、`Int` の列への変更、燃料の指定を消す変更は翻訳が拒否し、プローブと実際の `freshName` の所属判定をそれぞれ反転する変更は一致の証明が拒否する。
@@ -810,10 +828,10 @@ GHC のパーサーとの一致を検証していない規則は、前提 G3〜G
 | H1 | `Int` は Lean の `Int`、`Char` は 0x110000 未満のコードポイント、`Text` は `String` で写す。翻訳した関数は 64 ビットの `Int` の範囲を出ない。 | HsPrelude.lean | |
 | H2 | base のリスト、`Maybe`、組、真偽値、整数の関数は、HsPrelude.lean の同名の関数と同じ値を返す。`sortOn` は安定な整列である。`isSpace`、`isAlpha`、`isAlphaNum` は GHC 9.10.3 の表と一致する。 | HsPrelude.lean | check-translate-labels.sh（`isSpace` の表）、check-assemble-predicates.sh（`isAlpha` と `isAlphaNum` の表） |
 | H3 | `Data.Text` の関数は、テキストのスカラー値の列の上で HsPrelude.lean の関数と同じ値を返す。 | HsPrelude.lean | |
-| H4 | `Data.Map` と `Data.Set` は、キーの重ならない組の列と要素の重ならない列で写す。検索、所属、挿入、列からの構築は containers と同じに振る舞い、等しさは中身で比べる。`S.toList` は昇順に並べる。 | HsPrelude.lean | |
+| H4 | `Data.Map` と `Data.Set` は、キーの重ならない組の列と要素の重ならない列で写す。検索、所属、挿入、列からの構築、和、空の判定は containers と同じに振る舞う。マップの値への写像と集合の積も写す。等しさは中身で比べる。`S.toList` は昇順に並べる。 | HsPrelude.lean | check-translate-templates.sh（集合とマップの演算） |
 | H5 | `Eq` を導出した型の `==` は、Lean が導出する `BEq` と同じく構成子と欄を比べる。Lean は入れ子の相互帰納型 `Expr` に中身を展開できない `BEq` を導出するので、translate-labels.hints が構造の等しさ `Expr.structEq` を与え、`==` はそれを使う。 | HsPrelude.lean、translate-labels.hints | |
 | H6 | 停止する Haskell の評価は、Lean の項が表す値を返す。Haskell がパターン照合で失敗する箇所は、型の既定値 `hsUndefined` とする。燃料で翻訳した関数は、十分な燃料で Haskell の関数と同じ値を返す。 | HsPrelude.lean | |
-| H7 | `Int` と `Integer` 以外の型の `show` は、結果どうしを比べるところだけで使われ、Lean の `Repr` で写す。Haskell の導出した `Show` と Lean の `Repr` はどちらも単射である。翻訳した `labelWarnings` の訪問済みの集合の鍵が使い、モデルも同じ鍵 `tKeyOf` を使う。 | HsPrelude.lean | check-label-check.sh |
+| H7 | `Int` と `Integer` 以外の型の `show` は、結果どうしを比べるところだけで使われ、Lean の `Repr` で写す。Haskell の導出した `Show` と Lean の `Repr` はどちらも単射である。翻訳した `labelWarnings` の訪問済みの集合の鍵が使い、モデルも同じ鍵 `tKeyOf` を使う。マップと集合の表示は挿入順によらず抽象的な中身を表す。 | HsPrelude.lean | check-label-check.sh、check-translate-templates.sh（挿入順を変えた表示の比較） |
 | H8 | `Data.Graph.stronglyConnComp` は、containers 0.7 の手順（キーで整列した頂点、転置グラフの後順、深さ優先の森）を写した `HsGraph.stronglyConnComp` と同じ列を返す。キーは重ならない。 | HsPrelude.lean | check-label-check.sh（左再帰の分類を比べる） |
 | H9 | `Either a b` は `Except a b`、`Integer` は `Int`、`Natural` は `Nat`、`GeneralCategory` は `HsGeneralCategory` で写す。`Int` と `Integer` の間の `fromInteger` と `toInteger` は値を変えず（H1）、`Int` の `maxBound` は 2^63 - 1 である。`Either` のモナドは base のインスタンスと同じく束縛する。 | HsPrelude.lean | |
 | H10 | `Data.Char` の `isUpper` は AssembleChars の表、`generalCategory` は GeneralCategory.lean の表と一致する。`isDigit`、`isHexDigit`、`isAscii`、`isAsciiUpper`、`digitToInt`、`chr` は、コードポイントの上の base の定義と同じ値を返す。`isSpace` は H2 に従う。`toUpper` は UpperCase.lean の表、`isSymbol` と `isPunctuation` は一般カテゴリの所属判定で写す。 | HsPrelude.lean、GeneralCategory.lean、UpperCase.lean | check-assemble-predicates.sh（`isUpper` の表）、check-translate-assemble.sh（`generalCategory` の表）、check-uppercase.sh（大文字変換の全コードポイント、文字分類のカテゴリ境界と変異） |

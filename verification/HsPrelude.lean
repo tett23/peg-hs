@@ -494,6 +494,10 @@ structure HsSet (α : Type) where
   deriving Inhabited
 
 namespace HsMap
+def empty {κ ν : Type} : HsMap κ ν := ⟨[]⟩
+def null {κ ν : Type} (m : HsMap κ ν) : Bool := m.pairs.isEmpty
+def map {κ α β : Type} (f : α → β) (m : HsMap κ α) : HsMap κ β :=
+  ⟨m.pairs.map (fun p => (p.1, f p.2))⟩
 def lookup {κ ν : Type} [BEq κ] (k : κ) (m : HsMap κ ν) : Option ν :=
   (m.pairs.find? (·.1 == k)).map (·.2)
 def member {κ ν : Type} [BEq κ] (k : κ) (m : HsMap κ ν) : Bool := m.pairs.any (·.1 == k)
@@ -501,6 +505,11 @@ def insertWith {κ ν : Type} [BEq κ] (f : ν → ν → ν) (k : κ) (v : ν) 
   if member k m then ⟨m.pairs.map (fun p => if p.1 == k then (k, f v p.2) else p)⟩ else ⟨m.pairs ++ [(k, v)]⟩
 def insert {κ ν : Type} [BEq κ] (k : κ) (v : ν) (m : HsMap κ ν) : HsMap κ ν :=
   insertWith (fun new _ => new) k v m
+-- containers' union is left-biased. The right-hand map only supplies keys
+-- absent from the left; its colliding values never replace the left ones.
+def union {κ ν : Type} [BEq κ] (left right : HsMap κ ν) : HsMap κ ν :=
+  right.pairs.foldl (fun result p =>
+    if member p.1 result then result else insert p.1 p.2 result) left
 def fromList {κ ν : Type} [BEq κ] (xs : List (κ × ν)) : HsMap κ ν :=
   xs.foldl (fun m p => insert p.1 p.2 m) ⟨[]⟩
 def fromListWith {κ ν : Type} [BEq κ] (f : ν → ν → ν) (xs : List (κ × ν)) : HsMap κ ν :=
@@ -527,6 +536,7 @@ def insert {α : Type} [BEq α] (x : α) (s : HsSet α) : HsSet α := if member 
 def fromList {α : Type} [BEq α] (xs : List α) : HsSet α := xs.foldl (fun s x => insert x s) ⟨[]⟩
 def union {α : Type} [BEq α] (a b : HsSet α) : HsSet α := b.elems.foldl (fun s x => insert x s) a
 def difference {α : Type} [BEq α] (a b : HsSet α) : HsSet α := ⟨a.elems.filter (fun x => !member x b)⟩
+def intersection {α : Type} [BEq α] (a b : HsSet α) : HsSet α := ⟨a.elems.filter (member · b)⟩
 def singleton {α : Type} (x : α) : HsSet α := ⟨[x]⟩
 def empty {α : Type} : HsSet α := ⟨[]⟩
 def insertSorted (x : String) : List String → List String
@@ -538,6 +548,13 @@ def toList (s : HsSet String) : List String := s.elems.foldr insertSorted []
 def beq {α : Type} [BEq α] (a b : HsSet α) : Bool := a.elems.all (member · b) && b.elems.all (member · a)
 instance {α : Type} [BEq α] : BEq (HsSet α) := ⟨beq⟩
 end HsSet
+
+-- H7: equality of show results must respect the extensional map/set
+-- representation. Sort before Repr, as containers sorts before Show.
+instance {κ ν : Type} [Ord κ] [Repr κ] [Repr ν] : Repr (HsMap κ ν) where
+  reprPrec m prec := reprPrec (HsMap.toList m) prec
+instance : Repr (HsSet String) where
+  reprPrec s prec := reprPrec (HsSet.toList s) prec
 
 /-! ## Termination of translated recursion -/
 
