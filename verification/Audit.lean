@@ -109,6 +109,7 @@ import TemplateIdentifiersProof
 import CodeLexerProof
 import TemplateBindingsProof
 import TemplateGuardProof
+import TemplateSizeProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
@@ -322,6 +323,7 @@ def auditedModules : List Lean.Name := [
   `CodeLexerProof,
   `TemplateBindingsProof,
   `TemplateGuardProof,
+  `TemplateSizeProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,
