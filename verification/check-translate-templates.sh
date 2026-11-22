@@ -30,6 +30,7 @@ compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
 compile "$PWD/verification/CodeLexerProof.lean"
 compile "$PWD/verification/TemplateBindingsProof.lean"
+compile "$PWD/verification/TemplateGuardProof.lean"
 
 # Reuse the same eleven grammars as the model's probe, without copying its
 # projection: Generic serialization writes every field, including types.
@@ -174,6 +175,19 @@ for mutation in binding code; do
   }
   cp packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs"
 done
+# Hiding a template call would wrongly take the plain-grammar branch.
+sed 's/ETemplate {} -> True/ETemplate {} -> False/' packages/peg-grammar/src/Peg/Grammar/Templates.hs \
+  > "$work/grammar/Peg/Grammar/Templates.hs"
+cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+compile "$lean_objects/TemplatesTranslated.lean"
+if compile "$PWD/verification/TemplateGuardProof.lean" > "$work/calls-template.log" 2>&1; then
+  echo 'root ADR 0097 I2: accepted hidden template call' >&2; exit 1
+fi
+grep -E 'TemplateGuardProof.lean:[0-9]+:[0-9]+: error: (Tactic|unsolved goals|Type mismatch)' "$work/calls-template.log" > /dev/null || {
+  cat "$work/calls-template.log" >&2; exit 1;
+}
+cp packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs"
 # Three well-typed semantic errors in the actual substitution: reverse the
 # typed/untyped result, discard a passed argument, or drop an action.
 for mutation in typed passed action; do
@@ -242,4 +256,5 @@ compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
 compile "$PWD/verification/CodeLexerProof.lean"
 compile "$PWD/verification/TemplateBindingsProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 14 mutants checked.'
+compile "$PWD/verification/TemplateGuardProof.lean"
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 15 mutants checked.'
