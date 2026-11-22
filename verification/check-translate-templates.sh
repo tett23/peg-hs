@@ -26,6 +26,7 @@ translate packages/peg-grammar/src > "$lean_objects/TemplatesTranslated.lean"
 compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateCollectionsProof.lean"
+compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 
 # Reuse the same eleven grammars as the model's probe, without copying its
 # projection: Generic serialization writes every field, including types.
@@ -115,6 +116,28 @@ for mutation in intersection union; do
   }
 done
 cp -R packages/peg-grammar/src "$work/grammar"
+# Three well-typed semantic errors in the actual substitution: reverse the
+# typed/untyped result, discard a passed argument, or drop an action.
+for mutation in typed passed action; do
+  case "$mutation" in
+    typed) sed 's/if isJust (templateParamType p) then arg else EDiscard arg/if isJust (templateParamType p) then EDiscard arg else arg/' \
+      packages/peg-grammar/src/Peg/Grammar/Templates.hs > "$work/grammar/Peg/Grammar/Templates.hs" ;;
+    passed) sed 's/Just (_, arg) <- M.lookup n sub -> arg/Just (_, arg) <- M.lookup n sub -> EDiscard arg/' \
+      packages/peg-grammar/src/Peg/Grammar/Templates.hs > "$work/grammar/Peg/Grammar/Templates.hs" ;;
+    action) sed 's/a {altItems = map item (altItems a)}/a {altItems = map item (altItems a), altAction = Nothing}/' \
+      packages/peg-grammar/src/Peg/Grammar/Templates.hs > "$work/grammar/Peg/Grammar/Templates.hs" ;;
+  esac
+  cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+  translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+  compile "$lean_objects/TemplatesTranslated.lean"
+  if compile "$PWD/verification/TemplateSubstitutionBridge.lean" > "$work/substitution-$mutation.log" 2>&1; then
+    echo "root ADR 0097 I2: accepted changed substitution $mutation" >&2; exit 1
+  fi
+  grep -E 'TemplateSubstitutionBridge.lean:[0-9]+:[0-9]+: error: (Tactic|unsolved goals|Type mismatch|Application type mismatch)' \
+    "$work/substitution-$mutation.log" > /dev/null || {
+    cat "$work/substitution-$mutation.log" >&2; exit 1;
+  }
+done
 # Keep the original child dependency and add the parent to the recursive
 # traversal. The size proof must reject this well-typed infinite recursion.
 sed 's/x -> concatMap exprCode (exprChildren x)/x -> concatMap exprCode (x : exprChildren x)/' \
@@ -157,4 +180,5 @@ grep -E 'error: (Type mismatch|Application type mismatch|unsolved goals|Tactic)'
 translate packages/peg-grammar/src > "$lean_objects/TemplatesTranslated.lean"
 compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 5 mutants checked.'
+compile "$PWD/verification/TemplateSubstitutionBridge.lean"
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 8 mutants checked.'

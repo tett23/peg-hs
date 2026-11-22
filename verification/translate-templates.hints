@@ -37,7 +37,30 @@ fuel Peg_Grammar_codeVariables.qualified
 fuel Peg_Grammar_codeVariables.fields
 fuel Peg_Grammar_codeVariables.go
 fuel expandOnce.itemBinds
-fuel substituteAlt.passed
+equations substituteAlt.passed
+equations substituteAlt.expr
+equations substituteAlt.item
+decreasing substituteAlt.passed
+  termination_by (sizeOf $1, 1)
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (apply Prod.Lex.left; hs_sizes [Item.itemExpr_sizeOf]; omega)
+      | (apply Prod.Lex.right; omega)
+decreasing substituteAlt.expr
+  termination_by (sizeOf $1, 0)
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (apply Prod.Lex.left; hs_sizes [Item.itemExpr_sizeOf]; omega)
+      | (apply Prod.Lex.right; omega)
+decreasing substituteAlt.item
+  termination_by (sizeOf $1, 0)
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (apply Prod.Lex.left; hs_sizes [Item.itemExpr_sizeOf]; omega)
+      | (apply Prod.Lex.right; omega)
 fuel Peg_Grammar_Types_classify.unknownFix
 fuel Peg_Grammar_Types_parens.needsParens
 fuel Peg_Grammar_Types_countedItems

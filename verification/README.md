@@ -191,7 +191,7 @@ GHCGrammar.lean は検査のときに生成し、リポジトリには置かな�
 | `assemble` の検査 | AssembleValidation、AssemblePredicates、AssembleChars、AssembleBindings、NestedBindings、AssembleTranslated（生成）、AssembleTextProof、AssembleExportProof、AssembleStringProof、AssembleDirectiveProof、AssembleTranslatedProof | GHC の構文木からの検査付きの翻訳（TranslateHaskell.hs）。モデルの検査（固定ソースの diff とプローブ）も残す | 翻訳を検証済み | check-translate-assemble.sh、check-assemble-validation.sh、check-assemble-predicates.sh、check-assemble-validation-helpers.sh |
 | 指示の引数 | SimpleEscapeProof、TabstopProof、DirectiveArityProof、DirectiveCommentProof、DirectiveDecode | 検査付きの翻訳（ExtractSimpleEscapes.hs、ExtractTabstop.hs、ExtractDirectiveArity.hs、ExtractDirectiveComment.hs） | 翻訳を検証済み | check.sh、check-strict-file.sh、check-directive-comment.sh |
 | import の解決 | ImportResolution | 固定ソースの diff とプローブ | モデルを検証済み | check-import-resolution.sh |
-| テンプレートの展開 | TemplateExpansionWhole、TemplateSubstitution、TemplateQueue、TemplateExpansionFresh | 固定ソースの diff とプローブ | モデルを検証済み | check-template-expansion-whole.sh、check-template-queue.sh、check-template-expansion-fresh.sh、check-template-substitution.sh |
+| テンプレートの展開 | TemplateExpansionWhole、TemplateSubstitution、TemplateQueue、TemplateExpansionFresh、TemplateSubstitutionBridge | 固定ソースの diff とプローブ。置換は GHC の構文木からの翻訳との一致を証明 | モデルを検証済み（置換は翻訳を検証済み） | check-template-expansion-whole.sh、check-template-queue.sh、check-template-expansion-fresh.sh、check-template-substitution.sh、check-translate-templates.sh |
 | 規則の検査 | CheckGroupsModel、CheckGroupsReach、CheckGroupsTheorems、RuleRejection、Nullable、Reachable、Signatures、Guard | 固定ソースの diff とプローブ。署名は ExtractSignatures.hs、ファイル名の検査は check-guard.sh が翻訳する | モデルを検証済み（署名とファイル名の検査は翻訳を検証済み） | check-check-groups.sh、check-rule-rejection.sh、check-rule-rejection-nullable.sh、check-nullable.sh、check-reachable.sh、check-guard.sh |
 | ラベルの検査 | LabelCheckModel、LabelCheckCharSet、LabelCheckTermination、LabelCheckTheorems、HsPrelude、LabelsTranslated（生成）、LabelsTranslatedProof、LabelsBridge、LabelsBridgeSim、LabelsBridgeCheck | GHC の構文木からの検査付きの翻訳（TranslateHaskell.hs）。固定ソースの diff とプローブは翻訳器の差分テストとして残す | 翻訳を検証済み（`stripLabels`、`stripLabelsAs`、`labelWarnings`、`matchesEmpty`） | check-translate-labels.sh、check-label-check.sh |
 | 段のつなぎ | Pipeline、InnerGeneration、PublicGeneration、PublicGenerationGHC | 固定ソースの diff（Pipeline は実装だけの検査 PipelineProbe.hs も） | モデルを検証済み | check-pipeline.sh、check-inner-generation.sh、check-public-generation.sh |
@@ -402,6 +402,21 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 インスタンスの本体は、テンプレートを呼び出し元として、束縛のスコープを項目ごとに広げて展開する。
 [TemplateExpansion.lean](TemplateExpansion.lean) にある、呼び出し元を固定しスコープを広げない `expandExpr` と `expandBody` のモデルは、このモジュールで置き換えた。
 そのため、[TemplateSubstitution.lean](TemplateSubstitution.lean) の式は、グループの項目に束縛を持つ。
+
+[TemplateSubstitutionBridge.lean](TemplateSubstitutionBridge.lean) は、GHC の構文木から翻訳した実際の `substituteAlt` と、モデルの置換を結ぶ。
+`pExpr` は翻訳の式をモデルの式へ写す。
+モデルに残す位置の各整数は `toNat` で写し、モデルが持たない位置は射影で落とす。
+`pSub` は置換表の検索結果を、型指定の有無と射影した引数の組へ写す。
+`root_adr0097_i2_substitution_refines` は、任意の式と翻訳の置換表について、通常の置換とテンプレート引数の中の置換が、射影の上でモデルの `substitute` と一致することを示す。
+`pItems` は要素の位置を落とし、各式へ `pExpr` を適用する。
+`root_adr0097_i2_alt_items_refine` は、この射影の上で選択肢の要素列の一致を示す。
+要素の元の位置と束縛は、`root_adr0097_i2_item_fields_preserved` が翻訳について保存を示す。
+`root_adr0097_i2_alt_fields_preserved` は、翻訳が選択肢の位置、アクション、構成子名を変えないことを示す。
+
+置換の翻訳は燃料を取らない。
+式または要素のサイズと処理段階の辞書式順を使い、同じ式で `passed` から `expr` へ進む場合も段階が減ることをカーネルが検査する。
+[check-translate-templates.sh](check-translate-templates.sh) は、型付きと型なしの結果を逆転する変更、テンプレート引数として渡す値を捨てる変更、アクションを消す変更を、翻訳と型検査の後で対応の証明が拒否することを確かめる。
+展開全体の対応の前提 A1 は残る。
 
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
