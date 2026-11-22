@@ -167,7 +167,21 @@ decreasing Peg_Grammar_codeVariables.go
           rw [HsList.span_cons_snd (fun x : Loc × HsChar => HsBase.eq x.2 (HsChar.ofNat 45)) (l, c) rest first] at restEq
           rw [restEq] at consumed
           omega)
-fuel expandOnce.itemBinds
+equations expandOnce.itemBinds
+equations expandOnce.exprBinds
+decreasing expandOnce.itemBinds
+  termination_by sizeOf $1
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals hs_sizes [Item.itemExpr_sizeOf]
+    all_goals omega
+decreasing expandOnce.exprBinds
+  termination_by sizeOf $1
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals first
+      | (hs_sizes [Item.itemExpr_sizeOf]; omega)
+      | (apply exprChildren_shrinks; assumption)
 equations substituteAlt.passed
 equations substituteAlt.expr
 equations substituteAlt.item
