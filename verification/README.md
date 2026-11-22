@@ -418,6 +418,12 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 [check-translate-templates.sh](check-translate-templates.sh) は、型付きと型なしの結果を逆転する変更、テンプレート引数として渡す値を捨てる変更、アクションを消す変更を、翻訳と型検査の後で対応の証明が拒否することを確かめる。
 展開全体の対応の前提 A1 は残る。
 
+[TemplateIdentifiersProof.lean](TemplateIdentifiersProof.lean) は、型の識別子とその間の文字を分ける実際の `identifierSplit` の翻訳について、結果を連結すると元のテキストに戻ることを示す。
+`HsText.span_shrinks` と `HsText.break_shrinks` は、先頭の文字を消費する分割で残りの文字数が減ることを示す。
+この減少をカーネルが検査するので、`identifierSplit` とこれを呼ぶ `instanceType` の翻訳は燃料を取らない。
+`root_adr0097_i2_instance_type_fields` は、型のコードとテンプレート引数の定義が同じ二つの規則について、同じ引数の型から `instanceType` が同じ結果を返すことを示す。
+`check-translate-templates.sh` は、消費した区間を捨てる変更を連結の証明が拒否し、同じテキストへ再帰する変更を停止性の検査が拒否することも確かめる。
+
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。

@@ -414,6 +414,29 @@ def span (p : HsChar → Bool) (s : String) : String × String :=
    String.ofList (s.toList.dropWhile (fun c => p (HsChar.ofChar c))))
 def «break» (p : HsChar → Bool) (s : String) : String × String :=
   span (fun c => !p c) s
+
+theorem span_append (p : HsChar → Bool) (s : String) :
+    (span p s).1 ++ (span p s).2 = s := by
+  simp only [span, ← String.ofList_append, List.takeWhile_append_dropWhile, String.ofList_toList]
+
+theorem span_shrinks (p : HsChar → Bool) (s : String)
+    (nonempty : null s = false) (first : p (head s) = true) :
+    (span p s).2.toList.length < s.toList.length := by
+  cases chars : s.toList with
+  | nil => simp [null, chars] at nonempty
+  | cons c cs =>
+    have le := HsList.span_snd_length_le (fun x => p (HsChar.ofChar x)) cs
+    simp only [HsList.span] at le
+    have hit : p (HsChar.ofChar c) = true := by simpa [head, chars] using first
+    simp only [span, chars, List.dropWhile_cons, hit, ite_true,
+      String.toList_ofList, List.length_cons]
+    omega
+
+theorem break_shrinks (p : HsChar → Bool) (s : String)
+    (nonempty : null s = false) (first : p (head s) = false) :
+    («break» p s).2.toList.length < s.toList.length := by
+  exact span_shrinks (fun c => !p c) s nonempty (by simp [first])
+
 def strip (s : String) : String :=
   String.ofList (((s.toList.dropWhile isSpaceChar).reverse.dropWhile isSpaceChar).reverse)
 def splitList (p : Char → Bool) : List Char → List (List Char)

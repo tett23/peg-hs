@@ -105,6 +105,7 @@ import TemplateCollectionsProof
 import TemplateProjectionProof
 import PublicGrammarFieldsProof
 import TemplateSubstitutionBridge
+import TemplateIdentifiersProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
@@ -314,6 +315,7 @@ def auditedModules : List Lean.Name := [
   `TemplateLocation,
   `PublicGrammarFieldsProof,
   `TemplateSubstitutionBridge,
+  `TemplateIdentifiersProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,
