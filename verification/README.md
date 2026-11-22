@@ -704,7 +704,7 @@ RenderFinalizeModule.lean の `generated_module_finalized`（RenderFinalizeModul
 次に、7 個の文法から実際にモジュールを生成する。
 文法は、埋め込みブロックと最初のマーカーと同じ行を持つもの、テンプレート、回復のラベル、`%language`、`%env`、`--export` で宣言を省いたもの、PegSyntax.hpeg である。
 各モジュールで、出力のファイルの次の行を指す LINE プラグマをマーカーに戻したテキストに Lean の `finalize` を実行し、結果が生成したファイルとバイト単位で一致することを確かめる。
-先頭の行が `headerLines` と一致することも確かめる。
+`module` 宣言より前のヘッダー全体が、言語拡張と `--export` の警告抑制を含めて `headerLines` と一致することも確かめる。
 さらに、[check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) が作る GHC 9.10.3 のトレーサーで、生成したファイルを構文解析の受理まで読めることを確かめる。
 マーカーに戻したテキストの字句の列が生成したファイルと異なるモジュールが少なくとも一つあることも確かめ、`finalizedLex` を使う理由が今も成り立つことを見張る。
 
