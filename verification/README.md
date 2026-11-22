@@ -442,6 +442,12 @@ GHC の文字判定との対応には、`isAlpha` と `isAlphaNum` の前提 H2�
 相互再帰する `itemBinds` と `exprBinds` も、要素と式のサイズの減少により燃料を取らない。
 `check-translate-templates.sh` は、実際のソースで束縛名を捨てる変更と規則呼び出しのコードを捨てる変更を、翻訳と型検査の後で対応の証明が拒否することを確かめる。
 
+[TemplateGuardProof.lean](TemplateGuardProof.lean) は、実際の `callsTemplate` の翻訳が、任意の式と規則についてモデルのテンプレート呼び出しの判定と一致することを示す。
+文法の射影を `pGrammar` として定義し、テンプレートもテンプレート呼び出しもないという入口の判定がモデルの `plainGrammar` と一致することも示す。
+`root_adr0097_i2_plain_refines` は、その判定を満たす任意の文法と任意の燃料で、実際の `expandTemplates` の翻訳が入力をそのまま返し、モデルの `ExpandTemplates` が同じ射影の結果への導出を持つことを示す。
+この定理が扱うのは前提 A1 のうち展開を省く分岐であり、テンプレートを展開する分岐の対応は未証明である。
+`check-translate-templates.sh` は、実際のソースでテンプレート呼び出しを見落とす変更を、翻訳と型検査の後で判定の対応の証明が拒否することを確かめる。
+
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。
