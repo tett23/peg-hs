@@ -40,11 +40,133 @@ decreasing exprCode
       | (have smaller := List.sizeOf_lt_of_mem (α := Expr) (by assumption)
          omega)
       | (apply exprChildren_shrinks; assumption)
-fuel Peg_Grammar_codeVariables.blockComment
-fuel Peg_Grammar_codeVariables.string
-fuel Peg_Grammar_codeVariables.qualified
-fuel Peg_Grammar_codeVariables.fields
-fuel Peg_Grammar_codeVariables.go
+equations Peg_Grammar_codeVariables.blockComment
+decreasing Peg_Grammar_codeVariables.blockComment
+  termination_by ($2).length
+  decreasing_by
+    all_goals hs_decreasing
+equations Peg_Grammar_codeVariables.string
+decreasing Peg_Grammar_codeVariables.string
+  termination_by ($1).length
+  decreasing_by
+    all_goals hs_decreasing
+equations Peg_Grammar_codeVariables.qualified
+decreasing Peg_Grammar_codeVariables.qualified
+  termination_by ($1).length
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals
+      have bound := HsList.span_snd_length_le (fun x => @{Peg_Grammar_codeVariables.isIdentChar} x.2) s
+      simp_all [@{Peg_Grammar_codeVariables.identifier}]
+      omega
+equations Peg_Grammar_codeVariables.fields
+decreasing Peg_Grammar_codeVariables.fields
+  termination_by ($1).length
+  decreasing_by
+    all_goals hs_decreasing
+    all_goals
+      have bound := HsList.span_snd_length_le (fun x => @{Peg_Grammar_codeVariables.isIdentChar} x.2) s
+      simp_all [@{Peg_Grammar_codeVariables.identifier}]
+      omega
+before Peg_Grammar_codeVariables.go
+  set_option maxHeartbeats 2000000
+  set_option maxRecDepth 2048
+  theorem string_length {α : Type} [Inhabited α] (s : List (α × HsChar)) :
+      (@{Peg_Grammar_codeVariables.string} s).length ≤ s.length := by
+    induction s using (measure (List.length (α := α × HsChar))).wf.induction with
+    | h s ih =>
+      rcases s with _ | ⟨⟨l, c⟩, _ | ⟨⟨l2, c2⟩, r⟩⟩ <;> rw [@{Peg_Grammar_codeVariables.string}.eq_def] <;> dsimp only
+      all_goals repeat' first
+        | split
+        | assumption
+        | (simp_all <;> omega)
+        | (apply Nat.le_trans; apply ih; simp_all [InvImage, WellFoundedRelation.rel] <;> omega; simp_all [InvImage, WellFoundedRelation.rel] <;> omega)
+  theorem block_length (d : Int) (s : List (Loc × HsChar)) :
+      (@{Peg_Grammar_codeVariables.blockComment} d s).length ≤ s.length := by
+    induction s using (measure (List.length (α := Loc × HsChar))).wf.induction generalizing d with
+    | h s ih =>
+      rcases s with _ | ⟨⟨l, c⟩, _ | ⟨⟨l2, c2⟩, r⟩⟩ <;> rw [@{Peg_Grammar_codeVariables.blockComment}.eq_def] <;> dsimp only
+      all_goals repeat' first
+        | split
+        | assumption
+        | (simp_all <;> omega)
+        | (apply Nat.le_trans; apply ih; simp_all [InvImage, WellFoundedRelation.rel] <;> omega; simp_all [InvImage, WellFoundedRelation.rel] <;> omega)
+  theorem identifier_length {α : Type} [Inhabited α] (s : List (α × HsChar)) :
+      (@{Peg_Grammar_codeVariables.identifier} s).2.length ≤ s.length := by
+    exact HsList.span_snd_length_le _ s
+  theorem qualified_length {α : Type} [Inhabited α] (s : List (α × HsChar)) :
+      (@{Peg_Grammar_codeVariables.qualified} s).length ≤ s.length := by
+    induction s using (measure (List.length (α := α × HsChar))).wf.induction with
+    | h s ih =>
+      have bound := identifier_length s
+      rcases s with _ | ⟨⟨l, c⟩, r⟩ <;> rw [@{Peg_Grammar_codeVariables.qualified}.eq_def] <;> dsimp only
+      all_goals repeat' first
+        | split
+        | assumption
+        | (simp_all <;> omega)
+        | (apply Nat.le_trans; apply ih; simp_all [InvImage, WellFoundedRelation.rel] <;> omega; simp_all <;> omega)
+        | (apply Nat.le_trans (List.dropWhile_sublist _).length_le; simp_all <;> omega)
+  theorem fields_length {α : Type} [Inhabited α] (s : List (α × HsChar)) :
+      (@{Peg_Grammar_codeVariables.fields} s).length ≤ s.length := by
+    induction s using (measure (List.length (α := α × HsChar))).wf.induction with
+    | h s ih =>
+      have bound := identifier_length s
+      rw [@{Peg_Grammar_codeVariables.fields}.eq_def]
+      dsimp only
+      repeat' first
+        | split
+        | assumption
+        | (simp_all <;> omega)
+        | (apply Nat.le_trans; apply ih; simp_all [InvImage, WellFoundedRelation.rel] <;> omega; simp_all <;> omega)
+  theorem charLiteral_length {α : Type} [Inhabited α] (s out : List (α × HsChar))
+      (ok : @{Peg_Grammar_codeVariables.charLiteral} s = some out) : out.length ≤ s.length := by
+    rcases s with _ | ⟨⟨l, c⟩, _ | ⟨⟨l2, c2⟩, rest⟩⟩ <;>
+      rw [@{Peg_Grammar_codeVariables.charLiteral}] at ok
+    all_goals repeat' first
+      | split at ok
+      | (simp_all [HsList.drop] <;> omega)
+    all_goals
+      have bound := (List.dropWhile_sublist (l := rest) (fun x : α × HsChar => HsBase.ne x.2 (HsChar.ofNat 39))).length_le
+      have equal := Option.some.inj ok
+      rw [← equal]
+      simp only [HsList.drop, List.length_drop, List.length_cons]
+      omega
+  theorem identifier_cons_length {α : Type} [Inhabited α] (l : α) (c : HsChar)
+      (rest : List (α × HsChar)) (first : @{Peg_Grammar_codeVariables.isIdentStart} c = true) :
+      (@{Peg_Grammar_codeVariables.identifier} ((l, c) :: rest)).2.length ≤ rest.length := by
+    have consume : @{Peg_Grammar_codeVariables.isIdentChar} c = true := by
+      simp only [@{Peg_Grammar_codeVariables.isIdentStart}, @{Peg_Grammar_codeVariables.isIdentChar},
+        HsBase.or, Bool.or_eq_true] at first ⊢
+      rcases first with alpha | underscore
+      · exact Or.inl (HsChar.alpha_isAlphaNum c alpha)
+      · exact Or.inr (Or.inl underscore)
+    change (HsList.span (fun x => @{Peg_Grammar_codeVariables.isIdentChar} x.2) ((l, c) :: rest)).2.length ≤ rest.length
+    rw [HsList.span_cons_snd (fun x : α × HsChar => @{Peg_Grammar_codeVariables.isIdentChar} x.2) (l, c) rest consume]
+    exact HsList.span_snd_length_le _ rest
+equations Peg_Grammar_codeVariables.go
+decreasing Peg_Grammar_codeVariables.go
+  termination_by ($1).length
+  decreasing_by
+    set_option maxRecDepth 2048 in
+      set_option maxHeartbeats 2000000 in
+        all_goals hs_decreasing
+        all_goals try (have bound := string_length rest; omega)
+        all_goals try (have bound := charLiteral_length rest _ (by assumption); omega)
+        all_goals try (have bound := block_length 1 after; omega)
+        all_goals try (have bound := identifier_cons_length l c rest (by assumption); simp_all <;> omega)
+        all_goals try (have bound := qualified_length after'; have consumed := identifier_cons_length l c rest (by assumption); simp_all <;> omega)
+        all_goals try (have bound := fields_length after'; have consumed := identifier_cons_length l c rest (by assumption); simp_all <;> omega)
+        all_goals try (apply Nat.lt_of_le_of_lt (List.dropWhile_sublist _).length_le)
+        all_goals try (simp_all <;> omega)
+        all_goals try (have consumed := identifier_cons_length l c rest (by assumption); simp_all <;> omega)
+        all_goals try (
+          have consumed := HsList.span_snd_length_le (fun x : Loc × HsChar => HsBase.eq x.2 (HsChar.ofNat 45)) rest
+          have first : HsBase.eq c (HsChar.ofNat 45) = true := by assumption
+          have pieces : HsList.span (fun x : Loc × HsChar => HsBase.eq x.2 (HsChar.ofNat 45)) ((l, c) :: rest) = (dashes, after) := by assumption
+          have restEq : (HsList.span (fun x : Loc × HsChar => HsBase.eq x.2 (HsChar.ofNat 45)) ((l, c) :: rest)).2 = after := congrArg Prod.snd pieces
+          rw [HsList.span_cons_snd (fun x : Loc × HsChar => HsBase.eq x.2 (HsChar.ofNat 45)) (l, c) rest first] at restEq
+          rw [restEq] at consumed
+          omega)
 fuel expandOnce.itemBinds
 equations substituteAlt.passed
 equations substituteAlt.expr
