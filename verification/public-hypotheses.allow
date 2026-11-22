@@ -52,9 +52,9 @@ Inputs.noSuchFile : PegHs.LabelCheck.Loc → String → String	UNRESOLVED 診断
 Inputs.notALibrary : PegHs.LabelCheck.Loc → String → String	UNRESOLVED 診断の文面を定義していない
 Inputs.refs : PegHs.PublicGeneration.Rule → List String	UNRESOLVED ruleRefs を翻訳していない
 Inputs.duplicate : PegHs.PublicGeneration.Rule → String	UNRESOLVED 診断の文面を定義していない
-Inputs.expand : PegHs.PublicGeneration.Grammar → Except PegHs.PublicGeneration.Diagnostics PegHs.PublicGeneration.Grammar	UNRESOLVED expandTemplates を翻訳していない (Premises.expandRefines でモデルに結ぶ)
+Inputs.expand : PegHs.PublicGeneration.Grammar → Except PegHs.PublicGeneration.Diagnostics PegHs.PublicGeneration.Grammar	UNRESOLVED 翻訳した expandTemplates を公開段の Grammar 型へ接続していない (Premises.expandRefines でモデルに結ぶ)
 Inputs.env : PegHs.TemplateExpansionWhole.Env	UNRESOLVED テンプレート展開の環境を翻訳していない
-Inputs.classify : PegHs.TemplateExpansionWhole.Grammar → PegHs.TemplateExpansionWhole.Known	UNRESOLVED classify を翻訳していない
+Inputs.classify : PegHs.TemplateExpansionWhole.Grammar → PegHs.TemplateExpansionWhole.Known	UNRESOLVED 翻訳した classify をモデルの Grammar 型へ接続していない
 Inputs.templateDiag : PegHs.TemplateSubstitution.Diagnostic → String	UNRESOLVED 診断の文面を定義していない
 Inputs.note : PegHs.PublicGeneration.Grammar → String → String	UNRESOLVED 診断の文面を定義していない
 Inputs.oracle : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Oracle	UNRESOLVED check の分類と述語を翻訳していない

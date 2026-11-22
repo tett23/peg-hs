@@ -226,6 +226,7 @@ GHC_LEXER_X=${GHC_LEXER_X:-"$work/Lexer.x"} verification/check-render-module-ope
   LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true \
     -o "$work/PublicPremisesMeta.olean" PublicPremisesMeta.lean)
 verification/check-public-generation.sh
+verification/check-template-projection.sh "$work"
 
 # Every module is compiled by now. Audit.lean lists the axioms of each theorem.
 (cd verification && LEAN_PATH="$work/item-certificates:$work" lean -DwarningAsError=true Audit.lean)

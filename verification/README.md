@@ -400,6 +400,13 @@ TranslateHaskell.hs は、`assemble` と `Assemble.hs` の公開関数を、そ�
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。
 比べる文法は、受理、インスタンスの共有、名前の衝突の回避、`%syntax` でのインライン化、各診断、深さの上限を含む。
+型注釈の位置と選択肢の構成子名も、プローブの入力と比較結果に含める。
+
+テンプレート展開のモデルへの射影 `toTemplate` は、分類処理が読む型注釈と構成子名を保つ。
+[TemplateProjectionProof.lean](TemplateProjectionProof.lean) は、任意の規則について、型注釈の位置を `locNat` で写し、構成子名を各選択肢に保つことを示す。
+モデルから戻す `Rule.lift` もこの二つを戻し、`Rule.toTemplate_lift` が射影し直すと元のモデルの規則に一致することを示す。
+[check-template-projection.sh](check-template-projection.sh) は、型注釈または構成子名を捨てる変更が型検査を通り、保存の証明が拒否することを確かめる。
+分類結果そのものとモデルの対応は、引き続き前提 A1 に残る。
 
 [InfiniteHeadProof.lean](InfiniteHeadProof.lean) は、`freshName` と同じ形の式を持つ [InfiniteHeadProbe.hs](InfiniteHeadProbe.hs) の GHC 構文木からの翻訳について、名前の探索の一致を示す。
 `root_adr0097_i2_first_name_agrees` は、任意の元の名前の列、生成済みの名前の列、非負の開始カウンターについて、十分な燃料で翻訳の結果が `boundedSearch` の結果の名前に等しいことを示す。

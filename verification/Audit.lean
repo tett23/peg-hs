@@ -102,6 +102,7 @@ import TemplateStateProof
 import MonadMethodsProof
 import TemplatesTranslatedProof
 import TemplateCollectionsProof
+import TemplateProjectionProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
@@ -307,6 +308,7 @@ def auditedModules : List Lean.Name := [
   `TemplatesTranslated,
   `TemplatesTranslatedProof,
   `TemplateCollectionsProof,
+  `TemplateProjectionProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,

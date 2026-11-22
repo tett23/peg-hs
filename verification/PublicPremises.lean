@@ -104,10 +104,10 @@ def Rule.lift (r : TemplateExpansionWhole.Rule) : Rule where
   params := r.params
   templateParams := r.templateParams
   type := r.type
-  annotation := none
+  annotation := r.annotation.map unloc
   alts := r.alts.map fun a =>
     { loc := unloc 0, items := itemsF a.items, action := a.action.map fun c => (unloc 0, c),
-      constructor := none }
+      constructor := a.constructor.map fun c => (unloc 0, c) }
 
 theorem Rule.toTemplate_lift (r : TemplateExpansionWhole.Rule) : (Rule.lift r).toTemplate = r := by
   simp only [Rule.lift, Rule.toTemplate, List.map_map, Function.comp_def, itemsT_itemsF,

@@ -45,9 +45,11 @@ end
 def renderRule (r : Rule) : List String :=
   ("rule " ++ r.name ++ " @" ++ toString r.location ++ " params=" ++
     ",".intercalate (r.params.map fun p => p.1 ++ ":" ++ p.2) ++ " tparams=" ++
-    ",".intercalate (r.templateParams.map fun p => p.1 ++ (p.2.map ("::" ++ ·)).getD "")) ::
+    ",".intercalate (r.templateParams.map fun p => p.1 ++ (p.2.map ("::" ++ ·)).getD "") ++
+    " annotation=" ++ (r.annotation.map toString).getD "-") ::
   r.alts.flatMap fun a =>
-    ("  alt " ++ (a.action.map fun t => "{" ++ t ++ "}").getD "-") ::
+    ("  alt " ++ (a.action.map fun t => "{" ++ t ++ "}").getD "-" ++
+      " constructor=" ++ a.constructor.getD "-") ::
       (renderItems a.items).map ("    " ++ ·)
 
 def project (name : String) : Option (Except (List Diagnostic) Grammar) → List String

@@ -54,8 +54,8 @@ cases = do
           , "S <- List<A, ','> List<A, ','> List<B, ';'>"
           , "List<p, sep> :: ()"
           , "List<p, sep> <- p (sep p)*"
-          , "A <- 'a'"
-          , "B <- 'b'"
+          , "A <- $'a' @CapturedA"
+          , "B <- $'b' @CapturedB"
           ]
       )
     , ( "names"
@@ -177,9 +177,11 @@ project n res =
       ( "rule " ++ T.unpack (ruleName r) ++ " @" ++ show (loc (ruleLoc r)) ++ " params="
           ++ intercalate "," [T.unpack (paramName p) ++ ":" ++ T.unpack (unLoc (paramType p)) | p <- ruleParams r]
           ++ " tparams=" ++ intercalate "," [T.unpack (templateParamName p) ++ maybe "" (\t -> "::" ++ T.unpack t) (templateParamType p) | p <- ruleTemplateParams r]
+          ++ " annotation=" ++ maybe "-" (show . loc) (ruleAnnotation r)
       )
         : concatMap alt (ruleAlts r)
-    alt a = ("  alt " ++ maybe "-" (\t -> "{" ++ T.unpack (unLoc t) ++ "}") (altAction a)) : ["    " ++ item i | i <- altItems a]
+    alt a = ("  alt " ++ maybe "-" (\t -> "{" ++ T.unpack (unLoc t) ++ "}") (altAction a)
+      ++ " constructor=" ++ maybe "-" (T.unpack . unLoc) (altConstructor a)) : ["    " ++ item i | i <- altItems a]
     item i = maybe "" (\b -> T.unpack b ++ ":") (itemBind i) ++ expr (itemExpr i)
     expr = \case
       ELit _ w -> "(lit " ++ T.unpack w ++ ")"
@@ -231,9 +233,11 @@ leanModule gs =
         ++ ", params := " ++ list [pair (str (paramName p)) (str (unLoc (paramType p))) | p <- ruleParams r]
         ++ ", templateParams := " ++ list [pair (str (templateParamName p)) (maybe "none" (\t -> "(some " ++ str t ++ ")") (templateParamType p)) | p <- ruleTemplateParams r]
         ++ ", type := " ++ str (unLoc (ruleType r))
+        ++ ", annotation := " ++ maybe "none" (\l -> "(some " ++ show (loc l) ++ ")") (ruleAnnotation r)
         ++ ", alts := " ++ list (map alt (ruleAlts r))
         ++ " }"
-    alt a = "{ items := " ++ list (map item (altItems a)) ++ ", action := " ++ maybe "none" (\t -> "(some " ++ str (unLoc t) ++ ")") (altAction a) ++ " }"
+    alt a = "{ items := " ++ list (map item (altItems a)) ++ ", action := " ++ maybe "none" (\t -> "(some " ++ str (unLoc t) ++ ")") (altAction a)
+      ++ ", constructor := " ++ maybe "none" (\t -> "(some " ++ str (unLoc t) ++ ")") (altConstructor a) ++ " }"
     item i = pair (maybe "none" (\b -> "(some " ++ str b ++ ")") (itemBind i)) (expr (itemExpr i))
     expr = \case
       ELit v w -> "(.lit " ++ str v ++ " " ++ str w ++ ")"
