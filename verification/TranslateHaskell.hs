@@ -57,6 +57,14 @@
 --   a function of HsPrelude.lean. That each pair computes the same value is
 --   an evaluation rule (HsPrelude.lean lists them); a name outside the table
 --   is rejected.
+-- - The runtime of generated parsers, Peg.Runtime.Internal: each name of the
+--   table `runtimeFunctions` is the definition of the same name of
+--   HsPegRuntime.lean (rule H16), and its types `P`, `Table`, `ArgTable` and
+--   `Span` those of the translated runtime; any other name of the module is
+--   rejected. A do-block in `P` binds with its (>>=), also for (>>).
+-- - Hints: "extern MODULE:NAMESPACE" takes the types and functions of MODULE
+--   from an earlier translation in NAMESPACE; "import MODULE" imports a Lean
+--   module; "noncomputable section" wraps the translation in one.
 --
 -- Usage: TranslateHaskell LIBDIR SRCDIRS MODULE NAMESPACE HINTS ROOT...
 -- (SRCDIRS: source directories separated by colons)
@@ -82,7 +90,7 @@ import GHC.Core.TyCon (isTupleTyCon, tyConName)
 import GHC.Core.Unify (tcMatchTy)
 import GHC.Core.TyCo.Subst (Subst, substTy)
 import GHC.Core.TyCo.Compare (eqType)
-import GHC.Core.Type (expandTypeSynonyms, getTyVar_maybe, splitFunTy_maybe, splitTyConApp_maybe, tyCoVarsOfType)
+import GHC.Core.Type (coreView, expandTypeSynonyms, getTyVar_maybe, splitFunTy_maybe, splitTyConApp_maybe, tyCoVarsOfType)
 import GHC.Data.Bag (bagToList)
 import GHC.Data.FastString (unpackFS)
 import GHC.Driver.Session (lang_set)
@@ -209,6 +217,7 @@ data G = G
   , gEquations :: S.Set String -- definitions whose pattern bindings keep their equation
   , gEquationHere :: Bool -- the definition being translated is one of them
   , gBefore :: M.Map String String -- Lean name without the line -> lemmas before the definition
+  , gExtern :: M.Map String String -- module -> namespace of its earlier translation
   }
 
 qual :: Name -> String
@@ -223,9 +232,15 @@ fresh g = io $ do
 -- Types ------------------------------------------------------------------------------
 
 leanType :: G -> Type -> X String
-leanType g ty0 = go (expandTypeSynonyms ty0)
+leanType g ty0 = go ty0
   where
     go ty
+      -- The types of the runtime, before their synonyms are expanded (rule H14).
+      | TyConApp tc args <- ty, modOf (tyConName tc) == runtimeModule = do
+          as' <- mapM go args
+          let n = occ (tyConName tc)
+          maybe (badN ("the runtime type " ++ n ++ " outside the table")) pure (runtimeType n as')
+      | TyConApp tc _ <- ty, isTypeSynonymTyCon tc, Just ty' <- coreView ty = go ty'
       | (tvs@(_ : _), body) <- splitForAllTyCoVars ty = do
           b <- go body
           pure ("(" ++ concat ["{" ++ tyVarLean (tyVarName tv) ++ " : Type} → " | tv <- tvs] ++ b ++ ")")
@@ -255,6 +270,12 @@ leanType g ty0 = go (expandTypeSynonyms ty0)
             ("Data.Set.Internal", "Set", [a]) -> pure (appT "HsSet" [a])
             ("Data.Graph", "SCC", [a]) -> pure (appT "HsSCC" [a])
             (_, _, xs) | isTupleTyCon tc, length xs >= 2 -> pure ("(" ++ intercalate " × " xs ++ ")")
+            ("GHC.ST", "ST", [s, a]) -> pure (appT "PegHs.RuntimeCore.ST" [s, a])
+            ("Data.Array.Base", "UArray", [i, a]) | i == "Int" -> pure (appT "HsUArray" [a])
+            ("Data.Text.Unsafe", "Iter", []) -> pure "HsTextU.Iter"
+            (m, o, xs) | Just ns <- M.lookup m (gExtern g) -> do
+              io (modifyIORef (gTyCons g) (M.insert (qual n) tc))
+              pure (appT (ns ++ "." ++ sanitize o) xs)
             (m, o, xs) | S.member m (gProject g) -> do
               io (modifyIORef (gTyCons g) (M.insert (qual n) tc))
               pure (appT (gNamespace g ++ "." ++ sanitize o) xs)
@@ -351,6 +372,7 @@ library g m o mty = case o of
   "null" | base, a0 == tList -> Just "HsList.null"
   "length" | base, a0 == tList -> Just "HsList.length"
   "foldr" | base, a2 == tList -> Just "HsList.foldr"
+  "maximum" | base, a0 == tList, maybe False ((== tInt) . resHead 1) mty -> Just "HsList.maximum"
   "sortOn" | base, ordArg -> Just "HsList.sortOn"
   -- Rule H11: a key of a project type that derives Ord.
   "sortOn" | base, derivedOrdArg -> Just "HsList.sortOnOrd"
@@ -386,6 +408,7 @@ library g m o mty = case o of
   ">>=" | base, a0 == tEither -> Just "HsEither.bind"
   "<$>" | base, a1 == tEither -> Just "HsEither.fmap"
   "fmap" | base, a1 == tEither -> Just "HsEither.fmap"
+  "either" | base -> Just "HsEither.either"
   "chr" | base -> Just "HsChar.chr"
   "digitToInt" | base -> Just "HsChar.digitToInt"
   f | m == "GHC.Unicode", f `elem` ["isSpace", "isUpper", "isDigit", "isHexDigit", "isAscii", "isAsciiUpper", "generalCategory"] -> Just ("HsChar." ++ f)
@@ -413,17 +436,26 @@ library g m o mty = case o of
   "all" | text -> Just "HsText.all"
   "isInfixOf" | text -> Just "HsText.isInfixOf"
   "concat" | text -> Just "HsText.concat"
+  "empty" | text -> Just "HsText.empty"
   f | text, f `elem` textFunctions -> Just ("HsText." ++ sanitize f)
   f | m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal"], f `elem` ["fromList", "lookup", "member", "findWithDefault", "keysSet", "fromListWith", "toList", "elems"] -> Just ("HsMap." ++ f)
   f | m == "Data.Set.Internal", f `elem` ["fromList", "member", "insert", "union", "difference", "singleton", "empty", "toList"] -> Just ("HsSet." ++ f)
   "stronglyConnComp" | m == "Data.Graph" -> Just "HsGraph.stronglyConnComp"
   "isAlpha" | m == "GHC.Unicode" -> Just "HsChar.isAlpha"
   "isAlphaNum" | m == "GHC.Unicode" -> Just "HsChar.isAlphaNum"
+  -- Rule H14: an unboxed array of Int indexed from its lower bound.
+  "listArray" | array, a1 == tList -> Just "HsUArray.listArray"
+  "bounds" | array -> Just "HsUArray.bounds"
+  "!" | array -> Just "HsUArray.index"
+  -- Rule H15: the UTF-8 bytes of a Text.
+  f | m == "Data.Text.Unsafe", f `elem` ["lengthWord8", "iter", "takeWord8", "dropWord8"] -> Just ("HsTextU." ++ f)
   _ -> Nothing
   where
     base = any (`isPrefixOf` m) ["GHC.Prim", "GHC.Base", "GHC.List", "GHC.Classes", "GHC.Num", "GHC.Show", "GHC.Enum", "Data.Foldable", "Data.Maybe", "Data.OldList", "Data.Tuple", "Data.Function", "Data.Traversable", "Data.Functor", "GHC.Maybe", "GHC.Types", "GHC.Real", "GHC.Char", "Data.Char", "Data.Either", "GHC.Control.Monad", "Control.Monad"]
     text = m `elem` ["Data.Text", "Data.Text.Show", "Data.Text.Internal"]
-    known = base || text || m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal", "Data.Set.Internal", "Data.Graph", "GHC.Unicode"]
+    known = base || text || array || m `elem` ["Data.Map.Internal", "Data.Map.Strict.Internal", "Data.Set.Internal", "Data.Graph", "GHC.Unicode", "Data.Text.Unsafe"]
+    -- At UArray Int Int only.
+    array = m == "Data.Array.Base" && maybe False (elem "Data.Array.Base.UArray" . tyConsOf) mty
     integral a = a `elem` [tInt, tInteger]
     r3 = maybe "?" (resHead 3) mty
     -- sortOn's key of a project type that derives Ord.
@@ -447,11 +479,55 @@ library g m o mty = case o of
         Nothing -> False
       _ -> False
 
+-- The runtime ----------------------------------------------------------------------
+
+-- Peg.Runtime.Internal, which generated parsers import as PegRt. Its
+-- functions and types are not translated from the source: each name of the
+-- table is a definition of HsPegRuntime.lean, over the runtime that
+-- ExtractRuntimeCore.hs translates (rule H14); any other name of the module
+-- is rejected.
+runtimeModule :: String
+runtimeModule = "Peg.Runtime.Internal"
+
+runtimeType :: String -> [String] -> Maybe String
+runtimeType n as = case (n, as) of
+  ("P", [r, s, a]) -> Just (appT "PegHs.RuntimeCore.P" [r, s, a])
+  ("Table", [s, a]) -> Just (appT "PegHs.RuntimeCore.Table" [s, a])
+  ("ArgTable", [s, k, a]) -> Just (appT "PegHs.RuntimeCore.ArgTable" [s, k, a])
+  ("Span", []) -> Just "PegHs.GeneratedRuntimeForms.Span"
+  _ -> Nothing
+  where
+    appT f xs = "(" ++ unwords (f : xs) ++ ")"
+
+runtimeFunctions :: [String]
+runtimeFunctions =
+  [ "choice", "lit", "cls", "anyChar", "many", "skipMany", "optional", "skipOptional", "andP", "notP"
+  , "labeled", "labeledMessage", "memo", "memoArg", "capture", "predicate", "withCol", "getOffset", "spanFrom"
+  ]
+
+runtimeName :: String -> Maybe String
+runtimeName o
+  | o `elem` runtimeFunctions = Just ("HsPegRt." ++ o)
+  | o `elem` ["spanStart", "spanEnd"] = Just ("PegHs.GeneratedRuntimeForms.Span." ++ o)
+  | o == "Span" = Just "PegHs.GeneratedRuntimeForms.Span.Span"
+  | otherwise = Nothing
+
+-- The monad of the runtime: its methods. Its (>>) is base's default for a
+-- Monad, m >>= \_ -> k.
+runtimeMonad :: String
+runtimeMonad = runtimeModule ++ ".P"
+
+runtimeInstances :: [((String, String), String)]
+runtimeInstances =
+  [ ((runtimeMonad, ">>="), "HsPegRt.bind"), ((runtimeMonad, "fmap"), "HsPegRt.fmap")
+  , ((runtimeMonad, "<*>"), "HsPegRt.ap"), ((runtimeMonad, "pure"), "HsPegRt.pure")
+  ]
+
 -- The functions of Data.Text translated as HsText.NAME (rule H3, H12).
 textFunctions :: [String]
 textFunctions =
   [ "foldl'", "breakOn", "takeWhile", "stripStart", "stripEnd", "splitAt", "unpack", "singleton", "any", "words"
-  , "splitOn", "isSuffixOf", "takeWhileEnd", "breakOnEnd", "dropEnd"
+  , "splitOn", "isSuffixOf", "takeWhileEnd", "breakOnEnd", "dropEnd", "foldr"
   ]
 
 -- Literals ---------------------------------------------------------------------------
@@ -683,10 +759,13 @@ overLit g sp ol = case ol_val ol of
 litE :: SrcSpan -> HsLit GhcRn -> X String
 litE sp = \case
   HsChar _ ch -> pure (charLit ch)
+  -- A String: the list of its characters.
+  HsString _ s -> pure ("[" ++ intercalate ", " (map charLit (unpackFS s)) ++ "]")
   l -> bad sp ("the literal " ++ showPprUnsafe l)
 
 field :: G -> SrcSpan -> String -> X String
 field g sp f = case M.lookup f (gFields g) of
+  _ | f `elem` ["spanStart", "spanEnd"], Just r <- runtimeName f -> pure r
   Just (ci, i) -> pure (ciType ci ++ "." ++ sanitize f) <* pure i
   Nothing -> bad sp ("the field " ++ f)
 
@@ -735,6 +814,15 @@ higherOrder =
 -- A variable, constructor, field or library function.
 var :: G -> Scope -> SrcSpan -> Name -> X String
 var g sc sp n
+  | modOf n == runtimeModule = case runtimeName (occ n) of
+      Just f -> pure f
+      Nothing
+        | Just f <- instanceMethod g (occ n) (typeAt g sp) -> pure f
+        | otherwise -> bad sp ("the name " ++ qual n ++ " outside the runtime table")
+  | Just ns <- M.lookup (modOf n) (gExtern g)
+  , Nothing <- M.lookup (qual n) (gCons g)
+  , not (M.member (occ n) (gFields g)) =
+      pure (ns ++ "." ++ sanitize (occ n))
   | Just d <- M.lookup (nkey n) (gDefs g), not (dInstance d) = do
       let callee = M.lookup (nkey n) (gFuel g)
       fuelArg <- case callee of
@@ -860,6 +948,7 @@ pat g (L l p) = case p of
       ("GHC.Types", "[]") -> pure ("List.nil", listSig, [])
       ("Data.Graph", "AcyclicSCC") -> pure ("HsSCC.AcyclicSCC", sccSig, [])
       ("Data.Graph", "CyclicSCC") -> pure ("HsSCC.CyclicSCC", sccSig, [])
+      ("Data.Text.Unsafe", "Iter") -> pure ("HsTextU.Iter.Iter", [("HsTextU.Iter.Iter", 2)], [])
       _ -> do
         ci <- conInfo g (locA l) n
         pure (ciLean ci, ciSiblings ci, ciFields ci)
@@ -1088,6 +1177,8 @@ doBlock g sc sp monad stmts = do
   (bindF, thenF) <- case monad of
     m | m == tMaybe -> pure ("HsMaybe.bind", Nothing)
     m | m == tEither -> pure ("HsEither.bind", Nothing)
+    -- base's default (>>) of a Monad: m >>= \_ -> k.
+    m | Just b <- lookup (m, ">>=") runtimeInstances -> pure (b, Nothing)
     m -> case (M.lookup (m, ">>=") (gInstances g), M.lookup (m, "fmap") (gInstances g), M.lookup (m, "<*>") (gInstances g)) of
       (Just b, Just f, Just a) -> pure (b, Just (f, a))
       _ -> bad sp ("a do-block in the monad " ++ m)
@@ -1200,7 +1291,7 @@ emitTypes g = do
             forM_' new $ \tc -> forM_' (tyConDataCons tc) $ \dc -> mapM_ (leanType g . scaledThing) (dataConOrigArgTys dc)
             loop (S.union seen (S.fromList [qual (tyConName tc) | tc <- new]))
   _ <- loop S.empty
-  tcs <- io (readIORef (gTyCons g))
+  tcs <- M.filter (\tc -> not (M.member (modOf (tyConName tc)) (gExtern g))) <$> io (readIORef (gTyCons g))
   -- Dependency order: mutual groups.
   let deps tc = nub [k | dc <- tyConDataCons tc, t <- map scaledThing (dataConOrigArgTys dc), k <- tyConsOf t, M.member k tcs]
       sccs = stronglyConnComp [(tc, qual (tyConName tc), deps tc) | tc <- M.elems tcs]
@@ -1359,6 +1450,13 @@ run libdir srcdir file namespace hintsFile roots = do
       liftNames = [w | ("lift", w, _) <- blocks]
       decreasing = M.fromList [(w, t) | ("decreasing", w, t) <- blocks]
       before = M.fromList [(w, t) | ("before", w, t) <- blocks]
+      -- "extern MODULE:NAMESPACE": the types and functions of MODULE are
+      -- those of its earlier translation in NAMESPACE.
+      externs = M.fromList [(m, drop 1 ns) | ("extern", w, _) <- blocks, let (m, ns) = break (== ':') w]
+      -- "import MODULE": a Lean module that the translation imports.
+      imports = [w | ("import", w, _) <- blocks]
+      -- "noncomputable section": the translation calls noncomputable definitions.
+      noncomputableSection = not (null [() | ("noncomputable", "section", _) <- blocks])
   (renamed, others, (tcBinds, tcAll), modName, projectMods, (eqTypes, ordTypes)) <- runGhc (Just libdir) $ do
     df <- getSessionDynFlags
     _ <- setSessionDynFlags (lang_set df {importPaths = splitColons srcdir, backend = noBackend, ghcLink = NoLink} (Just GHC2021))
@@ -1431,7 +1529,13 @@ run libdir srcdir file namespace hintsFile roots = do
       topBinds = [(n, b, locA l) | (_, bs) <- topGroups, L l b@FunBind {fun_id = L _ n} <- bagToList bs]
       topByOcc = M.fromList [(occ n, x) | x@(n, _, _) <- topBinds]
       -- The functions of the other project modules that the roots reach.
-      otherBinds = [(n, b, locA l) | (_, bs) <- others, L l b@FunBind {fun_id = L _ n} <- bagToList bs]
+      otherBinds =
+        [ (n, b, locA l)
+        | (_, bs) <- others
+        , L l b@FunBind {fun_id = L _ n} <- bagToList bs
+        , modOf n /= runtimeModule
+        , not (M.member (modOf n) externs)
+        ]
       -- Instances of the module: methods by (tycon, method).
       instBinds =
         [ (cls, tyc, n, b, locA l)
@@ -1602,7 +1706,7 @@ run libdir srcdir file namespace hintsFile roots = do
           , gFields = M.empty
           , gDefs = defsTyped
           , gFuel = fuel
-          , gInstances = instances
+          , gInstances = M.union instances (M.fromList runtimeInstances)
           , gProject = projectMods
           , gEqTypes = eqTypes
           , gOrdTypes = ordUsed
@@ -1617,6 +1721,7 @@ run libdir srcdir file namespace hintsFile roots = do
           , gEquations = S.fromList equationNames
           , gEquationHere = False
           , gBefore = before
+          , gExtern = externs
           }
   -- Types: collect the type constructors of every definition's type first,
   -- so that constructors and fields are known while translating bodies.
@@ -1638,12 +1743,12 @@ run libdir srcdir file namespace hintsFile roots = do
         M.fromList
           [ ( qual (dataConName dc)
             , ConInfo
-                { ciLean = sanitize (occ (tyConName tc)) ++ "." ++ sanitize (occ (dataConName dc))
-                , ciType = sanitize (occ (tyConName tc))
+                { ciLean = tyName tc ++ "." ++ sanitize (occ (dataConName dc))
+                , ciType = tyName tc
                 , ciArity = length (dataConOrigArgTys dc)
                 , ciFields = map (occ . flSelector) (dataConFieldLabels dc)
                 , ciAlone = length (tyConDataCons tc) == 1
-                , ciSiblings = [(sanitize (occ (tyConName tc)) ++ "." ++ sanitize (occ (dataConName d)), length (dataConOrigArgTys d)) | d <- tyConDataCons tc]
+                , ciSiblings = [(tyName tc ++ "." ++ sanitize (occ (dataConName d)), length (dataConOrigArgTys d)) | d <- tyConDataCons tc]
                 }
             )
           | tc <- M.elems tcs
@@ -1651,6 +1756,8 @@ run libdir srcdir file namespace hintsFile roots = do
           ]
       fields = M.fromList [(f, (ci, i)) | ci <- M.elems cons, (i, f) <- zip [0 ..] (ciFields ci)]
       g' = g {gCons = cons, gFields = fields}
+      -- A type of an extern module by the namespace of its translation.
+      tyName tc = maybe "" (++ ".") (M.lookup (modOf (tyConName tc)) externs) ++ sanitize (occ (tyConName tc))
   -- Definitions in dependency order, mutual groups together.
   out <- forM (zip [0 ..] sccs) $ \(grp, scc) -> do
     let ds = flattenSCC' scc
@@ -1666,11 +1773,16 @@ run libdir srcdir file namespace hintsFile roots = do
       [ "-- Generated by verification/TranslateHaskell.hs from " ++ modName ++ ". Do not edit."
       , "-- Library functions used: " ++ unwords (S.toList used)
       , "import HsPrelude"
-      , ""
+      ]
+  mapM_ (putStrLn . ("import " ++)) imports
+  putStr $
+    unlines
+      [ ""
       , "set_option linter.unusedVariables false"
       , "namespace " ++ namespace
-      , ""
       ]
+  when noncomputableSection (putStrLn "noncomputable section")
+  putStrLn ""
   mapM_ putStrLn typeDecls
   -- Lean's termination checker may use the field lemmas.
   let lemmas = [takeWhile (/= ' ') (drop 8 l) | d <- typeDecls, l <- lines d, "theorem " `isPrefixOf` l]
@@ -1680,6 +1792,7 @@ run libdir srcdir file namespace hintsFile roots = do
     putStrLn ("macro_rules | `(tactic| decreasing_trivial) => `(tactic| (hs_sizes [" ++ intercalate ", " lemmas ++ "]; omega))")
     putStrLn ""
   mapM_ putStrLn out
+  when noncomputableSection (putStrLn "end")
   putStrLn ("end " ++ namespace)
 
 -- The number of visible arguments of a type.

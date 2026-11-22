@@ -17,24 +17,37 @@ import System.Exit (die)
 
 type Rule = ([String], [String])
 
+-- With the argument `forms`, the forms that generated code uses around the
+-- control combinators (capture, predicate, withCol, getOffset, spanFrom and
+-- what they call) instead, over the translation of Peg.Runtime.Position
+-- (PositionTranslated, by TranslateHaskell.hs).
 main :: IO ()
 main = do
-  [path] <- getArgs
+  args <- getArgs
+  (path, forms) <- case args of
+    [p] -> pure (p, False)
+    [p, "forms"] -> pure (p, True)
+    _ -> die "usage: ExtractRuntimeCore SOURCE [forms]"
   source <- lines <$> readFile path
-  forM_ declarations $ \decl ->
+  forM_ (if forms then formDeclarations else declarations) $ \decl ->
     unless (decl `isInfixOfLines` source) $
       die ("runtime declaration changed: " ++ concat (take 1 decl))
-  putStrLn "import RuntimeCore"
-  putStrLn "namespace PegHs.RuntimeCore"
+  if forms
+    then mapM_ putStrLn ["import TranslatedRuntimeCore", "import PositionTranslated"]
+    else putStrLn "import RuntimeCore"
+  let namespaceName = if forms then "PegHs.GeneratedRuntimeForms" else "PegHs.RuntimeCore"
+  putStrLn ("namespace " ++ namespaceName)
+  if forms then putStrLn "open PegHs.RuntimeCore" else pure ()
   putStrLn "noncomputable section"
-  forM_ functions $ \(header, rules, epilogue) -> do
+  mapM_ putStrLn (if forms then formPrelude else [])
+  forM_ (if forms then formFunctions else functions) $ \(header, rules, epilogue) -> do
     body <- cut header source
     lean <- translate header rules body
     mapM_ putStrLn lean
     mapM_ putStrLn epilogue
     putStrLn ""
   putStrLn "end"
-  putStrLn "end PegHs.RuntimeCore"
+  putStrLn ("end " ++ namespaceName)
 
 isInfixOfLines :: [String] -> [String] -> Bool
 isInfixOfLines needle hay = any (needle `isPrefixOf`) (suffixes hay)
@@ -474,4 +487,62 @@ functions =
       , one "  pure r" "  pure r"
       , one "  where" "  where"
       , one "    name = T.pack rawName" "    name : Text := T.pack rawName" ], [])
+  ]
+
+-- The source declarations that the forms restate.
+formDeclarations :: [[String]]
+formDeclarations =
+  [ [ "data Span = Span", "  { spanStart :: !Pos", "  , spanEnd :: !Pos", "  }" ]
+  -- newCtx builds the line index of the input, and nothing changes it.
+  , [ "      , ctxLines = lineIndex input" ]
+  ]
+
+-- The vocabulary of the forms: the line index that newCtx stores, and Span.
+formPrelude :: [String]
+formPrelude =
+  [ "def ctxLines {ρ : Type} (c : Ctx ρ) : HsUArray Int := PositionTranslated.lineIndex (ctxInput c)"
+  , ""
+  , "structure Span where"
+  , "  Span ::"
+  , "  spanStart : PositionTranslated.Pos"
+  , "  spanEnd : PositionTranslated.Pos"
+  , "  deriving Inhabited"
+  , ""
+  ]
+
+formFunctions :: [(String, [Rule], [String])]
+formFunctions =
+  [ ("slice t from to =",
+      [ one "slice t from to = TU.takeWord8 (to - from) (TU.dropWord8 from t)"
+            "def slice (t : Text) (start stop : Nat) : Text := HsTextU.takeWord8 (Int.ofNat stop - Int.ofNat start) (HsTextU.dropWord8 (Int.ofNat start) t)" ], [])
+  -- RuntimeCore.posAt keeps the offset of this position (posAtPos_offset).
+  , ("posAt ctx =",
+      [ one "posAt ctx = posIn (ctxInput ctx) (ctxLines ctx)"
+            "def posAtPos {ρ : Type} (ctx : Ctx ρ) (off : Nat) : PositionTranslated.Pos := PositionTranslated.posIn (ctxInput ctx) (ctxLines ctx) (Int.ofNat off)" ], [])
+  , ("colAt ctx off =",
+      [ one "colAt ctx off = T.foldl' step 0 (slice (ctxInput ctx) start off)"
+            "def colAt {ρ : Type} (ctx : Ctx ρ) (off : Nat) : Int := HsText.foldl' step 0 (slice (ctxInput ctx) start off)"
+      , one "  where" "  where"
+      , one "    start = ctxLines ctx ! lineOf (ctxLines ctx) off"
+            "    start : Nat := (HsUArray.index (ctxLines ctx) (PositionTranslated.lineOf (ctxLines ctx) (Int.ofNat off))).toNat"
+      , one "    ts = cfgTabstop (ctxConfig ctx)" "    ts : Int := Int.ofNat (cfgTabstop (ctxConfig ctx))"
+      , one "    step col ch" "    step (col : Int) (ch : HsChar) : Int :="
+      , one "      | ch == '\\t' && ts > 0 = (col `div` ts + 1) * ts" "      if ch == HsChar.ofNat 9 && ts > 0 then (Int.fdiv col ts + 1) * ts"
+      , one "      | otherwise = col + 1" "      else col + 1" ], [])
+  , ("capture p =",
+      [ one "capture p = P $ \\c i ->" "def capture {ρ σ α : Type} (p : P ρ σ α) : P ρ σ Text := fun c i =>"
+      , one "  unP p c i >>= \\case" "  unP p c i >>= fun"
+      , one "    Ok j _ -> pure (Ok j (slice (ctxInput c) i j))" "    | Ok j _ => pure (Ok j (slice (ctxInput c) i j))"
+      , one "    bad -> pure (failed bad)" "    | bad => pure (failed bad)" ], [])
+  , ("predicate f =",
+      [ one "predicate f = P $ \\c i ->" "def predicate {ρ σ : Type} (f : Int → Bool) : P ρ σ Unit := fun c i =>"
+      , one "  pure (if f (colAt c i) then Ok i () else Fail)" "  pure (if f (colAt c i) then Ok i () else Fail)" ], [])
+  , ("withCol f =",
+      [ one "withCol f = P $ \\c i -> unP (f (colAt c i)) c i"
+            "def withCol {ρ σ α : Type} (f : Int → P ρ σ α) : P ρ σ α := fun c i => unP (f (colAt c i)) c i" ], [])
+  , ("getOffset =",
+      [ one "getOffset = P $ \\_ i -> pure (Ok i i)" "def getOffset {ρ σ : Type} : P ρ σ Int := fun _ i => pure (Ok i (Int.ofNat i))" ], [])
+  , ("spanFrom start =",
+      [ one "spanFrom start = P $ \\c i -> pure (Ok i (Span (posAt c start) (posAt c i)))"
+            "def spanFrom {ρ σ : Type} (start : Int) : P ρ σ Span := fun c i => pure (Ok i (Span.Span (posAtPos c start.toNat) (posAtPos c i)))" ], [])
   ]

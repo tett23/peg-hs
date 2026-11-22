@@ -89,6 +89,9 @@ verification/check-call-order.sh "$work"
 verification/check-memo-meta.sh "$work"
 verification/check-concrete-terminals.sh "$work"
 verification/check-runtime-core.sh "$work"
+# Peg.Grammar.SelfHosted translated from GHC's syntax tree, with the runtime
+# table of HsPegRuntime.lean (SelfHostedTranslatedProof).
+verification/check-translate-selfhosted.sh "$work"
 mkdir "$work/meta-cases"
 "${CABAL:-cabal}" exec -v0 -- runghc-9.10.3 -package=peg-grammar verification/MetaExecutionCases.hs "$work/meta-cases" > "$work/meta-results"
 (cd verification && lean -DwarningAsError=true -o "$work/MetagrammarPredicates.olean" MetagrammarPredicates.lean &&

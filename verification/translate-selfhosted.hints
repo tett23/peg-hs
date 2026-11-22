@@ -1,0 +1,28 @@
+-- Hints for TranslateHaskell.hs on the generated Peg.Grammar.SelfHosted.
+--
+-- The runtime (PegRt) is HsPegRuntime.lean; the positions of Peg.Runtime.Position
+-- are those of its translation by translate-position.hints.
+-- The types of Peg.Grammar and the functions of Peg.Grammar.Assemble are those
+-- of the translation of check-translate-assemble.sh.
+import HsPegRuntime
+import AssembleTranslated
+extern Peg.Runtime.Position:PositionTranslated
+extern Peg.Grammar:AssembleTranslated
+extern Peg.Grammar.Assemble:AssembleTranslated
+noncomputable section
+-- The rules that call each other: each recursive group takes fuel (rule H6),
+-- as `exec` of SelfHostedRuntime.lean does.
+fuel peg'rule'File
+fuel peg'rule'PostOps
+fuel peg'rule'HsInner
+fuel peg'rule'ParamChunks
+fuel peg'rule'ArgChunks
+fuel peg'rule'Primary
+-- The characters of a literal: each step consumes a character or more.
+equations tokens.go
+decreasing tokens.go
+  termination_by ($1).length
+  decreasing_by
+    all_goals
+      (try simp only [HsList.drop] at *)
+      hs_decreasing
