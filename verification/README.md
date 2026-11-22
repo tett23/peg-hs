@@ -528,6 +528,17 @@ Lean が停止を示せない再帰は、[translate-labels.hints](translate-labe
 `HsList.firstFrom_hit` は、最初の成功位置までの燃料があれば、その位置の値を返すことを示す。
 末尾を束縛するパターンや、`Int` などほかの列挙型、燃料の指定がない関数は拒否する。
 
+独自の `Monad` の `(>>)` は、明示したメソッドを優先し、省略した場合は GHC 9.10.3 と同じ `m >>= \_ -> k` に展開する。
+do ブロックでもこの規則を使う。
+リストに対する `Data.Traversable.mapM` は `pure` と `liftA2`、`GHC.Base.mapM` は `(>>=)` と `return`、`Data.Foldable.mapM_` は `(>>)` と `return` で翻訳する。
+`liftA2` と `return` も、明示したメソッドを優先し、省略した場合にだけ GHC の既定定義を使う。
+これらの暗黙の依存先も、呼び出す定義より前に翻訳する。
+
+[check-translate-monad.sh](check-translate-monad.sh) は、Applicative と Monad の動作を意図的に変えた三つの回帰用モジュールを翻訳し、GHC と実行結果を比べる。
+[MonadMethodsProof.lean](MonadMethodsProof.lean) は、この翻訳について、任意の二つの整数で既定と上書きした `(>>)` の結果を証明し、各リスト走査が使うメソッドの違いも検査する。
+`MonadLibraryProbe.hs` の束縛と `MonadLiftProbe.hs` の `liftA2` をそれぞれ変更すると、構文の翻訳は通り、定理が拒否する。
+`mapMaybe` の翻訳も GHC と比較する。
+
 [LabelsTranslatedProof.lean](LabelsTranslatedProof.lean) は、翻訳した関数がモデルと一致することを、型の射影 `pGrammar` の上で示す。
 射影は、位置の整数を自然数に、コードポイントを同じ値に写し、モデルが持たない欄を空にする。
 `strip_expr`（LabelsTranslatedProof.lean:111）は、翻訳した `stripLabels` の式の書き換えが、モデルの `stripExpr` に一致することを示す。
