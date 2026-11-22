@@ -115,6 +115,21 @@ for mutation in intersection union; do
   }
 done
 cp -R packages/peg-grammar/src "$work/grammar"
+# Keep the original child dependency and add the parent to the recursive
+# traversal. The size proof must reject this well-typed infinite recursion.
+sed 's/x -> concatMap exprCode (exprChildren x)/x -> concatMap exprCode (x : exprChildren x)/' \
+  packages/peg-grammar/src/Peg/Grammar/Templates.hs > "$work/grammar/Peg/Grammar/Templates.hs"
+cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+if compile "$lean_objects/TemplatesTranslated.lean" > "$work/code-loop-rejected.log" 2>&1; then
+  echo 'root ADR 0097 I2: accepted non-decreasing exprCode recursion' >&2; exit 1
+fi
+grep -E 'TemplatesTranslated.lean:[0-9]+:[0-9]+: error: Tactic' "$work/code-loop-rejected.log" > /dev/null || {
+  cat "$work/code-loop-rejected.log" >&2; exit 1;
+}
+if grep -E 'unknownIdentifier|unknown module|Function expected at' "$work/code-loop-rejected.log" > /dev/null; then
+  cat "$work/code-loop-rejected.log" >&2; exit 1
+fi
 # Recur on the same expression instead of its child. GHC still accepts the
 # definition; the translation must fail its kernel-checked size decrease.
 sed 's/EStar x -> EStar (plain x)/EStar x -> EStar (plain (EStar x))/' \
@@ -142,4 +157,4 @@ grep -E 'error: (Type mismatch|Application type mismatch|unsolved goals|Tactic)'
 translate packages/peg-grammar/src > "$lean_objects/TemplatesTranslated.lean"
 compile "$lean_objects/TemplatesTranslated.lean"
 compile "$PWD/verification/TemplatesTranslatedProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 4 mutants checked.'
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 5 mutants checked.'

@@ -432,6 +432,11 @@ Haskell と同じ展開結果を得るための十分な燃料、Haskell の停�
 Lean のカーネルがこの減少を検査するので、この処理について十分な燃料の前提は要らない。
 `check-translate-templates.sh` は、`plain` が部分式の代わりに同じ式へ再帰する変更を翻訳し、減少の証明が拒否することも確かめる。
 
+規則呼び出しの引数と意味述語の Haskell コードを集める `exprCode` も、燃料を取らない。
+`exprChildren_shrinks` は、`exprChildren` の返す子の式のサイズが元の式より小さいことを示す。
+グループとテンプレート引数の所属条件も使い、再帰のたびにサイズが減ることをカーネルが検査する。
+スクリプトは、再帰の対象へ元の式自体を加える変更を、減少の証明が拒否することも確かめる。
+
 [check-translate-templates.sh](check-translate-templates.sh) は、全体の翻訳と証明を検査する。
 [TemplatesTranslatedProbe.hs](TemplatesTranslatedProbe.hs) は、既存の 11 文法と Unicode の文法 1 件について、実際の公開入口の結果を全フィールドで Lean へ書き出す。
 スクリプトは、この結果を燃料 4096 の翻訳の実行結果と比べる。
