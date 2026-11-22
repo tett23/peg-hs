@@ -11,8 +11,7 @@ theorem root_adr0097_i2_instance_count_delta (fuel : Nat) (usedNames : HsSet Str
       (expandOnce.instanceOf_221 fuel usedNames l depth t args tys captured) st).2
     St.stCount after = St.stCount st ∨ St.stCount after = St.stCount st + 1 := by
   simp only [expandOnce.instanceOf_221, gets', modify',
-    instMonad_gtgteq_Expand, instApplicative_pure_Expand,
-    instApplicative_ltstargt_Expand, instFunctor_fmap_Expand, Expand.runExpandFn]
+    instMonad_gtgteq_Expand, instApplicative_pure_Expand, Expand.runExpandFn]
   split <;> simp [St.stCount, HsInt.add]
 
 theorem root_adr0097_i2_instance_count_nonnegative (fuel : Nat) (usedNames : HsSet String)
@@ -54,8 +53,7 @@ theorem root_adr0097_i2_new_instance_name_free (fuel : Nat) (usedNames : HsSet S
     St.stCount st < St.stCount result.2 →
       result.1 ∉ usedNames.elems ∧ result.1 ∉ (St.stInstanceNames st).elems := by
   simp only [expandOnce.instanceOf_221, gets', modify',
-    instMonad_gtgteq_Expand, instApplicative_pure_Expand,
-    instApplicative_ltstargt_Expand, instFunctor_fmap_Expand, Expand.runExpandFn]
+    instMonad_gtgteq_Expand, instApplicative_pure_Expand, Expand.runExpandFn]
   split
   · intro impossible
     simp only [St.stCount] at impossible

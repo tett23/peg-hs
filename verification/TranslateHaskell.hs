@@ -43,6 +43,8 @@
 -- - Instances of Functor, Applicative and Monad declared in the module: each
 --   method is a definition; a use of the method at that type, and a do-block
 --   in that monad, call the definitions (with base's default methods).
+--   The three list traversals (Traversable.mapM, Base.mapM, Foldable.mapM_)
+--   use their respective GHC definitions and the actual instance methods.
 -- - Recursion: Lean must prove every recursive group terminating, possibly
 --   with a termination_by/decreasing_by text from the hints file (Lean checks
 --   it), or the group is in the hints file's fuel list. The hint
@@ -376,6 +378,7 @@ library g m o mty = case o of
   "length" | base, a0 == tList -> Just "HsList.length"
   "foldr" | base, a2 == tList -> Just "HsList.foldr"
   "dropWhile" | base, a1 == tList -> Just "List.dropWhile"
+  "mapMaybe" | m == "Data.Maybe", a1 == tList -> Just "List.filterMap"
   "scanl" | base -> Just "List.scanl"
   "sum" | base, a0 == tList, maybe False ((== tInteger) . resHead 1) mty -> Just "HsList.sumInteger"
   "maximum" | base, a0 == tList, maybe False ((== tInt) . resHead 1) mty -> Just "HsList.maximum"
@@ -838,7 +841,7 @@ saturate' g f n as = do
 -- lambda that Lean's termination checker can attach membership to.
 higherOrder :: [(String, Int)]
 higherOrder =
-  [ ("List.map", 2), ("List.filter", 2), ("List.dropWhile", 2), ("HsList.concatMap", 2), ("HsList.any", 2), ("HsList.all", 2)
+  [ ("List.map", 2), ("List.filter", 2), ("List.filterMap", 2), ("List.dropWhile", 2), ("HsList.concatMap", 2), ("HsList.any", 2), ("HsList.all", 2)
   , ("List.scanl", 3), ("HsList.foldr", 3), ("HsMaybe.mapM", 2), ("HsBase.comp", 3), ("HsBase.maybe", 3)
   ]
 
@@ -890,6 +893,7 @@ var g sc sp n
       (m, o)
         | Just ci <- M.lookup (qual n) (gCons g) -> pure (ciLean ci)
         | M.member o (gFields g), S.member m (gProject g) -> field g sp o
+        | Just f <- projectTraverse g m o (typeAt g sp) -> pure f
         | Just f <- instanceMethod g o (typeAt g sp) -> pure f
         | Just f <- library g m o (typeAt g sp) -> do
             io (modifyIORef (gLibraryUsed g) (S.insert f))
@@ -897,8 +901,8 @@ var g sc sp n
         | otherwise -> bad sp ("the name " ++ m ++ "." ++ o ++ maybe "" ((" at " ++) . showPprUnsafe) (typeAt g sp))
 
 -- A method of Functor, Applicative or Monad at a type whose instance the
--- module declares; (>>) is base's default, (*>), whose default is
--- (id <$ a) <*> b, and (<$) is fmap . const.
+-- module declares. GHC 9.10.3's default (>>) is bind with a discarded
+-- value, independently of the Applicative operations. An override wins.
 instanceMethod :: G -> String -> Maybe Type -> Maybe String
 instanceMethod g o mty = do
   ty <- mty
@@ -906,14 +910,59 @@ instanceMethod g o mty = do
   case o of
     ">>=" -> at (argHead 0 ty) ">>="
     "pure" -> at (resHead 1 ty) "pure"
+    "return" -> case at (resHead 1 ty) "return" of
+      Just f -> Just f
+      Nothing -> at (resHead 1 ty) "pure"
     "fmap" -> at (argHead 1 ty) "fmap"
     "<$>" -> at (argHead 1 ty) "fmap"
     "<*>" -> at (argHead 0 ty) "<*>"
-    ">>" -> do
-      f <- at (argHead 0 ty) "fmap"
-      a <- at (argHead 0 ty) "<*>"
-      pure ("(fun a b => " ++ a ++ " (" ++ f ++ " (HsBase.const HsBase.id) a) b)")
+    "liftA2" -> instanceLiftA2 g (argHead 1 ty)
+    ">>" -> instanceThen g (argHead 0 ty)
     _ -> Nothing
+
+instanceThen :: G -> String -> Maybe String
+instanceThen g monad = case M.lookup (monad, ">>") (gInstances g) of
+  Just f -> Just f
+  Nothing -> do
+    bindF <- M.lookup (monad, ">>=") (gInstances g)
+    pure ("(fun a b => " ++ bindF ++ " a (fun _ => b))")
+
+instanceLiftA2 :: G -> String -> Maybe String
+instanceLiftA2 g monad = case M.lookup (monad, "liftA2") (gInstances g) of
+  Just f -> Just f
+  Nothing -> do
+    fmapF <- M.lookup (monad, "fmap") (gInstances g)
+    apF <- M.lookup (monad, "<*>") (gInstances g)
+    pure ("(fun f a b => " ++ app apF [app fmapF ["f", "a"], "b"] ++ ")")
+
+-- Traversable.mapM uses list traverse (pure/liftA2), Base.mapM uses
+-- bind/return, and Foldable.mapM_ uses (>>)/return. Specialise each to
+-- lists and the module's actual methods, without assuming the Monad laws.
+projectTraverse :: G -> String -> String -> Maybe Type -> Maybe String
+projectTraverse g modul name mty
+  | (modul, name) `elem` [("GHC.Base", "mapM"), ("Data.Traversable", "mapM"), ("Data.Foldable", "mapM_")] = do
+      ty <- mty
+      if argHead 1 ty /= tList then Nothing else do
+        let monad = resHead 2 ty
+            at method = M.lookup (monad, method) (gInstances g)
+        if modul == "Data.Traversable" then do
+          pureF <- at "pure"
+          liftF <- instanceLiftA2 g monad
+          pure ("(fun f xs => List.foldr (fun x ys => " ++ app liftF ["List.cons", "(f x)", "ys"]
+            ++ ") " ++ app pureF ["[]"] ++ " xs)")
+        else do
+          bindF <- at ">>="
+          returnF <- case at "return" of
+            Just f -> Just f
+            Nothing -> at "pure"
+          if name == "mapM_" then do
+            thenF <- instanceThen g monad
+            pure ("(fun f xs => List.foldr (fun x k => " ++ app thenF ["(f x)", "k"] ++ ") "
+              ++ app returnF ["Unit.unit"] ++ " xs)")
+          else pure ("(fun f xs => List.foldr (fun a r => " ++ app bindF
+            ["(f a)", "(fun x => " ++ app bindF ["r", "(fun ys => " ++ app returnF ["(x :: ys)"] ++ ")"] ++ ")"]
+            ++ ") " ++ app returnF ["[]"] ++ " xs)")
+  | otherwise = Nothing
 
 -- Patterns ---------------------------------------------------------------------------
 
@@ -1236,8 +1285,8 @@ doBlock g sc sp monad stmts = do
     m | m == tEither -> pure ("HsEither.bind", Nothing)
     -- base's default (>>) of a Monad: m >>= \_ -> k.
     m | Just b <- lookup (m, ">>=") runtimeInstances -> pure (b, Nothing)
-    m -> case (M.lookup (m, ">>=") (gInstances g), M.lookup (m, "fmap") (gInstances g), M.lookup (m, "<*>") (gInstances g)) of
-      (Just b, Just f, Just a) -> pure (b, Just (f, a))
+    m -> case M.lookup (m, ">>=") (gInstances g) of
+      Just b -> pure (b, M.lookup (m, ">>") (gInstances g))
       _ -> bad sp ("a do-block in the monad " ++ m)
   let go [] = bad sp "an empty do-block"
       go [L _ (LastStmt _ e _ _)] = expr g sc e
@@ -1258,10 +1307,9 @@ doBlock g sc sp monad stmts = do
         _ -> bad (locA l) "this statement of a do-block"
   go stmts
   where
-    -- base's default (>>) is (*>), whose default is (id <$ a) <*> b, and
-    -- (<$) is fmap . const.
+    -- GHC 9.10.3's default (>>) discards the bound value.
     thenE bindF Nothing a b = app bindF [a, "(fun _ => " ++ b ++ ")"]
-    thenE _ (Just (f, ap)) a b = app ap [app f ["(HsBase.const HsBase.id)", a], b]
+    thenE _ (Just override) a b = app override [a, b]
 
 -- Collecting definitions ----------------------------------------------------------
 
@@ -1697,7 +1745,9 @@ run libdir srcdir file namespace hintsFile roots = do
           | (_, tyc, n, _, _) <- instBinds
           ]
       -- Call graph and SCCs over all definitions.
-      callsOf b = nub [nkey m | m <- namesIn b, M.member (nkey m) defs]
+      callsOf b = nub ([nkey m | m <- namesIn b, M.member (nkey m) defs]
+        ++ [nkey n | usesInstanceSyntax b, (_, _, n, _, _) <- instBinds,
+              M.member (nkey n) defs])
       sccs = stronglyConnComp [(d, nkey (dName d), callsOf (dBind d)) | d <- M.elems defs]
       groupOf = M.fromList [(nkey (dName d), i) | (i, scc) <- zip [0 :: Int ..] sccs, d <- flattenSCC' scc]
       fuelGroups = S.fromList [groupOf M.! nkey (dName d) | d <- M.elems defs, hintKeyOf (dLean d) `elem` fuelNames]
@@ -1956,13 +2006,20 @@ collectNamed x = case cast x of
   Just (v :: Var) -> [(occ (varName v), nkey (varName v), varType v)]
   Nothing -> concat (gmapQ collectNamed x)
 
--- A do-block's default (>>) needs fmap and (<*>), even when their names do
--- not occur in the source tree. Explicit class-method uses need them too.
+-- Defaults and list traversals can use dictionary methods not named in
+-- the source tree. Keep those definitions as dependencies too.
 usesInstanceSyntax :: Data a => a -> Bool
-usesInstanceSyntax x = hasDo x || any method (namesIn x)
+usesInstanceSyntax x = hasDo x || any method (expressionVars x)
   where
     method n = "GHC." `isPrefixOf` modOf n &&
-      occ n `elem` ["fmap", "<$>", "<*>", "pure", ">>=", ">>"]
+      occ n `elem` ["fmap", "<$>", "<*>", "liftA2", "pure", "return", ">>=", ">>"] ||
+      modOf n `elem` ["GHC.Base", "Data.Foldable", "Data.Traversable"] &&
+        occ n `elem` ["mapM", "mapM_"]
+
+expressionVars :: Data a => a -> [Name]
+expressionVars x = case cast x of
+  Just (HsVar _ (L _ n) :: HsExpr GhcRn) -> [n]
+  _ -> concat (gmapQ expressionVars x)
 
 hintKeyOf :: String -> String
 hintKeyOf l = if '.' `elem` l then reverse (drop 1 (dropWhile (/= '_') (reverse l))) else l
