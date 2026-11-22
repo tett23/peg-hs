@@ -98,6 +98,7 @@ import LabelCheckTheorems
 import HsPrelude
 import InfiniteHeadProof
 import TemplateFreshProof
+import TemplateStateProof
 import LabelsTranslated
 import LabelsTranslatedProof
 import LabelsBridge
@@ -298,6 +299,7 @@ def auditedModules : List Lean.Name := [
   `HsPrelude,
   `InfiniteHeadProof,
   `TemplateFreshProof,
+  `TemplateStateProof,
   `ImportResolution,
   `InitialWhitespace,
   `InitialWhitespaceCall,

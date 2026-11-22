@@ -33,6 +33,7 @@ done
 ./check-translate-labels.sh "$work"
 ./check-uppercase.sh "$work"
 ./check-translate-infinite-head.sh "$work"
+./check-translate-template-state.sh "$work"
 # Peg.Grammar.Assemble translated from GHC's syntax tree and proved equal to
 # the AssembleValidation models (AssembleTranslatedProof).
 ./check-translate-assemble.sh "$work"
