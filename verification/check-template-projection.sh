@@ -8,13 +8,17 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 (cd verification && LEAN_PATH="$shared_path" lean -DwarningAsError=true \
   -o "$lean_objects/TemplateProjectionProof.olean" TemplateProjectionProof.lean)
-for mutation in annotation constructor; do
+for mutation in annotation constructor file packed; do
   mutant="$work/$mutation"
   mkdir -p "$mutant"
   case "$mutation" in
-    annotation) sed 's/annotation := r.annotation.map locNat/annotation := none/' \
+    annotation) sed 's/annotation := r.annotation.map templateLoc/annotation := none/' \
       verification/PublicGeneration.lean > "$mutant/PublicGeneration.lean" ;;
     constructor) sed 's/constructor := a.constructor.map Prod.snd/constructor := none/' \
+      verification/PublicGeneration.lean > "$mutant/PublicGeneration.lean" ;;
+    file) sed 's/⟨l.file, l.line, l.col⟩/⟨0, l.line, l.col⟩/' \
+      verification/PublicGeneration.lean > "$mutant/PublicGeneration.lean" ;;
+    packed) sed 's/⟨l.file, l.line, l.col⟩/⟨l.file, 0, l.line * 100000 + l.col⟩/' \
       verification/PublicGeneration.lean > "$mutant/PublicGeneration.lean" ;;
   esac
   cmp -s verification/PublicGeneration.lean "$mutant/PublicGeneration.lean" && exit 1
@@ -29,4 +33,4 @@ for mutation in annotation constructor; do
   grep -E 'TemplateProjectionProof.lean:[0-9]+:[0-9]+: error: (Tactic|unsolved goals)' \
     "$mutant/rejected.log" > /dev/null || { cat "$mutant/rejected.log" >&2; exit 1; }
 done
-echo 'root ADR 0097 I2: template projection preserves annotations and constructors; 2 mutants rejected.'
+echo 'root ADR 0097 I2: template projection preserves locations, annotations and constructors; 4 mutants rejected.'

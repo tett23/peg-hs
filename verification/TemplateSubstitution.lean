@@ -1,7 +1,9 @@
-import Std
+import TemplateLocation
 import Lean.Elab.Tactic.Omega
 
 namespace PegHs.TemplateSubstitution
+
+abbrev Location := TemplateLocation.Location
 
 -- Item locations, Alt actions, and located value arguments are projected
 -- away: substituteAlt changes only itemExpr in these records. An item is its
@@ -11,7 +13,7 @@ inductive Expr where
   | lit (value written : String)
   | charClass (written : String)
   | any
-  | ref (location : Nat) (name : String) (args : List String)
+  | ref (location : Location) (name : String) (args : List String)
   | group (alts : List (List (Option String × Expr)))
   | star (child : Expr)
   | plus (child : Expr)
@@ -19,9 +21,9 @@ inductive Expr where
   | and (child : Expr)
   | not (child : Expr)
   | capture (child : Expr)
-  | label (location : Nat) (child : Expr) (name : String)
+  | label (location : Location) (child : Expr) (name : String)
   | predicate (polarity : Bool) (code : String)
-  | template (location : Nat) (name : String) (args : List Expr) (vals : List String)
+  | template (location : Location) (name : String) (args : List Expr) (vals : List String)
   | discard (child : Expr)
   deriving Repr
 
@@ -70,26 +72,26 @@ theorem substituteAlt_length (sub : Substitution) (items : List (Option String �
     (substituteAlt sub items).length = items.length := by
   simp [substituteAlt]
 
-theorem typed_reference (sub : Substitution) (location : Nat) (name : String)
+theorem typed_reference (sub : Substitution) (location : Location) (name : String)
     (arg : Expr) (h : sub name = some (true, arg)) :
     substitute sub false (.ref location name []) = arg := by
   simp [substitute, h]
 
-theorem untyped_reference (sub : Substitution) (location : Nat) (name : String)
+theorem untyped_reference (sub : Substitution) (location : Location) (name : String)
     (arg : Expr) (h : sub name = some (false, arg)) :
     substitute sub false (.ref location name []) = .discard arg := by
   simp [substitute, h]
 
-theorem passed_reference (sub : Substitution) (location : Nat) (name : String)
+theorem passed_reference (sub : Substitution) (location : Location) (name : String)
     (typed : Bool) (arg : Expr) (h : sub name = some (typed, arg)) :
     substitute sub true (.ref location name []) = arg := by
   simp [substitute, h]
 
-abbrev Diagnostic := Nat × String
+abbrev Diagnostic := Location × String
 
 -- These are the direct diagnostics of expandExpr's ETemplate branch. Child
 -- expansion, captures, argType, and instanceOf may append further errors.
-def valueErrors (location : Nat) (name : String) (valueParams : Nat)
+def valueErrors (location : Location) (name : String) (valueParams : Nat)
     (vals : List String) : List Diagnostic :=
   if valueParams == 0 && !vals.isEmpty then
     [(location, "the template " ++ name ++ " takes no value arguments")]
@@ -98,7 +100,7 @@ def valueErrors (location : Nat) (name : String) (valueParams : Nat)
       " value argument(s), but got " ++ toString vals.length)]
   else []
 
-def callErrors (hasTemplate : Bool) (location : Nat) (name : String)
+def callErrors (hasTemplate : Bool) (location : Location) (name : String)
     (valueParams templateParams : Nat) (args : List Expr)
     (vals : List String) : List Diagnostic :=
   if !hasTemplate then [(location, "rule " ++ name ++ " is not a template")]
@@ -108,26 +110,26 @@ def callErrors (hasTemplate : Bool) (location : Nat) (name : String)
         " argument(s), but got " ++ toString args.length)]
     else []
 
-def bareReferenceErrors (templateName : Bool) (location : Nat) (name : String) :
+def bareReferenceErrors (templateName : Bool) (location : Location) (name : String) :
     List Diagnostic :=
   if templateName then
     [(location, "the template " ++ name ++ " needs arguments: " ++ name ++ "<...>")]
   else []
 
-theorem unknownTemplate (location : Nat) (name : String)
+theorem unknownTemplate (location : Location) (name : String)
     (valueParams templateParams : Nat) (args : List Expr) (vals : List String) :
     callErrors false location name valueParams templateParams args vals =
       [(location, "rule " ++ name ++ " is not a template")] := by
   simp [callErrors]
 
-theorem noValueParameters (location : Nat) (name : String)
+theorem noValueParameters (location : Location) (name : String)
     (templateParams : Nat) (args : List Expr) (vals : List String)
     (nonempty : vals ≠ []) :
     (location, "the template " ++ name ++ " takes no value arguments") ∈
       callErrors true location name 0 templateParams args vals := by
   simp [callErrors, valueErrors, nonempty]
 
-theorem wrongValueCount (location : Nat) (name : String)
+theorem wrongValueCount (location : Location) (name : String)
     (valueParams templateParams : Nat) (args : List Expr) (vals : List String)
     (positive : 0 < valueParams) (wrong : vals.length ≠ valueParams) :
     (location, "the template " ++ name ++ " expects " ++ toString valueParams ++
@@ -136,7 +138,7 @@ theorem wrongValueCount (location : Nat) (name : String)
   have nonzero : valueParams ≠ 0 := by omega
   simp [callErrors, valueErrors, nonzero, wrong]
 
-theorem wrongTemplateArity (location : Nat) (name : String)
+theorem wrongTemplateArity (location : Location) (name : String)
     (valueParams templateParams : Nat) (args : List Expr) (vals : List String)
     (wrong : args.length ≠ templateParams) :
     (location, "the template " ++ name ++ " expects " ++ toString templateParams ++
@@ -144,7 +146,7 @@ theorem wrongTemplateArity (location : Nat) (name : String)
       callErrors true location name valueParams templateParams args vals := by
   simp [callErrors, wrong]
 
-theorem bareReferenceNeedsArguments (location : Nat) (name : String) :
+theorem bareReferenceNeedsArguments (location : Location) (name : String) :
     bareReferenceErrors true location name =
       [(location, "the template " ++ name ++ " needs arguments: " ++ name ++ "<...>")] := by
   simp [bareReferenceErrors]
@@ -177,7 +179,7 @@ theorem directCallDiagnosticVisible (errors prior : List Diagnostic)
   | nil => contradiction
   | cons d ds => simp
 
-theorem callDiagnosticVisible (hasTemplate : Bool) (location : Nat) (name : String)
+theorem callDiagnosticVisible (hasTemplate : Bool) (location : Location) (name : String)
     (valueParams templateParams : Nat) (args : List Expr) (vals : List String)
     (prior : List Diagnostic) (diagnostic : Diagnostic)
     (member : diagnostic ∈ callErrors hasTemplate location name valueParams

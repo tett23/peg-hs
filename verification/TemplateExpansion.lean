@@ -17,7 +17,7 @@ structure Job where
   args : List Expr
   captured : List (String × String)
   depth : Nat
-  location : Nat
+  location : Location
 
 structure Context where
   templates : String → Option Template
@@ -42,7 +42,7 @@ structure State where
 def addErrors (ds : List Diagnostic) : StateM State Unit :=
   modify fun st => { st with errors := ds.reverse ++ st.errors }
 
-def captureDetails (ctx : Context) (scope : List String) (location : Nat) (template : Template)
+def captureDetails (ctx : Context) (scope : List String) (location : Location) (template : Template)
     (args : List Expr) : List (String × String) × List Diagnostic :=
   let names := ctx.orderedNames args
   let bound := names.filter (fun x => decide (x ∈ scope))
@@ -59,7 +59,7 @@ def captureDetails (ctx : Context) (scope : List String) (location : Nat) (templ
   (taken, boundErrors ++ captureErrors)
 
 theorem boundCaptureDiagnostic (ctx : Context) (scope : List String)
-    (location : Nat) (template : Template) (args : List Expr) (name : String)
+    (location : Location) (template : Template) (args : List Expr) (name : String)
     (listed : name ∈ ctx.orderedNames args) (bound : name ∈ scope) :
     (location, "the argument of the template " ++ template.name ++
       " uses the binding " ++ name ++
@@ -72,7 +72,7 @@ theorem boundCaptureDiagnostic (ctx : Context) (scope : List String)
   refine ⟨name, ?_, rfl⟩
   simp [listed, bound]
 
-def argumentType (ctx : Context) (st : State) (location : Nat)
+def argumentType (ctx : Context) (st : State) (location : Location)
     (param : String × Bool) (arg : Expr) : Option String × List Diagnostic :=
   if !param.2 then (none, [])
   else match arg with
@@ -82,19 +82,19 @@ def argumentType (ctx : Context) (st : State) (location : Nat)
     | _ => (some "()", [(location, "the argument for " ++ param.1 ++
         " must be a rule, a capture or a template call, since its value is used")])
 
-theorem argumentType_untyped (ctx : Context) (st : State) (location : Nat)
+theorem argumentType_untyped (ctx : Context) (st : State) (location : Location)
     (name : String) (arg : Expr) :
     argumentType ctx st location (name, false) arg = (none, []) := by
   simp [argumentType]
 
-theorem argumentType_invalid (ctx : Context) (st : State) (location : Nat)
+theorem argumentType_invalid (ctx : Context) (st : State) (location : Location)
     (name value written : String) :
     argumentType ctx st location (name, true) (.lit value written) =
       (some "()", [(location, "the argument for " ++ name ++
         " must be a rule, a capture or a template call, since its value is used")]) := by
   simp [argumentType]
 
-def instanceOf (ctx : Context) (location depth : Nat) (template : Template)
+def instanceOf (ctx : Context) (location : Location) (depth : Nat) (template : Template)
     (args : List Expr) (captured : List (String × String))
     (types : List (Option String)) (st : State) : String × State :=
   let key := ctx.key template args captured
@@ -111,14 +111,14 @@ def instanceOf (ctx : Context) (location depth : Nat) (template : Template)
         if queried == name then some (ctx.instanceType template types)
         else st.instanceTypes queried })
 
-theorem instanceOf_existing_pending (ctx : Context) (location depth : Nat)
+theorem instanceOf_existing_pending (ctx : Context) (location : Location) (depth : Nat)
     (template : Template) (args : List Expr) (captured : List (String × String))
     (types : List (Option String)) (st : State) (name : String)
     (existing : st.instances (ctx.key template args captured) = some name) :
     (instanceOf ctx location depth template args captured types st).2.pending = st.pending := by
   simp [instanceOf, existing]
 
-theorem instanceOf_fresh_pending (ctx : Context) (location depth : Nat)
+theorem instanceOf_fresh_pending (ctx : Context) (location : Location) (depth : Nat)
     (template : Template) (args : List Expr) (captured : List (String × String))
     (types : List (Option String)) (st : State)
     (fresh : st.instances (ctx.key template args captured) = none) :
@@ -127,14 +127,14 @@ theorem instanceOf_fresh_pending (ctx : Context) (location depth : Nat)
         (depth + 1) location] := by
   simp [instanceOf, fresh]
 
-theorem instanceOf_fresh_count (ctx : Context) (location depth : Nat)
+theorem instanceOf_fresh_count (ctx : Context) (location : Location) (depth : Nat)
     (template : Template) (args : List Expr) (captured : List (String × String))
     (types : List (Option String)) (st : State)
     (fresh : st.instances (ctx.key template args captured) = none) :
     (instanceOf ctx location depth template args captured types st).2.count = st.count + 1 := by
   simp [instanceOf, fresh]
 
-theorem instanceOf_fresh_generated (ctx : Context) (location depth : Nat)
+theorem instanceOf_fresh_generated (ctx : Context) (location : Location) (depth : Nat)
     (template : Template) (args : List Expr) (captured : List (String × String))
     (types : List (Option String)) (st : State)
     (fresh : st.instances (ctx.key template args captured) = none) :

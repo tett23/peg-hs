@@ -27,7 +27,7 @@ diff -u verification/template-expansion-whole.source "$work/source"
   verification/TemplateExpansionWholeProbe.hs lean > "$work/TemplateExpansionWholeData.lean"
 
 (cd verification &&
-  for module in TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh TemplateExpansionWhole; do
+  for module in TemplateQueue TemplateLocation TemplateSubstitution TemplateExpansion TemplateExpansionFresh TemplateExpansionWhole; do
     LEAN_PATH="$work" lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean" > /dev/null
   done &&
   LEAN_PATH="$work" lean -DwarningAsError=true -R "$work" -o "$work/TemplateExpansionWholeData.olean" \
