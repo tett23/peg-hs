@@ -1,6 +1,7 @@
 import Lean
 import AssembleChars
 import GeneralCategory
+import UpperCase
 
 /-!
 The Haskell library functions that TranslateHaskell.hs maps to Lean.
@@ -50,7 +51,10 @@ added for Peg.Grammar.Assemble:
   GHC 9.10.3 by check-assemble-predicates.sh and
   check-translate-assemble.sh), `isSpace` the table `spaceRanges`;
   `isDigit`, `isHexDigit`, `isAscii`, `isAsciiUpper`, `digitToInt` and
-  `chr` are base's definitions on code points.
+  `chr` are base's definitions on code points. `toUpper` is the table of
+  UpperCase.lean; `isSymbol` and `isPunctuation` test general categories.
+  check-uppercase.sh compares every uppercase mapping and tests category
+  boundaries and mutations against GHC.
 - H11 `compare` on a type that derives `Ord` is Lean's derived `Ord`: both
   compare the constructors in their order, then the fields from left to
   right. `sortOn` with such a key is a stable sort by `compare`.
@@ -86,6 +90,7 @@ def HsChar.le (a b : HsChar) : Bool := decide (a.val ≤ b.val)
 def HsChar.fromEnum (c : HsChar) : Int := Int.ofNat c.val
 
 def HsChar.lt (a b : HsChar) : Bool := decide (a.val < b.val)
+def HsChar.gt (a b : HsChar) : Bool := HsChar.lt b a
 
 -- Data.Char.isSpace of GHC 9.10.3, as ranges of code points.
 def spaceRanges : List (Nat × Nat) := [
@@ -111,8 +116,19 @@ def HsChar.isAlphaNum (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.alp
 
 -- Rule H10: Data.Char's classifications.
 def HsChar.isSpace (c : HsChar) : Bool := inRangesNat spaceRanges c.val
+def HsChar.toUpper (c : HsChar) : HsChar :=
+  ⟨PegHs.UpperCase.ofCode c.val, PegHs.UpperCase.ofCode_bounded c.val c.isLt⟩
+
 def HsChar.isUpper (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.upperRanges c.val
 def HsChar.generalCategory (c : HsChar) : HsGeneralCategory := HsGeneralCategory.ofCode c.val
+def HsChar.isSymbol (c : HsChar) : Bool :=
+  decide (c.generalCategory = .MathSymbol ∨ c.generalCategory = .CurrencySymbol ∨
+    c.generalCategory = .ModifierSymbol ∨ c.generalCategory = .OtherSymbol)
+def HsChar.isPunctuation (c : HsChar) : Bool :=
+  decide (c.generalCategory = .ConnectorPunctuation ∨ c.generalCategory = .DashPunctuation ∨
+    c.generalCategory = .OpenPunctuation ∨ c.generalCategory = .ClosePunctuation ∨
+    c.generalCategory = .InitialQuote ∨ c.generalCategory = .FinalQuote ∨
+    c.generalCategory = .OtherPunctuation)
 def HsChar.isDigit (c : HsChar) : Bool := decide (48 ≤ c.val ∧ c.val ≤ 57)
 def HsChar.isHexDigit (c : HsChar) : Bool :=
   c.isDigit || decide (65 ≤ c.val ∧ c.val ≤ 70) || decide (97 ≤ c.val ∧ c.val ≤ 102)
@@ -183,6 +199,46 @@ def all {α : Type} (p : α → Bool) (xs : List α) : Bool := xs.all p
 def and (xs : List Bool) : Bool := xs.all (·)
 def concat {α : Type} (xss : List (List α)) : List α := xss.flatten
 def concatMap {α β : Type} (f : α → List β) (xs : List α) : List β := xs.flatMap f
+-- Consume only the head of a filtered infinite Integer enumeration. Running
+-- out of evaluation fuel is undefined, not the source's empty-list branch.
+def firstFrom {α β : Type} [Inhabited β] :
+    Nat → Int → (Int → List α) → (α → β) → β
+  | 0, _, _, _ => hsUndefined
+  | fuel + 1, start, step, result =>
+    match step start with
+    | [] => firstFrom fuel (start + 1) step result
+    | value :: _ => result value
+
+theorem firstFrom_hit {α β : Type} [Inhabited β]
+    (step : Int → List α) (result : α → β) (offset : Nat) :
+    ∀ (start : Int) (fuel : Nat) (value : α) (tail : List α),
+      offset < fuel →
+      (∀ i : Nat, i < offset → step (start + i) = []) →
+      step (start + offset) = value :: tail →
+      firstFrom fuel start step result = result value := by
+  induction offset with
+  | zero =>
+    intro start fuel value tail enough _ hit
+    cases fuel with
+    | zero => omega
+    | succ fuel =>
+      have hit' : step start = value :: tail := by simpa using hit
+      simp only [firstFrom, hit']
+  | succ offset ih =>
+    intro start fuel value tail enough earlier hit
+    cases fuel with
+    | zero => omega
+    | succ fuel =>
+      have empty := earlier 0 (by omega)
+      simp only [Int.natCast_zero, Int.add_zero] at empty
+      rw [firstFrom, empty]
+      apply ih (start + 1) fuel value tail (by omega)
+      · intro i before
+        have h := earlier (i + 1) (by omega)
+        simpa only [Int.natCast_add, Int.natCast_one, Int.add_assoc,
+          Int.add_left_comm, Int.add_comm] using h
+      · simpa only [Int.natCast_add, Int.natCast_one, Int.add_assoc,
+          Int.add_left_comm, Int.add_comm] using hit
 def foldr {α β : Type} (f : α → β → β) (z : β) (xs : List α) : β := xs.foldr f z
 def catMaybes {α : Type} (xs : List (Option α)) : List α := xs.filterMap (·)
 -- A stable insertion sort by an integer key.
@@ -233,6 +289,15 @@ theorem break_cons_snd_length {α : Type} {p : α → Bool} {x : α} {xs a b : L
   rw [← h.2]
   exact this
 def foldl {α β : Type} (f : β → α → β) (z : β) (xs : List α) : β := xs.foldl f z
+def sumInteger (xs : List Int) : Int := xs.foldl (· + ·) 0
+
+theorem sumInteger_eq_sum (xs : List Int) : sumInteger xs = xs.sum := by
+  have fold (values : List Int) (acc : Int) : values.foldl (· + ·) acc = acc + values.sum := by
+    induction values generalizing acc with
+    | nil => simp
+    | cons x rest ih => simp [List.foldl, ih, Int.add_assoc]
+  simpa [sumInteger] using fold xs 0
+
 def pure {α : Type} (a : α) : List α := [a]
 -- Rule H11: a stable insertion sort by a key with a derived Ord.
 def insertOnOrd {α β : Type} [Ord β] (key : α → β) (x : α) : List α → List α
@@ -297,6 +362,8 @@ def foldM {α β : Type} (f : β → α → Option β) (z : β) : List α → Op
   | x :: xs => match f z x with
     | none => none
     | some z' => foldM f z' xs
+def isNothing {α : Type} (value : Option α) : Bool := value.isNone
+
 def isJust {α : Type} : Option α → Bool
   | some _ => true
   | none => false
@@ -334,7 +401,13 @@ def drop (n : Int) (s : String) : String := String.ofList (s.toList.drop n.toNat
 -- T.pack replaces a surrogate code point with U+FFFD.
 def toChar (c : HsChar) : Char :=
   if c.val.isValidChar then Char.ofNat c.val else '\uFFFD'
+def head (text : String) : HsChar :=
+  match text.toList with
+  | [] => hsUndefined
+  | c :: _ => HsChar.ofChar c
+
 def pack (cs : List HsChar) : String := String.ofList (cs.map toChar)
+def filter (predicate : HsChar → Bool) (text : String) : String := String.ofList (text.toList.filter (fun c => predicate (HsChar.ofChar c)))
 def all (p : HsChar → Bool) (s : String) : Bool := s.toList.all (fun c => p (HsChar.ofChar c))
 def span (p : HsChar → Bool) (s : String) : String × String :=
   (String.ofList (s.toList.takeWhile (fun c => p (HsChar.ofChar c))),
@@ -361,6 +434,7 @@ def concat (ts : List String) : String := String.join ts
 -- Rule H12.
 def unpack (s : String) : List HsChar := s.toList.map HsChar.ofChar
 def singleton (c : HsChar) : String := String.singleton (toChar c)
+def cons (c : HsChar) (text : String) : String := singleton c ++ text
 def foldl' {α : Type} (f : α → HsChar → α) (z : α) (s : String) : α := (unpack s).foldl f z
 def any_ (p : HsChar → Bool) (s : String) : Bool := s.toList.any (fun c => p (HsChar.ofChar c))
 def takeWhile (p : HsChar → Bool) (s : String) : String := (span p s).1
@@ -447,6 +521,7 @@ instance {κ ν : Type} [BEq κ] [BEq ν] : BEq (HsMap κ ν) := ⟨beq⟩
 end HsMap
 
 namespace HsSet
+def null {α : Type} (s : HsSet α) : Bool := s.elems.isEmpty
 def member {α : Type} [BEq α] (x : α) (s : HsSet α) : Bool := s.elems.any (· == x)
 def insert {α : Type} [BEq α] (x : α) (s : HsSet α) : HsSet α := if member x s then s else ⟨s.elems ++ [x]⟩
 def fromList {α : Type} [BEq α] (xs : List α) : HsSet α := xs.foldl (fun s x => insert x s) ⟨[]⟩
@@ -523,7 +598,7 @@ elab "hs_sizes" " [" lemmas:ident,* "]" : tactic => withMainContext do
 
 /-! ## show compared for equality -/
 
--- Rule H7: `show` at a type other than Int is translated only where its
+-- Rule H7: `show` at a type other than Int or Integer is translated only where its
 -- results are compared with each other (the key of a set). Haskell's derived
 -- Show and Lean's derived Repr are both injective, so the comparisons agree.
 def HsShow.viaRepr {α : Type} [Repr α] (x : α) : List HsChar :=

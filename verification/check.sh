@@ -24,13 +24,15 @@ export LEAN_PATH="$work"
 runghc-9.10.3 -Werror ExtractReservedWords.hs ../packages/peg-grammar/src/Peg/Grammar.hs > "$work/GrammarReservedWords.lean"
 lean -DwarningAsError=true -R "$work" -o "$work/GrammarReservedWords.olean" "$work/GrammarReservedWords.lean"
 
-for module in Guard LineIndex Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh TemplateExpansionWhole Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleChars GeneralCategory AssemblePredicates AssembleBindings AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation HsPrelude LabelCheckCharSet LabelCheckModel LabelCheckTermination LabelCheckTheorems CheckGroupsModel CheckGroupsReach CheckGroupsTheorems; do
+for module in Guard LineIndex Parsing Header Lexical Nullable Reachable Literal Signatures File Consumption CallOrder RecursiveEval Whitespace TemplateQueue TemplateSubstitution TemplateExpansion TemplateExpansionFresh TemplateExpansionWhole Pipeline DirectiveNames AssembleValidationHelpers DirectiveHex BoundedDecimal AssembleChars GeneralCategory UpperCase AssemblePredicates AssembleBindings AssembleValidation NestedBindings DirectiveStringDiagnostic DirectiveDuplicates Pragmas RenderExpression RuleRejection RuleRejectionRefs RuleRejectionRepeat RuleRejectionNullable ExpressionDepth EscapePredicates ParameterPredicates SemanticPredicates CapturedPredicates ImportResolution InnerGeneration InnerUnicode PublicParsing LabelPropagation HsPrelude LabelCheckCharSet LabelCheckModel LabelCheckTermination LabelCheckTheorems CheckGroupsModel CheckGroupsReach CheckGroupsTheorems; do
   lean -DwarningAsError=true -o "$work/$module.olean" "$module.lean"
 done
 # Peg.Grammar.Labels translated from GHC's syntax tree (TranslateHaskell.hs)
 # and proved equal to LabelCheckModel (LabelsTranslatedProof, LabelsBridge,
 # LabelsBridgeSim, LabelsBridgeCheck).
 ./check-translate-labels.sh "$work"
+./check-uppercase.sh "$work"
+./check-translate-infinite-head.sh "$work"
 # Peg.Grammar.Assemble translated from GHC's syntax tree and proved equal to
 # the AssembleValidation models (AssembleTranslatedProof).
 ./check-translate-assemble.sh "$work"

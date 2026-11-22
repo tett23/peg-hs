@@ -114,6 +114,33 @@ theorem boundedSearch_first (base : String) (original generated : List String)
   simp at occupied
   exact occupied
 
+-- This characterization has no finite upper bound: it describes the first
+-- available element of the infinite enumeration starting at `start`.
+theorem boundedSearch_eq_iff_first (base : String) (original generated : List String)
+    (start k : Nat) :
+    boundedSearch base original generated start = some k ↔
+      start ≤ k ∧ decimalName base k ∉ original ∧ decimalName base k ∉ generated ∧
+      (∀ j, start ≤ j → j < k →
+        decimalName base j ∈ original ∨ decimalName base j ∈ generated) := by
+  constructor
+  · intro found
+    obtain ⟨lower, _, freeOriginal, freeGenerated, earlier⟩ :=
+      boundedSearch_first base original generated start k found
+    exact ⟨lower, freeOriginal, freeGenerated, earlier⟩
+  · rintro ⟨lower, freeOriginal, freeGenerated, earlier⟩
+    obtain ⟨found, success⟩ := boundedSearch_succeeds base original generated start
+    obtain ⟨foundLower, _, foundFreeOriginal, foundFreeGenerated, foundEarlier⟩ :=
+      boundedSearch_first base original generated start found success
+    have same : found = k := by
+      have notBefore : ¬found < k := by
+        intro before
+        exact (earlier found foundLower before).elim foundFreeOriginal foundFreeGenerated
+      have notAfter : ¬k < found := by
+        intro after
+        exact (foundEarlier k lower after).elim freeOriginal freeGenerated
+      omega
+    simpa only [same] using success
+
 -- The Int depth is incremented only after it was at most 64; the first
 -- rejected depth is 65, far below the minimum bound of an Int64.
 theorem bounded_depth_increment (depth : Nat) (h : depth ≤ 64) : depth + 1 ≤ 65 := by
@@ -123,5 +150,6 @@ theorem bounded_depth_increment (depth : Nat) (h : depth ≤ 64) : depth + 1 ≤
 #print axioms PegHs.TemplateExpansion.fresh_avoids_original_and_generated
 #print axioms PegHs.TemplateExpansion.boundedSearch_succeeds
 #print axioms PegHs.TemplateExpansion.boundedSearch_first
+#print axioms PegHs.TemplateExpansion.boundedSearch_eq_iff_first
 
 end PegHs.TemplateExpansion
