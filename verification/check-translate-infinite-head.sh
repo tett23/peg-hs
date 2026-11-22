@@ -25,6 +25,17 @@ compile "$lean_objects/InfiniteHeadTranslated.lean"
 compile "$PWD/verification/InfiniteHeadProof.lean"
 
 : > "$work/empty.hints"
+# Implicit methods used by a do-block's default (>>) remain dependencies
+# when the requested root is a local function.
+"$work/translate" "$libdir" verification verification/LocalRootProbe.hs \
+  LocalRootTranslated "$work/empty.hints" outer.local > "$lean_objects/LocalRootTranslated.lean"
+compile "$lean_objects/LocalRootTranslated.lean"
+cat > "$lean_objects/LocalRootCheck.lean" <<'LEAN'
+import LocalRootTranslated
+example (x : Int) : LocalRootTranslated.outer.local__14 x = LocalRootTranslated.Box.Box x := by rfl
+LEAN
+compile "$lean_objects/LocalRootCheck.lean"
+
 "$work/translate" "$libdir" verification verification/TemplateLibraryProbe.hs \
   TemplateLibraryTranslated "$work/empty.hints" numbers flags texts scanned dropped ascending \
   > "$lean_objects/TemplateLibraryTranslated.lean"

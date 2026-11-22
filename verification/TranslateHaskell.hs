@@ -1612,7 +1612,7 @@ run libdir srcdir file namespace hintsFile roots = do
             let next = [x | m <- namesIn b, Just x <- [M.lookup (nkey m) topKeys]]
              in reach (M.insert (nkey n) (n, b, sp) seen) (next ++ rest)
       reached0 = reach M.empty rootBinds
-      usesInstances = any (\(_, b, _) -> hasDo b) (M.elems reached0)
+      usesInstances = any (\(_, b, _) -> usesInstanceSyntax b) (M.elems reached0)
       reached = if usesInstances then reach reached0 [(n, b, sp) | (_, _, n, b, sp) <- instBinds] else reached0
   -- Lift local functions.
   let topDefs = M.elems reached
@@ -1672,7 +1672,10 @@ run libdir srcdir file namespace hintsFile roots = do
             )
           | (n, b, sp, outer) <- allBinds
           ]
-      selected r d = if '.' `elem` r then hintKeyOf (dLean d) == r else occ (dName d) == r
+      selected r d = if '.' `elem` r
+        then any (\(n, _, _, outer) -> nkey n == nkey (dName d) &&
+          maybe False (\owner -> occ owner ++ "." ++ occ n == r) outer) allBinds
+        else occ (dName d) == r
       selectedKeys = [nkey (dName d) | d <- M.elems allDefs, any (`selected` d) roots]
       rootClosure seen [] = seen
       rootClosure seen (k : ks)
@@ -1680,7 +1683,9 @@ run libdir srcdir file namespace hintsFile roots = do
         | otherwise = case M.lookup k allDefs of
             Nothing -> rootClosure seen ks
             Just d -> rootClosure (S.insert k seen)
-              ([nkey n | n <- namesIn (dBind d), M.member (nkey n) allDefs] ++ ks)
+              ([nkey n | n <- namesIn (dBind d), M.member (nkey n) allDefs]
+                ++ [nkey n | usesInstanceSyntax (dBind d), (_, _, n, _, _) <- instBinds]
+                ++ ks)
       wanted = rootClosure S.empty selectedKeys
       defs = if any (elem '.') roots
         then M.filterWithKey (\k _ -> S.member k wanted) allDefs
@@ -1950,6 +1955,14 @@ collectNamed :: Data a => a -> [(String, Int, Type)]
 collectNamed x = case cast x of
   Just (v :: Var) -> [(occ (varName v), nkey (varName v), varType v)]
   Nothing -> concat (gmapQ collectNamed x)
+
+-- A do-block's default (>>) needs fmap and (<*>), even when their names do
+-- not occur in the source tree. Explicit class-method uses need them too.
+usesInstanceSyntax :: Data a => a -> Bool
+usesInstanceSyntax x = hasDo x || any method (namesIn x)
+  where
+    method n = "GHC." `isPrefixOf` modOf n &&
+      occ n `elem` ["fmap", "<$>", "<*>", "pure", ">>=", ">>"]
 
 hintKeyOf :: String -> String
 hintKeyOf l = if '.' `elem` l then reverse (drop 1 (dropWhile (/= '_') (reverse l))) else l
