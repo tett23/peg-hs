@@ -53,6 +53,7 @@ abbrev Item := Option String × Expr
 structure Alt where
   items : List Item
   action : Option String
+  constructor : Option String := none
   deriving Repr
 
 structure Rule where
@@ -62,6 +63,7 @@ structure Rule where
   templateParams : List (String × Option String)
   type : String
   alts : List Alt
+  annotation : Option Nat := none
   deriving Repr
 
 -- The fields of the grammar that expandTemplates reads or writes; the others

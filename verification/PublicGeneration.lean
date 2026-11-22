@@ -229,7 +229,9 @@ def Rule.toTemplate (r : Rule) : TemplateExpansionWhole.Rule where
   params := r.params
   templateParams := r.templateParams
   type := r.type
-  alts := r.alts.map fun a => { items := itemsT a.items, action := a.action.map (·.2) }
+  alts := r.alts.map fun a =>
+    { items := itemsT a.items, action := a.action.map (·.2), constructor := a.constructor.map Prod.snd }
+  annotation := r.annotation.map locNat
 
 def toTemplate (g : Grammar) : TemplateExpansionWhole.Grammar where
   rules := g.rules.map Rule.toTemplate
