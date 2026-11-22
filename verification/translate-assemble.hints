@@ -1,0 +1,49 @@
+-- Hints for TranslateHaskell.hs on Peg.Grammar.Assemble. Lean checks every
+-- termination_by and decreasing_by. `@{outer.inner}` names a lifted function;
+-- `equations NAME` keeps the equations of the discriminants and of the
+-- pattern bindings in NAME for the decreasing proofs (hs_decreasing).
+--
+-- The tokens of an export item: the rest after a word is shorter.
+equations isExportItem.tokens
+decreasing isExportItem.tokens
+  termination_by ($1).length
+  decreasing_by all_goals hs_decreasing
+-- The names of an export list: member consumes a token.
+before isExportItem.names
+  theorem isExportItem.member_shrinks (r a : Bool) (ts rest : List (List HsChar))
+      (h : @{isExportItem.member} r a ts = some rest) : rest.length < ts.length := by
+    unfold @{isExportItem.member} at h
+    repeat' split at h
+    all_goals simp_all
+    all_goals omega
+equations isExportItem.names
+decreasing isExportItem.names
+  termination_by ($1).length
+  decreasing_by
+    all_goals
+      have := isExportItem.member_shrinks _ _ _ _ (by assumption)
+      hs_decreasing
+-- The comment of a directive: each call consumes a character.
+equations directiveComment.outside
+decreasing directiveComment.outside
+  termination_by ($2).length
+  decreasing_by all_goals hs_decreasing
+equations directiveComment.inside
+decreasing directiveComment.inside
+  termination_by ($2).length
+  decreasing_by all_goals hs_decreasing
+-- A string of %expect or %message: each call consumes a character.
+equations decodeString.go
+decreasing decodeString.go
+  termination_by ($3).length
+  decreasing_by all_goals hs_decreasing
+equations decodeString.escape
+decreasing decodeString.escape
+  termination_by ($4).length
+  decreasing_by all_goals hs_decreasing
+equations decodeString.unicode
+decreasing decodeString.unicode
+  termination_by ($4).length
+  decreasing_by all_goals hs_decreasing
+-- The local values of assemble are definitions of their own, for the proof.
+lift assemble

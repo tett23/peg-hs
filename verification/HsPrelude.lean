@@ -1,5 +1,6 @@
 import Lean
 import AssembleChars
+import GeneralCategory
 
 /-!
 The Haskell library functions that TranslateHaskell.hs maps to Lean.
@@ -35,6 +36,29 @@ evaluation rule of the translation (ADR 0097: "翻訳器と Haskell の評価規
   value) instead of an error. A function translated with fuel gives the
   Haskell value at every fuel large enough when the Haskell evaluation
   terminates.
+
+Rules H7 and H8 are stated where their functions are defined. The rules
+added for Peg.Grammar.Assemble:
+
+- H9 Types. `Either a b` is `Except a b` (`Left` is `error`, `Right` is
+  `ok`), `Integer` is `Int`, `Natural` is `Nat`, and `GeneralCategory` is
+  `HsGeneralCategory`. `fromInteger` and `toInteger` between `Int` and
+  `Integer` are the identity (rule H1: no `Int` overflows), and `maxBound`
+  at `Int` is 2^63 - 1. The monad of `Either` binds as base's instance.
+- H10 Data.Char: `isUpper` is the table of AssembleChars,
+  `generalCategory` the table of GeneralCategory.lean (both rebuilt from
+  GHC 9.10.3 by check-assemble-predicates.sh and
+  check-translate-assemble.sh), `isSpace` the table `spaceRanges`;
+  `isDigit`, `isHexDigit`, `isAscii`, `isAsciiUpper`, `digitToInt` and
+  `chr` are base's definitions on code points.
+- H11 `compare` on a type that derives `Ord` is Lean's derived `Ord`: both
+  compare the constructors in their order, then the fields from left to
+  right. `sortOn` with such a key is a stable sort by `compare`.
+- H12 The functions of Data.Text in the second part of `HsText` (from
+  `foldl'`) compute what text-2.1 computes on the scalar values of the text;
+  `breakOn`, `breakOnEnd` and `splitOn` are given a nonempty needle.
+- H13 `M.toList` and `M.elems` list a map in the ascending order of its
+  keys, by the keys' `Ord`.
 -/
 
 /-! ## Characters -/
@@ -61,6 +85,8 @@ def HsChar.le (a b : HsChar) : Bool := decide (a.val ≤ b.val)
 
 def HsChar.fromEnum (c : HsChar) : Int := Int.ofNat c.val
 
+def HsChar.lt (a b : HsChar) : Bool := decide (a.val < b.val)
+
 -- Data.Char.isSpace of GHC 9.10.3, as ranges of code points.
 def spaceRanges : List (Nat × Nat) := [
   (0x9, 0xd),
@@ -83,6 +109,24 @@ def isSpaceChar (c : Char) : Bool := inRangesNat spaceRanges c.toNat
 def HsChar.isAlpha (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.alphaRanges c.val
 def HsChar.isAlphaNum (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.alphaNumRanges c.val
 
+-- Rule H10: Data.Char's classifications.
+def HsChar.isSpace (c : HsChar) : Bool := inRangesNat spaceRanges c.val
+def HsChar.isUpper (c : HsChar) : Bool := inRangesNat PegHs.AssembleChars.upperRanges c.val
+def HsChar.generalCategory (c : HsChar) : HsGeneralCategory := HsGeneralCategory.ofCode c.val
+def HsChar.isDigit (c : HsChar) : Bool := decide (48 ≤ c.val ∧ c.val ≤ 57)
+def HsChar.isHexDigit (c : HsChar) : Bool :=
+  c.isDigit || decide (65 ≤ c.val ∧ c.val ≤ 70) || decide (97 ≤ c.val ∧ c.val ≤ 102)
+def HsChar.isAscii (c : HsChar) : Bool := decide (c.val < 128)
+def HsChar.isAsciiUpper (c : HsChar) : Bool := decide (65 ≤ c.val ∧ c.val ≤ 90)
+-- digitToInt fails on a character that is not a hexadecimal digit: 0 (H6).
+def HsChar.digitToInt (c : HsChar) : Int :=
+  if c.isDigit then Int.ofNat c.val - 48
+  else if decide (97 ≤ c.val ∧ c.val ≤ 102) then Int.ofNat c.val - 87
+  else if decide (65 ≤ c.val ∧ c.val ≤ 70) then Int.ofNat c.val - 55
+  else 0
+-- chr fails outside 0 .. 0x10FFFF: the character 0 (H6).
+def HsChar.chr (n : Int) : HsChar := HsChar.ofNat n.toNat
+
 /-! ## Integers -/
 
 namespace HsInt
@@ -96,6 +140,12 @@ def neg (a : Int) : Int := -a
 def max (a b : Int) : Int := if a ≤ b then b else a
 def min (a b : Int) : Int := if a ≤ b then a else b
 def «show» (a : Int) : List HsChar := (toString a).toList.map HsChar.ofChar
+def mul (a b : Int) : Int := a * b
+-- div rounds towards negative infinity.
+def div (a b : Int) : Int := Int.fdiv a b
+def toInteger (a : Int) : Int := a
+def fromInteger (a : Int) : Int := a
+def maxBound : Int := 9223372036854775807
 end HsInt
 
 /-! ## Functions of base -/
@@ -153,6 +203,44 @@ def zipFrom {α : Type} (n : Int) : List α → List (Int × α)
 -- [a .. b]
 def enumFromTo (a b : Int) : List Int :=
   (List.range (b + 1 - a).toNat).map (fun i => a + Int.ofNat i)
+def reverse {α : Type} (xs : List α) : List α := xs.reverse
+def lookup {α β : Type} [BEq α] (k : α) : List (α × β) → Option β
+  | [] => none
+  | (a, b) :: rest => if a == k then some b else lookup k rest
+def span {α : Type} (p : α → Bool) (xs : List α) : List α × List α := (xs.takeWhile p, xs.dropWhile p)
+def «break» {α : Type} (p : α → Bool) (xs : List α) : List α × List α := span (fun x => !p x) xs
+theorem span_snd_length_le {α : Type} (p : α → Bool) (xs : List α) :
+    (span p xs).2.length ≤ xs.length := by
+  induction xs with
+  | nil => simp [span]
+  | cons x xs ih =>
+    simp only [span, List.dropWhile_cons] at ih ⊢
+    split <;> simp <;> omega
+theorem span_cons_snd {α : Type} (p : α → Bool) (x : α) (xs : List α) (h : p x = true) :
+    (span p (x :: xs)).2 = (span p xs).2 := by
+  simp [span, h]
+theorem span_eq_snd_length {α : Type} {p : α → Bool} {xs a b : List α} (h : span p xs = (a, b)) :
+    b.length ≤ xs.length := by
+  have := span_snd_length_le p xs
+  rw [h] at this
+  exact this
+-- break that does not stop at the first element leaves at most the tail.
+theorem break_cons_snd_length {α : Type} {p : α → Bool} {x : α} {xs a b : List α}
+    (h : «break» p (x :: xs) = (a, b)) (hx : p x = false) : b.length ≤ xs.length := by
+  have := span_snd_length_le (fun y => !p y) xs
+  simp only [«break», span, List.dropWhile_cons, hx] at h this
+  simp at h
+  rw [← h.2]
+  exact this
+def foldl {α β : Type} (f : β → α → β) (z : β) (xs : List α) : β := xs.foldl f z
+def pure {α : Type} (a : α) : List α := [a]
+-- Rule H11: a stable insertion sort by a key with a derived Ord.
+def insertOnOrd {α β : Type} [Ord β] (key : α → β) (x : α) : List α → List α
+  | [] => [x]
+  | y :: ys => if compare (key x) (key y) != .gt then x :: y :: ys else y :: insertOnOrd key x ys
+def sortOnOrd {α β : Type} [Ord β] (key : α → β) : List α → List α
+  | [] => []
+  | x :: xs => insertOnOrd key x (sortOnOrd key xs)
 end HsList
 
 -- Lean's termination checker attaches membership to the elements that these
@@ -203,8 +291,33 @@ def mapM {α β : Type} (f : α → Option β) : List α → Option (List β)
     | none => none
     | some y => match mapM f xs with
       | none => none
-      | some ys => some (y :: ys)
+          | some ys => some (y :: ys)
+def foldM {α β : Type} (f : β → α → Option β) (z : β) : List α → Option β
+  | [] => some z
+  | x :: xs => match f z x with
+    | none => none
+    | some z' => foldM f z' xs
+def isJust {α : Type} : Option α → Bool
+  | some _ => true
+  | none => false
+-- bind with the equation of the bound value, for Lean's termination checker.
+def bindAttach {α β : Type} : (o : Option α) → ((a : α) → o = some a → Option β) → Option β
+  | none, _ => none
+  | some a, f => f a rfl
+@[wf_preprocess] theorem bind_eq_bindAttach {α β : Type} (o : Option α) (f : α → Option β) :
+    bind o f = bindAttach o (fun a _ => f a) := by
+  cases o <;> rfl
 end HsMaybe
+
+namespace HsEither
+def pure {ε α : Type} (a : α) : Except ε α := .ok a
+def bind {ε α β : Type} : Except ε α → (α → Except ε β) → Except ε β
+  | .error e, _ => .error e
+  | .ok a, k => k a
+def fmap {ε α β : Type} (f : α → β) : Except ε α → Except ε β
+  | .error e => .error e
+  | .ok a => .ok (f a)
+end HsEither
 
 /-! ## Data.Text -/
 
@@ -245,6 +358,53 @@ def isInfixList (needle hay : List Char) : Bool :=
   | _ :: rest => needle.isPrefixOf hay || isInfixList needle rest
 def isInfixOf (needle hay : String) : Bool := isInfixList needle.toList hay.toList
 def concat (ts : List String) : String := String.join ts
+-- Rule H12.
+def unpack (s : String) : List HsChar := s.toList.map HsChar.ofChar
+def singleton (c : HsChar) : String := String.singleton (toChar c)
+def foldl' {α : Type} (f : α → HsChar → α) (z : α) (s : String) : α := (unpack s).foldl f z
+def any_ (p : HsChar → Bool) (s : String) : Bool := s.toList.any (fun c => p (HsChar.ofChar c))
+def takeWhile (p : HsChar → Bool) (s : String) : String := (span p s).1
+def stripStart (s : String) : String := String.ofList (s.toList.dropWhile isSpaceChar)
+def stripEnd (s : String) : String :=
+  String.ofList ((s.toList.reverse.dropWhile isSpaceChar).reverse)
+def splitAt (n : Int) (s : String) : String × String := (take n s, drop n s)
+def isSuffixOf (a b : String) : Bool := a.toList.reverse.isPrefixOf b.toList.reverse
+def takeWhileEnd (p : HsChar → Bool) (s : String) : String :=
+  String.ofList ((s.toList.reverse.takeWhile (fun c => p (HsChar.ofChar c))).reverse)
+def dropEnd (n : Int) (s : String) : String :=
+  String.ofList (s.toList.take (s.toList.length - n.toNat))
+-- The characters before the first occurrence of a nonempty needle, and the rest.
+def breakOnList (needle : List Char) : List Char → List Char × List Char
+  | [] => ([], [])
+  | c :: cs =>
+    if needle.isPrefixOf (c :: cs) then ([], c :: cs)
+    else let r := breakOnList needle cs; (c :: r.1, r.2)
+def breakOn (needle s : String) : String × String :=
+  let r := breakOnList needle.toList s.toList
+  (String.ofList r.1, String.ofList r.2)
+-- breakOnEnd: breakOn on the reversed needle and text, reversed back.
+def breakOnEnd (needle s : String) : String × String :=
+  let r := breakOnList needle.toList.reverse s.toList.reverse
+  (String.ofList r.2.reverse, String.ofList r.1.reverse)
+-- The parts between the occurrences of a nonempty needle, from the left.
+def splitOnList (needle : List Char) (xs : List Char) : List (List Char) :=
+  match needle with
+  | [] => [xs]
+  | n :: ns => go (n :: ns) xs xs.length
+where
+  go (needle xs : List Char) : Nat → List (List Char)
+    | 0 => [xs]
+    | fuel + 1 =>
+      let r := breakOnList needle xs
+      if r.2.isEmpty then [r.1] else r.1 :: go needle (r.2.drop needle.length) fuel
+def splitOn (needle s : String) : List String := (splitOnList needle.toList s.toList).map String.ofList
+-- T.words: the maximal runs of characters that are not spaces.
+def wordsList : List Char → List Char → List (List Char)
+  | cur, [] => if cur.isEmpty then [] else [cur.reverse]
+  | cur, c :: cs =>
+    if isSpaceChar c then (if cur.isEmpty then [] else [cur.reverse]) ++ wordsList [] cs
+    else wordsList (c :: cur) cs
+def words (s : String) : List String := (wordsList [] s.toList).map String.ofList
 end HsText
 
 /-! ## Data.Map and Data.Set -/
@@ -274,6 +434,12 @@ def fromListWith {κ ν : Type} [BEq κ] (f : ν → ν → ν) (xs : List (κ �
 def findWithDefault {κ ν : Type} [BEq κ] (d : ν) (k : κ) (m : HsMap κ ν) : ν :=
   (lookup k m).getD d
 def keysSet {κ ν : Type} (m : HsMap κ ν) : HsSet κ := ⟨m.pairs.map (·.1)⟩
+-- Rule H13: the pairs in the ascending order of the keys.
+def insertByKey {κ ν : Type} [Ord κ] (p : κ × ν) : List (κ × ν) → List (κ × ν)
+  | [] => [p]
+  | q :: qs => if compare p.1 q.1 == .lt then p :: q :: qs else q :: insertByKey p qs
+def toList {κ ν : Type} [Ord κ] (m : HsMap κ ν) : List (κ × ν) := m.pairs.foldr insertByKey []
+def elems {κ ν : Type} [Ord κ] (m : HsMap κ ν) : List ν := (toList m).map (·.2)
 -- Extensional equality, as containers' Eq.
 def beq {κ ν : Type} [BEq κ] [BEq ν] (a b : HsMap κ ν) : Bool :=
   a.pairs.all (fun p => lookup p.1 b == some p.2) && b.pairs.all (fun p => member p.1 a)
@@ -299,6 +465,15 @@ instance {α : Type} [BEq α] : BEq (HsSet α) := ⟨beq⟩
 end HsSet
 
 /-! ## Termination of translated recursion -/
+
+/-- Decreasing lengths of lists, for the hints: the equations of the
+discriminants (and of the values of `span`) give the lengths. -/
+macro "hs_decreasing" : tactic => `(tactic| (
+  simp_wf <;>
+  (try (have := HsList.span_eq_snd_length (by assumption))) <;>
+  (try (have := HsList.break_cons_snd_length (by assumption) (by simp_all [HsList.elem, HsBase.or, HsBase.eq] <;> grind))) <;>
+  (try simp_all +zetaDelta) <;>
+  (try omega)))
 
 open Lean in
 /-- The closed arguments of the applications in a term. -/

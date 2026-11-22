@@ -101,6 +101,13 @@ import LabelsTranslatedProof
 import LabelsBridge
 import LabelsBridgeSim
 import LabelsBridgeCheck
+import GeneralCategory
+import AssembleTranslated
+import AssembleTextProof
+import AssembleExportProof
+import AssembleStringProof
+import AssembleDirectiveProof
+import AssembleTranslatedProof
 import CheckGroupsTheorems
 import InnerGeneration
 import InnerUnicode
@@ -122,6 +129,7 @@ import RenderFinalizeModule
 import PublicGeneration
 import SelfHostedRuntime
 import ScopedEnv
+import LoopBindings
 import SelfHostedMemo
 import RuntimeForms
 import PublicGenerationGHC
@@ -296,11 +304,19 @@ def auditedModules : List Lean.Name := [
   `LabelsBridgeSim,
   `LabelsTranslated,
   `LabelsTranslatedProof,
+  `GeneralCategory,
+  `AssembleTranslated,
+  `AssembleTextProof,
+  `AssembleExportProof,
+  `AssembleStringProof,
+  `AssembleDirectiveProof,
+  `AssembleTranslatedProof,
   `LabeledConcreteBody,
   `LayoutDerivation,
   `Lexical,
   `LineIndex,
   `Literal,
+  `LoopBindings,
   `MemoKeyEnvironment,
   `MemoKeyTransfer,
   `MemoMetaNoLR,
@@ -405,7 +421,8 @@ run_cmd do
     let some idx := env.getModuleIdx? moduleName | throwError "missing module {moduleName}"
     owners := owners.insert idx.toNat moduleName
     counts := counts.insert moduleName 0
-  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore, `LabelsTranslated]
+  let generated := [`TranslatedEscapes, `TranslatedArity, `TranslatedTabstop, `TranslatedRuntimeCore, `LabelsTranslated,
+    `AssembleTranslated]
   let mut own := 0
   for (name, info) in env.constants.toList do
     -- Declarations of this file have no module index.

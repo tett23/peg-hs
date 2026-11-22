@@ -12,12 +12,11 @@ vacuous. PublicPremisesMeta applies them to the two metagrammars.
   to `Grammar` with `lift`, a right inverse of `toTemplate` on the grammars
   whose start directive is that of the input (`toTemplate_lift`). The model
   keeps the start directive (`expandTemplates_start`).
-- `assembleAgrees`: `checkedErrors` returns the errors of the
-  AssembleValidation model of the items' view.
 
-These are witnesses, not the Haskell functions: the Haskell `expandTemplates`
-and `assemble` are tied to the models by the probes that the module header of
-PublicGeneration names.
+This is a witness, not the Haskell function: the Haskell `expandTemplates`
+is tied to the model by the probe that the module header of PublicGeneration
+names. `assemble` is translated (AssembleTranslated), and no premise ties it
+to its model (AssembleTranslatedProof.assemble_agrees).
 -/
 
 namespace PegHs.PublicGeneration
@@ -181,15 +180,8 @@ noncomputable def modelExpand (env : TemplateExpansionWhole.Env)
   | .error ds => .error (ds.map templateDiag)
   | .ok t => .ok (lift g t)
 
-def checkedErrors {T : Type} (view : List T → List AssembleValidation.Top) (t : List T) : List String :=
-  match AssembleValidation.assemble (view t) with
-  | .ok () => []
-  | .error es => es
-
 noncomputable def modelInputs {T : Type} (s : Inputs T) : Inputs T :=
-  { s with
-    expand := modelExpand s.env s.classify s.templateDiag
-    assemblyErrors := checkedErrors s.view }
+  { s with expand := modelExpand s.env s.classify s.templateDiag }
 
 theorem modelExpand_refines (env : TemplateExpansionWhole.Env)
     (classify : TemplateExpansionWhole.Grammar → TemplateExpansionWhole.Known)
@@ -209,15 +201,6 @@ theorem modelExpand_refines (env : TemplateExpansionWhole.Env)
   | error ds => rfl
   | ok t => exact toTemplate_lift g t (expandTemplates_start spec)
 
-theorem checkedErrors_agree {T : Type} (view : List T → List AssembleValidation.Top) (t : List T)
-    (errors : checkedErrors view t = []) : AssembleValidation.assemble (view t) = .ok () := by
-  unfold checkedErrors at errors
-  cases h : AssembleValidation.assemble (view t) with
-  | ok u => rfl
-  | error es =>
-    rw [h] at errors
-    exact absurd errors (AssembleValidation.assemble_failure_nonempty _ es h)
-
 theorem modelInputs_expand {T : Type} (s : Inputs T) :
     (modelInputs s).expand = modelExpand s.env s.classify s.templateDiag := by
   simp only [modelInputs]
@@ -228,11 +211,6 @@ theorem modelInputs_classify {T : Type} (s : Inputs T) : (modelInputs s).classif
   simp only [modelInputs]
 theorem modelInputs_templateDiag {T : Type} (s : Inputs T) :
     (modelInputs s).templateDiag = s.templateDiag := by
-  simp only [modelInputs]
-theorem modelInputs_view {T : Type} (s : Inputs T) : (modelInputs s).view = s.view := by
-  simp only [modelInputs]
-theorem modelInputs_assemblyErrors {T : Type} (s : Inputs T) :
-    (modelInputs s).assemblyErrors = checkedErrors s.view := by
   simp only [modelInputs]
 
 theorem modelInputs_premises {T : Type} (s : Inputs T) : Premises (modelInputs s) := by
@@ -246,10 +224,6 @@ theorem modelInputs_premises {T : Type} (s : Inputs T) : Premises (modelInputs s
     generalize modelExpand s.env s.classify s.templateDiag g = e
     intro hr
     cases r <;> cases e <;> simp only [Refines, modelInputs_templateDiag] at hr ⊢ <;> exact hr
-  · intro t _ errors _
-    rw [modelInputs_assemblyErrors] at errors
-    rw [modelInputs_view]
-    exact checkedErrors_agree s.view t errors
 
 end PegHs.PublicGeneration
 

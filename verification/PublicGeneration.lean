@@ -2,6 +2,7 @@ import FileTops
 import SelfHostedRuntime
 import PublicEntryProof
 import AssembleValidation
+import AssembleTranslatedProof
 import ImportResolution
 import TemplateExpansionWhole
 import TemplateQueue
@@ -36,8 +37,10 @@ The stages, in the order of Codegen's `generateWithWarnings`:
 - `parse`: `parseGrammar src = parseTops src >>= assemble`, the checked
   translation of PublicParsing (TranslatedEntry, translate-public-entry.awk)
   applied to the start result of the File rule run on the translated runtime
-  (`SelfHostedRuntime.runtimeStart`). `invariant1_runtimeStart_eq` shows
-  that it is the `startTops` of FileTops for the derivation's reply;
+  (`SelfHostedRuntime.runtimeStart`), and the translation of `assemble` from
+  GHC's syntax tree (AssembleTranslated, TranslateHaskell.hs).
+  `invariant1_runtimeStart_eq` shows that the start result is the
+  `startTops` of FileTops for the derivation's reply;
 - `resolve`: ImportResolution.resolve, with `lookupLibrary` reading each
   library with the same `tops` and `assembleTops` as `parse` and with
   `libraryErrors` (Import.libraryErrors);
@@ -68,8 +71,10 @@ Theorems:
   undefined rule), the public entry returns at least one diagnostic and no
   module text.
 - `invariant1_generateWithWarnings`: a module text implies that parseTops
-  derived the whole input (FileTops.ParsesTo) and that the assemble model
-  accepts its items; `invariant1_parse_iff` is the stage itself.
+  derived the whole input (FileTops.ParsesTo), that the translated assemble
+  accepted its items, and that the assemble model accepts their view
+  (AssembleTranslatedProof.assemble_agrees); `invariant1_parse_iff` is the
+  stage itself.
 - `invariant3_generateWithWarnings_text`: a module text is
   `finalize shown marker (render g a marker)` for the expanded, checked
   target grammar, with the marker that selectMarker picks from the first
@@ -84,16 +89,15 @@ Premises (the fields of `Inputs` and `Premises`, not proved here):
   of the Haskell result, and a rejection's diagnostics are the model's,
   rendered. TemplateExpansionWholeProbe compares the two on parsed grammars.
   The fields of `Grammar` that the view drops are not constrained.
-- `Premises.assembleAgrees` (invariant 1 only): when the Haskell `assemble`
-  accepts the items, the AssembleValidation model accepts their view.
 - Unmodelled functions, taken as parameters: the diagnostic texts
-  (`Inputs.failure`, `Inputs.diag`, `Inputs.templateDiag`), the
-  construction of the grammar by `assemble` (`assemblyErrors`, `moduleName`,
-  `build`), the functions of resolveImports that ImportResolution takes as
+  (`Inputs.failure`, `Inputs.diag`, `Inputs.templateDiag`,
+  `Inputs.diagText`), the view of the grammar that the translated `assemble`
+  builds (`Inputs.grammar`), the Haskell `Top` items of the parsed items
+  (`Inputs.items`), the functions of resolveImports that ImportResolution takes as
   inputs, `classify` (`oracle`, `classify`), `undefinedExports` (`missing`),
   `render` and the value of each top item (`value`). Pipeline models
   `[Diagnostic]` as a list of strings, so the stage models' diagnostics are
-  rendered by `diag` and `templateDiag`. public-hypotheses.allow lists each
+  rendered by `diag`, `templateDiag` and `diagText`. public-hypotheses.allow lists each
   with the reason that permits it; PublicHypotheses.lean reads them from the
   types of the public theorems.
 - The premises of the stage modules that these theorems use. The premises of
@@ -267,15 +271,13 @@ structure Inputs (T : Type) where
   -- parseTops: the value of each top item and the text of a failure.
   value : FileTops.Kind → Nat → T
   failure : PublicParsing.Failure → String
-  -- assemble: its errors, its module name, the grammar it builds, the error
-  -- without a module, the location of an error, and the view of the items
-  -- that AssembleValidation reads.
-  assemblyErrors : List T → List String
-  moduleName : List T → Option (Loc × String)
-  build : List T → Loc × String → Grammar
-  missingModule : String
+  -- assemble (translated): the Haskell `Top` items of the parsed items, the
+  -- text of a diagnostic, the view of the grammar it builds, and the
+  -- location of a diagnostic text (resolveImports sorts by it).
+  items : List T → List AssembleTranslated.Top
+  diagText : AssembleTranslated.Diagnostic → String
+  grammar : AssembleTranslated.Grammar → Grammar
   diagLoc : String → Loc
-  view : List T → List AssembleValidation.Top
   -- resolveImports (ImportResolution's inputs). A library is read by
   -- `lookupLibrary` below from its text, `lookup p texts`.
   libraryRoot : String
@@ -311,11 +313,19 @@ variable {T : Type}
 
 /-! ## The stages -/
 
+-- assemble on the parsed items: the translation of `Assemble.hs`.
+def assembleTops (s : Inputs T) (t : List T) : Except Diagnostics Grammar :=
+  match AssembleTranslated.assemble (s.items t) with
+  | .ok g => .ok (s.grammar g)
+  | .error ds => .error (ds.map s.diagText)
+
 noncomputable def parse (s : Inputs T) (input : List Char) : Except Diagnostics Grammar :=
   PublicParsing.translatedGrammar input.utf8Encode.size
-    (SelfHostedRuntime.runtimeStart s.value input) s.failure
-    (fun t => PublicParsing.translatedAssemble (s.assemblyErrors t) (s.moduleName t) (s.build t)
-      s.missingModule (PublicParsing.diagnosticSortOn s.diagLoc locGt))
+    (SelfHostedRuntime.runtimeStart s.value input) s.failure (assembleTops s)
+
+-- The view of the items that AssembleValidation reads.
+def view (s : Inputs T) (ts : List T) : List AssembleValidation.Top :=
+  AssembleTranslatedProof.view (s.items ts)
 
 -- `(<=)` on `diagLoc`, the order of resolveImports' `sortOn diagLoc`, with the derived
 -- order of `Loc` (check-public-generation.sh fixes it).
@@ -327,9 +337,10 @@ noncomputable def tops (s : Inputs T) (input : List Char) : Except Diagnostics (
   PublicParsing.translatedPublic s.failure (PublicParsing.translatedRuntime input.utf8Encode.size
     (SelfHostedRuntime.runtimeStart s.value input))
 
-def assembleTops (s : Inputs T) (t : List T) : Except Diagnostics Grammar :=
-  PublicParsing.translatedAssemble (s.assemblyErrors t) (s.moduleName t) (s.build t)
-    s.missingModule (PublicParsing.diagnosticSortOn s.diagLoc locGt)
+theorem assembleTops_ok_iff (s : Inputs T) (t : List T) (g : Grammar) :
+    assembleTops s t = .ok g ↔ ∃ tg, AssembleTranslated.assemble (s.items t) = .ok tg ∧ s.grammar tg = g := by
+  unfold assembleTops
+  split <;> simp_all
 
 theorem parse_tops (s : Inputs T) (input : List Char) :
     parse s input = (tops s input).bind (assembleTops s) := rfl
@@ -419,8 +430,6 @@ def Refines (s : Inputs T) :
 structure Premises (s : Inputs T) : Prop where
   expandRefines : ∀ g, ∃ r, TemplateExpansionWhole.ExpandTemplates s.env s.classify (toTemplate g) r ∧
     Refines s r (s.expand g)
-  assembleAgrees : ∀ t m, s.assemblyErrors t = [] → s.moduleName t = some m →
-    AssembleValidation.assemble (s.view t) = .ok ()
 
 /-! ## Each stage: a rejection carries a diagnostic -/
 
@@ -438,16 +447,13 @@ theorem parse_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostic
   | ok t =>
     rw [hr] at h
     simp only [PublicParsing.translatedPublic, Except.bind] at h
-    unfold PublicParsing.translatedAssemble at h
+    unfold assembleTops at h
     split at h
-    · split at h
-      · cases h
-      · cases h; simp
     · cases h
-      intro empty
-      have := congrArg List.length empty
-      rw [PublicParsing.invariant2_diagnosticSortOn_length] at this
-      simp at this
+    · rename_i es he
+      cases h
+      have := AssembleTranslatedProof.assemble_error_nonempty _ es he
+      simpa using this
 
 theorem tops_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostics)
     (h : tops s input = .error ds) : ds ≠ [] := by
@@ -466,16 +472,13 @@ theorem tops_error_nonempty (s : Inputs T) (input : List Char) (ds : Diagnostics
 
 theorem assembleTops_error_nonempty (s : Inputs T) (t : List T) (ds : Diagnostics)
     (h : assembleTops s t = .error ds) : ds ≠ [] := by
-  unfold assembleTops PublicParsing.translatedAssemble at h
+  unfold assembleTops at h
   split at h
-  · split at h
-    · cases h
-    · cases h; simp
   · cases h
-    intro empty
-    have := congrArg List.length empty
-    rw [PublicParsing.invariant2_diagnosticSortOn_length] at this
-    simp at this
+  · rename_i es he
+    cases h
+    have := AssembleTranslatedProof.assemble_error_nonempty _ es he
+    simpa using this
 
 -- The premises of ImportResolution about the libraries hold: a library that
 -- parseTops or assemble rejects carries a diagnostic.
@@ -658,10 +661,11 @@ theorem invariant2_undefined_reference_public (s : Inputs T) (input : List Char)
 -- assemble accepts its items.
 theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
     parse s input = .ok g ↔
-      ∃ ts m, FileTops.ParsesTo s.value input ts ∧ s.assemblyErrors ts = [] ∧
-        s.moduleName ts = some m ∧ s.build ts m = g := by
+      ∃ ts tg, FileTops.ParsesTo s.value input ts ∧
+        AssembleTranslated.assemble (s.items ts) = .ok tg ∧ s.grammar tg = g := by
   unfold parse
-  rw [SelfHostedRuntime.invariant1_runtimeStart_eq, PublicParsing.invariant1_translated_grammar_assembled]
+  rw [SelfHostedRuntime.invariant1_runtimeStart_eq, PublicParsing.invariant1_translated_grammar]
+  simp only [assembleTops_ok_iff]
   have entry (ts : List T) :
       FileTops.startTops s.value input (MetaExecution.recognizeFile false input).val =
           .ok input.utf8Encode.size ts ↔ FileTops.ParsesTo s.value input ts := by
@@ -669,15 +673,21 @@ theorem invariant1_parse_iff (s : Inputs T) (input : List Char) (g : Grammar) :
     exact FileTops.invariant1_parseTops_value s.value (MetaExecution.recognizeFile false input).property
       s.failure ts
   simp only [entry]
+  constructor
+  · rintro ⟨ts, hts, tg, ha, hg⟩
+    exact ⟨ts, tg, hts, ha, hg⟩
+  · rintro ⟨ts, tg, hts, ha, hg⟩
+    exact ⟨ts, hts, tg, ha, hg⟩
 
-theorem invariant1_generateWithWarnings (s : Inputs T) (p : Premises s) (input : List Char)
+theorem invariant1_generateWithWarnings (s : Inputs T) (input : List Char)
     (code : String) (success : publicModule s input = .ok code) :
-    ∃ ts m, FileTops.ParsesTo s.value input ts ∧ s.assemblyErrors ts = [] ∧
-      s.moduleName ts = some m ∧ AssembleValidation.assemble (s.view ts) = .ok () := by
+    ∃ ts tg, FileTops.ParsesTo s.value input ts ∧
+      AssembleTranslated.assemble (s.items ts) = .ok tg ∧
+      AssembleValidation.assemble (view s ts) = .ok () := by
   unfold publicModule generateWithWarnings at success
   obtain ⟨parsed, _, _, hp, _⟩ := (Pipeline.invariant3_visible_success_iff ..).mp success
-  obtain ⟨ts, m, hts, he, hm, _⟩ := (invariant1_parse_iff s input parsed).mp hp
-  exact ⟨ts, m, hts, he, hm, p.assembleAgrees ts m he hm⟩
+  obtain ⟨ts, tg, hts, ha, _⟩ := (invariant1_parse_iff s input parsed).mp hp
+  exact ⟨ts, tg, hts, ha, AssembleTranslatedProof.assemble_agrees _ tg ha⟩
 
 -- No derivation of the whole input: one diagnostic and no module.
 theorem invariant1_no_derivation (s : Inputs T) (input : List Char)

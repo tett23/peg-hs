@@ -45,6 +45,7 @@ SelfHostedFileProof	メタ文法の規則本体と認識	translated
 SelfHostedRuntime	メタ文法の規則本体と認識	translated
 SelfHostedMemo	メタ文法の規則本体と認識	translated
 ScopedEnv	メタ文法の規則本体と認識	translated
+LoopBindings	メタ文法の規則本体と認識	translated
 TranslatedStrictFile	メタ文法の規則本体と認識	translated
 TranslatedRuntimeChoice	メタ文法の規則本体と認識	translated
 TranslatedVerbatimBody	メタ文法の規則本体と認識	translated
@@ -73,8 +74,8 @@ TranslatedRuntimeCore	ランタイム	translated
 Memo*	ランタイム	translated
 LabelPropagation	ランタイム	translated
 LineIndex	位置の行と列	model
-Assemble*	assemble の検査	model
-NestedBindings	assemble の検査	model
+Assemble*	assemble の検査	translated
+NestedBindings	assemble の検査	translated
 SimpleEscapeProof	指示の引数	translated
 TabstopProof	指示の引数	translated
 BoundedDecimal	指示の引数	translated

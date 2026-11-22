@@ -38,12 +38,10 @@ PegHs.PublicGeneration.invariant2_group_error_public hG : G ∈ PegHs.CheckGroup
 PegHs.PublicGeneration.invariant2_group_error_public hd : d ∈ G	ADR 0097:57 不変条件 2 の前件 (構文違反、検査の拒否条件)
 Inputs.value : PegHs.FileTops.Kind → Nat → T	UNRESOLVED 構文木の値 (Haskell のアクション) を翻訳していない
 Inputs.failure : PegHs.PublicParsing.Failure → String	ADR 0097:44 translate-public-entry.awk は parseTops の診断の文面を引数に抽象する
-Inputs.assemblyErrors : List T → List String	UNRESOLVED assemble の誤りを翻訳していない (Premises.assembleAgrees でモデルに結ぶ)
-Inputs.moduleName : List T → Option (PegHs.LabelCheck.Loc × String)	UNRESOLVED assemble のモジュール名の選択を翻訳していない
-Inputs.build : List T → PegHs.LabelCheck.Loc × String → PegHs.PublicGeneration.Grammar	UNRESOLVED assemble が組み立てる文法を翻訳していない
-Inputs.missingModule : String	UNRESOLVED 診断の文面を定義していない
+Inputs.items : List T → List AssembleTranslated.Top	UNRESOLVED 構文木の値 (Haskell のアクション) を翻訳していない
+Inputs.diagText : AssembleTranslated.Diagnostic → String	UNRESOLVED 診断の文面を定義していない
+Inputs.grammar : AssembleTranslated.Grammar → PegHs.PublicGeneration.Grammar	UNRESOLVED 翻訳した assemble の文法から Grammar への写しを定義していない
 Inputs.diagLoc : String → PegHs.LabelCheck.Loc	UNRESOLVED 診断の位置を翻訳していない
-Inputs.view : List T → List PegHs.AssembleValidation.Top	UNRESOLVED 項目から AssembleValidation の Top への写しを翻訳していない
 Inputs.libraryRoot : String	UNRESOLVED 診断の文面を定義していない
 Inputs.directiveNames : PegHs.PublicGeneration.Grammar → List String	UNRESOLVED directiveRules を翻訳していない
 Inputs.libraryText : String → Option (List Char)	ADR 0097:33 読み込み済みのライブラリの集合 (resolveImports の texts)
@@ -70,32 +68,3 @@ Inputs.missing : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Analysis �
 Inputs.render : PegHs.PublicGeneration.Grammar → PegHs.CheckGroups.Analysis → String → String	UNRESOLVED render を翻訳していない (render の翻訳は別の課題)
 Inputs.shown : String	ADR 0097:33 生成オプション (LINE プラグマに書くファイルの名前)
 Premises.expandRefines : ∀ (g : PegHs.PublicGeneration.Grammar), ∃ r, PegHs.TemplateExpansionWhole.ExpandTemplates s.env s.classify (PegHs.PublicGeneration.toTemplate g) r ∧ PegHs.PublicGeneration.Refines s r (s.expand g)	UNRESOLVED 実装とモデルの対応の前提。プローブで比べるだけで証明していない
-Premises.assembleAgrees : ∀ (t : List T) (m : PegHs.LabelCheck.Loc × String), s.assemblyErrors t = [] → s.moduleName t = some m → PegHs.AssembleValidation.assemble (s.view t) = Except.ok ()	UNRESOLVED 実装とモデルの対応の前提。プローブで比べるだけで証明していない
-definition PegHs.PublicGeneration.parse -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.parse -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.parse -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.parse -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.tops -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.tops -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.tops -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.tops -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.lookupLibrary -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.lookupLibrary -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.resolve -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.resolve -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateWithWarnings -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.publicModule -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.publicModule -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.ParsesTo	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.Tops	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateFromSource -> PegHs.FileTops.Chain	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
-definition PegHs.PublicGeneration.generateFromSource -> PegHs.EnvironmentEval.Derives	UNRESOLVED R7: parse の値の列は runtimeStart が ParsesTo の導出から選ぶ (Classical.choose)
