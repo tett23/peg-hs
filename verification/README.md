@@ -448,6 +448,16 @@ GHC の文字判定との対応には、`isAlpha` と `isAlphaNum` の前提 H2�
 この定理が扱うのは前提 A1 のうち展開を省く分岐であり、テンプレートを展開する分岐の対応は未証明である。
 `check-translate-templates.sh` は、実際のソースでテンプレート呼び出しを見落とす変更を、翻訳と型検査の後で判定の対応の証明が拒否することを確かめる。
 
+[TemplateSizeProof.lean](TemplateSizeProof.lean) は、実際の `exprSize` と引数列のサイズの合計が、射影したモデルの自然数のノード数と一致することを示す。
+`root_adr0097_i2_limits_refine` は、深さが非負であるという前提で、深さが 64 またはサイズが 10000 を超える条件式と、モデルの `allowed` の否定が一致することを示す。
+
+次の二つの定理は、先頭の仕事の深さが非負で、深さまたはサイズが上限を超える場合を扱う。
+`root_adr0097_i2_rejected_step` は、上限として 64 と 10000 を渡した実際の `drain` について、上限を超える先頭の仕事を外し、診断を追加した状態で残りを同じ順に処理する次の呼び出しと一致することを示す。
+`root_adr0097_i2_rejected_singleton_diagnostic` は、仕事がその一件だけなら、二つ以上の燃料で空のインスタンス規則列を返し、待ち行列が空で診断が一件以上あることを示す。
+複数の仕事を持つ待ち行列全体で十分な燃料が存在することと、公開入口までつなぐ対応は引き続き未証明である。
+
+`check-translate-templates.sh` は、式の基本ノード数を 1 から 2 にする変更と、深さとサイズの両方が超えたときだけ拒否する変更を、翻訳と型検査の後で対応の証明が拒否することを確かめる。
+
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。
@@ -836,7 +846,7 @@ RenderComposition.lean と RenderFinalizeModule.lean の定理は任意の文法
 
 ## GHC との対応
 
-証明と検査は、GHC 9.10.3、Happy 2.1.7、Lean 4.35.0 に固定する。
+証明と検査は、GHC 9.10.3、Happy 2.1.7、Lean 4.36.0 に固定する。
 [check-ghc-parser-trace.sh](check-ghc-parser-trace.sh) は、GHC と Happy の版を確かめ、`Parser.y` の SHA-256 が `331304d8f4007fc7c329e48d56f98e0ebe502bc51b1b443d0ec923febca83952` であることを確かめる。
 check-render-expression-lexer.sh、check-render-printing.sh、check-render-module-operators.sh は、`Lexer.x` の SHA-256 を照合する。
 Happy は `Parser.y` から表と情報ファイルを作り、[ExtractHappyGrammar.hs](ExtractHappyGrammar.hs) が情報ファイルの名前付きの規則を Lean の文法 `productions` に翻訳する。
