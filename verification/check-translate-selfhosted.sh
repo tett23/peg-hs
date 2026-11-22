@@ -59,6 +59,14 @@ runghc-9.10.3 -Werror verification/ExtractRuntimeCore.hs packages/peg-runtime/sr
 compile "$lean_objects/TranslatedRuntimeForms.lean"
 compile "$PWD/verification/HsPegRuntime.lean"
 
+# root ADR 0097 I3: the generated runtime table and its abstraction proofs
+# must coexist in Audit.lean without duplicate declarations.
+cat > "$lean_objects/RuntimeFormsImportCheck.lean" <<'LEAN'
+import RuntimeForms
+import HsPegRuntime
+LEAN
+compile "$lean_objects/RuntimeFormsImportCheck.lean"
+
 # 3. The generated parser.
 translate() {
   "$work/translate" "$libdir" "$1/peg-grammar/src:$1/peg-runtime/src" \

@@ -494,7 +494,7 @@ runtimeType n as = case (n, as) of
   ("P", [r, s, a]) -> Just (appT "PegHs.RuntimeCore.P" [r, s, a])
   ("Table", [s, a]) -> Just (appT "PegHs.RuntimeCore.Table" [s, a])
   ("ArgTable", [s, k, a]) -> Just (appT "PegHs.RuntimeCore.ArgTable" [s, k, a])
-  ("Span", []) -> Just "PegHs.RuntimeCore.Span"
+  ("Span", []) -> Just "PegHs.GeneratedRuntimeForms.Span"
   _ -> Nothing
   where
     appT f xs = "(" ++ unwords (f : xs) ++ ")"
@@ -508,8 +508,8 @@ runtimeFunctions =
 runtimeName :: String -> Maybe String
 runtimeName o
   | o `elem` runtimeFunctions = Just ("HsPegRt." ++ o)
-  | o `elem` ["spanStart", "spanEnd"] = Just ("PegHs.RuntimeCore.Span." ++ o)
-  | o == "Span" = Just "PegHs.RuntimeCore.Span.Span"
+  | o `elem` ["spanStart", "spanEnd"] = Just ("PegHs.GeneratedRuntimeForms.Span." ++ o)
+  | o == "Span" = Just "PegHs.GeneratedRuntimeForms.Span.Span"
   | otherwise = Nothing
 
 -- The monad of the runtime: its methods. Its (>>) is base's default for a

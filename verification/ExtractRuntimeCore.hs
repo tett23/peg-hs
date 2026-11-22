@@ -35,7 +35,9 @@ main = do
   if forms
     then mapM_ putStrLn ["import TranslatedRuntimeCore", "import PositionTranslated"]
     else putStrLn "import RuntimeCore"
-  putStrLn "namespace PegHs.RuntimeCore"
+  let namespaceName = if forms then "PegHs.GeneratedRuntimeForms" else "PegHs.RuntimeCore"
+  putStrLn ("namespace " ++ namespaceName)
+  if forms then putStrLn "open PegHs.RuntimeCore" else pure ()
   putStrLn "noncomputable section"
   mapM_ putStrLn (if forms then formPrelude else [])
   forM_ (if forms then formFunctions else functions) $ \(header, rules, epilogue) -> do
@@ -45,7 +47,7 @@ main = do
     mapM_ putStrLn epilogue
     putStrLn ""
   putStrLn "end"
-  putStrLn "end PegHs.RuntimeCore"
+  putStrLn ("end " ++ namespaceName)
 
 isInfixOfLines :: [String] -> [String] -> Bool
 isInfixOfLines needle hay = any (needle `isPrefixOf`) (suffixes hay)

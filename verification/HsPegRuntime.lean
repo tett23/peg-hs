@@ -56,11 +56,11 @@ def memo (sel : ρ → Table σ α) (name : List HsChar) (body : P ρ σ α) : P
   PegHs.RuntimeCore.memo sel (str name) body
 def memoArg (sel : ρ → ArgTable σ Int α) (name : List HsChar) (k : Int) (body : P ρ σ α) : P ρ σ α :=
   PegHs.RuntimeCore.memoArg sel (str name) k body
-def capture (p : P ρ σ α) : P ρ σ String := PegHs.RuntimeCore.capture p
-def predicate (f : Int → Bool) : P ρ σ Unit := PegHs.RuntimeCore.predicate f
-def withCol (f : Int → P ρ σ α) : P ρ σ α := PegHs.RuntimeCore.withCol f
-def getOffset : P ρ σ Int := PegHs.RuntimeCore.getOffset
-def spanFrom (start : Int) : P ρ σ PegHs.RuntimeCore.Span := PegHs.RuntimeCore.spanFrom start
+def capture (p : P ρ σ α) : P ρ σ String := PegHs.GeneratedRuntimeForms.capture p
+def predicate (f : Int → Bool) : P ρ σ Unit := PegHs.GeneratedRuntimeForms.predicate f
+def withCol (f : Int → P ρ σ α) : P ρ σ α := PegHs.GeneratedRuntimeForms.withCol f
+def getOffset : P ρ σ Int := PegHs.GeneratedRuntimeForms.getOffset
+def spanFrom (start : Int) : P ρ σ PegHs.GeneratedRuntimeForms.Span := PegHs.GeneratedRuntimeForms.spanFrom start
 
 /-- A generated store is built of refs; their default is never read. -/
 instance {τ : Type} [Inhabited τ] : Inhabited (Ref σ τ) := ⟨⟨fun _ => default, fun _ w => w⟩⟩
@@ -71,7 +71,7 @@ instance : Inhabited (PegHs.RuntimeCore.ST σ α) := ⟨fun _ => none⟩
 /-- The erased position of RuntimeCore.lean (premise R4) is the offset of the
 full position. -/
 theorem posAtPos_offset (c : Ctx ρ) (i : Nat) :
-    (posAtPos c i).posOffset = Int.ofNat (posAt c i) := rfl
+    (PegHs.GeneratedRuntimeForms.posAtPos c i).posOffset = Int.ofNat (posAt c i) := rfl
 
 end
 end HsPegRt
