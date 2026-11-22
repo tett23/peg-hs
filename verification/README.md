@@ -435,6 +435,13 @@ GHC の文字判定との対応には、`isAlpha` と `isAlphaNum` の前提 H2�
 同じ入力への文字列の読み飛ばしと走査の再帰を、停止性の検査が拒否することも確かめる。
 この比較と停止性は、抽出結果が Haskell の自由変数と一致することや、展開全体の前提 A1 の証明を含まない。
 
+[TemplateBindingsProof.lean](TemplateBindingsProof.lean) は、実際の `itemBinds` と `exprBinds` が集める束縛名、および `exprCode` と `altCode` が集めるコードが、射影したモデルと順序と重複を含めて一致することを示す。
+式の射影は `pExpr` を使い、選択肢と規則の射影を `pAlt` と `pRule` として定義する。
+`root_adr0097_i2_body_names_refine` は、モデルの `Env.idents` が実際の `haskellIdents` と一致するという前提で、テンプレート本体の名前の収集結果がモデルの `bodyNames` と一致することを示す。
+ここで比べるのは、実装が集合を作る前のリストである。
+相互再帰する `itemBinds` と `exprBinds` も、要素と式のサイズの減少により燃料を取らない。
+`check-translate-templates.sh` は、実際のソースで束縛名を捨てる変更と規則呼び出しのコードを捨てる変更を、翻訳と型検査の後で対応の証明が拒否することを確かめる。
+
 [check-template-expansion-whole.sh](check-template-expansion-whole.sh) がモデルを実装に結びつける。
 このスクリプトは、モデルが写す `Templates.hs` の範囲を [template-expansion-whole.source](template-expansion-whole.source) と照合する。
 続いて、[TemplateExpansionWholeProbe.hs](TemplateExpansionWholeProbe.hs) が `parseGrammar` で読んだ 11 個の文法を、実際の `expandTemplates` とモデルの両方で展開し、規則の型を除いた結果を比べる。

@@ -29,6 +29,7 @@ compile "$PWD/verification/TemplateCollectionsProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
 compile "$PWD/verification/CodeLexerProof.lean"
+compile "$PWD/verification/TemplateBindingsProof.lean"
 
 # Reuse the same eleven grammars as the model's probe, without copying its
 # projection: Generic serialization writes every field, including types.
@@ -156,6 +157,23 @@ for mutation in string scan; do
   }
   cp packages/peg-grammar/src/Peg/Grammar.hs "$work/grammar/Peg/Grammar.hs"
 done
+# The actual expression folds must retain both binding names and code.
+for mutation in binding code; do
+  case "$mutation" in
+    binding) sed 's/itemBinds i = maybe \[\] pure (itemBind i) ++ exprBinds (itemExpr i)/itemBinds i = exprBinds (itemExpr i)/' packages/peg-grammar/src/Peg/Grammar/Templates.hs ;;
+    code) sed 's/ERef _ _ args -> map unLoc args/ERef _ _ _ -> []/' packages/peg-grammar/src/Peg/Grammar/Templates.hs ;;
+  esac > "$work/grammar/Peg/Grammar/Templates.hs"
+  cmp -s packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs" && exit 1
+  translate "$work/grammar" > "$lean_objects/TemplatesTranslated.lean"
+  compile "$lean_objects/TemplatesTranslated.lean"
+  if compile "$PWD/verification/TemplateBindingsProof.lean" > "$work/bindings-$mutation.log" 2>&1; then
+    echo "root ADR 0097 I2: accepted discarded template $mutation" >&2; exit 1
+  fi
+  grep -E "TemplateBindingsProof.lean:[0-9]+:[0-9]+: error: (Tactic|unsolved goals|Type mismatch|'rewrite' tactic failed)" "$work/bindings-$mutation.log" > /dev/null || {
+    cat "$work/bindings-$mutation.log" >&2; exit 1;
+  }
+  cp packages/peg-grammar/src/Peg/Grammar/Templates.hs "$work/grammar/Peg/Grammar/Templates.hs"
+done
 # Three well-typed semantic errors in the actual substitution: reverse the
 # typed/untyped result, discard a passed argument, or drop an action.
 for mutation in typed passed action; do
@@ -223,4 +241,5 @@ compile "$PWD/verification/TemplatesTranslatedProof.lean"
 compile "$PWD/verification/TemplateSubstitutionBridge.lean"
 compile "$PWD/verification/TemplateIdentifiersProof.lean"
 compile "$PWD/verification/CodeLexerProof.lean"
-echo 'root ADR 0097 I2: whole template translation, state/error proofs and 12 mutants checked.'
+compile "$PWD/verification/TemplateBindingsProof.lean"
+echo 'root ADR 0097 I2: whole template translation, state/error proofs and 14 mutants checked.'
